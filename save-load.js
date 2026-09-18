@@ -302,6 +302,11 @@ function buildBoardState() {
         if (w.dataset.type === 'nombres-chiffres-lettres' && typeof w._nclGetData === 'function') {
             nclData = w._nclGetData();
         }
+        // Données propres au widget pixel art
+        let pixelartData = null;
+        if (w.dataset.type === 'pixelart' && typeof w._pxlGetData === 'function') {
+            pixelartData = w._pxlGetData();
+        }
         widgets.push({
 			type: w.dataset.subtype === 'seyes' ? 'seyes' : w.dataset.subtype === 'droite-num' ? 'droite-num' : w.dataset.type, topPercent: tP, leftPercent: lP, widthPercent: wP, contentHPercent: hP,
 			html, content: html, iframeSrc: iframe?.src || null,
@@ -348,7 +353,8 @@ function buildBoardState() {
 			saData,
 			mmData,
 			dnData,
-			nclData
+			nclData,
+			pixelartData
 		});
     });
     const shapes = [];
@@ -772,6 +778,12 @@ function restoreBoardFromJSON(json) {
         } else if (w.type === 'nombres-chiffres-lettres') {
             if (typeof createNombresLettresWidget === 'function') {
                 widget = createNombresLettresWidget(w.nclData || null);
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'pixelart') {
+            if (typeof createPixelArtWidget === 'function') {
+                widget = createPixelArtWidget(w.pixelartData || null);
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

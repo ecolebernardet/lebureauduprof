@@ -1031,6 +1031,7 @@ function setVisuelsMode(mode) {
 <script src="widget-calendrier.js"></script>
 <script src="widget-repro-quadrillage.js"></script>
 <script src="widget-symetrie-axiale.js"></script>
+<script src="widget-pixelart.js"></script>
 <script src="widget-motsmeles.js"></script>
 <script src="widget-droite-num.js"></script>
 <div id="laser-pointer"></div>
@@ -1271,12 +1272,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
     <div id="act-panel-content">
         <div class="act-section-label">🎲 Activités de mathématiques</div>
         <div class="act-grid">
-			<div class="act-card" onclick="createTableauNumWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-tableau-numeration6.png" alt="Tableau de numération" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Tableau de numération</div>
-                <div class="act-card-desc">Manipuler le tableau de numération décimale</div>
-            </div>
-            <div class="act-card" onclick="createWidget('calcul');toggleActivitiesPanel()">
+			<div class="act-card" onclick="createWidget('calcul');toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-calcul-mental6.png" alt="Calcul mental" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Calcul mental</div>
                 <div class="act-card-desc">S'entraîner au calcul mental</div>
@@ -1285,6 +1281,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activites-compteestbon6.jpeg" alt="Le compte est bon" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Le compte est bon</div>
                 <div class="act-card-desc">Viser un nombre cible avec les opérations</div>
+            </div>
+			<div class="act-card" onclick="createTableauNumWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-tableau-numeration6.png" alt="Tableau de numération" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Tableau de numération</div>
+                <div class="act-card-desc">Manipuler le tableau de numération décimale</div>
             </div>
             <div class="act-card" onclick="createNombresLettresWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-nombre-chiffres-lettres.jpeg" alt="Le compte est bon" style="width:100%;height:100%;object-fit:contain;"></div>
@@ -1345,6 +1346,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activites-symetrie6.jpeg" alt="Symétrie axiale" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Symétrie axiale</div>
                 <div class="act-card-desc">Dessiner une figure et son symétrique par rapport à un axe</div>
+            </div>
+			<div class="act-card" onclick="createPixelArtWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-pixelart2.jpeg" alt="Pixel Art" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎨'"></div>
+                <div class="act-card-name">Pixel Art</div>
+                <div class="act-card-desc">Colorier une grille de pixels librement ou à partir d'un modèle</div>
             </div>
 		</div>
 		<div class="act-section-label">🎲 Activités de français</div>

@@ -284,6 +284,16 @@
             color: #3730a3;
         }
         .pixelart-btn-pdf:hover { background: #c7d2fe; }
+        .pixelart-btn-save {
+            background: #e6f4ea;
+            color: #1a7a3a;
+        }
+        .pixelart-btn-save:hover { background: #d3ecd9; }
+        .pixelart-btn-load {
+            background: #fef3e2;
+            color: #92610b;
+        }
+        .pixelart-btn-load:hover { background: #fbe6c4; }
         .pixelart-warn {
             font-size: 10px;
             font-weight: 700;
@@ -293,6 +303,26 @@
             white-space: nowrap;
         }
         .pixelart-warn.show { opacity: 1; }
+        .pixelart-warn.success { color: #1a7a3a; }
+
+        /* Barre "Sauver" (nommer le fichier avant téléchargement) */
+        .pixelart-save-bar {
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+        .pixelart-save-bar.show { display: flex; }
+        .pixelart-save-input {
+            flex: 1;
+            min-width: 100px;
+            padding: 6px 10px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 12px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .pixelart-save-input:focus { border-color: #4a90e2; }
 
         /* Zone canvas */
         .pixelart-canvas {
@@ -447,6 +477,47 @@ function _pxlIsWhite(bg) {
     return bg === 'rgb(255, 255, 255)' || bg === '#ffffff' || bg === '' || !bg;
 }
 
+// ── Sauver / Charger un dessin sous forme de fichier .js sur l'ordinateur ──
+const PXL_FILE_MARKER = 'PIXEL_ART_DATA';
+
+function _pxlSanitizeFilenamePart(str) {
+    // Retire uniquement les caractères interdits dans un nom de fichier,
+    // conserve le reste (espaces, accents, casse) tel que saisi.
+    return (str || 'dessin').replace(/[\\/:*?"<>|]+/g, '').trim() || 'dessin';
+}
+
+// Génère le contenu texte du fichier .js à télécharger
+function _pxlBuildFileContent(data) {
+    return `// Pixel Art — Le Bureau du Prof\n` +
+           `// Fichier généré automatiquement le ${new Date().toLocaleString('fr-FR')}.\n` +
+           `// Pour le recharger : bouton "📂 Charger" du widget Pixel Art.\n` +
+           `window.${PXL_FILE_MARKER} = ${JSON.stringify(data)};\n`;
+}
+
+// Déclenche le téléchargement d'un fichier texte sur l'ordinateur de l'utilisateur
+function _pxlDownloadFile(filename, content) {
+    const blob = new Blob([content], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Extrait les données JSON d'un fichier .js généré par _pxlBuildFileContent
+function _pxlParseFileContent(text) {
+    const match = text.match(/=\s*(\{[\s\S]*\})\s*;?\s*$/);
+    if (!match) throw new Error('format invalide');
+    const data = JSON.parse(match[1]);
+    if (!data || typeof data.size !== 'number' || typeof data.pixels !== 'object') {
+        throw new Error('données invalides');
+    }
+    return data;
+}
+
 // ── Création du widget ────────────────────────────────────────────────────
 // savedData (optionnel) : { size, pixels: {index:color}, containerW, canvasH }
 function createPixelArtWidget(savedData) {
@@ -509,6 +580,7 @@ function createPixelArtWidget(savedData) {
         <p>3. Utilisez 🧼 pour gommer une case.</p>
         <p>4. La taille de la grille ne peut être changée que si elle est vide.</p>
         <p>5. Tirez le coin en bas à droite du dessin pour l'agrandir ou le réduire librement.</p>
+        <p>6. 💾 Sauver télécharge le dessin sous forme de fichier .js sur l'ordinateur ; 📂 Charger permet de recharger un fichier .js précédemment sauvegardé.</p>
     `;
     container.appendChild(helpPopup);
 
@@ -532,6 +604,8 @@ function createPixelArtWidget(savedData) {
         </div>
         <button class="pixelart-btn pixelart-btn-clear">🗑️ Vider</button>
         <button class="pixelart-btn pixelart-btn-pdf">📄 PDF</button>
+        <button class="pixelart-btn pixelart-btn-save">💾 Sauver</button>
+        <button class="pixelart-btn pixelart-btn-load">📂 Charger</button>
         <span class="pixelart-warn"></span>
     `;
     const selectModele = controls.querySelector('.pixelart-select-modele');
@@ -540,8 +614,30 @@ function createPixelArtWidget(savedData) {
     const sizeValSpan   = controls.querySelector('.pixelart-size-val');
     let clearBtn        = controls.querySelector('.pixelart-btn-clear');
     const pdfBtn        = controls.querySelector('.pixelart-btn-pdf');
+    const saveOpenBtn   = controls.querySelector('.pixelart-btn-save');
+    const loadOpenBtn   = controls.querySelector('.pixelart-btn-load');
     const warnSpan      = controls.querySelector('.pixelart-warn');
     container.appendChild(controls);
+
+    // Barre "Sauver" : nommer le fichier avant de le télécharger
+    const saveBar = document.createElement('div');
+    saveBar.className = 'pixelart-save-bar';
+    saveBar.innerHTML = `
+        <input type="text" class="pixelart-save-input" placeholder="Nom du dessin…" maxlength="60">
+        <button class="pixelart-btn pixelart-btn-save-confirm" style="background:#28a745;color:#fff;">⬇️ Télécharger</button>
+        <button class="pixelart-btn pixelart-btn-save-cancel" style="background:#f0f0f0;color:#333;border:1px solid #ddd;">✕</button>
+    `;
+    const saveInput       = saveBar.querySelector('.pixelart-save-input');
+    const saveConfirmBtn  = saveBar.querySelector('.pixelart-btn-save-confirm');
+    const saveCancelBtn   = saveBar.querySelector('.pixelart-btn-save-cancel');
+    container.appendChild(saveBar);
+
+    // Sélecteur de fichier caché pour "Charger" (fichier .js sauvegardé précédemment)
+    const loadFileInput = document.createElement('input');
+    loadFileInput.type = 'file';
+    loadFileInput.accept = '.js,text/javascript';
+    loadFileInput.style.display = 'none';
+    container.appendChild(loadFileInput);
 
     // Zone canvas — occupe toute la largeur du widget
     const canvas = document.createElement('div');
@@ -573,8 +669,9 @@ function createPixelArtWidget(savedData) {
 
     // ── Avertissement temporaire (remplace la modale d'alerte) ─────────────
     let warnTimeout = null;
-    function showWarn(msg) {
+    function showWarn(msg, type) {
         warnSpan.textContent = msg;
+        warnSpan.classList.toggle('success', type === 'success');
         warnSpan.classList.add('show');
         clearTimeout(warnTimeout);
         warnTimeout = setTimeout(() => warnSpan.classList.remove('show'), 2200);
@@ -741,6 +838,72 @@ function createPixelArtWidget(savedData) {
         });
     }
     pdfBtn.onclick = exportPDF;
+
+    // ── Sauver / Charger un dessin (fichier .js sur l'ordinateur) ───────────
+    function getCurrentPixelsData() {
+        const pixels = {};
+        canvas.querySelectorAll('.pixelart-pixel').forEach((cell, index) => {
+            if (!_pxlIsWhite(cell.style.backgroundColor)) pixels[index] = cell.style.backgroundColor;
+        });
+        return pixels;
+    }
+
+    function closeSaveBar() {
+        saveBar.classList.remove('show');
+        saveInput.value = '';
+    }
+
+    saveOpenBtn.onclick = () => {
+        if (isGridEmpty()) { showWarn('La grille est vide, rien à sauvegarder'); return; }
+        saveBar.classList.add('show');
+        saveInput.value = '';
+        saveInput.focus();
+    };
+    saveCancelBtn.onclick = closeSaveBar;
+    saveInput.addEventListener('mousedown', (e) => e.stopPropagation());
+    saveInput.addEventListener('click', (e) => { e.stopPropagation(); saveInput.focus(); });
+    saveInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveConfirmBtn.click();
+        if (e.key === 'Escape') closeSaveBar();
+    });
+    saveConfirmBtn.onclick = () => {
+        const rawName = saveInput.value.trim() || 'dessin';
+        const data = {
+            name: rawName,
+            size: currentSize,
+            pixels: getCurrentPixelsData(),
+            date: new Date().toISOString()
+        };
+        const filename = `lebureauduprof_pixel_art_${_pxlSanitizeFilenamePart(rawName)}.js`;
+        _pxlDownloadFile(filename, _pxlBuildFileContent(data));
+        closeSaveBar();
+        showWarn('Fichier téléchargé ✅', 'success');
+    };
+
+    // Charger : ouvre le sélecteur de fichier natif de l'ordinateur
+    loadOpenBtn.onclick = () => {
+        closeSaveBar();
+        loadFileInput.value = '';
+        loadFileInput.click();
+    };
+    loadFileInput.addEventListener('click', (e) => e.stopPropagation());
+    loadFileInput.addEventListener('change', () => {
+        const file = loadFileInput.files && loadFileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const data = _pxlParseFileContent(String(reader.result));
+                buildGrid(data.size, data.pixels || {});
+                saveBoard();
+                showWarn('Dessin chargé ✅' + (data.name ? ' : ' + data.name : ''), 'success');
+            } catch (err) {
+                showWarn('Fichier invalide ou illisible');
+            }
+        };
+        reader.onerror = () => showWarn('Impossible de lire ce fichier');
+        reader.readAsText(file);
+    });
 
     // ── Palette ────────────────────────────────────────────────────────────
     function resetEraser() { eraserBtn.classList.remove('active'); }

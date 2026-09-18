@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page de garde — Le Bureau du Prof</title>
+
+    <!--
+    ══════════════════════════════════════════════════════════════════
+    PAGE-GARDE.HTML — Bureau A4 portrait dédié à la création de
+    pages de garde de cahiers.
+
+    Ce fichier est conçu pour être chargé dans une iframe depuis
+    widget-page-garde.js. Il charge index.html avec des paramètres
+    spéciaux via postMessage / URL hash pour activer le mode A4.
+
+    APPROCHE : on redirige vers index.html?mode=pagegarde
+    index.html détecte ce paramètre et applique le mode A4 :
+    - board fixé à 794px de large (format A4)
+    - fond blanc
+    - onglets inutiles masqués (Activités, Projets, PDF, Outils, Présentation)
+    - localStorage séparé via clé préfixée "pg_"
+    ══════════════════════════════════════════════════════════════════
+    -->
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+            background: #1a1a2e;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+        }
+
+        /* ── Barre du haut ── */
+        #pg-topbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 44px;
+            background: #2a2a3e;
+            border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 12px;
+            z-index: 2147483647;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+        }
+
+        #pg-topbar .pg-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        #pg-topbar .pg-sep {
+            width: 1px; height: 22px;
+            background: #444; flex-shrink: 0; margin: 0 2px;
+        }
+
+        #pg-topbar button {
+            padding: 4px 11px;
+            border-radius: 6px;
+            border: 1px solid #555;
+            background: #3a3a50;
+            color: #ddd;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background .15s;
+            font-family: inherit;
+            flex-shrink: 0;
+        }
+        #pg-topbar button:hover { background: #4a4a68; border-color: #7a7aaa; }
+        #pg-topbar button.active { background: #5a5aaa; border-color: #8a8acc; color: #fff; }
+
+        #pg-topbar button.pg-btn-pdf {
+            background: #1a5a3a; border-color: #2a8a5a; color: #7fffd0;
+        }
+        #pg-topbar button.pg-btn-pdf:hover { background: #246b47; }
+
+        #pg-topbar button.pg-btn-save {
+            background: #1a3a5a; border-color: #2a6aaa; color: #7fbfff;
+        }
+        #pg-topbar button.pg-btn-save:hover { background: #1f4a78; }
+
+        #pg-topbar button.pg-btn-load {
+            background: #3a2a5a; border-color: #6a4aaa; color: #c0a0ff;
+        }
+        #pg-topbar button.pg-btn-load:hover { background: #4e3878; }
+
+        /* ── Ligne 2 : barre d'outils ── */
+        #pg-toolbar2 {
+            position: fixed;
+            top: 44px; left: 0; right: 0;
+            height: 36px;
+            background: #222236;
+            border-bottom: 1px solid #3a3a55;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 12px;
+            z-index: 2147483646;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .pg-tool-btn {
+            padding: 3px 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #2e2e48;
+            color: #ccc;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background .15s, border-color .15s;
+            font-family: inherit;
+            flex-shrink: 0;
+        }
+        .pg-tool-btn:hover  { background: #3e3e60; border-color: #7a7aaa; color: #fff; }
+        .pg-tool-btn:active { transform: scale(0.96); }
+
+        /* ── Zone de défilement autour de la page A4 ── */
+        #pg-frame-wrap {
+            position: fixed;
+            top: 80px; left: 0; right: 0; bottom: 0;
+            overflow: auto;
+            background: #777;
+            box-sizing: border-box;
+        }
+
+        /* Groupe zoom */
+        .pg-zoom-group {
+            display: flex; align-items: center; gap: 3px; flex-shrink: 0;
+        }
+        .pg-zoom-group button {
+            padding: 4px 8px !important;
+        }
+        #pg-zoom-label {
+            min-width: 42px; text-align: center;
+            font-size: 11px; font-weight: 700; color: #aaa;
+            pointer-events: none; flex-shrink: 0;
+        }
+
+        /* Conteneur intermédiaire dont la taille layout = taille scaled réelle.
+           C'est lui qui définit l'espace scrollable, pas le scaler transformé. */
+        #pg-scroll-sizer {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            /* height mis à jour par applyZoom() */
+        }
+
+        /* Scaler : reçoit transform:scale(), origin top left.
+           Son espace layout reste 794x1123 ; c'est le sizer qui absorbe la différence. */
+        #pg-iframe-scaler {
+            transform-origin: top left;
+            flex-shrink: 0;
+            width: 794px;
+            height: 1123px;
+            background: #fff;
+            box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: visible;
+        }
+
+        /* L'iframe couvre exactement le scaler */
+        #pg-iframe {
+            display: block;
+            border: none;
+            width: 794px;
+            height: 1123px;
+            overflow: hidden;
+        }
+
+        /* ── Indicateur de chargement ── */
+        #pg-loading {
+            position: fixed; inset: 0;
+            background: #1a1a2e;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 16px; z-index: 99998; transition: opacity .4s;
+        }
+        #pg-loading.hidden { opacity: 0; pointer-events: none; }
+        #pg-loading .pg-spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #5a8cff; border-radius: 50%;
+            animation: pg-spin .8s linear infinite;
+        }
+        @keyframes pg-spin { to { transform: rotate(360deg); } }
+        #pg-loading p { color: #888; font-size: 13px; }
+
+        /* ── Toast ── */
+        .pg-toast {
+            position: fixed; bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            background: #2a2a3e; color: #eee;
+            border: 1px solid #555; border-radius: 8px;
+            padding: 8px 18px; font-size: 13px;
+            z-index: 999999; box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            pointer-events: none;
+        }
+
+        /* ── Impression ── */
+        @media print {
+            @page { size: A4 portrait; margin: 0; }
+            /* La mise en page réelle est gérée via beforeprint/afterprint en JS */
+        }
+        /* Classe appliquée juste avant window.print() */
+        body.pg-printing * { transition: none !important; animation: none !important; }
+        body.pg-printing #pg-topbar,
+        body.pg-printing #pg-toolbar2,
+        body.pg-printing #pg-loading,
+        body.pg-printing .pg-toast { display: none !important; }
+        body.pg-printing html,
+        body.pg-printing { background: #fff !important; }
+    </style>
+</head>
+<body>
+
+<!-- Barre supérieure -->
+<div id="pg-topbar">
+
+    <!-- Groupe zoom -->
+    <div class="pg-zoom-group">
+		<span style="font-size: 11px; color:#aaa;">zoom :</span>
+        <button id="pg-zoom-out"   title="Dézoomer (−)">−</button>
+        <span   id="pg-zoom-label">100%</span>
+        <button id="pg-zoom-in"    title="Zoomer (+)">+</button>
+        <button id="pg-zoom-width" title="Ajuster à la largeur de la fenêtre">⟺ Largeur</button>
+        <button id="pg-zoom-fit"   title="Page entière visible">▣ Page</button>
+    </div>
+
+    <div class="pg-sep"></div>
+
+	<span style="font-size: 11px; color:#aaa;">sauvegarde & export PDF :</span>
+    <button id="pg-btn-save" class="pg-btn-save" title="Sauvegarder la page de garde en JSON">💾 Sauvegarder</button>
+    <button id="pg-btn-load" class="pg-btn-load" title="Charger une page de garde depuis un fichier JSON">📂 Charger</button>
+    <input type="file" id="pg-file-input" accept=".json" style="display:none">
+    <button id="pg-btn-pdf" class="pg-btn-pdf" title="Imprimer / Exporter en PDF">⬇️ PDF</button>
+
+    <div class="pg-sep"></div>
+
+    <button id="pg-btn-clear" title="Vider la page">🗑️ Vider</button>
+
+</div>
+
+<!-- Ligne 2 : outils d'édition -->
+<div id="pg-toolbar2">
+	<span style="font-size: 11px; color:#aaa;">Insérer des éléments : </span>
+	
+    <button id="pg-btn-text"       class="pg-tool-btn" title="Ajouter une zone de texte">🔤 Texte</button>
+    <button id="pg-btn-draw"       class="pg-tool-btn" title="Dessin et figures">✏️ Dessin & figures</button>
+    <button id="pg-btn-image"      class="pg-tool-btn" title="Insérer une image">🖼️ Image</button>
+    <button id="pg-btn-emoji"      class="pg-tool-btn" title="Insérer un émoji">😊 Émoji</button>
+    <button id="pg-btn-background" class="pg-tool-btn" title="Changer le fond de la page">🎨 Fond de page</button>
+</div>
+
+<!-- Chargement -->
+<div id="pg-loading">
+    <div class="pg-spinner"></div>
+    <p>Chargement du bureau A4…</p>
+</div>
+
+<!-- iframe contenant index.html en mode page-garde -->
+<div id="pg-frame-wrap">
+    <div id="pg-scroll-sizer">
+        <div id="pg-iframe-scaler">
+            <iframe id="pg-iframe" src="index.html?mode=pagegarde" allowfullscreen></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+
+    const iframe       = document.getElementById('pg-iframe');
+    const scaler       = document.getElementById('pg-iframe-scaler');
+    const sizer        = document.getElementById('pg-scroll-sizer');
+    const wrap         = document.getElementById('pg-frame-wrap');
+    const loading      = document.getElementById('pg-loading');
+    const btnClear      = document.getElementById('pg-btn-clear');
+    const btnPdf        = document.getElementById('pg-btn-pdf');
+    const btnSave       = document.getElementById('pg-btn-save');
+    const btnLoad       = document.getElementById('pg-btn-load');
+    const btnText       = document.getElementById('pg-btn-text');
+    const btnDraw       = document.getElementById('pg-btn-draw');
+    const btnImage      = document.getElementById('pg-btn-image');
+    const btnEmoji      = document.getElementById('pg-btn-emoji');
+    const btnBackground = document.getElementById('pg-btn-background');
+    const fileInput     = document.getElementById('pg-file-input');
+    const btnZoomIn    = document.getElementById('pg-zoom-in');
+    const btnZoomOut   = document.getElementById('pg-zoom-out');
+    const btnZoomWidth = document.getElementById('pg-zoom-width');
+    const btnZoomFit   = document.getElementById('pg-zoom-fit');
+    const zoomLabel    = document.getElementById('pg-zoom-label');
+
+    const A4_W = 794;
+    const A4_H = 1123;
+
+    let _scale = 1.0;
+    let _mode  = 'width';
+
+    const SCALE_MIN  = 0.20;
+    const SCALE_MAX  = 3.0;
+    const SCALE_STEP = 0.1;
+
+    // Applique le zoom.
+    // Le scaler reçoit transform:scale() (origin top center).
+    // Son espace layout reste 794x1123 quelle que soit l'échelle.
+    // Le sizer est mis à la hauteur scaled réelle pour que le scroll s'arrête au bon endroit.
+    // Le centrage horizontal est entièrement délégué au CSS (sizer flex + justify-content:center).
+    function applyZoom(scale, mode) {
+        _scale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, scale));
+        _mode  = mode || 'free';
+
+        var scaledH = Math.round(A4_H * _scale);
+        var pad = 32;
+
+        scaler.style.transform       = 'scale(' + _scale + ')';
+        scaler.style.transformOrigin = 'top center';
+        scaler.style.marginLeft      = '';
+        scaler.style.marginTop       = (pad / 2) + 'px';
+
+        // La hauteur du sizer = hauteur visuelle réelle de la page + padding bas
+        // Quand scale < 1, scaledH < A4_H : on force la hauteur pour éviter le vide
+        sizer.style.minHeight = (scaledH + pad) + 'px';
+        sizer.style.height    = (scaledH + pad) + 'px';
+
+        zoomLabel.textContent = Math.round(_scale * 100) + '%';
+        btnZoomWidth.classList.toggle('active', _mode === 'width');
+        btnZoomFit.classList.toggle('active',   _mode === 'fit');
+    }
+
+    function calcWidthScale() {
+        return (wrap.clientWidth - 32) / A4_W;
+    }
+    function calcFitScale() {
+        var availW = wrap.clientWidth  - 32;
+        var availH = wrap.clientHeight - 32;
+        return Math.min(availW / A4_W, availH / A4_H);
+    }
+
+    function initZoom() {
+        applyZoom(calcFitScale(), 'fit');
+    }
+
+    btnZoomIn.addEventListener('click', function() {
+        applyZoom(Math.round((_scale + SCALE_STEP) * 100) / 100, 'free');
+    });
+    btnZoomOut.addEventListener('click', function() {
+        applyZoom(Math.round((_scale - SCALE_STEP) * 100) / 100, 'free');
+    });
+    btnZoomWidth.addEventListener('click', function() {
+        applyZoom(calcWidthScale(), 'width');
+    });
+    btnZoomFit.addEventListener('click', function() {
+        applyZoom(calcFitScale(), 'fit');
+    });
+
+    wrap.addEventListener('wheel', function(e) {
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+        var delta = e.deltaY < 0 ? SCALE_STEP : -SCALE_STEP;
+        applyZoom(Math.round((_scale + delta) * 100) / 100, 'free');
+    }, { passive: false });
+
+    window.addEventListener('resize', function() {
+        if      (_mode === 'width') applyZoom(calcWidthScale(), 'width');
+        else if (_mode === 'fit')   applyZoom(calcFitScale(),   'fit');
+        else                        applyZoom(_scale, 'free');
+    });
+
+    iframe.addEventListener('load', function() {
+        setTimeout(function() {
+            loading.classList.add('hidden');
+            setTimeout(function() { loading.style.display = 'none'; }, 400);
+            initZoom();
+        }, 700);
+    });
+
+    function toast(msg, dur) {
+        dur = dur || 2500;
+        var t = document.createElement('div');
+        t.className = 'pg-toast'; t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(function() {
+            t.style.transition = 'opacity .4s'; t.style.opacity = '0';
+            setTimeout(function() { t.remove(); }, 400);
+        }, dur);
+    }
+
+    // Envoyer une commande à l'iframe via postMessage (évite les erreurs cross-origin)
+    function sendCmd(cmd, data) {
+        var msg = Object.assign({ pgCmd: cmd }, data || {});
+        iframe.contentWindow.postMessage(msg, '*');
+    }
+
+    // ── Sauvegarder la page de garde en JSON ─────────────────────────────
+    btnSave.addEventListener('click', function() {
+        sendCmd('getState');
+        toast('⏳ Sauvegarde en cours…', 3000);
+    });
+
+    // ── Charger une page de garde depuis un JSON ──────────────────────────
+    btnLoad.addEventListener('click', function() {
+        fileInput.value = '';
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function() {
+        var file = fileInput.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            try {
+                var data = JSON.parse(ev.target.result);
+                if (!data._type || data._type !== 'page-garde-export') {
+                    toast('⚠️ Fichier invalide (pas une page de garde)', 3000);
+                    return;
+                }
+                if (!confirm('Charger cette page de garde ? Le contenu actuel sera remplacé.')) return;
+                sendCmd('setState', { state: data.state });
+                toast('✅ Page de garde chargée !');
+            } catch(err) {
+                toast('⚠️ Erreur de lecture : ' + err.message, 4000);
+            }
+            fileInput.value = '';
+        };
+        reader.readAsText(file);
+    });
+
+    btnText.addEventListener('click',       function() { sendCmd('createText'); });
+    btnDraw.addEventListener('click',       function() { sendCmd('openDraw'); });
+    btnImage.addEventListener('click',      function() { sendCmd('openImages'); });
+    btnEmoji.addEventListener('click',      function() { sendCmd('openEmojis'); });
+    btnBackground.addEventListener('click', function() { sendCmd('openBackground'); });
+
+    btnClear.addEventListener('click', function() {
+        if (!confirm('Vider toute la page de garde ?')) return;
+        sendCmd('clear');
+        toast('\u2705 Page vid\u00e9e');
+    });
+
+    // PDF : demander à l'iframe de capturer en canvas, puis imprimer dans une fenêtre propre.
+    btnPdf.addEventListener('click', function() {
+        toast('⏳ Capture en cours…', 6000);
+        sendCmd('print');
+    });
+
+    // Réponses de l'iframe
+    window.addEventListener('message', function(e) {
+        var ev = e.data && e.data.pgEvent;
+
+        if (e.data && e.data.type === 'pg-ready') {
+            loading.classList.add('hidden');
+            setTimeout(function() { loading.style.display = 'none'; }, 400);
+            initZoom();
+        }
+
+        if (ev === 'pong') {
+            loading.classList.add('hidden');
+            setTimeout(function() { loading.style.display = 'none'; }, 400);
+            initZoom();
+        }
+
+        // Réception de l'état pour export JSON
+        if (ev === 'state-ready') {
+            var state = e.data.state || {};
+            if (Object.keys(state).length === 0) {
+                toast('⚠️ Aucune donnée à sauvegarder', 3000);
+                return;
+            }
+            var exportData = {
+                _type: 'page-garde-export',
+                _version: 1,
+                exportedAt: Date.now(),
+                state: state
+            };
+            var date = new Date().toISOString().split('T')[0];
+            var a = document.createElement('a');
+            a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportData, null, 2));
+            a.download = 'page-de-garde_' + date + '.json';
+            document.body.appendChild(a); a.click(); a.remove();
+            toast('✅ Page de garde sauvegardée !');
+        }
+
+        // Réception du canvas pour génération PDF via jsPDF (1 page garantie)
+        if (ev === 'print-ready' && e.data.dataURL) {
+            function generatePdf(dataURL) {
+                var doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                doc.addImage(dataURL, 'PNG', 0, 0, 210, 297);
+                doc.save('page-de-garde.pdf');
+                toast('✅ PDF exporté !');
+            }
+            if (!window.jspdf) {
+                var s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                s.onload = function() { generatePdf(e.data.dataURL); };
+                document.head.appendChild(s);
+            } else {
+                generatePdf(e.data.dataURL);
+            }
+        }
+    });
+
+})();
+</script>
+
+</body>
+</html>

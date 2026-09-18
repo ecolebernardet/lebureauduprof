@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Le Bureau du Prof</title>
+  <link rel="icon" type="image/x-icon" href="icon.ico">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1a22;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ═══════════════════════════════════════════
+       BARRE D'ONGLETS
+    ═══════════════════════════════════════════ */
+    #tab-bar {
+      display: flex;
+      align-items: stretch;
+      background: #16161e;
+      border-bottom: 2px solid #2a2a38;
+      height: 42px;
+      flex-shrink: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: #3a3a50 transparent;
+      padding: 0 6px;
+      gap: 3px;
+      user-select: none;
+    }
+
+    #tab-bar::-webkit-scrollbar { height: 4px; }
+    #tab-bar::-webkit-scrollbar-track { background: transparent; }
+    #tab-bar::-webkit-scrollbar-thumb { background: #3a3a50; border-radius: 2px; }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 10px 0 14px;
+      min-width: 120px;
+      max-width: 200px;
+      height: 100%;
+      background: #22222e;
+      border: 1px solid #2e2e40;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;
+      transition: background 0.15s;
+      margin-top: 4px;
+    }
+
+    .tab:hover { background: #2a2a38; }
+
+    .tab.active {
+      background: #1e1e2a;
+      border-color: #4a90e2;
+      border-bottom: 2px solid #1e1e2a;
+      margin-bottom: -2px;
+      z-index: 2;
+    }
+
+    .tab-name {
+      flex: 1;
+      font-size: 12px;
+      font-weight: 600;
+      color: #aaa;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      outline: none;
+      cursor: text;
+      border-radius: 3px;
+      padding: 1px 2px;
+    }
+
+    .tab.active .tab-name { color: #7ab8f5; }
+
+    .tab-name:focus {
+      background: #2e2e40;
+      color: #fff;
+    }
+
+    .tab-close {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: #666;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .tab-close:hover { background: #3d1a1a; color: #ff6b6b; }
+
+    /* Drag-over indicator */
+    .tab.drag-over-left  { border-left: 2px solid #4a90e2; }
+    .tab.drag-over-right { border-right: 2px solid #4a90e2; }
+
+    /* Bouton + */
+    #btn-add-tab {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      margin: auto 4px;
+      background: #28283a;
+      border: 1px dashed #3a3a55;
+      border-radius: 8px;
+      color: #6a8fc0;
+      font-size: 20px;
+      font-weight: 300;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    #btn-add-tab:hover {
+      background: #1a3550;
+      border-color: #4a90e2;
+      color: #7ab8f5;
+    }
+
+    #btn-add-tab:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* Compteur d'onglets */
+    #tab-count {
+      display: flex;
+      align-items: center;
+      padding: 0 10px 0 4px;
+      font-size: 11px;
+      color: #555;
+      flex-shrink: 0;
+    }
+
+    /* ═══════════════════════════════════════════
+       ZONE IFRAMES
+    ═══════════════════════════════════════════ */
+    #frame-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .board-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: none;
+    }
+
+    .board-frame.active { display: block; }
+
+    /* Overlay de chargement */
+    .frame-loading {
+      position: absolute;
+      inset: 0;
+      background: #1a1a22;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .frame-loading.hidden { opacity: 0; pointer-events: none; }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #2a2a38;
+      border-top-color: #4a90e2;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      color: #666;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BARRE D'ONGLETS -->
+  <div id="tab-bar">
+    <!-- Onglets générés dynamiquement -->
+    <button id="btn-add-tab" title="Nouveau tableau (max 8)">+</button>
+    <div id="tab-count"></div>
+  </div>
+
+  <!-- IFRAMES -->
+  <div id="frame-container">
+    <div class="frame-loading" id="global-loading">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Chargement du tableau…</div>
+    </div>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  CONFIGURATION
+// ═══════════════════════════════════════════════════════════════
+const MAX_TABS    = 8;
+const STORAGE_KEY = 'profTabs_v1';          // clé de persistance des onglets
+const BOARD_URL   = 'index.html';           // URL du bureau à charger
+
+// ═══════════════════════════════════════════════════════════════
+//  ÉTAT
+// ═══════════════════════════════════════════════════════════════
+let tabs        = [];   // [{ id, name }]
+let activeTab   = null; // id de l'onglet actif
+let dragSrcId   = null;
+
+// ═══════════════════════════════════════════════════════════════
+//  PERSISTENCE
+// ═══════════════════════════════════════════════════════════════
+function saveMeta() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ tabs, activeTab }));
+}
+
+function loadMeta() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      tabs      = d.tabs      || [];
+      activeTab = d.activeTab || null;
+    }
+  } catch(e) { tabs = []; activeTab = null; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CRÉATION / SUPPRESSION D'ONGLETS
+// ═══════════════════════════════════════════════════════════════
+function createTab(name) {
+  const id = 'tab_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  tabs.push({ id, name });
+  _buildFrame(id);
+  return id;
+}
+
+function _buildFrame(id) {
+  const container = document.getElementById('frame-container');
+  const iframe    = document.createElement('iframe');
+  iframe.id       = 'frame_' + id;
+  iframe.className = 'board-frame';
+  // Paramètre ?board=ID → index.html sait dans quel "namespace" localStorage travailler
+  iframe.src      = BOARD_URL + '?board=' + encodeURIComponent(id);
+  iframe.allow    = 'fullscreen';
+  container.appendChild(iframe);
+}
+
+function removeTab(id) {
+  if (tabs.length <= 1) return; // garder au moins un onglet
+
+  const ok = confirm(`Supprimer cet onglet ?\n\nSon contenu sera effacé du navigateur.`);
+  if (!ok) return;
+
+  // Nettoyer localStorage de cet onglet
+  _clearTabStorage(id);
+
+  // Retirer du DOM
+  const frame = document.getElementById('frame_' + id);
+  if (frame) frame.remove();
+
+  // Retirer de la liste
+  const idx = tabs.findIndex(t => t.id === id);
+  tabs.splice(idx, 1);
+
+  // Choisir le nouvel onglet actif
+  if (activeTab === id) {
+    const newIdx  = Math.min(idx, tabs.length - 1);
+    activeTab     = tabs[newIdx].id;
+  }
+
+  saveMeta();
+  renderBar();
+  showActiveFrame();
+}
+
+function _clearTabStorage(id) {
+  // Supprimer toutes les clés localStorage préfixées par cet ID
+  const prefix = id + '_';
+  const toDelete = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(prefix)) toDelete.push(k);
+  }
+  toDelete.forEach(k => localStorage.removeItem(k));
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ACTIVATION
+// ═══════════════════════════════════════════════════════════════
+function activateTab(id) {
+  if (activeTab === id) return;
+  activeTab = id;
+  saveMeta();
+  renderBar();
+  showActiveFrame();
+}
+
+function showActiveFrame() {
+  document.querySelectorAll('.board-frame').forEach(f => f.classList.remove('active'));
+  const active = document.getElementById('frame_' + activeTab);
+  if (active) active.classList.add('active');
+  // Cacher le spinner global dès qu'une iframe est visible
+  document.getElementById('global-loading').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENOMMAGE
+// ═══════════════════════════════════════════════════════════════
+function renameTab(id, newName) {
+  const t = tabs.find(t => t.id === id);
+  if (!t) return;
+  t.name = newName.trim() || t.name;
+  saveMeta();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DRAG TO REORDER
+// ═══════════════════════════════════════════════════════════════
+function _onDragStart(e, id) {
+  dragSrcId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', id);
+  setTimeout(() => {
+    const el = document.querySelector(`[data-tab-id="${id}"]`);
+    if (el) el.style.opacity = '0.4';
+  }, 0);
+}
+
+function _onDragEnd(e) {
+  document.querySelectorAll('.tab').forEach(el => {
+    el.style.opacity = '';
+    el.classList.remove('drag-over-left', 'drag-over-right');
+  });
+  dragSrcId = null;
+}
+
+function _onDragOver(e, id) {
+  if (!dragSrcId || dragSrcId === id) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('drag-over-left', 'drag-over-right'));
+  const el = document.querySelector(`[data-tab-id="${id}"]`);
+  if (!el) return;
+  const rect  = el.getBoundingClientRect();
+  const after = e.clientX > rect.left + rect.width / 2;
+  el.classList.add(after ? 'drag-over-right' : 'drag-over-left');
+}
+
+function _onDrop(e, targetId) {
+  e.preventDefault();
+  if (!dragSrcId || dragSrcId === targetId) return;
+  const srcIdx = tabs.findIndex(t => t.id === dragSrcId);
+  const tgtIdx = tabs.findIndex(t => t.id === targetId);
+  if (srcIdx === -1 || tgtIdx === -1) return;
+
+  const el     = document.querySelector(`[data-tab-id="${targetId}"]`);
+  const rect   = el ? el.getBoundingClientRect() : null;
+  const after  = rect ? e.clientX > rect.left + rect.width / 2 : false;
+  const insertAt = after ? tgtIdx + 1 : tgtIdx;
+
+  const [moved] = tabs.splice(srcIdx, 1);
+  const realIdx = insertAt > srcIdx ? insertAt - 1 : insertAt;
+  tabs.splice(realIdx, 0, moved);
+
+  saveMeta();
+  renderBar();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDU DE LA BARRE
+// ═══════════════════════════════════════════════════════════════
+function renderBar() {
+  const bar    = document.getElementById('tab-bar');
+  const addBtn = document.getElementById('btn-add-tab');
+  const count  = document.getElementById('tab-count');
+
+  // Supprimer les anciens onglets (garder #btn-add-tab et #tab-count)
+  bar.querySelectorAll('.tab').forEach(el => el.remove());
+
+  tabs.forEach((t, i) => {
+    const isActive = t.id === activeTab;
+
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (isActive ? ' active' : '');
+    tab.setAttribute('data-tab-id', t.id);
+    tab.draggable = true;
+
+    tab.addEventListener('click',     () => activateTab(t.id));
+    tab.addEventListener('dragstart', (e) => _onDragStart(e, t.id));
+    tab.addEventListener('dragend',   _onDragEnd);
+    tab.addEventListener('dragover',  (e) => { e.preventDefault(); _onDragOver(e, t.id); });
+    tab.addEventListener('drop',      (e) => _onDrop(e, t.id));
+
+    // Numéro + nom
+    const name = document.createElement('span');
+    name.className   = 'tab-name';
+    name.textContent = t.name;
+    name.title       = t.name;
+    name.contentEditable = 'true';
+    name.spellcheck  = false;
+
+    // Empêcher le clic sur le nom de switcher d'onglet si déjà actif
+    name.addEventListener('click', (e) => { if (isActive) e.stopPropagation(); });
+
+    // Valider au blur ou Entrée
+    name.addEventListener('blur', () => {
+      const newName = name.textContent.trim();
+      if (newName) { renameTab(t.id, newName); name.textContent = newName; }
+      else          { name.textContent = t.name; }
+    });
+    name.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); name.blur(); }
+      if (e.key === 'Escape') { name.textContent = t.name; name.blur(); }
+    });
+    // Empêcher le drag quand on édite le nom
+    name.addEventListener('mousedown', (e) => e.stopPropagation());
+
+    tab.appendChild(name);
+
+    // Bouton fermer (seulement si > 1 onglet)
+    if (tabs.length > 1) {
+      const close = document.createElement('button');
+      close.className   = 'tab-close';
+      close.textContent = '×';
+      close.title       = 'Fermer cet onglet';
+      close.addEventListener('click', (e) => { e.stopPropagation(); removeTab(t.id); });
+      tab.appendChild(close);
+    }
+
+    // Insérer avant le bouton +
+    bar.insertBefore(tab, addBtn);
+  });
+
+  // Mettre à jour le bouton + et le compteur
+  const full = tabs.length >= MAX_TABS;
+  addBtn.disabled    = full;
+  addBtn.title       = full ? `Maximum ${MAX_TABS} tableaux` : 'Nouveau tableau';
+  count.textContent  = tabs.length > 1 ? `${tabs.length}/${MAX_TABS}` : '';
+
+  // Scroll vers l'onglet actif
+  const activeEl = bar.querySelector('.tab.active');
+  if (activeEl) activeEl.scrollIntoView({ inline: 'nearest', behavior: 'smooth' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+function init() {
+  loadMeta();
+
+  // Première utilisation : créer un onglet par défaut
+  if (tabs.length === 0) {
+    const id = createTab('Tableau 1');
+    activeTab = id;
+  } else {
+    // Reconstruire les iframes pour les onglets déjà connus
+    tabs.forEach(t => {
+      if (!document.getElementById('frame_' + t.id)) _buildFrame(t.id);
+    });
+    // Vérifier que activeTab existe toujours
+    if (!tabs.find(t => t.id === activeTab)) activeTab = tabs[0].id;
+  }
+
+  saveMeta();
+  renderBar();
+  showActiveFrame();
+
+  // Bouton "+"
+  document.getElementById('btn-add-tab').addEventListener('click', () => {
+    if (tabs.length >= MAX_TABS) return;
+    const n  = tabs.length + 1;
+    const id = createTab('Tableau ' + n);
+    activeTab = id;
+    saveMeta();
+    renderBar();
+    showActiveFrame();
+    // Focus sur le nom pour renommer immédiatement
+    setTimeout(() => {
+      const nameEl = document.querySelector(`[data-tab-id="${id}"] .tab-name`);
+      if (nameEl) { nameEl.focus(); selectAll(nameEl); }
+    }, 80);
+  });
+}
+
+function selectAll(el) {
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  const s = window.getSelection();
+  s.removeAllRanges(); s.addRange(r);
+}
+
+init();
+</script>
+</body>
+</html>

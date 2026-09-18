@@ -1,0 +1,562 @@
+/* ══════════════════════════════════════════════════════════════════════
+   STYLE-PHONE.CSS — Adaptations mobiles pour Le Bureau du Prof
+   Chargé sans condition dans index.html (le ciblage se fait ici, via les
+   @media internes, pour couvrir aussi le mode paysage des smartphones) :
+       <link rel="stylesheet" href="style-phone.css">
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Déclenche les adaptations mobiles pour :
+   - tout écran étroit (portrait téléphone/petite tablette) : max-width 768px
+   - tout écran bas + tactile (téléphone en mode paysage, même > 768px de large) */
+@media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+
+    /* ════════════════════════════════════════════════════════
+       1. BOARD & BODY
+    ════════════════════════════════════════════════════════ */
+
+    html {
+        /* Empêche le rebond/scroll global du navigateur (élastique iOS) */
+        height: 100%;
+        overflow: hidden;
+    }
+
+    body {
+        overflow: hidden; /* évite le scroll parasite sur mobile */
+        height: 100%;
+        width: 100%;
+        /* Empêche le zoom involontaire au double-tap, garde le pincer-zoomer */
+        touch-action: manipulation;
+        /* Zones sûres (encoche / barre d'accueil iPhone) */
+        padding: env(safe-area-inset-top) env(safe-area-inset-right)
+                 env(safe-area-inset-bottom) env(safe-area-inset-left);
+        box-sizing: border-box;
+    }
+
+    #board {
+        /* La taille/position réelle du board est calculée par board.js
+           (applyBoardRatio / virtualH), qui bascule maintenant lui-même
+           en plein écran vertical sur téléphone — voir board.js. Cette
+           règle CSS ne sert que de filet de sécurité avant l'exécution
+           du JS (évite un flash de mauvaise taille au chargement). */
+        min-height: 100vh;
+        min-height: 100dvh;
+        width: 100vw;
+    }
+
+    /* Empêche l'input zoom-forcé de Safari iOS : tout champ avec une
+       taille de police < 16px déclenche un zoom automatique au focus,
+       ce qui casse toute la mise en page tant que le champ est actif. */
+    input, select, textarea {
+        font-size: max(16px, 1em) !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       2. BOUTONS FAB (menu principal + dessin)
+          Réduits, repositionnés pour ne pas encombrer
+    ════════════════════════════════════════════════════════ */
+
+    #fab-btn {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 28px !important;
+        bottom: calc(14px + env(safe-area-inset-bottom)) !important;
+        left: calc(14px + env(safe-area-inset-left)) !important;
+    }
+
+    #draw-fab-btn {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 19px !important;
+        bottom: calc(14px + env(safe-area-inset-bottom)) !important;
+        right: calc(14px + env(safe-area-inset-right)) !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       3. MENU PRINCIPAL (#main-menu)
+          Repositionné au-dessus du FAB, items légèrement réduits
+    ════════════════════════════════════════════════════════ */
+
+    #main-menu {
+        bottom: calc(68px + env(safe-area-inset-bottom)) !important;
+        left: calc(10px + env(safe-area-inset-left)) !important;
+        gap: 3px !important;
+        max-height: 78vh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .mm-item {
+        font-size: 12px !important;
+        padding: 5px 10px !important;
+        min-width: 110px !important;
+        border-radius: 16px !important;
+    }
+
+    .mm-item .mm-ico {
+        font-size: 20px !important;
+        width: 22px !important;
+    }
+
+    .mm-sub-inner {
+        max-height: 70vh !important;
+    }
+
+    .mm-section-label {
+        font-size: 8px !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       4. ONGLETS LATÉRAUX (tabs des panneaux)
+          8 onglets réels : Jeux, Activités, Outils, Widgets,
+          Visuels (stickers), Tableaux (projects), Écran (display),
+          Présentation (pres-mode, affiche "On"/"Off").
+          (Correction : pdf-library-tab et image-panel-tab
+          n'existent pas comme boutons dans le HTML — seules des
+          règles CSS orphelines existent dans style.css. Les
+          cibler ne servait à rien : Jeux et Présentation, eux,
+          gardaient leur position desktop (-300px / +300px),
+          d'où le décalage visible sur mobile.)
+    ════════════════════════════════════════════════════════ */
+
+    /* Sur desktop, ces onglets sont volontairement à moitié hors-écran
+       (left négatif) et ne se dévoilent en entier qu'au survol de la
+       souris (.tab-js-hover). Sur téléphone il n'y a pas de survol, mais
+       on garde le même principe visuel : l'onglet dépasse légèrement du
+       bord gauche du board plutôt que d'être totalement plaqué dedans.
+       Attention à la rotation -90° (héritée du CSS desktop) : la
+       propriété CSS "width" du bouton devient, une fois tourné, la
+       hauteur visible à l'écran (l'espace de LECTURE du texte, empilé
+       verticalement) ; "height" devient la largeur visible (l'épaisseur
+       de l'onglet, donc ce qui dépasse du bord). Pour calculer le
+       débordement : avec left=L, width=W, height=H, le bord gauche
+       visible de l'onglet (une fois tourné) est à L + W/2 − H/2. On veut
+       cette valeur légèrement négative (ex. −15px) pour qu'il dépasse. */
+    #jeux-panel-tab,
+    #activities-panel-tab,
+    #tools-panel-tab,
+    #widgets-panel-tab,
+    #sticker-panel-tab,
+    #projects-panel-tab,
+    #display-panel-tab,
+    #pres-mode-tab {
+        left: -28px !important;
+        width: 64px !important;
+        height: 58px !important;
+    }
+
+    #jeux-panel-tab.tab-js-hover,
+    #activities-panel-tab.tab-js-hover,
+    #tools-panel-tab.tab-js-hover,
+    #widgets-panel-tab.tab-js-hover,
+    #sticker-panel-tab.tab-js-hover,
+    #projects-panel-tab.tab-js-hover,
+    #display-panel-tab.tab-js-hover,
+    #pres-mode-tab.tab-js-hover {
+        width: 150px !important;
+        height: 70px !important;
+        padding-left: 34px !important;
+    }
+
+    /* 8 emplacements réguliers (pas de 66px, 462px d'étendue totale) */
+    #jeux-panel-tab       { top: calc(50% - 231px) !important; }
+    #activities-panel-tab { top: calc(50% - 165px) !important; }
+    #tools-panel-tab      { top: calc(50% - 99px)  !important; }
+    #widgets-panel-tab    { top: calc(50% - 33px)  !important; }
+    #sticker-panel-tab    { top: calc(50% + 33px)  !important; }
+    #projects-panel-tab   { top: calc(50% + 99px)  !important; }
+    #display-panel-tab    { top: calc(50% + 165px) !important; }
+    #pres-mode-tab        { top: calc(50% + 231px) !important; }
+
+    /* Correction : .tab-emoji/.tab-label ne sont utilisées que par le
+       script de survol souris (jamais déclenché au toucher) — les vraies
+       classes toujours visibles sur mobile sont .act-tab-ico/.act-tab-lbl.
+       Cibler les premières n'avait donc aucun effet sur téléphone. */
+    #jeux-panel-tab .act-tab-ico,
+    #activities-panel-tab .act-tab-ico,
+    #tools-panel-tab .act-tab-ico,
+    #widgets-panel-tab .act-tab-ico,
+    #sticker-panel-tab .act-tab-ico,
+    #projects-panel-tab .act-tab-ico,
+    #display-panel-tab .act-tab-ico,
+    #pres-mode-tab .act-tab-ico {
+        font-size: 22px !important;
+    }
+
+    #jeux-panel-tab .act-tab-lbl,
+    #activities-panel-tab .act-tab-lbl,
+    #tools-panel-tab .act-tab-lbl,
+    #widgets-panel-tab .act-tab-lbl,
+    #sticker-panel-tab .act-tab-lbl,
+    #projects-panel-tab .act-tab-lbl,
+    #display-panel-tab .act-tab-lbl,
+    #pres-mode-tab .act-tab-lbl {
+        font-size: 11px !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       5. PANNEAUX LATÉRAUX
+          Pleine largeur sur mobile pour faciliter la navigation
+    ════════════════════════════════════════════════════════ */
+
+    :root {
+        --sticker-panel-w: 88vw !important;
+        --widgets-panel-w: 92vw !important;
+        --jeux-panel-w: 88vw !important;
+    }
+
+    #sticker-panel,
+    #widgets-panel,
+    #activities-panel,
+    #tools-panel,
+    #display-panel,
+    #projects-panel,
+    #pdf-library-panel,
+    #image-panel,
+    #jeux-panel {
+        width: 88vw !important;
+    }
+
+    /* Headers des panneaux : réduire le padding gauche
+       (les onglets prennent moins de place en mobile) */
+    #sticker-panel-header,
+    #sticker-mode-bar,
+    #sticker-panel-tabs,
+    #sticker-panel-search,
+    #sp-content {
+        padding-left: 14px !important;
+    }
+
+    #widgets-panel-header,
+    #widgets-panel-content {
+        padding-left: 14px !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       6. GRILLES DE WIDGETS (dans le panneau widgets)
+          Passer de 4 colonnes à 3
+    ════════════════════════════════════════════════════════ */
+
+    .widgets-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .widgets-card-ico { font-size: 36px !important; }
+    .widgets-card-name { font-size: 10px !important; }
+    .widgets-card-desc { font-size: 9px !important; }
+
+
+    /* ════════════════════════════════════════════════════════
+       7. BARRE D'OUTILS DESSIN (#draw-toolbar)
+          Forcer le mode horizontal et réduire la taille
+    ════════════════════════════════════════════════════════ */
+
+    #draw-toolbar {
+        max-width: calc(100vw - 30px) !important;
+        padding: 6px 8px !important;
+    }
+
+    /* Boutons dans les toolbars dessin/forme */
+    #draw-toolbar button,
+    #shape-toolbar button {
+        width: 30px !important;
+        height: 30px !important;
+        min-width: 30px !important;
+        font-size: 14px !important;
+        padding: 0 !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       8. BARRE DE SCÈNES (#scenes-bar)
+          Plus compacte
+    ════════════════════════════════════════════════════════ */
+
+    #scenes-bar {
+        max-width: calc(100vw - 120px) !important;
+    }
+
+    .scene-tab {
+        font-size: 11px !important;
+        padding: 4px 10px !important;
+        max-width: 110px !important;
+    }
+
+    .scene-tab-name {
+        max-width: 70px !important;
+    }
+
+    #scene-add-btn {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 16px !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       9. TOOLBAR CONTAINER & BOTTOM BAR
+          Réduits en hauteur, boutons plus accessibles
+          Note : #toolbar-container n'a pas de règle de mise en
+          page propre (ni ici, ni dans style.css) — c'est un
+          conteneur DOM pour des sous-barres positionnées en
+          fixed par board.js/draw.js. Lui forcer une min-height
+          créait un bloc vide de ~50px dans le flux normal du
+          document ; supprimé pour éviter tout décalage indésirable.
+    ════════════════════════════════════════════════════════ */
+
+    .tool-btn {
+        padding: 6px 8px !important;
+        font-size: 16px !important;
+        border-radius: 14px !important;
+    }
+
+    .undo-btn, .redo-btn {
+        padding: 4px 5px !important;
+        font-size: 16px !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       10. HANDLES & CONTRÔLES DE WIDGETS
+           Légèrement agrandis pour faciliter le toucher
+    ════════════════════════════════════════════════════════ */
+
+    .drag-handle,
+    .widget-close-handle,
+    .widget-pin-handle,
+    .widget-rotate-handle,
+    .widget-menu-handle,
+    .widget-back-handle,
+    .widget-anchor-handle {
+        width: 32px !important;
+        height: 32px !important;
+    }
+
+    .widget-action-bar {
+        bottom: -46px !important;
+        gap: 6px !important;
+    }
+
+    .widget-action-bar.above {
+        top: -46px !important;
+        bottom: auto !important;
+    }
+
+    /* Poignée resize custom légèrement plus grande */
+    .custom-resize-handle {
+        width: 24px !important;
+        height: 24px !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       11. BARRE DE SÉLECTION (#selection-controls)
+    ════════════════════════════════════════════════════════ */
+
+    #selection-controls .sc-btn {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 16px !important;
+    }
+
+    #sc-action-bar {
+        bottom: -52px !important;
+        gap: 6px !important;
+    }
+
+    #sc-action-bar.above {
+        top: -52px !important;
+        bottom: auto !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       12. INDICATEUR A4
+    ════════════════════════════════════════════════════════ */
+
+    #a4-indicator {
+        font-size: 10px !important;
+        padding: 3px 10px !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       13. BOUTON PRÉSENTATION & ONGLET MODE PRÉSENTATION
+    ════════════════════════════════════════════════════════ */
+
+    #pres-mode-tab {
+        font-size: 10px !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       14. TITRE DU PROJET COURANT
+    ════════════════════════════════════════════════════════ */
+
+    #current-project-name {
+        font-size: 9px !important;
+        max-width: 70px !important;
+        width: 70px !important;
+        bottom: 2px !important;
+        left: 64px !important; /* décalé pour ne pas chevaucher le FAB */
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       15. MODALES
+           Pleine largeur sur mobile
+    ════════════════════════════════════════════════════════ */
+
+    .modal-content {
+        max-width: 95vw !important;
+        padding: 20px !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       16. MENUS CONTEXTUELS (widget-ctx-menu, sc-ctx-menu)
+    ════════════════════════════════════════════════════════ */
+
+    .widget-ctx-menu,
+    #sc-ctx-menu {
+        min-width: 155px !important;
+        font-size: 13px !important;
+    }
+
+    .widget-ctx-menu button,
+    #sc-ctx-menu button {
+        padding: 8px 14px !important;
+        font-size: 13px !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       17. COLOR PICKER (cpick-popup)
+    ════════════════════════════════════════════════════════ */
+
+    .cpick-popup {
+        width: min(200px, 90vw) !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       18. BARRE D'ONGLETS PDF PLEIN ÉCRAN (#pdf-fs-tabbar)
+    ════════════════════════════════════════════════════════ */
+
+    #pdf-fs-tabbar {
+        height: 44px !important;
+        padding: 4px 6px 0 6px !important;
+    }
+
+    .pdf-fs-tab {
+        font-size: 11px !important;
+        padding: 0 8px 0 10px !important;
+        min-width: 50px !important;
+    }
+
+
+    /* ════════════════════════════════════════════════════════
+       19. ROTATION INDICATOR
+    ════════════════════════════════════════════════════════ */
+
+    #rotation-indicator {
+        font-size: 11px !important;
+        padding: 3px 8px !important;
+    }
+
+} /* fin @media (max-width: 768px) */
+
+
+/* ════════════════════════════════════════════════════════
+   TÉLÉPHONE EN MODE PAYSAGE (hauteur très réduite)
+   Ex. iPhone en paysage (~375-430px de haut). L'espacement
+   des onglets latéraux ci-dessus (420px d'étendue) est encore
+   trop grand pour ces hauteurs : on resserre davantage.
+════════════════════════════════════════════════════════ */
+
+@media (max-height: 480px) and (pointer: coarse) {
+
+    #jeux-panel-tab,
+    #activities-panel-tab,
+    #tools-panel-tab,
+    #widgets-panel-tab,
+    #sticker-panel-tab,
+    #projects-panel-tab,
+    #display-panel-tab,
+    #pres-mode-tab {
+        left: -12px !important;
+        width: 48px !important;
+        height: 44px !important;
+    }
+
+    #jeux-panel-tab       { top: calc(50% - 175px) !important; }
+    #activities-panel-tab { top: calc(50% - 125px) !important; }
+    #tools-panel-tab      { top: calc(50% - 75px)  !important; }
+    #widgets-panel-tab    { top: calc(50% - 25px)  !important; }
+    #sticker-panel-tab    { top: calc(50% + 25px)  !important; }
+    #projects-panel-tab   { top: calc(50% + 75px)  !important; }
+    #display-panel-tab    { top: calc(50% + 125px) !important; }
+    #pres-mode-tab        { top: calc(50% + 175px) !important; }
+
+    #main-menu {
+        max-height: 90vh !important;
+    }
+
+    #fab-btn, #draw-fab-btn {
+        width: 38px !important;
+        height: 38px !important;
+    }
+}
+
+
+/* ════════════════════════════════════════════════════════
+   TRÈS PETIT ÉCRAN (< 400px — ex. iPhone SE)
+════════════════════════════════════════════════════════ */
+
+@media (max-width: 400px) {
+
+    .mm-item {
+        font-size: 11px !important;
+        padding: 4px 8px !important;
+        min-width: 98px !important;
+    }
+
+    .mm-item .mm-ico {
+        font-size: 17px !important;
+        width: 19px !important;
+    }
+
+    #sticker-panel,
+    #widgets-panel,
+    #activities-panel,
+    #tools-panel,
+    #display-panel,
+    #projects-panel,
+    #pdf-library-panel,
+    #image-panel {
+        width: 95vw !important;
+    }
+
+    .widgets-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .scene-tab {
+        font-size: 10px !important;
+        padding: 3px 8px !important;
+        max-width: 90px !important;
+    }
+
+    #fab-btn,
+    #draw-fab-btn {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 24px !important;
+    }
+
+}

@@ -13,13 +13,31 @@
 //          <span class="mm-ico">📋</span>Liste de classe
 //      </div>
 //
+// 📌 Onglet « Édition » (PDF) : liste de classe, feuille de pointage, grandes et
+//    petites étiquettes, fiches de suivi. Repris de maclasse.html.
+//    Utilise jsPDF + jsPDF-AutoTable (chargés automatiquement depuis cdnjs au
+//    premier usage si la page ne les fournit pas déjà ; connexion Internet requise).
+//    API : window.ClasseEdition.generate(kind, classId?) → Promise<nomDeFichier>
+//          kind = 'liste' | 'pointage' | 'grandes' | 'petites' | 'suivi'
+//
 // 📌 API globale pour les autres widgets (window.ClasseListe) :
 //   ClasseListe.getClasses()          → [{ id, name, count }]
 //   ClasseListe.getActiveId()         → id de la classe active (ou null)
 //   ClasseListe.getStudents(classId)  → [{ id, prenom, nom, sexe, niveau, dob }]
 //                                       (même format que widget-tirage ; sexe = 'F' | 'G' | '')
+//                                       dob = 'AAAA-MM-JJ' ou '' (saisie/affichage en JJ/MM/AAAA)
+//   ClasseListe.normDob(txt) / formatDob(iso) → conversions de dates de naissance
 //                                       classId omis = classe active
 //   ClasseListe.getClass(classId)     → { id, name, students:[…] } ou null
+//   ClasseListe.getLevels(classId)    → ['CE1','CE2'] (classe à 2 ou 3 niveaux) ou [] (un seul niveau)
+//   ClasseListe.setLevels(classId, levels) → définit les niveaux (2 ou 3, max.)
+//                                       Si la classe a plusieurs niveaux, chaque élève porte son
+//                                       propre « niveau » dans getStudents ; sinon niveau = nom de classe.
+//   ClasseListe.getViewMode(classId)  → 'split' (2 colonnes) | 'levels' (une colonne par niveau)
+//   ClasseListe.setViewMode(classId, mode) → change la présentation (classe à plusieurs niveaux)
+//   ClasseListe.getSortMode(classId)  → 'prenom' | 'nom' (critère de tri de la classe)
+//   ClasseListe.setSortMode(classId, mode) → change le critère et re-trie
+//                                       (la liste est TOUJOURS triée automatiquement)
 //   ClasseListe.onChange(cb)          → cb(source) à chaque modification ; renvoie une
 //                                       fonction pour se désabonner
 //   (l'événement window 'bdp-classes-changed' est aussi émis)
@@ -41,7 +59,7 @@ if (!window.ClasseListe) {
                 const raw = localStorage.getItem(KEY);
                 if (raw) {
                     const d = JSON.parse(raw);
-                    if (d && Array.isArray(d.classes)) return d;
+                    if (d && Array.isArray(d.classes)) { d.classes.forEach(sortClass); return d; }
                 }
             } catch (e) {}
             return empty();
@@ -66,6 +84,60 @@ if (!window.ClasseListe) {
         function find(id) { return data.classes.find(c => c.id === id) || null; }
         function clone(o) { return o ? JSON.parse(JSON.stringify(o)) : o; }
 
+        // ── Dates de naissance : stockées en ISO « AAAA-MM-JJ » ──
+        // Accepte JJ/MM/AAAA, JJ-MM-AAAA, JJ.MM.AAAA, JJMMAAAA, AAAA-MM-JJ ; renvoie '' si invalide
+        function normDob(v) {
+            const t = String(v == null ? '' : v).trim();
+            if (!t) return '';
+            let y, m, d, x;
+            if ((x = t.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/)))      { y = +x[1]; m = +x[2]; d = +x[3]; }
+            else if ((x = t.match(/^(\d{1,2})[-\/. ](\d{1,2})[-\/. ](\d{4})$/))) { d = +x[1]; m = +x[2]; y = +x[3]; }
+            else if ((x = t.match(/^(\d{2})(\d{2})(\d{4})$/)))                 { d = +x[1]; m = +x[2]; y = +x[3]; }
+            else return '';
+            if (y < 1900 || y > 2100) return '';
+            const dt = new Date(Date.UTC(y, m - 1, d));
+            if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return '';
+            return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        }
+        function formatDob(iso) {
+            const x = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            return x ? x[3] + '/' + x[2] + '/' + x[1] : '';
+        }
+
+        // ── Niveaux (classe à 2 ou 3 niveaux) ──
+        function normLevels(v) {
+            const arr = Array.isArray(v) ? v : String(v || '').split(/[,;\/]+/);
+            const out = [];
+            arr.forEach(x => {
+                const l = String(x).trim().toUpperCase();
+                if (l && !out.includes(l)) out.push(l);
+            });
+            return out.slice(0, 3);
+        }
+        function levelsOf(c) { return Array.isArray(c.levels) ? c.levels : []; }
+        function isMulti(c)  { return levelsOf(c).length >= 2; }
+        // Renvoie un niveau valide pour la classe ('' si un seul niveau)
+        function resolveLevel(c, v) {
+            if (!isMulti(c)) return '';
+            const l = String(v || '').trim().toUpperCase();
+            return levelsOf(c).includes(l) ? l : levelsOf(c)[0];
+        }
+
+        // ── Tri automatique (prénom ou nom, selon le réglage de la classe) ──
+        function cmpText(a, b) {
+            return String(a || '').localeCompare(String(b || ''), 'fr', { sensitivity: 'base' });
+        }
+        function sortClass(c) {
+            if (!c || !Array.isArray(c.students)) return;
+            const mode  = c.sortBy === 'nom' ? 'nom' : 'prenom';
+            const other = mode === 'nom' ? 'prenom' : 'nom';
+            c.students.sort((a, b) => {
+                const ka = a[mode] || '', kb = b[mode] || '';
+                if (!ka !== !kb) return ka ? -1 : 1;          // champ vide → en fin de liste
+                return cmpText(ka, kb) || cmpText(a[other], b[other]) || (a.id - b.id);
+            });
+        }
+
         function normSexe(v) {
             const s = String(v || '').trim().toLowerCase();
             if (!s) return '';
@@ -81,7 +153,7 @@ if (!window.ClasseListe) {
             onChange(cb) { listeners.add(cb); return () => listeners.delete(cb); },
 
             getClasses() {
-                return data.classes.map(c => ({ id: c.id, name: c.name, count: c.students.length }));
+                return data.classes.map(c => ({ id: c.id, name: c.name, count: c.students.length, levels: levelsOf(c).slice() }));
             },
             getActiveId() {
                 if (data.activeId && find(data.activeId)) return data.activeId;
@@ -93,10 +165,12 @@ if (!window.ClasseListe) {
             getStudents(id) {
                 const c = find(id || this.getActiveId());
                 if (!c) return [];
-                const niveau = (c.name || 'CLASSE').trim().toUpperCase();
+                const classNiveau = (c.name || 'CLASSE').trim().toUpperCase();
                 return c.students.map(s => ({
                     id: s.id, prenom: s.prenom, nom: s.nom || '',
-                    sexe: s.sexe || '', niveau, dob: ''
+                    sexe: s.sexe || '',
+                    niveau: isMulti(c) ? resolveLevel(c, s.niveau) : classNiveau,
+                    classe: c.name, dob: s.dob || ''
                 }));
             },
 
@@ -107,7 +181,7 @@ if (!window.ClasseListe) {
             },
             createClass(name, source) {
                 const id = 'c' + (data.nextClassId++);
-                data.classes.push({ id, name: (name || 'Ma classe').trim() || 'Ma classe', nextStudentId: 1, students: [] });
+                data.classes.push({ id, name: (name || 'Ma classe').trim() || 'Ma classe', nextStudentId: 1, sortBy: 'prenom', levels: [], students: [] });
                 data.activeId = id;
                 commit(source);
                 return id;
@@ -133,11 +207,12 @@ if (!window.ClasseListe) {
                     if (!prenom) return;
                     c.students.push({
                         id: c.nextStudentId++, prenom,
-                        nom: String(e.nom || '').trim(), sexe: normSexe(e.sexe)
+                        nom: String(e.nom || '').trim(), sexe: normSexe(e.sexe),
+                        niveau: resolveLevel(c, e.niveau), dob: normDob(e.dob)
                     });
                     n++;
                 });
-                if (n) commit(source);
+                if (n) { sortClass(c); commit(source); }
                 return n;
             },
             updateStudent(id, sid, patch, source) {
@@ -146,6 +221,9 @@ if (!window.ClasseListe) {
                 if ('prenom' in patch) s.prenom = String(patch.prenom).trim() || s.prenom;
                 if ('nom'    in patch) s.nom    = String(patch.nom).trim();
                 if ('sexe'   in patch) s.sexe   = normSexe(patch.sexe);
+                if ('niveau' in patch) s.niveau = resolveLevel(c, patch.niveau);
+                if ('dob'    in patch) s.dob    = normDob(patch.dob);
+                sortClass(c);
                 commit(source);
             },
             removeStudent(id, sid, source) {
@@ -160,7 +238,45 @@ if (!window.ClasseListe) {
             },
             sortStudents(id, source) {
                 const c = find(id); if (!c) return;
-                c.students.sort((a, b) => a.prenom.localeCompare(b.prenom, 'fr', { sensitivity: 'base' }));
+                sortClass(c);
+                commit(source);
+            },
+            getSortMode(id) {
+                const c = find(id || this.getActiveId());
+                return c && c.sortBy === 'nom' ? 'nom' : 'prenom';
+            },
+            setSortMode(id, mode, source) {
+                const c = find(id); if (!c) return;
+                c.sortBy = mode === 'nom' ? 'nom' : 'prenom';
+                sortClass(c);
+                commit(source);
+            },
+
+            normLevels,
+            normDob,
+            formatDob,
+            getLevels(id) {
+                const c = find(id || this.getActiveId());
+                return c ? levelsOf(c).slice() : [];
+            },
+            /** levels : tableau ou texte « CE1, CE2 » — moins de 2 niveaux = classe à un seul niveau */
+            setLevels(id, levels, source) {
+                const c = find(id); if (!c) return;
+                let lv = normLevels(levels);
+                if (lv.length < 2) lv = [];
+                c.levels = lv;
+                if (!lv.length) c.viewMode = 'split';
+                c.students.forEach(s => { s.niveau = resolveLevel(c, s.niveau); });
+                commit(source);
+            },
+
+            getViewMode(id) {
+                const c = find(id || this.getActiveId());
+                return c && c.viewMode === 'levels' && isMulti(c) ? 'levels' : 'split';
+            },
+            setViewMode(id, mode, source) {
+                const c = find(id); if (!c) return;
+                c.viewMode = mode === 'levels' ? 'levels' : 'split';
                 commit(source);
             },
 
@@ -170,7 +286,373 @@ if (!window.ClasseListe) {
             hydrate(d, source) {
                 if (!d || !Array.isArray(d.classes)) return;
                 data = clone(d);
+                data.classes.forEach(sortClass);
                 commit(source);
+            }
+        };
+    })();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// MODULE ÉDITION : génération des documents PDF (repris de maclasse.html)
+// Aucune dépendance au DOM du widget : utilisable seul via window.ClasseEdition
+// ─────────────────────────────────────────────────────────────────────────
+if (!window.ClasseEdition) {
+    (function () {
+        const LIB_JSPDF     = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        const LIB_AUTOTABLE = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js';
+        const LS_PROF = 'nom_enseignant';          // même clé que maclasse.html
+        const LS_YEAR = 'annee_scolaire_classe';
+
+        const KINDS = [
+            { id: 'liste',    icon: '📄', title: 'Liste de classe',     desc: 'Format tableau classique A4',          color: '#3b82f6', tint: 'rgba(59,130,246,.12)' },
+            { id: 'pointage', icon: '☑️', title: 'Feuille de pointage', desc: 'Grille avec 15 cases de suivi',        color: '#10b981', tint: 'rgba(16,185,129,.12)' },
+            { id: 'grandes',  icon: '🏷️', title: 'Grandes étiquettes',  desc: '8 étiquettes par page A4',             color: '#f59e0b', tint: 'rgba(245,158,11,.14)' },
+            { id: 'petites',  icon: '🔖', title: 'Petites étiquettes',  desc: '27 étiquettes par page (format 3×9)',  color: '#f43f5e', tint: 'rgba(244,63,94,.12)' },
+            { id: 'suivi',    icon: '🗂️', title: 'Fiches de suivi',     desc: '2 fiches A5 par page (paysage)',       color: '#a855f7', tint: 'rgba(168,85,247,.12)' }
+        ];
+
+        // ── Réglages (enseignant, année scolaire) ─────────────────────────
+        function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+        function lsSet(k, v) { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) {} }
+        function autoYear() {
+            const d = new Date(), y = d.getFullYear();
+            return d.getMonth() >= 7 ? y + '-' + (y + 1) : (y - 1) + '-' + y;   // année scolaire à partir d'août
+        }
+        function getProf() { return lsGet(LS_PROF); }
+        function setProf(v) { lsSet(LS_PROF, String(v || '').trim()); }
+        function getYear() { return lsGet(LS_YEAR).trim() || autoYear(); }
+        function setYear(v) { lsSet(LS_YEAR, String(v || '').trim()); }
+
+        // ── Chargement de jsPDF + AutoTable (une seule fois) ──────────────
+        function hasJsPdf()     { return !!(window.jspdf && window.jspdf.jsPDF); }
+        function hasAutoTable() { return hasJsPdf() && !!(window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable); }
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const el = document.createElement('script');
+                el.src = src;
+                el.async = true;
+                el.onload  = () => resolve();
+                el.onerror = () => { el.remove(); reject(new Error('Impossible de charger la bibliothèque PDF (vérifiez la connexion Internet).')); };
+                document.head.appendChild(el);
+            });
+        }
+
+        let libPromise = null;
+        function ensureLib() {
+            if (hasJsPdf() && hasAutoTable()) return Promise.resolve(window.jspdf.jsPDF);
+            if (!libPromise) {
+                libPromise = (async () => {
+                    if (!hasJsPdf())     await loadScript(LIB_JSPDF);
+                    if (!hasAutoTable()) await loadScript(LIB_AUTOTABLE);
+                    if (!hasJsPdf()) throw new Error('Bibliothèque PDF indisponible.');
+                    return window.jspdf.jsPDF;
+                })().catch(e => { libPromise = null; throw e; });
+            }
+            return libPromise;
+        }
+
+        // ── Utilitaires ───────────────────────────────────────────────────
+        function today() {
+            const n = new Date();
+            return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+        }
+        function slug(t) {
+            return String(t || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        }
+        // Réduit la police jusqu'à ce que le texte tienne dans maxW (prénoms longs)
+        function fit(doc, text, maxW, size, min) {
+            let sz = size;
+            doc.setFontSize(sz);
+            while (sz > min && doc.getTextWidth(text) > maxW) { sz -= 0.5; doc.setFontSize(sz); }
+            return sz;
+        }
+        function upNom(s) { return String(s.nom || '').trim().toUpperCase(); }
+        function fullName(s) { return (String(s.prenom || '').trim() + ' ' + upNom(s)).trim(); }
+        // « Prénom NOM » ou « NOM Prénom » selon le tri de la classe
+        function dispName(s, mode) {
+            const p = String(s.prenom || '').trim(), n = upNom(s);
+            return (mode === 'nom' ? n + ' ' + p : p + ' ' + n).trim();
+        }
+        function dobText(s) { return window.ClasseListe.formatDob(s.dob); }
+        function table(doc, opts) {
+            if (typeof doc.autoTable === 'function') doc.autoTable(opts);
+            else if (typeof window.autoTable === 'function') window.autoTable(doc, opts);
+            else throw new Error('Module de tableaux PDF indisponible.');
+        }
+        function bandCell(text, span) {
+            return { content: text, colSpan: span, styles: { fillColor: [160, 160, 160], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'left' } };
+        }
+        function bandFix(span) {
+            return function (data) {
+                if (data.section === 'body' && data.cell.raw && data.cell.raw.colSpan === span) data.cell.styles.fillColor = [160, 160, 160];
+            };
+        }
+
+        // ── Contexte : classe active, élèves triés, regroupement par niveau ──
+        function context(classId) {
+            const CL = window.ClasseListe;
+            const id  = classId || CL.getActiveId();
+            const cls = CL.getClass(id);
+            if (!cls) throw new Error('Aucune classe sélectionnée.');
+            const students = CL.getStudents(id);           // déjà triés selon le tri de la classe
+            if (!students.length) { const e = new Error('La liste est vide !'); e.empty = true; throw e; }
+            const levels = CL.getLevels(id);
+            const multi  = levels.length >= 2;
+            const groups = multi
+                ? levels.map(l => ({ level: l, list: students.filter(s => s.niveau === l) })).filter(g => g.list.length)
+                : [{ level: null, list: students }];
+            return {
+                cls, students, levels, multi, groups,
+                mode: CL.getSortMode(id),
+                prof: getProf(), year: getYear(),
+                label: multi ? levels.join(' / ') : cls.name
+            };
+        }
+
+        // ── 1) Liste de classe (tableau A4) ───────────────────────────────
+        function buildListe(jsPDF, c) {
+            const doc = new jsPDF();
+            const title = c.prof ? 'Liste de la classe de ' + c.prof : 'Liste de la classe ' + c.cls.name;
+            fit(doc, title, 180, 18, 11);
+            doc.text(title, 105, 15, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text(c.label, 105, 22, { align: 'center' });
+
+            const ncols = c.multi ? 5 : 4;
+            const body = [];
+            let n = 1;
+            c.groups.forEach(g => {
+                if (c.multi) body.push([bandCell(g.level, ncols)]);
+                g.list.forEach(s => {
+                    const row = [n++, dispName(s, c.mode), dobText(s) || '-', (s.sexe || '').toUpperCase() || '-'];
+                    if (c.multi) row.push(s.niveau);
+                    body.push(row);
+                });
+            });
+
+            table(doc, {
+                head: [],
+                body,
+                startY: 30,
+                theme: 'grid',
+                alternateRowStyles: { fillColor: [230, 230, 230] },
+                styles: { fontSize: 9, lineColor: [0, 0, 0] },
+                didParseCell: bandFix(ncols)
+            });
+            return doc;
+        }
+
+        // ── 2) Feuille de pointage (15 cases) ─────────────────────────────
+        function buildPointage(jsPDF, c) {
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const title = 'Feuille de pointage ' + c.label + (c.prof ? ' - ' + c.prof : '');
+            fit(doc, title, 190, 16, 10);
+            doc.text(title, 105, 15, { align: 'center' });
+
+            const body = [];
+            let n = 1;
+            c.groups.forEach(g => {
+                if (c.multi) body.push([bandCell(g.level, 17)]);
+                g.list.forEach(s => body.push([n++, dispName(s, c.mode), ...Array(15).fill('')]));
+            });
+
+            table(doc, {
+                head: [[...Array(17).fill('')]],
+                body,
+                startY: 25,
+                theme: 'grid',
+                alternateRowStyles: { fillColor: [230, 230, 230] },
+                headStyles: { fillColor: [255, 255, 255], lineWidth: 0.1, lineColor: [0, 0, 0], minCellHeight: 16 },
+                styles: { fontSize: 7, cellPadding: 1.5, lineColor: [0, 0, 0], textColor: [0, 0, 0] },
+                columnStyles: {
+                    0: { cellWidth: 7, halign: 'center' },
+                    1: { cellWidth: 'auto' },
+                    ...Object.fromEntries([...Array(15)].map((_, i) => [i + 2, { cellWidth: 8 }]))
+                },
+                didParseCell: function (data) {
+                    if (data.section === 'head' && (data.column.index === 0 || data.column.index === 1)) data.cell.styles.lineWidth = 0;
+                    bandFix(17)(data);
+                }
+            });
+            return doc;
+        }
+
+        // ── 3) Grandes étiquettes (8 par page : 2 × 4) ────────────────────
+        function buildGrandes(jsPDF, c) {
+            const doc = new jsPDF();
+            const margin = 10, gap = 10, cols = 2, rows = 4;
+            const cw = (210 - 2 * margin - gap) / cols;
+            const ch = (297 - 2 * margin - 3 * gap) / rows;
+
+            c.students.forEach((s, i) => {
+                const pos = i % (cols * rows);
+                if (i > 0 && pos === 0) doc.addPage();
+                const x = margin + (pos % cols) * (cw + gap);
+                const y = margin + Math.floor(pos / cols) * (ch + gap);
+
+                doc.setDrawColor(200);
+                doc.roundedRect(x, y, cw, ch, 3, 3, 'S');
+
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(40);
+                fit(doc, s.prenom, cw - 10, 24, 12);
+                doc.text(s.prenom, x + cw / 2, y + ch / 2, { align: 'center' });
+
+                const nom = upNom(s);
+                if (nom) {
+                    doc.setTextColor(100);
+                    fit(doc, nom, cw - 10, 10, 6);
+                    doc.text(nom, x + cw / 2, y + ch / 2 + 10, { align: 'center' });
+                }
+
+                doc.setTextColor(100);
+                doc.setFontSize(8);
+                doc.text(s.niveau, x + cw - 5, y + ch - 5, { align: 'right' });
+            });
+            return doc;
+        }
+
+        // ── 4) Petites étiquettes (27 par page : 3 × 9) ───────────────────
+        function buildPetites(jsPDF, c) {
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const mx = 10, my = 12, cols = 3, rows = 9, gap = 4;
+            const cw = (210 - 2 * mx - (cols - 1) * gap) / cols;
+            const ch = (297 - 2 * my - (rows - 1) * gap) / rows;
+
+            c.students.forEach((s, i) => {
+                const pos = i % (cols * rows);
+                if (i > 0 && pos === 0) doc.addPage();
+                const x = mx + (pos % cols) * (cw + gap);
+                const y = my + Math.floor(pos / cols) * (ch + gap);
+
+                doc.setDrawColor(220);
+                doc.setLineWidth(0.1);
+                doc.rect(x, y, cw, ch, 'S');
+
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(0);
+                fit(doc, s.prenom, cw - 4, 11, 7);
+                doc.text(s.prenom, x + cw / 2, y + ch / 2 - 1, { align: 'center' });
+
+                const nom = upNom(s);
+                if (nom) {
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(100);
+                    fit(doc, nom, cw - 4, 8, 5);
+                    doc.text(nom, x + cw / 2, y + ch / 2 + 4, { align: 'center' });
+                }
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(6);
+                doc.setTextColor(180);
+                doc.text(s.niveau, x + cw - 2, y + ch - 2, { align: 'right' });
+            });
+            return doc;
+        }
+
+        // ── 5) Fiches de suivi (2 fiches A5 par page A4 paysage) ──────────
+        function buildSuivi(jsPDF, c) {
+            const doc = new jsPDF('l', 'mm', 'a4');
+            const head1 = 'Suivi Pédagogique - ' + (c.prof ? 'Classe de ' + c.prof : 'Classe ' + c.cls.name);
+
+            c.students.forEach((s, i) => {
+                if (i > 0 && i % 2 === 0) doc.addPage('a4', 'l');
+                const position = i % 2;
+                const ox = position * 148.5;
+
+                doc.setFillColor(248, 248, 248);
+                doc.rect(ox + 10, 10, 128.5, 20, 'F');
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(120);
+                fit(doc, head1, 118, 8, 6);
+                doc.text(head1, ox + 15, 18);
+                doc.setFontSize(8);
+                doc.text('Année Scolaire ' + c.year, ox + 15, 24);
+
+                doc.setTextColor(0);
+                doc.setFont('helvetica', 'bold');
+                const name = fullName(s);
+                fit(doc, name, 118, 16, 10);
+                doc.text(name, ox + 74.25, 45, { align: 'center' });
+
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                const birth = dobText(s);
+                doc.text('Niveau : ' + s.niveau + (birth ? ' - Né(e) le : ' + birth : ''), ox + 74.25, 52, { align: 'center' });
+
+                doc.setDrawColor(200);
+                doc.line(ox + 30, 58, ox + 118, 58);
+
+                doc.setFontSize(9);
+                doc.setTextColor(150);
+                doc.setFont('helvetica', 'italic');
+                doc.text('OBSERVATIONS / NOTES :', ox + 15, 68);
+
+                doc.setDrawColor(230);
+                doc.roundedRect(ox + 10, 72, 128.5, 120, 2, 2, 'S');
+
+                doc.setDrawColor(240);
+                for (let k = 0; k < 10; k++) doc.line(ox + 15, 85 + k * 11, ox + 133.5, 85 + k * 11);
+
+                if (position === 0) {
+                    doc.setDrawColor(220);
+                    doc.setLineDashPattern([2, 2], 0);
+                    doc.line(148.5, 5, 148.5, 205);
+                    doc.setLineDashPattern([], 0);
+                }
+            });
+            return doc;
+        }
+
+        const BUILDERS = {
+            liste:    { build: buildListe,    file: 'liste_classe' },
+            pointage: { build: buildPointage, file: 'liste_pointage' },
+            grandes:  { build: buildGrandes,  file: 'etiquettes' },
+            petites:  { build: buildPetites,  file: 'petitesetiquettes' },
+            suivi:    { build: buildSuivi,    file: 'fiches_suivi_classe' }
+        };
+
+        function finalize(doc, fileName) {
+            try {
+                if (window.Android && typeof window.Android.savePdfFromBase64 === 'function') {
+                    window.Android.savePdfFromBase64(doc.output('datauristring').split(',')[1], fileName);
+                } else {
+                    doc.save(fileName);
+                }
+            } catch (e) {
+                console.error('Erreur export PDF :', e);
+                doc.save(fileName);
+            }
+        }
+
+        function fileNameFor(kind, c) {
+            const who = [c.prof, c.cls.name].map(slug).filter(Boolean).join('_') || 'classe';
+            return 'outilsprofs_' + BUILDERS[kind].file + '_' + who + '_' + today() + '.pdf';
+        }
+
+        window.ClasseEdition = {
+            KINDS,
+            getProf, setProf, getYear, setYear, autoYear,
+            ensureLib,
+            /** Construit le PDF (sans l'enregistrer) et le renvoie */
+            async build(kind, classId) {
+                if (!BUILDERS[kind]) throw new Error('Document inconnu : ' + kind);
+                const c = context(classId);
+                const jsPDF = await ensureLib();
+                return BUILDERS[kind].build(jsPDF, c);
+            },
+            /** Construit + enregistre le PDF ; renvoie le nom du fichier */
+            async generate(kind, classId) {
+                if (!BUILDERS[kind]) throw new Error('Document inconnu : ' + kind);
+                const c = context(classId);
+                const jsPDF = await ensureLib();
+                const doc = BUILDERS[kind].build(jsPDF, c);
+                const name = fileNameFor(kind, c);
+                finalize(doc, name);
+                return name;
             }
         };
     })();
@@ -191,8 +673,8 @@ if (!window.ClasseListe) {
     /* ── Wrapper externe ── */
     .widget[data-type="classe"] .classe-outer {
         position: relative;
-        width: 520px;
-        height: 620px;
+        width: 800px;
+        height: 600px;
         min-width: 300px;
         min-height: 240px;
         overflow: hidden;
@@ -335,6 +817,173 @@ if (!window.ClasseListe) {
     }
     .classe-toolbar .classe-btn { padding: 5px 10px; font-size: 10px; }
 
+    /* ── Niveaux (classe à 2 ou 3 niveaux) ── */
+    .classe-add-level {
+        padding: 7px 6px;
+        border-radius: 8px;
+        border: 1.5px solid #d1d5db;
+        font-size: 12px;
+        font-family: inherit;
+        font-weight: 700;
+        color: #4f46e5;
+        background: #fff;
+        cursor: pointer;
+        user-select: none;
+    }
+    .classe-add-level:focus { outline: none; border-color: #6366f1; }
+    .classe-niv {
+        min-width: 34px; max-width: 56px; height: 22px;
+        border-radius: 6px;
+        border: 1px solid #c7d2fe;
+        background: #eef2ff;
+        color: #4f46e5;
+        font-size: 10px;
+        font-weight: 800;
+        cursor: pointer;
+        flex-shrink: 0;
+        padding: 0 4px;
+        font-family: inherit;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: all .15s;
+    }
+    .classe-niv[data-i="1"] { border-color: #99f6e4; background: #f0fdfa; color: #0d9488; }
+    .classe-niv[data-i="2"] { border-color: #fde68a; background: #fffbeb; color: #b45309; }
+
+    /* ── Onglets Enregistrement / Édition ── */
+    .classe-modes {
+        display: flex;
+        flex-shrink: 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .classe-mode {
+        flex: 1;
+        padding: 8px 6px 6px;
+        border: none;
+        border-bottom: 3px solid transparent;
+        background: transparent;
+        color: #9ca3af;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        font-family: inherit;
+        cursor: pointer;
+        transition: color .15s, border-color .15s;
+    }
+    .classe-mode:hover { color: #6b7280; }
+    .classe-mode.active { color: #374151; border-bottom-color: #6366f1; }
+
+    /* ── Panneau Édition ── */
+    .classe-edition {
+        display: none;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+        scrollbar-width: thin;
+        scrollbar-color: #d1d5db transparent;
+    }
+    .classe-inner[data-mode="doc"] .classe-edition { display: flex; }
+    .classe-inner[data-mode="doc"] .classe-addbar,
+    .classe-inner[data-mode="doc"] .classe-toolbar,
+    .classe-inner[data-mode="doc"] .classe-list,
+    .classe-inner[data-mode="doc"] .classe-footer { display: none; }
+    .classe-edit-info { font-size: 11px; font-weight: 700; color: #6b7280; }
+    .classe-edit-fields { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
+    .classe-edit-field {
+        display: flex; flex-direction: column; gap: 3px;
+        font-size: 9px; font-weight: 800; text-transform: uppercase;
+        color: #9ca3af; letter-spacing: .3px;
+    }
+    .classe-edit-field .classe-add-input { flex: none; width: 190px; }
+    .classe-edit-field .classe-edit-year { width: 110px; }
+    .classe-doc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 10px;
+    }
+    .classe-doc-card {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 14px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+        color: #374151;
+        transition: box-shadow .15s, transform .1s, border-color .15s;
+    }
+    .classe-doc-card:hover { border-color: var(--c); box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .classe-doc-card:active { transform: scale(0.98); }
+    .classe-doc-card:disabled { opacity: .55; cursor: wait; }
+    .classe-doc-ico {
+        width: 38px; height: 38px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; flex-shrink: 0;
+        background: var(--t);
+        transition: background .15s;
+    }
+    .classe-doc-card:hover .classe-doc-ico { background: var(--c); }
+    .classe-doc-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .classe-doc-txt b { font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .classe-doc-txt small { font-size: 10px; color: #6b7280; font-weight: 500; }
+    .classe-edit-status { font-size: 11px; font-weight: 600; color: #9ca3af; min-height: 16px; word-break: break-all; }
+    .classe-edit-status.ok  { color: #059669; }
+    .classe-edit-status.err { color: #dc2626; }
+
+    /* ── Sélecteur de tri ── */
+    .classe-sortgroup {
+        display: inline-flex;
+        align-items: center;
+        gap: 0;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #f3f4f6;
+    }
+    .classe-sort-label {
+        padding: 0 8px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #4b5563;
+        white-space: nowrap;
+    }
+    .classe-sort-opt, .classe-view-opt {
+        padding: 5px 10px;
+        border: none;
+        border-left: 1px solid #e5e7eb;
+        background: transparent;
+        color: #6b7280;
+        font-size: 10px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background .15s, color .15s;
+    }
+    .classe-sort-opt:hover, .classe-view-opt:hover { background: #e5e7eb; }
+    .classe-sort-opt.active, .classe-view-opt.active { background: #6366f1; color: #fff; }
+
+    /* ── Présentation « une colonne par niveau » ── */
+    .classe-list[data-view="levels"] { grid-auto-flow: row; align-items: start; }
+    .classe-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .classe-col-head {
+        position: sticky; top: 0; z-index: 1;
+        text-align: center;
+        font-size: 11px; font-weight: 800;
+        padding: 4px 6px;
+        border-radius: 8px;
+        background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .classe-col-head[data-i="1"] { background: #f0fdfa; color: #0d9488; border-color: #99f6e4; }
+    .classe-col-head[data-i="2"] { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .classe-list[data-view="levels"] .classe-niv { min-width: 30px; max-width: 30px; padding: 0 2px; }
+
     /* ── Liste élèves ── */
     .classe-list {
         flex: 1;
@@ -342,8 +991,11 @@ if (!window.ClasseListe) {
         overflow-y: auto;
         padding: 4px 12px 10px;
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 6px;
+        /* 2 colonnes : 1re moitié à gauche, 2e moitié à droite
+           (le nombre de lignes est fixé en JS = moitié des élèves) */
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-flow: column;
+        gap: 6px 12px;
         align-content: start;
         scrollbar-width: thin;
         scrollbar-color: #d1d5db transparent;
@@ -358,6 +1010,7 @@ if (!window.ClasseListe) {
         padding: 30px 10px;
     }
     .classe-row {
+        min-width: 0;
         display: flex;
         align-items: center;
         gap: 5px;
@@ -365,6 +1018,11 @@ if (!window.ClasseListe) {
         border: 1px solid #e5e7eb;
         border-radius: 8px;
         padding: 3px 6px;
+    }
+    .classe-row.just-added { animation: classeJustAdded 1.6s ease-out; }
+    @keyframes classeJustAdded {
+        0%, 40% { background: #e0e7ff; border-color: #6366f1; }
+        100%    { background: #f8f9fa; border-color: #e5e7eb; }
     }
     .classe-num {
         width: 20px;
@@ -390,6 +1048,21 @@ if (!window.ClasseListe) {
     .classe-in:hover { background: #fff; border-color: #e5e7eb; }
     .classe-in:focus { outline: none; background: #fff; border-color: #6366f1; }
     .classe-in-nom { font-weight: 500; color: #6b7280; }
+    .classe-in-dob {
+        flex: 0 0 84px; width: 84px;
+        font-size: 11px; font-weight: 500; color: #6b7280;
+        text-align: center;
+    }
+    .classe-in-dob::placeholder { color: #c4c9d1; }
+    /* 3 colonnes (un niveau par colonne) : la date passe sur une 2e ligne */
+    .classe-list[data-cols="3"] .classe-row { flex-wrap: wrap; }
+    .classe-list[data-cols="3"] .classe-in-dob {
+        order: 10; flex: none;
+        width: calc(100% - 25px); margin-left: 25px;
+        text-align: left;
+    }
+    .classe-list[data-mode="nom"] .classe-in-nom    { font-weight: 700; color: #374151; }
+    .classe-list[data-mode="nom"] .classe-in-prenom { font-weight: 500; color: #6b7280; }
     .classe-sexe {
         width: 26px; height: 22px;
         border-radius: 6px;
@@ -545,8 +1218,8 @@ if (!window.ClasseListe) {
     }
 
     // ── Constantes ────────────────────────────────────────────────────────
-    const CL_DEFAULT_W = 520;
-    const CL_DEFAULT_H = 620;
+    const CL_DEFAULT_W = 800;
+    const CL_DEFAULT_H = 600;
     const CL_MIN_W     = 300;
     const CL_MIN_H     = 240;
     const CL_LABEL     = '📋 Liste de classe';
@@ -566,16 +1239,24 @@ if (!window.ClasseListe) {
             const prenom = parts[0];
             if (!prenom) return;
             if (i === 0 && /^pr[ée]nom$/i.test(prenom)) return; // ligne d'en-tête
-            let nom = parts[1] || '', sexe = parts[2] || '';
+            let nom = parts[1] || '', sexe = parts[2] || '', dob = parts[4] || '';
             // "Léa;F" → le 2e champ est un sexe, pas un nom
             if (parts.length === 2 && /^(f|g|m|h)$/i.test(nom)) { sexe = nom; nom = ''; }
-            out.push({ prenom, nom, sexe: CL.normSexe(sexe) });
+            // "Léa;15/03/2015" ou "Léa;Martin;15/03/2015" → date de naissance
+            else if (parts.length === 2 && CL.normDob(nom))     { dob = nom;  nom = ''; }
+            else if (parts.length === 3 && CL.normDob(sexe))    { dob = sexe; sexe = ''; }
+            out.push({ prenom, nom, sexe: CL.normSexe(sexe), niveau: parts[3] || '', dob });
         });
         return out;
     }
 
     // ── HTML interne partagé (création + restauration) ────────────────────
     function classeInnerHTML() {
+        const docCards = (window.ClasseEdition ? window.ClasseEdition.KINDS : []).map(k => `
+                    <button class="classe-doc-card" data-doc="${k.id}" style="--c:${k.color};--t:${k.tint};">
+                        <span class="classe-doc-ico">${k.icon}</span>
+                        <span class="classe-doc-txt"><b>${k.title}</b><small>${k.desc}</small></span>
+                    </button>`).join('');
         return `
         <div class="classe-inner">
             <div class="classe-header">
@@ -592,25 +1273,67 @@ if (!window.ClasseListe) {
                 <p>• Tapez un prénom puis <b>Entrée</b> pour l'ajouter.<br>
                 • <b>📋 Coller une liste</b> : un prénom par ligne (ou séparés par des virgules).
                 Format complet accepté : <em>Prénom;NOM;sexe</em><br>
+                • La liste est <b>toujours triée par ordre alphabétique</b> : un nouvel élève se place directement au bon endroit.
+                Choisissez le tri par <b>Prénom</b> ou par <b>Nom</b> avec les boutons « Trier par ».<br>
+                • <b>Onglet Édition</b> : génère en PDF la liste de classe, la feuille de pointage, les grandes et petites étiquettes
+                et les fiches de suivi de la classe active. Le tri Prénom / Nom choisi est appliqué aux documents.<br>
+                • <b>Classe à 2 ou 3 niveaux</b> : cliquez sur <b>🎓</b> pour les définir (ex : <em>CE1, CE2</em>).
+                Choisissez ensuite le niveau des nouveaux élèves à côté du champ d'ajout ; cliquez sur le niveau d'un élève pour le changer.
+                Le bouton <b>Affichage</b> permet de présenter la liste en <b>2 colonnes</b> ou avec <b>une colonne par niveau</b>.<br>
+                • <b>Date de naissance</b> : tapez les chiffres (ex : <em>12032015</em>), les « / » s'ajoutent tout seuls.
+                Import possible avec <em>Prénom;NOM;sexe;niveau;JJ/MM/AAAA</em>.<br>
                 • Cliquez sur un prénom/nom pour le corriger, sur <b>F / G</b> pour changer le sexe (couleur dans le tirage).<br>
                 • Plusieurs classes possibles (onglets). La classe active est proposée par défaut
                 dans les widgets <b>Tirage</b> et <b>Équipes</b>.<br>
                 • Les listes sont mémorisées sur cet ordinateur.</p>
             </div>
+            <div class="classe-modes">
+                <button class="classe-mode active" data-mode="edit">👥 Enregistrement</button>
+                <button class="classe-mode" data-mode="doc">🖨️ Édition</button>
+            </div>
             <div class="classe-tabs"></div>
             <div class="classe-addbar">
                 <input type="text" class="classe-add-input" placeholder="Ajouter un prénom puis Entrée…" autocomplete="off">
+                <select class="classe-add-level" title="Niveau des nouveaux élèves" style="display:none;"></select>
                 <button class="classe-btn classe-add-btn" title="Ajouter">➕</button>
             </div>
             <div class="classe-toolbar">
                 <button class="classe-btn classe-btn-soft classe-bulk-btn">📋 Coller une liste</button>
                 <button class="classe-btn classe-btn-soft classe-file-btn">📄 Importer un fichier</button>
                 <button class="classe-btn classe-btn-soft classe-export-btn">💾 Exporter</button>
-                <button class="classe-btn classe-btn-soft classe-sort-btn">🔤 Trier A→Z</button>
+                <div class="classe-sortgroup" title="Les élèves sont rangés automatiquement par ordre alphabétique">
+                    <span class="classe-sort-label">🔤 Trier par</span>
+                    <button class="classe-sort-opt" data-sort="prenom">Prénom</button>
+                    <button class="classe-sort-opt" data-sort="nom">Nom</button>
+                </div>
+                <div class="classe-sortgroup classe-viewgroup" style="display:none;" title="Présentation de la liste (classe à plusieurs niveaux)">
+                    <span class="classe-sort-label">▦ Affichage</span>
+                    <button class="classe-view-opt" data-view="split">2 colonnes</button>
+                    <button class="classe-view-opt" data-view="levels">Par niveau</button>
+                </div>
                 <button class="classe-btn classe-btn-soft classe-clear-btn">🗑️ Vider</button>
                 <input type="file" class="classe-file-input" accept=".txt,.csv" style="display:none;">
             </div>
             <div class="classe-list"></div>
+            <div class="classe-edition">
+                <div class="classe-edit-info"></div>
+                <div class="classe-edit-fields">
+                    <label class="classe-edit-field">Enseignant
+                        <input type="text" class="classe-add-input classe-edit-prof" placeholder="ex : M. PROF" autocomplete="off">
+                    </label>
+                    <label class="classe-edit-field">Année scolaire
+                        <input type="text" class="classe-add-input classe-edit-year" placeholder="2026-2027" autocomplete="off">
+                    </label>
+                    <div class="classe-sortgroup" title="Le tri choisi s'applique aux documents">
+                        <span class="classe-sort-label">🔤 Trier par</span>
+                        <button class="classe-sort-opt" data-sort="prenom">Prénom</button>
+                        <button class="classe-sort-opt" data-sort="nom">Nom</button>
+                    </div>
+                </div>
+                <div class="classe-doc-grid">${docCards}
+                </div>
+                <div class="classe-edit-status">Choisissez un document : il sera généré en PDF pour la classe active.</div>
+            </div>
             <div class="classe-footer">
                 <div class="classe-stats">--</div>
                 <div class="classe-use">
@@ -723,9 +1446,17 @@ if (!window.ClasseListe) {
 
         // Bloquer la remontée mousedown/clavier depuis l'intérieur
         // (sinon le drag ou les raccourcis du board se déclenchent pendant la saisie)
-        outer.addEventListener('mousedown', e => e.stopPropagation());
-        outer.addEventListener('keydown',   e => e.stopPropagation());
-        outer.addEventListener('keyup',     e => e.stopPropagation());
+        // Si le widget a déjà été initialisé (ex. restauration du board), on repart
+        // d'un DOM neuf pour ne PAS empiler les écouteurs (sinon chaque clic
+        // se déclenche plusieurs fois : double export, etc.)
+        if (widget._classeInited) outer.innerHTML = classeInnerHTML();
+        widget._classeInited = true;
+
+        const stopEvt = e => e.stopPropagation();
+        ['mousedown', 'keydown', 'keyup'].forEach(ev => {
+            outer.addEventListener(ev, stopEvt);
+            cleanups.push(() => outer.removeEventListener(ev, stopEvt));
+        });
 
         // ── Header draggable (une seule fois) ─────────────────────────────
         const classeHeader = widget.querySelector('.classe-header');
@@ -746,10 +1477,21 @@ if (!window.ClasseListe) {
         const tabsEl       = widget.querySelector('.classe-tabs');
         const addInput     = widget.querySelector('.classe-add-input');
         const addBtn       = widget.querySelector('.classe-add-btn');
+        const addLevelSel  = widget.querySelector('.classe-add-level');
         const bulkBtn      = widget.querySelector('.classe-bulk-btn');
         const fileBtn      = widget.querySelector('.classe-file-btn');
         const exportBtn    = widget.querySelector('.classe-export-btn');
-        const sortBtn      = widget.querySelector('.classe-sort-btn');
+        const sortOpts     = widget.querySelectorAll('.classe-sort-opt');
+        const viewGroup    = widget.querySelector('.classe-viewgroup');
+        const viewOpts     = widget.querySelectorAll('.classe-view-opt');
+        const innerEl      = widget.querySelector('.classe-inner');
+        const modeBtns     = widget.querySelectorAll('.classe-mode');
+        const editInfo     = widget.querySelector('.classe-edit-info');
+        const editStatus   = widget.querySelector('.classe-edit-status');
+        const profInput    = widget.querySelector('.classe-edit-prof');
+        const yearInput    = widget.querySelector('.classe-edit-year');
+        const docBtns      = widget.querySelectorAll('.classe-doc-card');
+        const CE           = window.ClasseEdition;
         const clearBtn     = widget.querySelector('.classe-clear-btn');
         const fileInput    = widget.querySelector('.classe-file-input');
         const listEl       = widget.querySelector('.classe-list');
@@ -764,6 +1506,7 @@ if (!window.ClasseListe) {
         const wfClose      = widget.querySelector('[data-role="wf-close"]');
         let _isMax = false;
         let flashTimer = null;
+        let addLevel = '';   // niveau proposé aux nouveaux élèves (classe à plusieurs niveaux)
 
         // ── Données : secours depuis le JSON du board si localStorage vide ─
         if (!CL.getClasses().length && widget.dataset.classeData) {
@@ -861,7 +1604,9 @@ if (!window.ClasseListe) {
             });
         }
         // Échap = quitter le plein écran
-        outer.addEventListener('keydown', (e) => { if (e.key === 'Escape' && _isMax) toggleMax(); });
+        const onEscape = (e) => { if (e.key === 'Escape' && _isMax) toggleMax(); };
+        outer.addEventListener('keydown', onEscape);
+        cleanups.push(() => outer.removeEventListener('keydown', onEscape));
 
         // ── Aide popup ────────────────────────────────────────────────────
         if (helpBtn && helpPopup) {
@@ -900,7 +1645,7 @@ if (!window.ClasseListe) {
 
             const submit = () => {
                 const val = opts.input ? mInput.value.trim() : (opts.textarea ? mArea.value : '');
-                if ((opts.input || opts.textarea) && !val.trim()) return;
+                if ((opts.input || opts.textarea) && !opts.allowEmpty && !val.trim()) return;
                 closeModal();
                 if (opts.onConfirm) opts.onConfirm(val);
             };
@@ -939,7 +1684,11 @@ if (!window.ClasseListe) {
             const n = cls.students.length;
             const f = cls.students.filter(s => s.sexe === 'F').length;
             const g = cls.students.filter(s => s.sexe === 'G').length;
-            statsEl.textContent = n + ' élève' + (n > 1 ? 's' : '') + (f || g ? ' · ' + f + ' F · ' + g + ' G' : '');
+            const lv = cls.levels || [];
+            const lvTxt = lv.length >= 2
+                ? ' · ' + lv.map(l => l + ' : ' + cls.students.filter(s => s.niveau === l).length).join(' · ')
+                : '';
+            statsEl.textContent = n + ' élève' + (n > 1 ? 's' : '') + (f || g ? ' · ' + f + ' F · ' + g + ' G' : '') + lvTxt;
         }
 
         // ── Onglets classes ───────────────────────────────────────────────
@@ -1004,9 +1753,74 @@ if (!window.ClasseListe) {
                 });
             });
 
+            const levelsBtn = document.createElement('button');
+            levelsBtn.className = 'classe-tab-tool';
+            levelsBtn.textContent = '🎓';
+            {
+                const cur = activeClass();
+                const lv = cur && cur.levels ? cur.levels : [];
+                levelsBtn.title = 'Niveaux de la classe' + (lv.length ? ' : ' + lv.join(' / ') : ' (un seul niveau)');
+                if (lv.length) { levelsBtn.style.background = '#eef2ff'; levelsBtn.style.borderColor = '#c7d2fe'; }
+            }
+            levelsBtn.addEventListener('click', () => {
+                const cls = activeClass(); if (!cls) return;
+                showModal({
+                    title: 'Niveaux de la classe',
+                    text: 'Classe à 2 ou 3 niveaux : indiquez-les séparés par des virgules (ex : CE1, CE2).\nLaissez vide pour une classe à un seul niveau.',
+                    input: { value: (cls.levels || []).join(', '), placeholder: 'CE1, CE2' },
+                    allowEmpty: true,
+                    confirmLabel: 'Valider',
+                    onConfirm: (val) => {
+                        const lv = CL.normLevels(val);
+                        if (String(val).trim() && lv.length < 2) { flash('Indiquez au moins 2 niveaux.', 'err'); return; }
+                        CL.setLevels(cls.id, lv, widget);
+                        refreshAll();
+                        flash(lv.length ? '✓ Niveaux : ' + lv.join(' / ') : '✓ Un seul niveau', 'ok');
+                    }
+                });
+            });
+
+            tools.appendChild(levelsBtn);
             tools.appendChild(renameBtn);
             tools.appendChild(delBtn);
             tabsEl.appendChild(tools);
+        }
+
+        // ── Tri : état du sélecteur + détection d'un changement d'ordre ───
+        function renderSortMode() {
+            const mode = CL.getSortMode(CL.getActiveId());
+            sortOpts.forEach(b => b.classList.toggle('active', b.dataset.sort === mode));
+        }
+
+        function renderViewMode() {
+            const id   = CL.getActiveId();
+            const mode = CL.getViewMode(id);
+            viewGroup.style.display = CL.getLevels(id).length >= 2 ? '' : 'none';
+            viewOpts.forEach(b => b.classList.toggle('active', b.dataset.view === mode));
+        }
+
+        function renderAddLevel() {
+            const lv = CL.getLevels(CL.getActiveId());
+            addLevelSel.innerHTML = '';
+            if (lv.length < 2) { addLevelSel.style.display = 'none'; addLevel = ''; return; }
+            lv.forEach(l => {
+                const o = document.createElement('option');
+                o.value = l; o.textContent = l;
+                addLevelSel.appendChild(o);
+            });
+            if (!lv.includes(addLevel)) addLevel = lv[0];
+            addLevelSel.value = addLevel;
+            addLevelSel.style.display = '';
+        }
+        addLevelSel.addEventListener('change', () => { addLevel = addLevelSel.value; addInput.focus(); });
+
+        // Après modification d'un élève : si son rang a changé, on réaffiche la liste
+        function refreshIfReordered(cls) {
+            const fresh = CL.getClass(cls.id);
+            if (!fresh) return;
+            const before = cls.students.map(x => x.id).join(',');
+            const after  = fresh.students.map(x => x.id).join(',');
+            if (before !== after) refreshAll(true);
         }
 
         // ── Liste des élèves ──────────────────────────────────────────────
@@ -1016,7 +1830,16 @@ if (!window.ClasseListe) {
         function renderList() {
             const cls = activeClass();
             listEl.innerHTML = '';
+            listEl.style.gridTemplateRows = '';
+            listEl.style.gridTemplateColumns = '';
             if (!cls) return;
+            const sortMode = CL.getSortMode(cls.id);
+            listEl.dataset.mode = sortMode;
+            const levels = cls.levels || [];
+            const byLevel = levels.length >= 2 && CL.getViewMode(cls.id) === 'levels';
+            listEl.dataset.view = byLevel ? 'levels' : 'split';
+            listEl.dataset.cols = byLevel ? levels.length : 2;
+            if (levels.length >= 2) cls.students.forEach(s => { if (!levels.includes(s.niveau)) s.niveau = levels[0]; });
 
             if (!cls.students.length) {
                 const empty = document.createElement('div');
@@ -1026,13 +1849,35 @@ if (!window.ClasseListe) {
                 return;
             }
 
+            const cols = {};
+            const counters = {};
+            if (byLevel) {
+                // Une colonne par niveau (tri conservé à l'intérieur de chaque colonne)
+                listEl.style.gridTemplateColumns = 'repeat(' + levels.length + ', minmax(0, 1fr))';
+                levels.forEach((l, k) => {
+                    const col = document.createElement('div');
+                    col.className = 'classe-col';
+                    const head = document.createElement('div');
+                    head.className = 'classe-col-head';
+                    head.dataset.i = k;
+                    head.textContent = l + ' · ' + cls.students.filter(x => x.niveau === l).length;
+                    col.appendChild(head);
+                    listEl.appendChild(col);
+                    cols[l] = col;
+                });
+            } else {
+                // Colonne de gauche = première moitié (la plus grande si effectif impair)
+                listEl.style.gridTemplateRows = 'repeat(' + Math.ceil(cls.students.length / 2) + ', auto)';
+            }
+
             cls.students.forEach((s, i) => {
                 const row = document.createElement('div');
                 row.className = 'classe-row';
+                row.dataset.sid = s.id;
 
                 const num = document.createElement('span');
                 num.className = 'classe-num';
-                num.textContent = i + 1;
+                num.textContent = byLevel ? (counters[s.niveau] = (counters[s.niveau] || 0) + 1) : i + 1;
 
                 const inP = document.createElement('input');
                 inP.className = 'classe-in classe-in-prenom';
@@ -1043,6 +1888,7 @@ if (!window.ClasseListe) {
                     if (!v) { inP.value = s.prenom; return; }
                     s.prenom = v;
                     CL.updateStudent(cls.id, s.id, { prenom: v }, widget);
+                    refreshIfReordered(cls);
                 });
                 inP.addEventListener('keydown', (e) => {
                     if (e.key !== 'Enter') return;
@@ -1060,8 +1906,47 @@ if (!window.ClasseListe) {
                 inN.addEventListener('change', () => {
                     s.nom = inN.value.trim();
                     CL.updateStudent(cls.id, s.id, { nom: s.nom }, widget);
+                    refreshIfReordered(cls);
                 });
                 inN.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); inN.blur(); } });
+
+                const inD = document.createElement('input');
+                inD.className = 'classe-in classe-in-dob';
+                inD.type = 'text';
+                inD.inputMode = 'numeric';
+                inD.maxLength = 10;
+                inD.placeholder = 'JJ/MM/AAAA';
+                inD.title = 'Date de naissance (JJ/MM/AAAA)';
+                inD.value = CL.formatDob(s.dob);
+                // Saisie fluide : on tape les chiffres, les « / » s'ajoutent
+                inD.addEventListener('input', () => {
+                    const d = inD.value.replace(/\D/g, '').slice(0, 8);
+                    inD.value = d.length > 4 ? d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4)
+                              : d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2)
+                              : d;
+                });
+                // Collage d'une date complète (JJ/MM/AAAA, AAAA-MM-JJ…)
+                inD.addEventListener('paste', (e) => {
+                    const txt = (e.clipboardData || window.clipboardData).getData('text');
+                    const iso = CL.normDob(txt);
+                    if (!iso) return;
+                    e.preventDefault();
+                    inD.value = CL.formatDob(iso);
+                    inD.dispatchEvent(new Event('change'));
+                });
+                inD.addEventListener('change', () => {
+                    const raw = inD.value.trim();
+                    const iso = CL.normDob(raw);
+                    if (raw && !iso) {
+                        inD.value = CL.formatDob(s.dob);
+                        flash('Date invalide (format JJ/MM/AAAA).', 'err');
+                        return;
+                    }
+                    s.dob = iso;
+                    inD.value = CL.formatDob(iso);
+                    CL.updateStudent(cls.id, s.id, { dob: iso }, widget);
+                });
+                inD.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); inD.blur(); } });
 
                 const sx = document.createElement('button');
                 sx.className = 'classe-sexe';
@@ -1076,6 +1961,28 @@ if (!window.ClasseListe) {
                     renderStats();
                 });
 
+                let niv = null;
+                if (levels.length >= 2) {
+                    if (!levels.includes(s.niveau)) s.niveau = levels[0];
+                    niv = document.createElement('button');
+                    niv.className = 'classe-niv';
+                    const paintNiv = () => {
+                        const i = Math.max(0, levels.indexOf(s.niveau));
+                        niv.dataset.i = i;
+                        niv.textContent = levels[i];
+                    };
+                    paintNiv();
+                    niv.title = 'Niveau : cliquer pour changer (' + levels.join(' → ') + ')';
+                    niv.addEventListener('click', () => {
+                        const i = levels.indexOf(s.niveau);
+                        s.niveau = levels[(i + 1) % levels.length];
+                        paintNiv();
+                        CL.updateStudent(cls.id, s.id, { niveau: s.niveau }, widget);
+                        if (byLevel) refreshAll(true);   // l'élève change de colonne
+                        else renderStats();
+                    });
+                }
+
                 const del = document.createElement('button');
                 del.className = 'classe-del';
                 del.textContent = '×';
@@ -1086,17 +1993,24 @@ if (!window.ClasseListe) {
                 });
 
                 row.appendChild(num);
-                row.appendChild(inP);
-                row.appendChild(inN);
+                // Tri par nom → NOM puis prénom ; sinon prénom puis NOM
+                if (sortMode === 'nom') { row.appendChild(inN); row.appendChild(inP); }
+                else                    { row.appendChild(inP); row.appendChild(inN); }
+                row.appendChild(inD);
+                if (niv) row.appendChild(niv);
                 row.appendChild(sx);
                 row.appendChild(del);
-                listEl.appendChild(row);
+                (byLevel ? cols[s.niveau] : listEl).appendChild(row);
             });
         }
 
         function refreshAll(keepScroll) {
             const st = listEl.scrollTop;
             renderTabs();
+            renderSortMode();
+            renderAddLevel();
+            renderViewMode();
+            renderEdition();
             renderList();
             renderStats();
             if (keepScroll) listEl.scrollTop = st;
@@ -1107,9 +2021,25 @@ if (!window.ClasseListe) {
             const cls = activeClass(); if (!cls) return;
             const entries = parseStudentsText(text);
             if (!entries.length) { flash('Aucun prénom trouvé.', 'err'); return; }
+            const lvAdd = cls.levels || [];
+            if (lvAdd.length >= 2) entries.forEach(e => {
+                const m = lvAdd.find(l => l === String(e.niveau || '').trim().toUpperCase());
+                e.niveau = m || addLevel || lvAdd[0];
+            });
+            const knownIds = new Set(cls.students.map(x => x.id));
             const n = CL.addStudents(cls.id, entries, widget);
             refreshAll();
-            listEl.scrollTop = listEl.scrollHeight;
+            // Mettre en évidence le(s) nouvel(s) élève(s) et faire défiler jusqu'au premier
+            const fresh = CL.getClass(cls.id);
+            const added = fresh ? fresh.students.filter(x => !knownIds.has(x.id)) : [];
+            let firstRow = null;
+            added.forEach(x => {
+                const row = listEl.querySelector('.classe-row[data-sid="' + x.id + '"]');
+                if (!row) return;
+                row.classList.add('just-added');
+                if (!firstRow) firstRow = row;
+            });
+            if (firstRow) firstRow.scrollIntoView({ block: 'nearest' });
             flash('✓ ' + n + ' élève' + (n > 1 ? 's' : '') + ' ajouté' + (n > 1 ? 's' : ''), 'ok');
             if (!fromBulk) addInput.focus();
         }
@@ -1136,8 +2066,8 @@ if (!window.ClasseListe) {
         bulkBtn.addEventListener('click', () => {
             showModal({
                 title: 'Coller une liste d\'élèves',
-                text: 'Un prénom par ligne, ou séparés par des virgules.\nFormat complet : Prénom;NOM;sexe',
-                textarea: { placeholder: 'Léa\nHugo\nMaïa;Durand;F\nLucas;Martin;G' },
+                text: 'Un prénom par ligne, ou séparés par des virgules.\nFormat complet : Prénom;NOM;sexe;niveau;naissance (JJ/MM/AAAA)',
+                textarea: { placeholder: 'Léa\nHugo\nMaïa;Durand;F\nLucas;Martin;G;;12/03/2015' },
                 confirmLabel: 'Ajouter',
                 onConfirm: (val) => addFromText(val, true)
             });
@@ -1155,11 +2085,15 @@ if (!window.ClasseListe) {
         });
 
         // ── Export .txt (compatible avec l'import du widget tirage) ───────
-        exportBtn.addEventListener('click', () => {
+        let lastExport = 0;
+        exportBtn.addEventListener('click', (e) => {
+            e.stopImmediatePropagation();
+            const now = Date.now();
+            if (now - lastExport < 1000) return;
+            lastExport = now;
             const cls = activeClass();
             if (!cls || !cls.students.length) { flash('Rien à exporter.', 'err'); return; }
-            const niveau = cls.name.trim().toUpperCase();
-            const txt = cls.students.map(s => [s.prenom, s.nom || '', s.sexe || '', niveau, ''].join(';')).join('\n');
+            const txt = CL.getStudents(cls.id).map(s => [s.prenom, s.nom || '', s.sexe || '', s.niveau, CL.formatDob(s.dob)].join(';')).join('\n');
             const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
             const url  = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1173,11 +2107,19 @@ if (!window.ClasseListe) {
         });
 
         // ── Trier / Vider ─────────────────────────────────────────────────
-        sortBtn.addEventListener('click', () => {
+        sortOpts.forEach(btn => btn.addEventListener('click', () => {
             const cls = activeClass(); if (!cls) return;
-            CL.sortStudents(cls.id, widget);
+            CL.setSortMode(cls.id, btn.dataset.sort, widget);
             refreshAll();
-        });
+            const msg = '✓ Tri par ' + (btn.dataset.sort === 'nom' ? 'nom' : 'prénom');
+            if (innerEl.dataset.mode === 'doc') editFlash(msg, 'ok'); else flash(msg, 'ok');
+        }));
+
+        viewOpts.forEach(btn => btn.addEventListener('click', () => {
+            const cls = activeClass(); if (!cls) return;
+            CL.setViewMode(cls.id, btn.dataset.view, widget);
+            refreshAll();
+        }));
 
         clearBtn.addEventListener('click', () => {
             const cls = activeClass();
@@ -1219,8 +2161,63 @@ if (!window.ClasseListe) {
         cleanups.push(offSave);
         widget.dataset.classeData = JSON.stringify(CL.exportData());
 
+        // ── Onglets Enregistrement / Édition ──────────────────────────────
+        function setMode(mode) {
+            mode = mode === 'doc' ? 'doc' : 'edit';
+            innerEl.dataset.mode = mode;
+            widget.dataset.classeMode = mode;
+            modeBtns.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+            if (mode === 'doc') renderEdition();
+        }
+        modeBtns.forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+        // ── Module Édition : génération des PDF ───────────────────────────
+        let docBusy = false;
+
+        function editFlash(msg, cls) {
+            editStatus.textContent = msg;
+            editStatus.className = 'classe-edit-status' + (cls ? ' ' + cls : '');
+        }
+
+        function renderEdition() {
+            const cls = activeClass();
+            if (!cls) { editInfo.textContent = ''; return; }
+            const n  = cls.students.length;
+            const lv = cls.levels || [];
+            editInfo.textContent = cls.name + ' · ' + n + ' élève' + (n > 1 ? 's' : '') + (lv.length >= 2 ? ' · ' + lv.join(' / ') : '');
+        }
+
+        if (CE) {
+            profInput.value = CE.getProf();
+            yearInput.value = CE.getYear();
+            profInput.addEventListener('change', () => CE.setProf(profInput.value));
+            yearInput.addEventListener('change', () => { CE.setYear(yearInput.value); yearInput.value = CE.getYear(); });
+        }
+
+        docBtns.forEach(btn => btn.addEventListener('click', async () => {
+            if (docBusy) return;
+            if (!CE) { editFlash('Module Édition indisponible.', 'err'); return; }
+            const cls = activeClass(); if (!cls) return;
+            CE.setProf(profInput.value);
+            CE.setYear(yearInput.value);
+            docBusy = true;
+            docBtns.forEach(b => b.disabled = true);
+            editFlash('⏳ Génération en cours…');
+            try {
+                const file = await CE.generate(btn.dataset.doc, cls.id);
+                editFlash('✓ ' + file, 'ok');
+            } catch (err) {
+                editFlash(err && err.empty ? 'La liste est vide !' : ((err && err.message) || 'Erreur lors de la génération.'), 'err');
+                console.warn('ClasseEdition', err);
+            } finally {
+                docBusy = false;
+                docBtns.forEach(b => b.disabled = false);
+            }
+        }));
+
         // ── Rendu initial ─────────────────────────────────────────────────
         refreshAll();
+        setMode(widget.dataset.classeMode);
 
         // ── Poignée de redimensionnement custom ───────────────────────────
         if (!widget.querySelector('.custom-resize-handle')) {

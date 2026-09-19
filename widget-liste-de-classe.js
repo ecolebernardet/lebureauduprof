@@ -29,8 +29,8 @@
 //   ClasseListe.normDob(txt) / formatDob(iso) → conversions de dates de naissance
 //                                       classId omis = classe active
 //   ClasseListe.getClass(classId)     → { id, name, students:[…] } ou null
-//   ClasseListe.getLevels(classId)    → ['CE1','CE2'] (classe à 2 ou 3 niveaux) ou [] (un seul niveau)
-//   ClasseListe.setLevels(classId, levels) → définit les niveaux (2 ou 3, max.)
+//   ClasseListe.getLevels(classId)    → ['CE1','CE2'] (classe de 2 à 8 niveaux) ou [] (un seul niveau)
+//   ClasseListe.setLevels(classId, levels) → définit les niveaux (de 2 à 8)
 //                                       Si la classe a plusieurs niveaux, chaque élève porte son
 //                                       propre « niveau » dans getStudents ; sinon niveau = nom de classe.
 //   ClasseListe.getViewMode(classId)  → 'split' (2 colonnes) | 'levels' (une colonne par niveau)
@@ -59,7 +59,10 @@ if (!window.ClasseListe) {
                 const raw = localStorage.getItem(KEY);
                 if (raw) {
                     const d = JSON.parse(raw);
-                    if (d && Array.isArray(d.classes)) { d.classes.forEach(sortClass); return d; }
+                    if (d && Array.isArray(d.classes)) {
+                        d.classes.forEach(c => { if (Array.isArray(c.levels)) c.levels = sortLevels(c.levels); sortClass(c); });
+                        return d;
+                    }
                 }
             } catch (e) {}
             return empty();
@@ -104,7 +107,19 @@ if (!window.ClasseListe) {
             return x ? x[3] + '/' + x[2] + '/' + x[1] : '';
         }
 
-        // ── Niveaux (classe à 2 ou 3 niveaux) ──
+        // ── Niveaux (classe de 2 à 8 niveaux) ──
+        // Ordre d'affichage des niveaux (de gauche à droite) : CP, CE1, CE2, CM1, CM2.
+        // Les autres intitulés (inconnus) viennent ensuite, dans leur ordre d'origine.
+        const LEVEL_ORDER = ['CP', 'CE1', 'CE2', 'CM1', 'CM2'];
+        function levelRank(l) {
+            const i = LEVEL_ORDER.indexOf(String(l).toUpperCase().replace(/[\s.\-_]/g, ''));
+            return i < 0 ? LEVEL_ORDER.length : i;
+        }
+        function sortLevels(arr) {
+            return arr.map((l, i) => ({ l, i }))
+                      .sort((a, b) => (levelRank(a.l) - levelRank(b.l)) || (a.i - b.i))
+                      .map(x => x.l);
+        }
         function normLevels(v) {
             const arr = Array.isArray(v) ? v : String(v || '').split(/[,;\/]+/);
             const out = [];
@@ -112,7 +127,7 @@ if (!window.ClasseListe) {
                 const l = String(x).trim().toUpperCase();
                 if (l && !out.includes(l)) out.push(l);
             });
-            return out.slice(0, 3);
+            return sortLevels(out.slice(0, 8));
         }
         function levelsOf(c) { return Array.isArray(c.levels) ? c.levels : []; }
         function isMulti(c)  { return levelsOf(c).length >= 2; }
@@ -817,7 +832,7 @@ if (!window.ClasseEdition) {
     }
     .classe-toolbar .classe-btn { padding: 5px 10px; font-size: 10px; }
 
-    /* ── Niveaux (classe à 2 ou 3 niveaux) ── */
+    /* ── Niveaux (classe de 2 à 8 niveaux) ── */
     .classe-add-level {
         padding: 7px 6px;
         border-radius: 8px;
@@ -982,6 +997,17 @@ if (!window.ClasseEdition) {
     }
     .classe-col-head[data-i="1"] { background: #f0fdfa; color: #0d9488; border-color: #99f6e4; }
     .classe-col-head[data-i="2"] { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .classe-col-head[data-i="3"] { background: #fdf2f8; color: #be185d; border-color: #fbcfe8; }
+    .classe-col-head[data-i="4"] { background: #f0f9ff; color: #0369a1; border-color: #bae6fd; }
+    .classe-col-head[data-i="5"] { background: #f7fee7; color: #4d7c0f; border-color: #d9f99d; }
+    .classe-col-head[data-i="6"] { background: #faf5ff; color: #7e22ce; border-color: #e9d5ff; }
+    .classe-col-head[data-i="7"] { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
+    /* Beaucoup de niveaux : colonnes d'une largeur minimale, défilement horizontal si besoin */
+    .classe-list[data-view="levels"][data-cols="4"],
+    .classe-list[data-view="levels"][data-cols="5"],
+    .classe-list[data-view="levels"][data-cols="6"],
+    .classe-list[data-view="levels"][data-cols="7"],
+    .classe-list[data-view="levels"][data-cols="8"] { overflow-x: auto; }
     .classe-list[data-view="levels"] .classe-niv { min-width: 30px; max-width: 30px; padding: 0 2px; }
 
     /* ── Liste élèves ── */
@@ -1054,9 +1080,19 @@ if (!window.ClasseEdition) {
         text-align: center;
     }
     .classe-in-dob::placeholder { color: #c4c9d1; }
-    /* 3 colonnes (un niveau par colonne) : la date passe sur une 2e ligne */
-    .classe-list[data-cols="3"] .classe-row { flex-wrap: wrap; }
-    .classe-list[data-cols="3"] .classe-in-dob {
+    /* 3 colonnes ou plus (un niveau par colonne) : la date passe sur une 2e ligne */
+    .classe-list[data-cols="3"] .classe-row,
+    .classe-list[data-cols="4"] .classe-row,
+    .classe-list[data-cols="5"] .classe-row,
+    .classe-list[data-cols="6"] .classe-row,
+    .classe-list[data-cols="7"] .classe-row,
+    .classe-list[data-cols="8"] .classe-row { flex-wrap: wrap; }
+    .classe-list[data-cols="3"] .classe-in-dob,
+    .classe-list[data-cols="4"] .classe-in-dob,
+    .classe-list[data-cols="5"] .classe-in-dob,
+    .classe-list[data-cols="6"] .classe-in-dob,
+    .classe-list[data-cols="7"] .classe-in-dob,
+    .classe-list[data-cols="8"] .classe-in-dob {
         order: 10; flex: none;
         width: calc(100% - 25px); margin-left: 25px;
         text-align: left;
@@ -1277,7 +1313,7 @@ if (!window.ClasseEdition) {
                 Choisissez le tri par <b>Prénom</b> ou par <b>Nom</b> avec les boutons « Trier par ».<br>
                 • <b>Onglet Édition</b> : génère en PDF la liste de classe, la feuille de pointage, les grandes et petites étiquettes
                 et les fiches de suivi de la classe active. Le tri Prénom / Nom choisi est appliqué aux documents.<br>
-                • <b>Classe à 2 ou 3 niveaux</b> : cliquez sur <b>🎓</b> pour les définir (ex : <em>CE1, CE2</em>).
+                • <b>Classe à plusieurs niveaux (2 à 8)</b> : cliquez sur <b>🎓</b> pour les définir (ex : <em>CE1, CE2</em>).
                 Choisissez ensuite le niveau des nouveaux élèves à côté du champ d'ajout ; cliquez sur le niveau d'un élève pour le changer.
                 Le bouton <b>Affichage</b> permet de présenter la liste en <b>2 colonnes</b> ou avec <b>une colonne par niveau</b>.<br>
                 • <b>Date de naissance</b> : tapez les chiffres (ex : <em>12032015</em>), les « / » s'ajoutent tout seuls.
@@ -1766,7 +1802,7 @@ if (!window.ClasseEdition) {
                 const cls = activeClass(); if (!cls) return;
                 showModal({
                     title: 'Niveaux de la classe',
-                    text: 'Classe à 2 ou 3 niveaux : indiquez-les séparés par des virgules (ex : CE1, CE2).\nLaissez vide pour une classe à un seul niveau.',
+                    text: 'Classe à plusieurs niveaux (8 maximum) : indiquez-les séparés par des virgules (ex : CE1, CE2).\nLaissez vide pour une classe à un seul niveau.',
                     input: { value: (cls.levels || []).join(', '), placeholder: 'CE1, CE2' },
                     allowEmpty: true,
                     confirmLabel: 'Valider',
@@ -1853,7 +1889,7 @@ if (!window.ClasseEdition) {
             const counters = {};
             if (byLevel) {
                 // Une colonne par niveau (tri conservé à l'intérieur de chaque colonne)
-                listEl.style.gridTemplateColumns = 'repeat(' + levels.length + ', minmax(0, 1fr))';
+                listEl.style.gridTemplateColumns = 'repeat(' + levels.length + ', minmax(' + (levels.length > 3 ? 150 : 0) + 'px, 1fr))';
                 levels.forEach((l, k) => {
                     const col = document.createElement('div');
                     col.className = 'classe-col';
@@ -2021,7 +2057,20 @@ if (!window.ClasseEdition) {
             const cls = activeClass(); if (!cls) return;
             const entries = parseStudentsText(text);
             if (!entries.length) { flash('Aucun prénom trouvé.', 'err'); return; }
-            const lvAdd = cls.levels || [];
+            // Niveaux présents dans le texte collé : on les ajoute à ceux de la classe
+            // (ex : classe « à un seul niveau » + collage CP/CE1/CE2 → la classe devient multi-niveaux)
+            let lvWarn = false;
+            const pasted = CL.normLevels(entries.map(e => e.niveau));
+            if (pasted.length) {
+                const current = (cls.levels || []).slice();
+                const merged  = CL.normLevels(current.concat(pasted));
+                const all     = new Set(current.concat(pasted.length ? entries.map(e => String(e.niveau || '').trim().toUpperCase()).filter(Boolean) : []));
+                if (merged.length >= 2 && merged.join('|') !== current.join('|')) {
+                    CL.setLevels(cls.id, merged, widget);
+                    if (all.size > merged.length) lvWarn = true;
+                }
+            }
+            const lvAdd = (activeClass() || cls).levels || [];
             if (lvAdd.length >= 2) entries.forEach(e => {
                 const m = lvAdd.find(l => l === String(e.niveau || '').trim().toUpperCase());
                 e.niveau = m || addLevel || lvAdd[0];
@@ -2040,7 +2089,8 @@ if (!window.ClasseEdition) {
                 if (!firstRow) firstRow = row;
             });
             if (firstRow) firstRow.scrollIntoView({ block: 'nearest' });
-            flash('✓ ' + n + ' élève' + (n > 1 ? 's' : '') + ' ajouté' + (n > 1 ? 's' : ''), 'ok');
+            flash(lvWarn ? '⚠ ' + n + ' élève' + (n > 1 ? 's' : '') + ' ajouté' + (n > 1 ? 's' : '') + ' (8 niveaux maximum : les autres sont placés dans le 1er niveau)'
+                         : '✓ ' + n + ' élève' + (n > 1 ? 's' : '') + ' ajouté' + (n > 1 ? 's' : ''), lvWarn ? 'err' : 'ok');
             if (!fromBulk) addInput.focus();
         }
 

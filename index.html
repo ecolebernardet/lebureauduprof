@@ -1367,11 +1367,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Nature grammaticale</div>
                 <div class="act-card-desc">Classer les mots selon leur nature grammaticale</div>
             </div>
-			<div class="act-card" onclick="createSeyesWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-ecriture-seyes6.jpeg" alt="Écriture Seyes" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Écriture Seyes</div>
-                <div class="act-card-desc">Écrire directement sur un lignage Seyes</div>
-            </div>
             <div class="act-card" onclick="createMotsMelesWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-motsmeles6.jpeg" alt="Mots mêlés" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Mots Mêlés</div>
@@ -1677,6 +1672,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 		</div>
 		<div class="tools-section-label">🪛 Outils divers</div>
         <div class="tools-grid">
+			<div class="act-card" onclick="createSeyesWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/outils-ecriture-seyes2.jpeg" alt="Écriture Seyes" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Écriture Seyes</div>
+                <div class="act-card-desc">Écrire directement sur un lignage Seyes</div>
+            </div>
 			<div class="tools-card" onclick="createWidget('de');toggleToolsPanel()">
                 <div class="tools-card-ico"><img src="pics/outils-de.jpeg" alt="Lancer un dé" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="tools-card-name">Lancer un dé</div>

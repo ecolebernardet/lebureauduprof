@@ -1062,6 +1062,7 @@ function setVisuelsMode(mode) {
 <script src="widget-radar.js"></script>
 <script src="widget-geometrie.js"></script>
 <script src="widget-liste-de-classe.js"></script>
+<script src="widget-liste-edition.js"></script>
 <script src="widget-tirage.js"></script>
 <script src="widget-equipes.js"></script>
 <script src="widget-structure-ecole.js"></script>
@@ -1613,7 +1614,12 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             <div class="tools-card" onclick="createClasseWidget();toggleToolsPanel()">
                 <div class="tools-card-ico"><img src="pics/outils-liste-de-classe.jpeg" alt="Tirage au sort" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="tools-card-name">Liste de classe</div>
-                <div class="tools-card-desc">Saisir les prénoms des élèves pour le tirage et les équipes</div>
+                <div class="tools-card-desc">Saisir les prénoms des élèves</div>
+            </div>
+            <div class="tools-card" onclick="createListeEditionWidget();toggleToolsPanel()">
+                <div class="tools-card-ico"><img src="pics/outils-liste-edition.jpeg" alt="Liste — Édition" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="tools-card-name">Liste — Édition</div>
+                <div class="tools-card-desc">Éditer en PDF des listes d'élèves</div>
             </div>
             <div class="tools-card" onclick="createTirageWidget();toggleToolsPanel()">
                 <div class="tools-card-ico"><img src="pics/outils-tirage.jpeg" alt="Tirage au sort" style="width:100%;height:100%;object-fit:contain;"></div>

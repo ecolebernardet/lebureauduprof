@@ -1399,7 +1399,7 @@ body.presentation-mode #sticker-panel-tab { display: none !important; }
 		}
 		#sticker-panel-tab.tab-js-hover {
 			background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-			width: 178px; height: 80px;
+			width: 130px; height: 80px;
 			padding: 0;
 			transform: translateY(-50%) rotate(0deg);
 			flex-direction: column;
@@ -1604,7 +1604,7 @@ body.presentation-mode #widgets-panel-tab { display: none !important; }
 }
 #widgets-panel-tab.tab-js-hover {
     background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 178px; height: 80px;
+    width: 130px; height: 80px;
     padding: 0;
     transform: translateY(-50%) rotate(0deg);
     flex-direction: column;
@@ -1741,7 +1741,7 @@ body.presentation-mode #tools-panel-tab { display: none !important; }
 }
 #tools-panel-tab.tab-js-hover {
     background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 178px; height: 80px;
+    width: 130px; height: 80px;
     padding: 0;
     transform: translateY(-50%) rotate(0deg);
     flex-direction: column;
@@ -1889,7 +1889,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
 }
 #activities-panel-tab.tab-js-hover {
     background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 178px; height: 80px;
+    width: 130px; height: 80px;
     padding: 0;
     transform: translateY(-50%) rotate(0deg);
     flex-direction: column;
@@ -2088,7 +2088,7 @@ body.presentation-mode #jeux-panel-tab { display: none !important; }
 }
 #jeux-panel-tab.tab-js-hover {
     background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 178px; height: 80px;
+    width: 130px; height: 80px;
     padding: 0;
     transform: translateY(-50%) rotate(0deg);
     flex-direction: column;
@@ -2176,7 +2176,7 @@ body.presentation-mode #pdf-library-tab { display: none !important; }
 }
 #pdf-library-tab.tab-js-hover {
     background: #1a1a1a; color: var(--pdf-lib-text); opacity: 1;
-    width: 178px; height: 88px;
+    width: 130px; height: 88px;
     padding: 0;
     transform: translateY(-50%) rotate(0deg);
     flex-direction: column;
@@ -2346,7 +2346,7 @@ body.presentation-mode #projects-panel-tab { display: none !important; }
 }
 #projects-panel-tab.tab-js-hover {
     background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 178px; height: 80px;
+    width: 130px; height: 80px;
     padding: 0;
     transform: translateY(-50%) rotate(0deg);
     flex-direction: column;
@@ -2386,7 +2386,7 @@ body.presentation-mode #projects-panel-tab { display: none !important; }
 }
 #pres-mode-tab.tab-js-hover {
     background: #243a52; color: rgba(100,170,235,0.95); opacity: 1;
-    width: 200px; height: 100px;
+    width: 150px; height: 100px;
     padding: 0;
     transform: translateY(-50%) rotate(0deg);
     flex-direction: column;
@@ -2444,7 +2444,7 @@ body.presentation-mode #pres-mode-tab {
     color: rgba(255,255,255,0.88);
     opacity: 1;
     z-index: 50020;
-    width: 178px; height: 80px;
+    width: 130px; height: 80px;
     padding: 0;
     transform: translateY(-50%) rotate(0deg);
     flex-direction: column;
@@ -2497,7 +2497,7 @@ body.menu-light #display-panel-tab.display-panel-tab-open { display: none !impor
 }
 #history-panel-tab.tab-js-hover {
     background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 185px; height: 70px;
+    width: 130px; height: 70px;
     padding: 0;
     transform: translateY(-50%) rotate(0deg);
     flex-direction: column;

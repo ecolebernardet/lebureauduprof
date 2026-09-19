@@ -824,6 +824,22 @@ function createPixelArtWidget(savedData) {
         }
     }
 
+    // ── Empêche le déplacement du widget quand on dessine dans le quadrillage ──
+    // Les événements de départ de geste (souris, tactile, stylet) démarrés sur la
+    // grille ne remontent pas jusqu'au widget : makeDraggable() ne les voit donc pas.
+    // Le déplacement reste possible en dehors du quadrillage (en-tête, bords, palette…).
+    ['mousedown', 'touchstart', 'pointerdown'].forEach((evt) => {
+        canvas.addEventListener(evt, (e) => {
+            e.stopPropagation();
+            // On garde le comportement « premier plan » normalement fourni par le widget
+            if (evt === 'mousedown') {
+                bringToFront(widget);
+                widget.focus();
+                if (typeof positionActionBar === 'function') positionActionBar(widget);
+            }
+        }, { passive: false });
+    });
+
     // ── Support tactile : glisser le doigt pour dessiner en continu ────────
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();

@@ -2008,7 +2008,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
     transform: translateY(-2px);
 }
 .act-card:active { transform: scale(0.97); }
-.act-card-ico { font-size: 34px; line-height: 1; height: 70px; width: 100%; display: flex; align-items: center; justify-content: center; }
+.act-card-ico { font-size: 34px; line-height: 1; height: 75px; width: 100%; display: flex; align-items: center; justify-content: center; }
 .act-card-name {
     font-size: 11px; font-weight: 700;
     color: rgba(255,255,255,0.8);

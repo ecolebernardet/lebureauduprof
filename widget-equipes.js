@@ -447,6 +447,18 @@
     .equipes-modal-btn:active { transform: scale(0.96); }
     .equipes-modal-cancel { background: #f3f4f6; color: #6b7280; }
     .equipes-modal-cancel:hover { background: #e5e7eb; }
+    .equipes-modal-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-height: 220px; overflow-y: auto; }
+    .equipes-modal-list:empty { display: none; }
+    .equipes-modal-list button {
+        padding: 8px 10px; border-radius: 8px; border: 1px solid #c7d2fe; background: #f0f4ff;
+        color: #4f46e5; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
+        transition: background .15s;
+    }
+    .equipes-modal-list button:hover { background: #e0e7ff; }
+    .equipes-modal-list button.file { border-color: #e5e7eb; background: #f9fafb; color: #6b7280; }
+    .equipes-modal-list button.file:hover { background: #f3f4f6; }
+    .equipes-class-btn { background: #6366f1 !important; }
+    .equipes-class-btn:hover { background: #4f46e5 !important; }
 
     /* ── Popup aide ── */
     .equipes-help-popup {
@@ -530,13 +542,14 @@
             </div>
             <div class="equipes-help-popup">
                 <h4>💡 Comment ça marche</h4>
-                <p>• Importez une liste d'élèves (.txt ou .csv)<br>
+                <p>• Utilisez une liste de classe (widget 📋) ou importez un fichier (.txt ou .csv)<br>
                 Format : <em>Prénom;NOM;sexe;NIVEAU;date</em><br><br>
                 • Cliquez sur un élève pour le marquer absent (il ne sera pas inclus).<br>
                 • Choisissez le nombre d'équipes (2 à 8).<br>
                 • L'algorithme équilibre les équipes par genre et par niveau.</p>
             </div>
             <div class="equipes-import-zone">
+                <button class="equipes-import-btn equipes-class-btn" style="display:none;">📋 Utiliser une liste de classe</button>
                 <button class="equipes-import-btn">📄 Importer une liste d'élèves</button>
                 <input type="file" class="equipes-file-input" accept=".txt,.csv" style="display:none;">
                 <div class="equipes-status">Format : Prénom;NOM;sexe;NIVEAU;date</div>
@@ -562,6 +575,7 @@
                 <div class="equipes-modal-box">
                     <div class="equipes-modal-title">Confirmation</div>
                     <p class="equipes-modal-text"></p>
+                    <div class="equipes-modal-list"></div>
                     <div class="equipes-modal-btns">
                         <button class="equipes-modal-btn equipes-modal-cancel">Annuler</button>
                         <button class="equipes-modal-btn equipes-modal-confirm" style="background:#4a90e2;color:#fff;">Confirmer</button>
@@ -598,7 +612,8 @@
 
         // ── Références DOM ────────────────────────────────────────────────
         const importZone    = widget.querySelector('.equipes-import-zone');
-        const importBtn     = widget.querySelector('.equipes-import-btn');
+        const importBtn     = widget.querySelector('.equipes-import-btn:not(.equipes-class-btn)');
+        const classBtn      = widget.querySelector('.equipes-class-btn');
         const fileInput     = widget.querySelector('.equipes-file-input');
         const statusEl      = widget.querySelector('.equipes-status');
         const levelTabs     = widget.querySelector('.equipes-level-tabs');
@@ -799,6 +814,7 @@
         let selectedCount  = DEFAULT_TEAM_COUNT;
         let currentLevel   = 'tous';
         let savedTeams     = null;
+        let classId        = widget.dataset.equipesClassId || null; // liste de classe liée (widget-liste-de-classe)
 
         // Restaurer depuis dataset si données présentes
         if (widget.dataset.equipesStudents) {
@@ -810,6 +826,9 @@
                 showLoadedState();
                 if (savedTeams) renderTeams(savedTeams);
             } catch(e) { console.warn('equipes: erreur restauration dataset', e); }
+        } else if (window.ClasseListe && window.ClasseListe.getStudents().length) {
+            // Classe active du widget-liste-de-classe
+            loadFromClass(window.ClasseListe.getActiveId());
         } else {
             // Chercher liste dans localStorage (partagée avec tirage)
             try {
@@ -878,6 +897,9 @@
                 });
             });
             if (!students.length) { setStatus('Aucun élève trouvé.', 'err'); return; }
+            // Un import de fichier remplace la liaison à une liste de classe
+            classId = null;
+            delete widget.dataset.equipesClassId;
             allStudents = students;
             absentSet   = new Set();
             savedTeams  = null;
@@ -889,6 +911,101 @@
             resultsWrapper.style.display = 'none';
             footer.style.display = 'none';
         }
+
+        // ── Liste de classe (widget-liste-de-classe) ──────────────────────
+        function classesAvailable() {
+            const CL = window.ClasseListe;
+            return CL ? CL.getClasses().filter(c => c.count > 0) : [];
+        }
+
+        function refreshClassBtn() {
+            if (classBtn) classBtn.style.display = classesAvailable().length ? '' : 'none';
+        }
+
+        function resetResults() {
+            savedTeams = null;
+            resultsGrid.innerHTML = '';
+            resultsWrapper.style.display = 'none';
+            footer.style.display = 'none';
+        }
+
+        function loadFromClass(id) {
+            const CL = window.ClasseListe;
+            if (!CL) return;
+            const list = CL.getStudents(id);
+            if (!list.length) {
+                showAlert('Cette classe ne contient aucun élève.');
+                return;
+            }
+            classId = id;
+            widget.dataset.equipesClassId = id;
+            allStudents  = normalizeStudents(list);
+            absentSet    = new Set();
+            savedTeams   = null;
+            currentLevel = 'tous';
+            persistData();
+            showLoadedState();
+            resetResults();
+        }
+
+        function showClassPicker() {
+            const classes = classesAvailable();
+            if (!classes.length) { fileInput.click(); return; }
+            modalOverlay.querySelector('.equipes-modal-title').textContent = 'Choisir une liste';
+            modalOverlay.querySelector('.equipes-modal-text').textContent  = '';
+            const listEl = modalOverlay.querySelector('.equipes-modal-list');
+            listEl.innerHTML = '';
+            classes.forEach(c => {
+                const b = document.createElement('button');
+                b.textContent = '📋 ' + c.name + ' (' + c.count + ')';
+                b.addEventListener('click', () => { closeModal(); loadFromClass(c.id); });
+                listEl.appendChild(b);
+            });
+            const fb = document.createElement('button');
+            fb.className = 'file';
+            fb.textContent = '📄 Importer un fichier…';
+            fb.addEventListener('click', () => { closeModal(); fileInput.click(); });
+            listEl.appendChild(fb);
+            modalOverlay.querySelector('.equipes-modal-cancel').style.display  = '';
+            modalOverlay.querySelector('.equipes-modal-confirm').style.display = 'none';
+            modalOverlay.classList.add('open');
+        }
+
+        // Synchronisation : la liste de classe a été modifiée → mise à jour sans perdre absents ni équipes
+        function syncFromClass() {
+            refreshClassBtn();
+            const CL = window.ClasseListe;
+            if (!classId || !CL) return;
+            if (!CL.getClass(classId)) {           // classe supprimée : on garde la liste actuelle
+                classId = null;
+                delete widget.dataset.equipesClassId;
+                return;
+            }
+            const fresh   = normalizeStudents(CL.getStudents(classId));
+            const byId    = new Map(fresh.map(s => [String(s.id), s]));
+            absentSet = new Set(Array.from(absentSet).filter(id => byId.has(String(id))));
+            if (savedTeams) {
+                // mêmes équipes, avec les noms à jour ; les élèves retirés disparaissent
+                savedTeams = savedTeams.map(t => t.map(s => byId.get(String(s.id))).filter(Boolean));
+                if (!savedTeams.some(t => t.length)) savedTeams = null;
+            }
+            allStudents = fresh;
+            persistData();
+            showLoadedState();
+            if (savedTeams) renderTeams(savedTeams); else resetResults();
+        }
+
+        if (window.ClasseListe) {
+            if (typeof widget._equipesClassOff === 'function') widget._equipesClassOff();
+            const onClassChange = () => {
+                if (!document.contains(widget)) { window.removeEventListener('bdp-classes-changed', onClassChange); return; }
+                syncFromClass();
+            };
+            window.addEventListener('bdp-classes-changed', onClassChange);
+            widget._equipesClassOff = () => window.removeEventListener('bdp-classes-changed', onClassChange);
+        }
+        if (classBtn) classBtn.addEventListener('click', showClassPicker);
+        refreshClassBtn();
 
         function showLoadedState() {
             importZone.style.display  = 'none';
@@ -923,10 +1040,10 @@
             // Bouton "Changer de classe"
             const changeBtn = document.createElement('button');
             changeBtn.className = 'equipes-level-tab equipes-change-class-btn';
-            changeBtn.title = 'Charger une autre liste';
+            changeBtn.title = 'Charger une autre liste (classe ou fichier)';
             changeBtn.textContent = '📂';
             changeBtn.style.cssText = 'margin-right:auto;background:#f0f4ff;border-color:#c7d9f8;color:#4a90e2;';
-            changeBtn.addEventListener('click', () => fileInput.click());
+            changeBtn.addEventListener('click', showClassPicker);
             levelTabs.appendChild(changeBtn);
 
             if (niveaux.length > 1) {
@@ -1020,7 +1137,9 @@
                     if (isAbsent) {
                         pill.classList.add('absent');
                     } else {
-                        pill.classList.add(s.sexe.toLowerCase().startsWith('f') ? 'girl' : 'boy');
+                        const sx = (s.sexe || '').toLowerCase();
+                        const pillCls = sx.startsWith('f') ? 'girl' : (sx ? 'boy' : '');
+                        if (pillCls) pill.classList.add(pillCls);
                     }
                     pill.textContent = displayName(s);
                     pill.title       = s.prenom + ' ' + s.nom + (isAbsent ? ' (absent)' : '');
@@ -1178,7 +1297,10 @@
             modalOverlay.querySelector('.equipes-modal-text').textContent  = text;
             const cancelBtn  = modalOverlay.querySelector('.equipes-modal-cancel');
             const confirmBtn = modalOverlay.querySelector('.equipes-modal-confirm');
+            const pickList = modalOverlay.querySelector('.equipes-modal-list');
+            if (pickList) pickList.innerHTML = '';
             cancelBtn.style.display = 'none';
+            confirmBtn.style.display = '';
             confirmBtn.textContent  = 'OK';
             confirmBtn.onclick      = closeModal;
             modalOverlay.classList.add('open');
@@ -1189,6 +1311,9 @@
             modalOverlay.querySelector('.equipes-modal-text').textContent  = text;
             const cancelBtn  = modalOverlay.querySelector('.equipes-modal-cancel');
             const confirmBtn = modalOverlay.querySelector('.equipes-modal-confirm');
+            const pickList = modalOverlay.querySelector('.equipes-modal-list');
+            if (pickList) pickList.innerHTML = '';
+            confirmBtn.style.display = '';
             confirmBtn.textContent = confirmLabel || 'Confirmer';
             cancelBtn.style.display = '';
             confirmBtn.onclick = () => { closeModal(); onConfirm(); };
@@ -1396,6 +1521,7 @@
                     if (widget.dataset.equipesAbsents)   match.equipesAbsents   = widget.dataset.equipesAbsents;
                     if (widget.dataset.equipesCount)     match.equipesCount     = widget.dataset.equipesCount;
                     if (widget.dataset.equipesTeams)     match.equipesTeams     = widget.dataset.equipesTeams;
+                    if (widget.dataset.equipesClassId)   match.equipesClassId   = widget.dataset.equipesClassId;
                 }
             });
             return state;
@@ -1444,6 +1570,7 @@
                             if (saved.equipesAbsents)   widget.dataset.equipesAbsents   = saved.equipesAbsents;
                             if (saved.equipesCount)     widget.dataset.equipesCount     = saved.equipesCount;
                             if (saved.equipesTeams)     widget.dataset.equipesTeams     = saved.equipesTeams;
+                            if (saved.equipesClassId)   widget.dataset.equipesClassId   = saved.equipesClassId;
                             if (saved.equipesLeftSaved) widget.dataset.equipesLeftSaved = saved.equipesLeftSaved;
                             if (saved.equipesTopSaved)  widget.dataset.equipesTopSaved  = saved.equipesTopSaved;
                             const w = saved.equipesW || parseFloat(widget.dataset.equipesW);

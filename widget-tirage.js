@@ -355,6 +355,18 @@
     .tirage-modal-btn:active { transform: scale(0.96); }
     .tirage-modal-cancel { background: #f3f4f6; color: #6b7280; }
     .tirage-modal-cancel:hover { background: #e5e7eb; }
+    .tirage-modal-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-height: 220px; overflow-y: auto; }
+    .tirage-modal-list:empty { display: none; }
+    .tirage-modal-list button {
+        padding: 8px 10px; border-radius: 8px; border: 1px solid #c7d2fe; background: #f0f4ff;
+        color: #4f46e5; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
+        transition: background .15s;
+    }
+    .tirage-modal-list button:hover { background: #e0e7ff; }
+    .tirage-modal-list button.file { border-color: #e5e7eb; background: #f9fafb; color: #6b7280; }
+    .tirage-modal-list button.file:hover { background: #f3f4f6; }
+    .tirage-class-btn { background: #6366f1 !important; }
+    .tirage-class-btn:hover { background: #4f46e5 !important; }
 
     /* ── Popup aide (style monnaie) ── */
     .tirage-help-popup {
@@ -443,6 +455,7 @@
                 • Le tirage se fait parmi les élèves restants du niveau affiché.</p>
             </div>
             <div class="tirage-import-zone">
+                <button class="tirage-import-btn tirage-class-btn" style="display:none;">📋 Utiliser une liste de classe</button>
                 <button class="tirage-import-btn">📄 Importer une liste d'élèves</button>
                 <input type="file" class="tirage-file-input" accept=".txt,.csv" style="display:none;">
                 <div class="tirage-status">Format : Prénom;NOM;sexe;NIVEAU;date</div>
@@ -461,6 +474,7 @@
                 <div class="tirage-modal-box">
                     <div class="tirage-modal-title">Confirmation</div>
                     <p class="tirage-modal-text"></p>
+                    <div class="tirage-modal-list"></div>
                     <div class="tirage-modal-btns">
                         <button class="tirage-modal-btn tirage-modal-cancel">Annuler</button>
                         <button class="tirage-modal-btn tirage-modal-confirm" style="background:#4a90e2;color:#fff;">Confirmer</button>
@@ -497,7 +511,8 @@
 
         // ── Références DOM ────────────────────────────────────────────────
         const importZone      = widget.querySelector('.tirage-import-zone');
-        const importBtn       = widget.querySelector('.tirage-import-btn');
+        const importBtn       = widget.querySelector('.tirage-import-btn:not(.tirage-class-btn)');
+        const classBtn        = widget.querySelector('.tirage-class-btn');
         const fileInput       = widget.querySelector('.tirage-file-input');
         const statusEl        = widget.querySelector('.tirage-status');
         const levelTabs       = widget.querySelector('.tirage-level-tabs');
@@ -694,9 +709,10 @@
         let remaining    = [];
         let isDrawing    = false;
         let currentLevel = 'tous';
+        let classId      = widget.dataset.tirageClassId || null; // liste de classe liée (widget-liste-de-classe)
 
         // Restaurer depuis dataset si données présentes (priorité board JSON)
-        // Sinon, chercher dans localStorage (liste permanente)
+        // Sinon classe active du widget-liste-de-classe, sinon localStorage (ancienne liste)
         if (widget.dataset.tirageStudents) {
             try {
                 allStudents = JSON.parse(widget.dataset.tirageStudents);
@@ -705,6 +721,8 @@
                     remaining = allStudents.map(s => Number(s.id));
                 showLoadedState();
             } catch(e) { console.warn('tirage: erreur restauration dataset', e); }
+        } else if (window.ClasseListe && window.ClasseListe.getStudents().length) {
+            loadFromClass(window.ClasseListe.getActiveId());
         } else {
             // Charger la liste depuis localStorage si disponible
             try {
@@ -746,12 +764,97 @@
                 });
             });
             if (!students.length) { setStatus('Aucun élève trouvé.', 'err'); return; }
+            // Un import de fichier remplace la liaison à une liste de classe
+            classId = null;
+            delete widget.dataset.tirageClassId;
             allStudents = students;
             remaining   = students.map(s => s.id);
             setStatus('✓ ' + students.length + ' élève(s) chargé(s)', 'ok');
             persistData();
             showLoadedState();
         }
+
+        // ── Liste de classe (widget-liste-de-classe) ──────────────────────
+        function classesAvailable() {
+            const CL = window.ClasseListe;
+            return CL ? CL.getClasses().filter(c => c.count > 0) : [];
+        }
+
+        function refreshClassBtn() {
+            if (classBtn) classBtn.style.display = classesAvailable().length ? '' : 'none';
+        }
+
+        function loadFromClass(id) {
+            const CL = window.ClasseListe;
+            if (!CL) return;
+            const list = CL.getStudents(id);
+            if (!list.length) {
+                showConfirm('Classe vide', 'Cette classe ne contient aucun élève.');
+                return;
+            }
+            classId = id;
+            widget.dataset.tirageClassId = id;
+            allStudents  = list;
+            remaining    = list.map(s => Number(s.id));
+            currentLevel = 'tous';
+            persistData();
+            showLoadedState();
+        }
+
+        function showClassPicker() {
+            const classes = classesAvailable();
+            if (!classes.length) { fileInput.click(); return; }
+            modalOverlay.querySelector('.tirage-modal-title').textContent = 'Choisir une liste';
+            modalOverlay.querySelector('.tirage-modal-text').textContent  = '';
+            const listEl = modalOverlay.querySelector('.tirage-modal-list');
+            listEl.innerHTML = '';
+            classes.forEach(c => {
+                const b = document.createElement('button');
+                b.textContent = '📋 ' + c.name + ' (' + c.count + ')';
+                b.addEventListener('click', () => { closeModal(); loadFromClass(c.id); });
+                listEl.appendChild(b);
+            });
+            const fb = document.createElement('button');
+            fb.className = 'file';
+            fb.textContent = '📄 Importer un fichier…';
+            fb.addEventListener('click', () => { closeModal(); fileInput.click(); });
+            listEl.appendChild(fb);
+            modalOverlay.querySelector('.tirage-modal-cancel').style.display  = '';
+            modalOverlay.querySelector('.tirage-modal-confirm').style.display = 'none';
+            modalOverlay.classList.add('open');
+        }
+
+        // Synchronisation : la liste de classe a été modifiée → mettre à jour sans perdre le tirage en cours
+        function syncFromClass() {
+            refreshClassBtn();
+            const CL = window.ClasseListe;
+            if (!classId || !CL) return;
+            if (!CL.getClass(classId)) {           // classe supprimée : on garde la liste actuelle
+                classId = null;
+                delete widget.dataset.tirageClassId;
+                return;
+            }
+            const fresh    = CL.getStudents(classId);
+            const oldIds   = new Set(allStudents.map(s => Number(s.id)));
+            const freshIds = new Set(fresh.map(s => Number(s.id)));
+            remaining = remaining.map(Number).filter(id => freshIds.has(id));
+            fresh.forEach(s => { if (!oldIds.has(Number(s.id))) remaining.push(Number(s.id)); });
+            allStudents = fresh;
+            persistData();
+            showLoadedState();
+        }
+
+        if (window.ClasseListe) {
+            if (typeof widget._tirageClassOff === 'function') widget._tirageClassOff();
+            const onClassChange = () => {
+                if (!document.contains(widget)) { window.removeEventListener('bdp-classes-changed', onClassChange); return; }
+                syncFromClass();
+            };
+            window.addEventListener('bdp-classes-changed', onClassChange);
+            widget._tirageClassOff = () => window.removeEventListener('bdp-classes-changed', onClassChange);
+        }
+        if (classBtn) classBtn.addEventListener('click', showClassPicker);
+        refreshClassBtn();
 
         function showLoadedState() {
             importZone.style.display  = 'none';
@@ -795,10 +898,10 @@
             // Bouton "Changer de classe" toujours présent dans la barre
             const changeBtn = document.createElement('button');
             changeBtn.className = 'tirage-level-tab tirage-change-class-btn';
-            changeBtn.title = 'Charger une autre liste';
+            changeBtn.title = 'Charger une autre liste (classe ou fichier)';
             changeBtn.textContent = '📂';
             changeBtn.style.cssText = 'margin-right:auto;background:#f0f4ff;border-color:#c7d9f8;color:#4a90e2;';
-            changeBtn.addEventListener('click', () => fileInput.click());
+            changeBtn.addEventListener('click', showClassPicker);
             levelTabs.appendChild(changeBtn);
 
             if (niveaux.length > 1) {
@@ -868,7 +971,9 @@
                     const pill = document.createElement('div');
                     pill.className = 'tirage-pill';
                     const isDrawn = !remaining.includes(Number(s.id));
-                    pill.classList.add(isDrawn ? 'drawn' : (s.sexe.toLowerCase().startsWith('f') ? 'girl' : 'boy'));
+                    const sx = (s.sexe || '').toLowerCase();
+                    const pillCls = isDrawn ? 'drawn' : (sx.startsWith('f') ? 'girl' : (sx ? 'boy' : ''));
+                    if (pillCls) pill.classList.add(pillCls);
                     pill.textContent = displayName(s);
                     pill.title       = s.prenom + ' ' + s.nom + (isDrawn ? ' (tiré)' : '');
                     pill.addEventListener('click', () => toggleStudent(s.id));
@@ -959,6 +1064,9 @@
             const cancelBtn  = modalOverlay.querySelector('.tirage-modal-cancel');
             const confirmBtn = modalOverlay.querySelector('.tirage-modal-confirm');
             confirmBtn.textContent = confirmLabel || 'Confirmer';
+            confirmBtn.style.display = '';
+            const pickList = modalOverlay.querySelector('.tirage-modal-list');
+            if (pickList) pickList.innerHTML = '';
             if (onConfirm) {
                 cancelBtn.style.display = '';
                 confirmBtn.onclick = () => { closeModal(); onConfirm(); };
@@ -1121,6 +1229,7 @@
                     if (widget.dataset.tirageSavedTop)  match.tirageSavedTop  = widget.dataset.tirageSavedTop;
                     if (widget.dataset.tirageStudents)  match.tirageStudents  = widget.dataset.tirageStudents;
                     if (widget.dataset.tirageRemaining) match.tirageRemaining = widget.dataset.tirageRemaining;
+                    if (widget.dataset.tirageClassId)   match.tirageClassId   = widget.dataset.tirageClassId;
                 }
             });
             return state;
@@ -1164,6 +1273,7 @@
                         if (saved) {
                             if (saved.tirageStudents)  widget.dataset.tirageStudents  = saved.tirageStudents;
                             if (saved.tirageRemaining) widget.dataset.tirageRemaining = saved.tirageRemaining;
+                            if (saved.tirageClassId)   widget.dataset.tirageClassId   = saved.tirageClassId;
                             if (saved.tirageSavedLeft) widget.dataset.tirageSavedLeft = saved.tirageSavedLeft;
                             if (saved.tirageSavedTop)  widget.dataset.tirageSavedTop  = saved.tirageSavedTop;
                             const w = saved.tirageW || parseFloat(widget.dataset.tirageW);

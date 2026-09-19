@@ -1061,6 +1061,7 @@ function setVisuelsMode(mode) {
 <script src="widget-sonometre.js"></script>
 <script src="widget-radar.js"></script>
 <script src="widget-geometrie.js"></script>
+<script src="widget-liste-de-classe.js"></script>
 <script src="widget-tirage.js"></script>
 <script src="widget-equipes.js"></script>
 <script src="widget-structure-ecole.js"></script>
@@ -1609,6 +1610,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
     <div id="tools-panel-content">
         <div class="tools-section-label">🚸 Gestion de la classe</div>
         <div class="tools-grid">
+            <div class="tools-card" onclick="createClasseWidget();toggleToolsPanel()">
+                <div class="tools-card-ico"><img src="pics/outils-liste-de-classe.jpeg" alt="Tirage au sort" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="tools-card-name">Liste de classe</div>
+                <div class="tools-card-desc">Saisir les prénoms des élèves pour le tirage et les équipes</div>
+            </div>
             <div class="tools-card" onclick="createTirageWidget();toggleToolsPanel()">
                 <div class="tools-card-ico"><img src="pics/outils-tirage.jpeg" alt="Tirage au sort" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="tools-card-name">Tirage au Sort</div>
@@ -1884,7 +1890,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 		
 		<div class="disp-block disp-block-fonds">
         <div class="disp-section-label">🎨 Fond d'écran</div>
-
         <div style="color:#666;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:4px 4px 4px;">🖼️ Couleurs</div>
         <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;padding:0 0 0px;">
             <div class="bg-thumb" style="background-color:#BAA09B;" onclick="applyBackground('#BAA09B');saveBg('#BAA09B');toggleDisplayPanel()" title="Vieux rose"></div>
@@ -1916,7 +1921,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         </div>
 
         <div style="color:#666;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:4px 4px 4px;border-top:0px solid #2e2e3a;">👍 Pratiques</div>
-        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:0 0 10px;">
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 0 10px;">
             <div class="bg-thumb" style="background-image:url('fonds/fond-maths-tableau-numeration-entiers-cm.jpg');background-size:cover;background-position:center;" onclick="applyBackground('url(fonds/fond-maths-tableau-numeration-entiers-cm.jpg)');saveBg('url(fonds/fond-maths-tableau-numeration-entiers-cm.jpg)');toggleDisplayPanel()" title="Tableau de numération des entiers CM"></div>
             <div class="bg-thumb" style="background-image:url('fonds/fond-maths-tableau-numeration-decimaux-cm.jpg');background-size:cover;background-position:center;" onclick="applyBackground('url(fonds/fond-maths-tableau-numeration-decimaux-cm.jpg)');saveBg('url(fonds/fond-maths-tableau-numeration-decimaux-cm.jpg)');toggleDisplayPanel()" title="Tableau de numération des décimaux CM"></div>
             <div class="bg-thumb" style="background-image:url('fonds/fond-maths-tableau-conversion-longueurs.jpg');background-size:cover;background-position:center;" onclick="applyBackground('url(fonds/fond-maths-tableau-conversion-longueurs.jpg)');saveBg('url(fonds/fond-maths-tableau-conversion-longueurs.jpg)');toggleDisplayPanel()" title="Tableau de conversion des mesures de longueurs"></div>
@@ -1927,7 +1932,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         </div>
 
         <div style="color:#666;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:4px 4px 6px;border-top:0px solid #2e2e3a;">👍 Divers</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 0 10px;">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:0 0 10px;">
             <div class="bg-thumb" style="background-image:url('fonds/fond-tableau-vert.jpeg');background-size:cover;background-position:center;" onclick="applyBackground('url(fonds/fond-tableau-vert.jpeg)');saveBg('url(fonds/fond-tableau-vert.jpeg)');toggleDisplayPanel()" title="Tableau vert"></div>
 			<div class="bg-thumb" style="background-image:url('fonds/fond-tableau-gris.jpeg');background-size:cover;background-position:center;" onclick="applyBackground('url(fonds/fond-tableau-gris.jpeg)');saveBg('url(fonds/fond-tableau-gris.jpeg)');toggleDisplayPanel()" title="Texture grise"></div>
 			<div class="bg-thumb" style="background-image:url('fonds/fond-couleurs.jpeg');background-size:cover;background-position:center;" onclick="applyBackground('url(fonds/fond-couleurs.jpeg)');saveBg('url(fonds/fond-couleurs.jpeg)');toggleDisplayPanel()" title="Couleurs dégradées"></div>

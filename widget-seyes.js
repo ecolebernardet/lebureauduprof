@@ -389,6 +389,41 @@
             pointer-events: none;
         }
 
+        /* ── Images collées dans l'éditeur ───────────────── */
+        /* Taille libre ; JS ajoute une marge haute pour que la ligne occupe un nombre entier de grandes lignes (lignage aligné) */
+        .seyes-editor img {
+            vertical-align: bottom;
+            max-width: 100%;
+            object-fit: contain;
+            cursor: move;
+            -webkit-user-drag: none;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        .seyes-img-frame {
+            position: absolute;
+            display: none;
+            z-index: 4;
+            pointer-events: none;
+            border: 2px solid #4a90d9;
+            border-radius: 2px;
+            box-sizing: border-box;
+        }
+        .seyes-img-handle {
+            position: absolute;
+            right: 2px; bottom: 2px;
+            width: 18px; height: 18px;
+            background: #4a90d9;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-sizing: border-box;
+            box-shadow: 0 1px 3px rgba(0,0,0,.35);
+            cursor: se-resize;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
         /* ── Barre de redimensionnement ─────────────────── */
         .seyes-resize-handle {
             position: absolute;
@@ -1790,11 +1825,316 @@ function createSeyesWidget() {
         }, 100);
     });
 
+    // ── Images collées (presse-papier) ────────────────────────────────────
+    // • Le texte reste collé en texte brut.
+    // • Si le presse-papier ne contient qu'une image (capture d'écran, "copier l'image"…),
+    //   elle est posée LIBREMENT sur la feuille (position: absolute dans l'éditeur) :
+    //   data-x / data-y = position, data-w = largeur, data-ratio = ratio l/h (tout à zoom 100 %).
+    //   Elle ne suit ni les lignes ni le texte ; le zoom la met à l'échelle.
+    //   (Anciennes images « dans le texte » : elles restent alignées sur le lignage
+    //   jusqu'à ce qu'on les déplace ; elles deviennent alors libres.)
+    // • Glisser l'image = la déplacer. Clic = cadre de sélection + poignée ronde (bas droite).
+    // • Suppr / Retour arrière supprime l'image sélectionnée.
+    const SEYES_IMG_MAX_SRC_W = 1200;   // largeur max des pixels conservés (allège le JSON)
+    const SEYES_IMG_MAX_SRC_H = 1600;
+    const SEYES_IMG_MIN_W = 24;         // largeur mini (px écran)
+    let _seyesSelImg = null;
+    let _seyesResizing = false;
+
+    const imgFrame = document.createElement('div');
+    imgFrame.className = 'seyes-img-frame';
+    const imgHandle = document.createElement('div');
+    imgHandle.className = 'seyes-img-handle';
+    imgHandle.title = 'Redimensionner';
+    imgFrame.appendChild(imgHandle);
+    writingArea.appendChild(imgFrame);
+
+    // Firefox : désactive ses poignées natives (on a les nôtres)
+    try { document.execCommand('enableObjectResizing', false, false); } catch (_) {}
+
+    function _seyesImgLineH()  { return Math.round(LH * ZOOM_STEPS[_zoomIdx]); }
+    function _seyesImgAvailW() { return Math.max(40, editor.clientWidth - 32); } // padding 16+16
+
+    function _seyesSizeImg(img) {
+        const g = _seyesImgGeom(img, ZOOM_STEPS[_zoomIdx], _seyesImgLineH());
+        img.style.width  = g.w + 'px';
+        img.style.height = g.h + 'px';
+        if (g.free) {
+            img.style.position  = 'absolute';
+            img.style.left      = g.x + 'px';
+            img.style.top       = g.y + 'px';
+            img.style.margin    = '0';
+        } else {
+            img.style.marginTop = g.mt + 'px';
+        }
+    }
+
+    // Détache une image « dans le texte » pour la rendre libre (position figée là où elle est)
+    function _seyesFreeImg(img) {
+        if (img.dataset.x !== undefined) return;
+        const z = ZOOM_STEPS[_zoomIdx];
+        _seyesImgGeom(img, z, _seyesImgLineH());          // migre data-lines → data-w si besoin
+        img.dataset.x = (img.offsetLeft / z).toFixed(1);
+        img.dataset.y = (img.offsetTop  / z).toFixed(1);
+        _seyesSizeImg(img);
+    }
+
+    function _seyesApplyImgSizes() {
+        editor.querySelectorAll('img[data-ratio]').forEach(_seyesSizeImg);
+        _seyesUpdateImgFrame();
+    }
+
+    function _seyesDeselectImg() {
+        _seyesSelImg = null;
+        imgFrame.style.display = 'none';
+    }
+
+    function _seyesUpdateImgFrame() {
+        if (!_seyesSelImg) return;
+        if (!editor.contains(_seyesSelImg)) { _seyesDeselectImg(); return; }
+        // offsetLeft/Top : indépendant d'une éventuelle rotation du widget
+        imgFrame.style.display = 'block';
+        imgFrame.style.left   = (editor.offsetLeft + _seyesSelImg.offsetLeft) + 'px';
+        imgFrame.style.top    = (editor.offsetTop  + _seyesSelImg.offsetTop)  + 'px';
+        imgFrame.style.width  = _seyesSelImg.offsetWidth  + 'px';
+        imgFrame.style.height = _seyesSelImg.offsetHeight + 'px';
+    }
+
+    function _seyesSelectImg(img, nativeSelect) {
+        _seyesSelImg = img;
+        if (nativeSelect) {
+            // Sélection native de l'image : Suppr / Retour arrière la supprime
+            const sel = window.getSelection();
+            const range = document.createRange();
+            range.selectNode(img);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+        _seyesUpdateImgFrame();
+    }
+
+    // Lecture + réduction de l'image (canvas) → data URL
+    function _seyesLoadImage(file) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const im = new Image();
+            im.onload = () => {
+                const k  = Math.min(1, SEYES_IMG_MAX_SRC_W / im.naturalWidth, SEYES_IMG_MAX_SRC_H / im.naturalHeight);
+                const cw = Math.max(1, Math.round(im.naturalWidth  * k));
+                const ch = Math.max(1, Math.round(im.naturalHeight * k));
+                const cv = document.createElement('canvas');
+                cv.width = cw; cv.height = ch;
+                cv.getContext('2d').drawImage(im, 0, 0, cw, ch);
+                let dataUrl;
+                if (file.type === 'image/jpeg') {
+                    dataUrl = cv.toDataURL('image/jpeg', 0.88);
+                } else {
+                    dataUrl = cv.toDataURL('image/png');
+                    if (dataUrl.length > 1500000) {   // PNG trop lourd → JPEG sur fond blanc
+                        const c2 = document.createElement('canvas');
+                        c2.width = cw; c2.height = ch;
+                        const x2 = c2.getContext('2d');
+                        x2.fillStyle = '#fff'; x2.fillRect(0, 0, cw, ch);
+                        x2.drawImage(im, 0, 0, cw, ch);
+                        dataUrl = c2.toDataURL('image/jpeg', 0.85);
+                    }
+                }
+                URL.revokeObjectURL(url);
+                resolve({ dataUrl, w: cw, h: ch });
+            };
+            im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image illisible')); };
+            im.src = url;
+        });
+    }
+
+    function _seyesInsertImageFile(file) {
+        const sel = window.getSelection();
+        const savedRange = (sel.rangeCount && editor.contains(sel.anchorNode))
+            ? sel.getRangeAt(0).cloneRange() : null;
+
+        _seyesLoadImage(file).then(({ dataUrl, w, h }) => {
+            const z  = ZOOM_STEPS[_zoomIdx];
+            const lh = _seyesImgLineH();
+            const r  = w / h;
+
+            // Taille initiale (largeur à zoom 100 %) : taille réelle, 5 grandes lignes de haut max,
+            // et doit tenir dans la largeur de l'éditeur
+            let w0 = Math.min(h, 5 * LH) * r;
+            w0 = Math.min(w0, _seyesImgAvailW() / z);
+            w0 = Math.max(SEYES_IMG_MIN_W / z, Math.round(w0 * 10) / 10);
+            const g = _seyesImgGeom({ dataset: { w: w0, ratio: r } }, z, lh);
+
+            // Position de départ : là où était le curseur (sinon coin haut-gauche visible)
+            const eRect = editor.getBoundingClientRect();
+            const k  = (eRect.width / editor.offsetWidth) || 1;
+            let px = 16, py = writingArea.scrollTop + 8;
+            if (savedRange) {
+                const rc = savedRange.getClientRects()[0] || savedRange.getBoundingClientRect();
+                if (rc && (rc.width || rc.height)) {
+                    px = (rc.left - eRect.left) / k;
+                    py = (rc.top  - eRect.top)  / k;
+                }
+            }
+            px = Math.max(0, Math.min(px, editor.offsetWidth - g.w));
+            py = Math.max(0, py);
+            const x0 = Math.round(px / z * 10) / 10;
+            const y0 = Math.round(py / z * 10) / 10;
+
+            // Insertion (annulable avec Ctrl+Z) en fin de contenu : l'image est absolue,
+            // sa place dans le DOM n'a aucun effet sur le texte ; le curseur revient où il était.
+            editor.focus();
+            const s = window.getSelection();
+            const end = document.createRange();
+            end.selectNodeContents(editor);
+            end.collapse(false);
+            s.removeAllRanges();
+            s.addRange(end);
+
+            const uid = 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+            const html = '<img src="' + dataUrl + '" alt="image collée" draggable="false"' +
+                ' data-seyes-uid="' + uid + '"' +
+                ' data-w="' + w0 + '" data-ratio="' + r.toFixed(4) + '"' +
+                ' data-x="' + x0 + '" data-y="' + y0 + '"' +
+                ' style="position:absolute;margin:0;left:' + Math.round(x0 * z) + 'px;top:' + Math.round(y0 * z) + 'px;' +
+                'width:' + g.w + 'px;height:' + g.h + 'px;">';
+            document.execCommand('insertHTML', false, html);
+
+            const img = editor.querySelector('img[data-seyes-uid="' + uid + '"]');
+            s.removeAllRanges();
+            if (savedRange) {
+                s.addRange(savedRange);
+            } else if (img) {
+                const before = document.createRange();
+                before.setStartBefore(img);
+                before.collapse(true);
+                s.addRange(before);
+            }
+            if (img) _seyesSelectImg(img, false);   // cadre + poignée
+            saveBoard();
+        }).catch(() => {
+            alert("Impossible de lire l'image du presse-papier.");
+        });
+    }
+
     editor.addEventListener('paste', (e) => {
-        // Coller en texte brut uniquement
         e.preventDefault();
-        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        const cd = e.clipboardData || window.clipboardData;
+        const text = cd.getData('text/plain');
+
+        // Pas de texte utilisable + une image dans le presse-papier → on colle l'image
+        if (!text || !text.trim()) {
+            let file = null;
+            const items = Array.from(cd.items || []);
+            const it = items.find(x => x.kind === 'file' && x.type.startsWith('image/'));
+            if (it) file = it.getAsFile();
+            if (!file && cd.files && cd.files.length) {
+                file = Array.from(cd.files).find(f => f.type.startsWith('image/')) || null;
+            }
+            if (file) { _seyesInsertImageFile(file); return; }
+        }
+        // Sinon : texte brut uniquement (comportement d'origine)
         document.execCommand('insertText', false, text);
+    });
+
+    // Déplacement d'une image : glisser-déposer libre sur la feuille
+    editor.addEventListener('mousedown', (e) => {
+        // Empêche le glisser-déposer / la sélection natifs du navigateur sur l'image
+        if (e.target && e.target.tagName === 'IMG') e.preventDefault();
+    });
+    editor.addEventListener('pointerdown', (e) => {
+        const img = e.target;
+        if (!img || img.tagName !== 'IMG' || e.button > 0) return;
+        editor.focus();
+        _seyesFreeImg(img);
+        _seyesSelectImg(img, true);
+        _seyesResizing = true;   // ignore le blur pendant le glissement
+        const z      = ZOOM_STEPS[_zoomIdx];
+        const startX = e.clientX, startY = e.clientY;
+        const x0 = img.offsetLeft, y0 = img.offsetTop;
+        const k  = (img.getBoundingClientRect().width / (img.offsetWidth || 1)) || 1;
+        let moved = false;
+        try { img.setPointerCapture(e.pointerId); } catch (_) {}
+
+        const onMove = (ev) => {
+            const dx = (ev.clientX - startX) / k, dy = (ev.clientY - startY) / k;
+            if (!moved && Math.abs(dx) < 2 && Math.abs(dy) < 2) return;   // évite un déplacement au simple clic
+            moved = true;
+            const nx = Math.max(0, Math.min(editor.offsetWidth - img.offsetWidth, x0 + dx));
+            const ny = Math.max(0, y0 + dy);
+            img.dataset.x = (nx / z).toFixed(1);
+            img.dataset.y = (ny / z).toFixed(1);
+            img.style.left = Math.round(nx) + 'px';
+            img.style.top  = Math.round(ny) + 'px';
+            _seyesUpdateImgFrame();
+        };
+        const onUp = (ev) => {
+            img.removeEventListener('pointermove', onMove);
+            img.removeEventListener('pointerup', onUp);
+            img.removeEventListener('pointercancel', onUp);
+            try { img.releasePointerCapture(ev.pointerId); } catch (_) {}
+            _seyesResizing = false;
+            if (moved) saveBoard();
+        };
+        img.addEventListener('pointermove', onMove);
+        img.addEventListener('pointerup', onUp);
+        img.addEventListener('pointercancel', onUp);
+    });
+
+    // Sélection d'une image au clic
+    editor.addEventListener('click', (e) => {
+        if (e.target && e.target.tagName === 'IMG') _seyesSelectImg(e.target, true);
+        else _seyesDeselectImg();
+    });
+    editor.addEventListener('keydown', (e) => {
+        if (!_seyesSelImg) return;
+        // Frappe ou flèches : on quitte le mode "image sélectionnée"
+        if ((e.key.length === 1 && !e.ctrlKey && !e.metaKey) || /^Arrow/.test(e.key)) _seyesDeselectImg();
+    });
+    editor.addEventListener('blur', () => { if (!_seyesResizing) _seyesDeselectImg(); });
+
+    // Le cadre suit l'image (frappe, suppression, undo, chargement, redimensionnement du widget…)
+    new MutationObserver(() => _seyesUpdateImgFrame())
+        .observe(editor, { childList: true, subtree: true, characterData: true });
+    if (window.ResizeObserver) new ResizeObserver(() => _seyesUpdateImgFrame()).observe(editor);
+
+    // Poignée de redimensionnement (libre, ratio conservé)
+    ['mousedown', 'click'].forEach(t => imgFrame.addEventListener(t, (e) => { e.stopPropagation(); e.preventDefault(); }));
+    imgHandle.addEventListener('pointerdown', (e) => {
+        if (!_seyesSelImg) return;
+        // (le mousedown compat est annulé par imgFrame → pas de perte de focus ni de sélection texte)
+        e.stopPropagation();
+        _seyesResizing = true;
+        const img    = _seyesSelImg;
+        const startX = e.clientX, startY = e.clientY;
+        const startW = img.offsetWidth || 1, startH = img.offsetHeight || 1;
+        const k      = (img.getBoundingClientRect().width / startW) || 1;   // échelle écran (widget transformé)
+        const r      = parseFloat(img.dataset.ratio) || (startW / startH);
+        const z      = ZOOM_STEPS[_zoomIdx];
+        const maxW   = Math.max(SEYES_IMG_MIN_W,
+            img.dataset.x !== undefined ? editor.offsetWidth - img.offsetLeft : _seyesImgAvailW());
+        try { imgHandle.setPointerCapture(e.pointerId); } catch (_) {}
+
+        const onMove = (ev) => {
+            const dx = (ev.clientX - startX) / k;
+            const dy = (ev.clientY - startY) / k;
+            // largeur visée = moyenne entre le glissement horizontal et vertical (ratio conservé)
+            let wNew = ((startW + dx) + (startH + dy) * r) / 2;
+            wNew = Math.max(SEYES_IMG_MIN_W, Math.min(maxW, wNew));
+            img.dataset.w = (wNew / z).toFixed(1);
+            _seyesSizeImg(img);
+            _seyesUpdateImgFrame();
+        };
+        const onUp = (ev) => {
+            imgHandle.removeEventListener('pointermove', onMove);
+            imgHandle.removeEventListener('pointerup', onUp);
+            imgHandle.removeEventListener('pointercancel', onUp);
+            try { imgHandle.releasePointerCapture(ev.pointerId); } catch (_) {}
+            _seyesResizing = false;
+            saveBoard();
+        };
+        imgHandle.addEventListener('pointermove', onMove);
+        imgHandle.addEventListener('pointerup', onUp);
+        imgHandle.addEventListener('pointercancel', onUp);
     });
 
     // ── Redimensionnement ─────────────────────────────────────────────────
@@ -1928,6 +2268,9 @@ function createSeyesWidget() {
 
         // Le canvas n'a pas besoin d'être resynchronisé (pas de transform)
         // mais on force un redraw pour que les annotations suivent le zoom du contenu
+        // Images collées : taille zoomée + marge haute pour rester sur le lignage
+        _seyesApplyImgSizes();
+
         _seyesCurrentZoom = z;
         _seyesResizeAnnotCanvas();
         _seyesRedrawAnnotations();
@@ -2050,6 +2393,7 @@ function createSeyesWidget() {
         overflow-wrap: break-word;
     }
     .print-editor div, .print-editor p,
+    .print-editor img { vertical-align: bottom; max-width: 100%; object-fit: contain; }
     .print-marge div, .print-marge p {
         margin: 0; padding: 0;
         min-height: ${LINE_H}px;
@@ -2071,7 +2415,7 @@ function createSeyesWidget() {
 </head>
 <body>
 <div class="page">
-    <div class="print-editor">${editorHTML}</div>
+    <div class="print-editor">${_seyesPrintHTML(editorHTML, LINE_H, 8, ptPrint)}</div>
     ${hasMargeContent ? `<div class="print-marge">${margeHTML}</div>` : ''}
 </div>
 </body>
@@ -2175,6 +2519,8 @@ function createSeyesWidget() {
 
                         // Restaurer le contenu principal
                         editor.innerHTML = data.contenu?.principal?.html || '';
+                        _seyesDeselectImg();
+                        _seyesApplyImgSizes();   // recale les images sur le zoom courant
 
                         // Restaurer le contenu de la marge
                         editorMarge.innerHTML = data.contenu?.marge?.html || '';
@@ -2238,6 +2584,12 @@ function createSeyesWidget() {
                         <div class="seyes-help-row"><span class="seyes-help-row-icon"><span style="background:#fff176;padding:0 2px;border-radius:2px;font-size:12px;">S</span></span><span>Surligner la sélection. Cliquer à nouveau sur le bouton avec le même texte sélectionné <strong>retire</strong> le surlignage. Même logique pour le soulignage et l'encadrement.</span></div>
                         <div class="seyes-help-row"><span class="seyes-help-row-icon">↩ ↪</span><span><strong>Annuler</strong> (aussi Ctrl+Z) et <strong>Refaire</strong> (aussi Ctrl+Y) les dernières actions.</span></div>
                         <div class="seyes-help-row"><span class="seyes-help-row-icon">🗑️</span><span>Efface tout le texte (avec confirmation).</span></div>
+                    </div>
+
+                    <div class="seyes-help-section">
+                        <div class="seyes-help-section-title">Images</div>
+                        <div class="seyes-help-row"><span class="seyes-help-row-icon">🖼️</span><span><strong>Ctrl+V</strong> colle une image du presse-papier (capture d'écran, « copier l'image »…) à l'endroit du curseur. Elle se pose librement sur la feuille, sans suivre les lignes ni le texte.</span></div>
+                        <div class="seyes-help-row"><span class="seyes-help-row-icon">↘</span><span><strong>Glissez l'image</strong> pour la déplacer où vous voulez. Cliquez dessus pour afficher la poignée ronde en bas à droite : glissez-la pour agrandir ou réduire. <strong>Suppr</strong> supprime l'image sélectionnée. Collage possible dans l'écriture principale uniquement, pas dans la marge.</span></div>
                     </div>
 
                     <div class="seyes-help-section">
@@ -2352,6 +2704,54 @@ function createSeyesWidget() {
 
     saveBoard();
     return widget;
+}
+
+// ── Utilitaire : géométrie d'une image collée ──
+// data-w = largeur à zoom 100 % (grande ligne = 64 px), data-ratio = largeur / hauteur.
+// scale = facteur d'affichage (zoom, ou lineH/64 pour l'impression).
+// mt = marge haute qui complète la hauteur jusqu'à un nombre entier de grandes lignes :
+// l'image repose sur la ligne et le texte qui suit reste aligné sur le lignage.
+// (Anciennes sauvegardes : data-lines converti en largeur.)
+function _seyesImgGeom(img, scale, lineH) {
+    const r = parseFloat(img.dataset.ratio) || 1;
+    let w0 = parseFloat(img.dataset.w);
+    if (!(w0 > 0)) {
+        w0 = (parseInt(img.dataset.lines, 10) || 1) * 64 * r;
+        img.dataset.w = w0.toFixed(1);
+    }
+    const w  = Math.max(1, Math.round(w0 * scale));
+    const h  = Math.max(1, Math.round(w / r));
+    // Image libre (data-x / data-y) : position absolue, pas de marge d'alignement
+    const free = img.dataset.x !== undefined;
+    const mt = free ? 0 : Math.ceil(h / lineH - 0.001) * lineH - h;
+    return {
+        w, h, mt, free,
+        x: free ? Math.round((parseFloat(img.dataset.x) || 0) * scale) : 0,
+        y: free ? Math.round((parseFloat(img.dataset.y) || 0) * scale) : 0
+    };
+}
+
+// ── Utilitaire : recale les images collées sur la grande ligne de l'export PDF ──
+// offX / offY : décalage du bloc texte imprimé par rapport à la ligne rouge / au haut de la page,
+// pour que les images libres retombent au même endroit de la feuille.
+function _seyesPrintHTML(html, lineH, offX, offY) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const scale = lineH / 64;
+    tmp.querySelectorAll('img[data-ratio]').forEach(img => {
+        const g = _seyesImgGeom(img, scale, lineH);
+        img.style.width  = g.w + 'px';
+        img.style.height = g.h + 'px';
+        if (g.free) {
+            img.style.position = 'absolute';
+            img.style.margin   = '0';
+            img.style.left     = Math.round(g.x - (offX || 0)) + 'px';
+            img.style.top      = Math.round(g.y - (offY || 0)) + 'px';
+        } else {
+            img.style.marginTop = g.mt + 'px';
+        }
+    });
+    return tmp.innerHTML;
 }
 
 // ── Utilitaire : calcule padding-top pour coller la baseline sur la grande ligne ──

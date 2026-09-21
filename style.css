@@ -657,6 +657,18 @@
 		.widget[data-type="pdf"] .editor-toolbar,
 		.widget[data-type="deficalme"] .editor-toolbar,
 		.widget[data-type="outilsprofs"] .editor-toolbar { visibility: visible; opacity: 1; }
+		/* YouTube — mode « fond transparent » : la barre du haut (URL, boutons) s'efface
+		   après quelques secondes (classe posée par media.js) et réapparaît au clic.
+		   La place est conservée (pas de saut de la vidéo) ; pointer-events:none pour
+		   qu'un clic dans cette zone atteigne le widget et fasse réapparaître la barre. */
+		.widget[data-type="youtube"][data-transparent="true"] .editor-toolbar { transition: opacity .25s ease; }
+		.widget[data-type="youtube"][data-transparent="true"].yt-bar-hidden .editor-toolbar { opacity: 0 !important; visibility: visible !important; pointer-events: none !important; transition: opacity .6s ease; }
+		/* YouTube — glisser le widget par la barre ne doit pas sélectionner (surligner en bleu)
+		   les boutons ; les champs URL / recherche / filtre restent saisissables et sélectionnables. */
+		.widget[data-type="youtube"] .editor-toolbar { user-select: none; -webkit-user-select: none; cursor: move; }
+		.widget[data-type="youtube"] .editor-toolbar button,
+		.widget[data-type="youtube"] .editor-toolbar .wf-btn { cursor: pointer; }
+		.widget[data-type="youtube"] .editor-toolbar input { user-select: text; -webkit-user-select: text; cursor: text; }
 		.widget[data-type="pdf"] .editor-toolbar { cursor: move; }
 		.widget[data-type="pdf"] .editor-toolbar button,
 		.widget[data-type="pdf"] .editor-toolbar label,

@@ -552,3 +552,96 @@ function _drawStrokeScaled(ctx, stroke, W, H) {
     ctx.stroke();
     ctx.restore();
 }
+
+// ── YouTube : en mode « fond transparent », la barre du haut s'efface ──────
+// Quelques secondes après l'activation du mode transparent, la barre (URL +
+// boutons) disparaît. Un clic sur le widget (y compris dans la vidéo) la fait
+// réapparaître, ce qui permet de ressortir du mode transparent.
+// Le mode transparent lui-même (toggleTransparency) n'est pas modifié : on
+// observe simplement l'attribut data-transparent posé sur le widget.
+const YT_BAR_HIDE_DELAY = 4000; // ms avant que la barre s'efface
+
+function _ytIsTransparent(widget) {
+    return !!widget && widget.dataset.transparent === 'true';
+}
+
+function _ytWidgetOf(node) {
+    return (node && node.closest) ? node.closest('.widget[data-type="youtube"]') : null;
+}
+
+// (Ré)arme le minuteur d'effacement de la barre.
+function _ytBarArm(widget) {
+    clearTimeout(widget._ytBarTimer);
+    if (!_ytIsTransparent(widget)) return;
+    widget._ytBarTimer = setTimeout(() => {
+        if (!widget.isConnected || !_ytIsTransparent(widget)) return;
+        const tb  = widget.querySelector('.editor-toolbar');
+        const lib = widget.querySelector('.yt-library');
+        // On ne masque pas la barre si la souris est dessus ou si la bibliothèque est ouverte.
+        const busy = (tb && tb.matches(':hover')) || (lib && lib.classList.contains('open'));
+        if (busy) { _ytBarArm(widget); return; }
+        widget.classList.add('yt-bar-hidden');
+    }, YT_BAR_HIDE_DELAY);
+}
+
+// Affiche la barre et relance le minuteur.
+function _ytBarShow(widget) {
+    widget.classList.remove('yt-bar-hidden');
+    _ytBarArm(widget);
+}
+
+// Synchronise l'état de la barre avec data-transparent.
+function _ytBarSync(widget) {
+    if (_ytIsTransparent(widget)) {
+        _ytBarArm(widget);
+    } else {
+        clearTimeout(widget._ytBarTimer);
+        widget.classList.remove('yt-bar-hidden');
+    }
+}
+
+// Clic / clavier / focus dans le widget → la barre réapparaît.
+['pointerdown', 'keydown', 'focusin'].forEach(evt => {
+    document.addEventListener(evt, e => {
+        const w = _ytWidgetOf(e.target);
+        if (w && _ytIsTransparent(w)) _ytBarShow(w);
+    }, true);
+});
+
+// Un clic DANS l'iframe YouTube n'est pas visible par la page (iframe
+// cross-origin) : on le détecte via la perte de focus de la fenêtre. On rend
+// ensuite le focus à la page pour que le clic suivant soit détecté à son tour.
+window.addEventListener('blur', () => {
+    setTimeout(() => {
+        const ae = document.activeElement;
+        if (!ae || ae.tagName !== 'IFRAME') return;
+        const w = _ytWidgetOf(ae);
+        if (!w || !_ytIsTransparent(w)) return;
+        _ytBarShow(w);
+        setTimeout(() => {
+            if (document.activeElement === ae) {
+                try { ae.blur(); window.focus(); } catch (_) {}
+            }
+        }, 400);
+    }, 0);
+});
+
+// Surveille l'activation/désactivation du mode transparent et la création de
+// widgets YouTube (y compris ceux restaurés depuis une sauvegarde).
+(function _ytBarObserve() {
+    const root = document.body || document.documentElement;
+    new MutationObserver(muts => {
+        for (const m of muts) {
+            if (m.type === 'attributes') {
+                const w = m.target;
+                if (w.classList && w.classList.contains('widget') && w.dataset.type === 'youtube') _ytBarSync(w);
+            } else {
+                m.addedNodes.forEach(n => {
+                    if (n.nodeType !== 1) return;
+                    if (n.matches('.widget[data-type="youtube"]')) _ytBarSync(n);
+                    else if (n.querySelectorAll) n.querySelectorAll('.widget[data-type="youtube"]').forEach(_ytBarSync);
+                });
+            }
+        }
+    }).observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-transparent'] });
+})();

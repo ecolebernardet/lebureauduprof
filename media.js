@@ -143,6 +143,51 @@ function _carteApplyBackgroundState(widget) {
     if (iframe) iframe.style.pointerEvents = widget.dataset.background === 'true' ? 'none' : '';
 }
 
+// ── YouTube : correctif « erreur 153 » ────────────────────────────
+// YouTube refuse désormais certaines vidéos intégrées (erreur 153 « erreur de
+// configuration du lecteur vidéo ») quand l'iframe n'envoie pas d'en-tête
+// Referer identifiant le site qui l'intègre. Les vidéos dont l'auteur a
+// restreint l'intégration sont les premières touchées, d'où le fait que
+// « certaines » vidéos seulement échouent. On force donc une politique
+// de référent compatible et on passe le paramètre origin.
+const _YT_REFERRER_POLICY = 'strict-origin-when-cross-origin';
+const _YT_ALLOW = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen';
+
+function _ytEmbedUrl(videoId) {
+    let u = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0`;
+    if (/^https?:$/.test(location.protocol)) u += `&origin=${encodeURIComponent(location.origin)}`;
+    return u;
+}
+
+// Prépare l'iframe (politique de référent + permissions). Doit être appelé
+// AVANT d'affecter src : la politique n'est prise en compte qu'au chargement.
+function _ytPrepareIframe(iframe) {
+    if (!iframe) return false;
+    let changed = false;
+    if (iframe.getAttribute('referrerpolicy') !== _YT_REFERRER_POLICY) {
+        iframe.setAttribute('referrerpolicy', _YT_REFERRER_POLICY);
+        changed = true;
+    }
+    if (!iframe.getAttribute('allow')) iframe.setAttribute('allow', _YT_ALLOW);
+    iframe.setAttribute('allowfullscreen', '');
+    return changed;
+}
+
+function _ytSetVideo(iframe, videoId) {
+    _ytPrepareIframe(iframe);
+    iframe.src = _ytEmbedUrl(videoId);
+}
+
+// Widgets restaurés depuis une sauvegarde : leur iframe a déjà un src chargé
+// sans la bonne politique → on corrige et on recharge une fois.
+function _ytFixRestored(widget) {
+    const iframe = widget.querySelector && widget.querySelector('iframe.yt-player');
+    if (!iframe) return;
+    const changed = _ytPrepareIframe(iframe);
+    const m = (iframe.getAttribute('src') || '').match(/embed\/([a-zA-Z0-9_-]{11})/);
+    if (changed && m) iframe.src = _ytEmbedUrl(m[1]);
+}
+
 function loadYoutube(input) {
     const container = input.closest('.editor-container');
     const iframe = container.querySelector('iframe.yt-player');
@@ -152,7 +197,8 @@ function loadYoutube(input) {
     if (videoId && window.electronAPI && typeof window.electronAPI.openYoutube === 'function') {
         window.electronAPI.openYoutube(videoId);
     } else {
-        iframe.src = videoId ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1` : url;
+        if (videoId) _ytSetVideo(iframe, videoId);
+        else { _ytPrepareIframe(iframe); iframe.src = url; }
     }
     saveBoard();
 }
@@ -253,7 +299,7 @@ function ytPlayFromLib(videoId, card) {
     if (window.electronAPI && typeof window.electronAPI.openYoutube === 'function') {
         window.electronAPI.openYoutube(videoId);
     } else {
-        iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`;
+        _ytSetVideo(iframe, videoId);
     }
     container.querySelector('.yt-library').classList.remove('open');
     const favBtn = container.querySelector('.yt-fav-btn');
@@ -638,10 +684,13 @@ window.addEventListener('blur', () => {
             } else {
                 m.addedNodes.forEach(n => {
                     if (n.nodeType !== 1) return;
-                    if (n.matches('.widget[data-type="youtube"]')) _ytBarSync(n);
-                    else if (n.querySelectorAll) n.querySelectorAll('.widget[data-type="youtube"]').forEach(_ytBarSync);
+                    if (n.matches('.widget[data-type="youtube"]')) { _ytBarSync(n); _ytFixRestored(n); }
+                    else if (n.querySelectorAll) n.querySelectorAll('.widget[data-type="youtube"]').forEach(w => { _ytBarSync(w); _ytFixRestored(w); });
                 });
             }
         }
     }).observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-transparent'] });
 })();
+
+// Widgets YouTube déjà présents au chargement du script.
+document.querySelectorAll('.widget[data-type="youtube"]').forEach(_ytFixRestored);

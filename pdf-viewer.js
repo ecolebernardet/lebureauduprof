@@ -19,6 +19,92 @@ const PDFJS_LOCAL_WORKER = 'pdf.worker.min.js';
 const PDFJS_CDN_LIB    = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 const PDFJS_CDN_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+// =========================================================================
+// ROUTEUR DE COLLAGE (Ctrl+V) POUR LES WIDGETS PDF
+// -------------------------------------------------------------------------
+// Le board a ses propres raccourcis de collage (image → nouveau widget image,
+// widget copié → duplication). Quand un widget PDF est « actif », le collage
+// doit lui revenir EXCLUSIVEMENT.
+// Installé dès le chargement de ce fichier, en phase de CAPTURE sur window :
+// c'est le tout premier endroit où passent les événements, avant le board.
+// Widget PDF actif = visible ET (dernier clic dedans OU souris au-dessus OU focus dedans).
+// =========================================================================
+const _pdfPasteRouter = (() => {
+    const entries = new Map();          // container → callback(blob image)
+    let lastDownTarget = null;          // cible du dernier clic / toucher
+    let hoverTarget    = null;          // élément actuellement sous la souris
+
+    const widgetOf = (c) => (c.closest && c.closest('.widget')) || c;
+
+    function isVisible(c) {
+        if (!c.isConnected) return false;
+        const w = widgetOf(c);
+        if (!w.getClientRects().length || !c.getClientRects().length) return false;   // display:none
+        if (getComputedStyle(w).visibility === 'hidden') return false;
+        const ec = c.closest('.editor-container');
+        if (ec && ec.classList.contains('pdf-fs-hidden')) return false;
+        return true;
+    }
+    const inside = (el, c) => !!el && el.nodeType === 1 && widgetOf(c).contains(el);
+
+    function activeEntry() {
+        const ae = document.activeElement;
+        let byHover = null, byFocus = null;
+        for (const [c, cb] of entries) {
+            if (!isVisible(c)) continue;
+            if (inside(lastDownTarget, c)) return { c, cb };            // priorité : dernier clic
+            if (!byFocus && ae && ae !== document.body && inside(ae, c)) byFocus = { c, cb };
+            if (!byHover && inside(hoverTarget, c)) byHover = { c, cb };
+        }
+        return byFocus || byHover;
+    }
+
+    const isEditable = (t) => !!t && t.nodeType === 1 &&
+        (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+
+    function onPaste(e) {
+        const a = activeEntry();
+        if (!a) return;                                   // pas de PDF actif → le board gère
+        e.stopImmediatePropagation();                     // le board ne voit jamais ce collage
+        // Champ de saisie DU widget (n° de page, texte…) : collage natif
+        if (isEditable(e.target) && inside(e.target, a.c)) return;
+        e.preventDefault();
+        const cd = e.clipboardData || window.clipboardData;
+        let blob = null;
+        const items = Array.from((cd && cd.items) || []);
+        const it = items.find(x => x.kind === 'file' && x.type.startsWith('image/'));
+        if (it) blob = it.getAsFile();
+        if (!blob && cd && cd.files && cd.files.length) {
+            blob = Array.from(cd.files).find(f => f.type.startsWith('image/')) || null;
+        }
+        if (blob) a.cb(blob);
+    }
+    // Ctrl+V / Cmd+V : cachés au board (pas de preventDefault → le 'paste' natif a toujours lieu)
+    function onKey(e) {
+        if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+        if ((e.key || '').toLowerCase() !== 'v' && e.code !== 'KeyV') return;
+        if (!activeEntry()) return;
+        e.stopImmediatePropagation();
+    }
+    const onDown = (e) => { lastDownTarget = e.target; };
+    const onOver = (e) => { hoverTarget = e.target; };
+
+    window.addEventListener('paste',       onPaste, true);
+    window.addEventListener('keydown',     onKey,   true);
+    window.addEventListener('keyup',       onKey,   true);
+    window.addEventListener('keypress',    onKey,   true);
+    window.addEventListener('pointerdown', onDown,  true);
+    window.addEventListener('mousedown',   onDown,  true);
+    window.addEventListener('touchstart',  onDown,  { capture: true, passive: true });
+    window.addEventListener('pointerover', onOver,  true);
+    window.addEventListener('mouseover',   onOver,  true);
+
+    return {
+        register(container, cb) { entries.set(container, cb); },   // remplace l'ancien (rechargement du PDF)
+        unregister(container)   { entries.delete(container); }
+    };
+})();
+
 function _ensurePdfJs(cb) {
     if (window.pdfjsLib) { cb(); return; }
 
@@ -381,6 +467,8 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 for (const stroke of layer.strokes) {
                     drawStroke(actx, stroke);
                 }
+                // Recaler la couche HTML des images collées (sélection / déplacement / redimensionnement)
+                if (typeof container._pdfImgSync === 'function') container._pdfImgSync();
             }
 
             // ── Bouton ✕ overlay pour supprimer une annotation sélectionnée ──
@@ -1365,6 +1453,8 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                     _invalidateSnapshot();
                     redrawAnnotations(currentPage);
                     try { _saveAnnotations(); } catch(e) {}
+                    // Image tout juste collée : sélectionnée (cadre + poignées) → déplaçable immédiatement
+                    if (typeof container._pdfImgSelect === 'function') container._pdfImgSelect(stroke);
                 };
                 img.src = dataUrl;
             }
@@ -1392,26 +1482,14 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 });
             }
 
-            // Ctrl+V (presse-papiers) sur le canvasWrap
-            function _handlePasteEvent(e) {
-                const c = canvasWrap.closest('.editor-container');
-                if (c && c.classList.contains('pdf-fs-hidden')) return;
-                const items = (e.clipboardData || window.clipboardData)?.items;
-                if (!items) return;
-                for (const item of items) {
-                    if (item.type.startsWith('image/')) {
-                        e.preventDefault();
-                        const blob   = item.getAsFile();
-                        const reader = new FileReader();
-                        reader.onload = (ev) => _insertImageOnPdf(ev.target.result);
-                        reader.readAsDataURL(blob);
-                        break;
-                    }
-                }
-            }
-            canvasWrap.addEventListener('paste', _handlePasteEvent);
-            // Ctrl+V global (si le focus est dans le widget)
-            container.addEventListener('paste', _handlePasteEvent);
+            // ── Ctrl+V (presse-papiers) quand le widget PDF est actif ─────────────
+            // Géré par le routeur global _pdfPasteRouter (en tête de fichier) : il intercepte
+            // le collage AVANT le board et le donne exclusivement au widget PDF actif.
+            _pdfPasteRouter.register(container, (blob) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => _insertImageOnPdf(ev.target.result);
+                reader.readAsDataURL(blob);
+            });
 
             // ── Sélection / déplacement / resize d'image (clic sur annotCanvas) ───
             let _imgDragIndex   = -1;
@@ -1491,6 +1569,298 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 redrawAnnotations(currentPage);
                 try { _saveAnnotations(); } catch(_) {}
             }, { capture: true });
+
+            // ── Images collées : couche HTML interactive (hors mode annotation) ──
+            // annotCanvas a pointer-events:none tant que le mode annotation n'est pas actif :
+            // les images collées (dessinées sur le canvas) n'étaient donc ni cliquables ni déplaçables.
+            // On superpose au canvas une couche transparente contenant une « zone de prise » par image :
+            // • glisser l'image = la déplacer ;
+            // • clic = cadre bleu + poignée ronde (bas-droite, redimensionne, ratio conservé) + ✕ (supprimer) ;
+            // • Suppr / Retour arrière supprime l'image sélectionnée ; clic ailleurs = désélection.
+            // En mode annotation (crayon…), la couche laisse passer les événements pour pouvoir dessiner sur l'image.
+            if (!document.getElementById('pdf-img-layer-style')) {
+                const st = document.createElement('style');
+                st.id = 'pdf-img-layer-style';
+                st.textContent = `
+                    .pdf-img-layer { position:absolute; pointer-events:none; z-index:5; }
+                    .pdf-img-layer .pdf-img-hit {
+                        position:absolute; pointer-events:auto; cursor:move;
+                        touch-action:none; user-select:none; -webkit-user-select:none;
+                    }
+                    .pdf-img-layer.pdf-img-layer--off .pdf-img-hit,
+                    .pdf-img-layer.pdf-img-layer--off .pdf-img-frame { display:none !important; }
+                    .pdf-img-layer .pdf-img-frame {
+                        position:absolute; display:none; pointer-events:none;
+                        border:2px solid #4a90d9; border-radius:2px; box-sizing:border-box;
+                    }
+                    .pdf-img-layer .pdf-img-handle {
+                        position:absolute; right:-9px; bottom:-9px; width:18px; height:18px;
+                        background:#4a90d9; border:2px solid #fff; border-radius:50%;
+                        box-sizing:border-box; box-shadow:0 1px 3px rgba(0,0,0,.35);
+                        cursor:nwse-resize; pointer-events:auto; touch-action:none;
+                    }
+                    .pdf-img-layer .pdf-img-del {
+                        position:absolute; right:-10px; top:-10px; width:20px; height:20px;
+                        background:#ff4757; color:#fff; border:2px solid #fff; border-radius:50%;
+                        box-sizing:border-box; box-shadow:0 1px 3px rgba(0,0,0,.35);
+                        display:flex; align-items:center; justify-content:center;
+                        font:700 11px/1 sans-serif; cursor:pointer; pointer-events:auto;
+                        user-select:none; -webkit-user-select:none;
+                    }
+                `;
+                document.head.appendChild(st);
+            }
+
+            // canvasWrap est cloné à chaque chargement : retirer une éventuelle ancienne couche (sans listeners)
+            (annotCanvas.parentNode || canvasWrap).querySelectorAll(':scope > .pdf-img-layer').forEach(el => el.remove());
+            const imgLayer = document.createElement('div');
+            imgLayer.className = 'pdf-img-layer';
+            const imgHits  = document.createElement('div');   // conteneur des zones de prise
+            const imgFrame = document.createElement('div');
+            imgFrame.className = 'pdf-img-frame';
+            const imgHandle = document.createElement('div');
+            imgHandle.className = 'pdf-img-handle';
+            imgHandle.title = 'Redimensionner';
+            const imgDel = document.createElement('div');
+            imgDel.className = 'pdf-img-del';
+            imgDel.title = "Supprimer l'image";
+            imgDel.textContent = '✕';
+            imgFrame.append(imgHandle, imgDel);
+            imgLayer.append(imgHits, imgFrame);
+            annotCanvas.insertAdjacentElement('afterend', imgLayer);
+
+            let _pdfSelImg = null;   // stroke image sélectionné (référence objet)
+            let _pdfImgBusy = false; // déplacement / redimensionnement en cours
+
+            // Échelles : pixels canvas → px CSS (k) ; px CSS → px écran (widget éventuellement zoomé)
+            const _cssK    = () => (annotCanvas.offsetWidth / (annotCanvas.width || 1)) || 1;
+            const _screenK = () => (annotCanvas.getBoundingClientRect().width / (annotCanvas.offsetWidth || 1)) || 1;
+
+            // Rectangle CSS (dans la couche) d'un stroke image
+            function _imgCssRect(s) {
+                const k = _cssK();
+                const W = annotCanvas.width, H = annotCanvas.height;
+                return { x: s.nx * W * k, y: s.ny * H * k, w: s.nw * W * k, h: s.nh * W * k };
+            }
+            function _placeEl(el, r) {
+                el.style.left   = r.x + 'px';
+                el.style.top    = r.y + 'px';
+                el.style.width  = r.w + 'px';
+                el.style.height = r.h + 'px';
+            }
+            function _imgModeOff() { return !!window._pdfAnnotMode; }
+
+            function _pdfImgUpdateFrame() {
+                const layer = getLayer(currentPage);
+                if (!_pdfSelImg || layer.strokes.indexOf(_pdfSelImg) < 0) {
+                    _pdfSelImg = null;
+                    imgFrame.style.display = 'none';
+                    return;
+                }
+                _placeEl(imgFrame, _imgCssRect(_pdfSelImg));
+                imgFrame.style.display = 'block';
+            }
+
+            // Reconstruit les zones de prise (appelé à chaque redrawAnnotations)
+            function _pdfImgSync() {
+                if (!imgLayer.isConnected) return;
+                imgLayer.style.left   = annotCanvas.offsetLeft + 'px';
+                imgLayer.style.top    = annotCanvas.offsetTop  + 'px';
+                imgLayer.style.width  = annotCanvas.offsetWidth  + 'px';
+                imgLayer.style.height = annotCanvas.offsetHeight + 'px';
+                imgLayer.classList.toggle('pdf-img-layer--off', _imgModeOff());
+                if (_pdfImgBusy) return;
+                imgHits.textContent = '';
+                const layer = getLayer(currentPage);
+                layer.strokes.forEach(s => {
+                    if (s.tool !== 'image') return;
+                    const hit = document.createElement('div');
+                    hit.className = 'pdf-img-hit';
+                    hit._stroke = s;
+                    _placeEl(hit, _imgCssRect(s));
+                    imgHits.appendChild(hit);
+                });
+                _pdfImgUpdateFrame();
+            }
+            container._pdfImgSync = _pdfImgSync;
+            // Le 1er rendu repositionne annotCanvas dans un requestAnimationFrame → recaler ensuite
+            requestAnimationFrame(() => requestAnimationFrame(_pdfImgSync));
+
+            function _pdfImgSelect(s) {
+                _pdfSelImg = s;
+                _pdfImgSync();
+            }
+            container._pdfImgSelect = _pdfImgSelect;
+            function _pdfImgDeselect() {
+                if (!_pdfSelImg) return;
+                _pdfSelImg = null;
+                imgFrame.style.display = 'none';
+            }
+
+            function _pdfImgDelete() {
+                const layer = getLayer(currentPage);
+                const i = layer.strokes.indexOf(_pdfSelImg);
+                if (i < 0) return;
+                if (!layer.history) layer.history = [];
+                layer.history.push([...layer.strokes]);
+                if (layer.history.length > 30) layer.history.shift();
+                layer.strokes.splice(i, 1);
+                _pdfSelImg = null;
+                redrawAnnotations(currentPage);
+                try { _saveAnnotations(); } catch(_) {}
+            }
+
+            // Prépare un geste (déplacement / resize) : copie du stroke (préserve l'historique)
+            // + snapshot du canvas sans l'image → rendu fluide pendant le geste
+            function _pdfImgBeginGesture(s) {
+                const layer = getLayer(currentPage);
+                const i = layer.strokes.indexOf(s);
+                if (i < 0) return null;
+                if (!layer.history) layer.history = [];
+                layer.history.push([...layer.strokes]);
+                if (layer.history.length > 30) layer.history.shift();
+                const copy = { ...s };
+                delete copy._selected;
+                layer.strokes[i] = copy;
+                Array.from(imgHits.children).forEach(h => { if (h._stroke === s) h._stroke = copy; });
+                actx.clearRect(0, 0, annotCanvas.width, annotCanvas.height);
+                if (layer._snapshot) actx.putImageData(layer._snapshot, 0, 0);
+                layer.strokes.forEach((st, j) => { if (j !== i) drawStroke(actx, st); });
+                _annotSnapshot = actx.getImageData(0, 0, annotCanvas.width, annotCanvas.height);
+                drawStroke(actx, copy);
+                _pdfImgBusy = true;
+                _pdfSelImg = copy;
+                return copy;
+            }
+            function _pdfImgPaint(s) {
+                if (_annotSnapshot) actx.putImageData(_annotSnapshot, 0, 0);
+                drawStroke(actx, s);
+                _pdfImgUpdateFrame();
+            }
+            function _pdfImgEndGesture(changed) {
+                _pdfImgBusy = false;
+                const layer = getLayer(currentPage);
+                if (!changed && layer.history && layer.history.length) layer.history.pop(); // simple clic : rien à annuler
+                _invalidateSnapshot();
+                redrawAnnotations(currentPage);
+                if (changed) { try { _saveAnnotations(); } catch(_) {} }
+            }
+
+            // Empêcher le drag-scroll du canvasWrap / le déplacement du widget
+            ['mousedown', 'touchstart'].forEach(t => imgLayer.addEventListener(t, (e) => {
+                if (e.target.closest('.pdf-img-hit, .pdf-img-handle, .pdf-img-del')) e.stopPropagation();
+            }, { passive: true }));
+
+            // Déplacement (glisser une image)
+            imgHits.addEventListener('pointerdown', (e) => {
+                const hit = e.target.closest('.pdf-img-hit');
+                if (!hit || !hit._stroke || e.button > 0) return;
+                e.preventDefault();
+                e.stopPropagation();
+                const s = _pdfImgBeginGesture(hit._stroke);
+                if (!s) return;
+                _pdfImgUpdateFrame();
+                const sk = _screenK();
+                const cssW = annotCanvas.offsetWidth || 1, cssH = annotCanvas.offsetHeight || 1;
+                const startX = e.clientX, startY = e.clientY;
+                const nx0 = s.nx, ny0 = s.ny;
+                const maxNx = Math.max(0, 1 - s.nw);
+                const maxNy = Math.max(0, 1 - s.nh * annotCanvas.width / (annotCanvas.height || 1));
+                let moved = false;
+                try { hit.setPointerCapture(e.pointerId); } catch(_) {}
+
+                const onMove = (ev) => {
+                    const dx = (ev.clientX - startX) / sk, dy = (ev.clientY - startY) / sk;
+                    if (!moved && Math.abs(dx) < 2 && Math.abs(dy) < 2) return; // simple clic
+                    moved = true;
+                    s.nx = Math.min(maxNx, Math.max(0, nx0 + dx / cssW));
+                    s.ny = Math.min(maxNy, Math.max(0, ny0 + dy / cssH));
+                    _placeEl(hit, _imgCssRect(s));
+                    _pdfImgPaint(s);
+                };
+                const onUp = (ev) => {
+                    hit.removeEventListener('pointermove', onMove);
+                    hit.removeEventListener('pointerup', onUp);
+                    hit.removeEventListener('pointercancel', onUp);
+                    try { hit.releasePointerCapture(ev.pointerId); } catch(_) {}
+                    _pdfImgEndGesture(moved);
+                };
+                hit.addEventListener('pointermove', onMove);
+                hit.addEventListener('pointerup', onUp);
+                hit.addEventListener('pointercancel', onUp);
+            });
+
+            // Redimensionnement (poignée ronde bas-droite, ratio conservé)
+            imgHandle.addEventListener('pointerdown', (e) => {
+                if (!_pdfSelImg || e.button > 0) return;
+                e.preventDefault();
+                e.stopPropagation();
+                const s = _pdfImgBeginGesture(_pdfSelImg);
+                if (!s) return;
+                const sk = _screenK();
+                const k  = _cssK();
+                const W  = annotCanvas.width;
+                const startX = e.clientX, startY = e.clientY;
+                const startW = s.nw * W * k, startH = s.nh * W * k;     // px CSS
+                const r = (s.nw / s.nh) || 1;                           // largeur / hauteur
+                const maxW = Math.max(20, annotCanvas.offsetWidth - s.nx * W * k);
+                let changed = false;
+                try { imgHandle.setPointerCapture(e.pointerId); } catch(_) {}
+
+                const onMove = (ev) => {
+                    const dx = (ev.clientX - startX) / sk, dy = (ev.clientY - startY) / sk;
+                    let wNew = ((startW + dx) + (startH + dy) * r) / 2;
+                    wNew = Math.max(20, Math.min(maxW, wNew));
+                    s.nw = wNew / k / W;
+                    s.nh = s.nw / r;
+                    changed = true;
+                    const hit = Array.from(imgHits.children).find(h => h._stroke === s);
+                    if (hit) _placeEl(hit, _imgCssRect(s));
+                    _pdfImgPaint(s);
+                };
+                const onUp = (ev) => {
+                    imgHandle.removeEventListener('pointermove', onMove);
+                    imgHandle.removeEventListener('pointerup', onUp);
+                    imgHandle.removeEventListener('pointercancel', onUp);
+                    try { imgHandle.releasePointerCapture(ev.pointerId); } catch(_) {}
+                    _pdfImgEndGesture(changed);
+                };
+                imgHandle.addEventListener('pointermove', onMove);
+                imgHandle.addEventListener('pointerup', onUp);
+                imgHandle.addEventListener('pointercancel', onUp);
+            });
+
+            // ✕ : supprimer
+            imgDel.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); });
+            imgDel.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); _pdfImgDelete(); });
+
+            // Clic ailleurs → désélection ; Suppr / Retour arrière → suppression
+            // (listeners document : on retire ceux d'un chargement précédent de ce widget)
+            if (container._pdfImgDocDown) document.removeEventListener('pointerdown', container._pdfImgDocDown, true);
+            if (container._pdfImgDocKey)  document.removeEventListener('keydown',     container._pdfImgDocKey);
+            container._pdfImgDocDown = (e) => {
+                if (!_pdfSelImg) return;
+                if (e.target.closest && e.target.closest('.pdf-img-hit, .pdf-img-frame')) return;
+                _pdfImgDeselect();
+            };
+            container._pdfImgDocKey = (e) => {
+                if (!_pdfSelImg || !imgLayer.isConnected) return;
+                if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+                const t = e.target;
+                if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+                e.preventDefault();
+                _pdfImgDelete();
+            };
+            document.addEventListener('pointerdown', container._pdfImgDocDown, true);
+            document.addEventListener('keydown',     container._pdfImgDocKey);
+
+            // Entrée / sortie du mode annotation : draw.js modifie le style de annotCanvas
+            const _pdfImgCheckMode = () => {
+                const off = _imgModeOff();
+                imgLayer.classList.toggle('pdf-img-layer--off', off);
+                if (off) _pdfImgDeselect();
+            };
+            new MutationObserver(() => { _pdfImgCheckMode(); setTimeout(_pdfImgCheckMode, 0); }).observe(annotCanvas, { attributes: true, attributeFilter: ['style', 'class'] });
 
             // Restaurer les annotations sauvegardées (après le 1er rendu)
             if (_annotKey && typeof pdfStorage !== 'undefined' && !container._annotRestored) {

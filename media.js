@@ -549,6 +549,13 @@ function _drawStrokeScaled(ctx, stroke, W, H) {
     }
     if (!stroke.pts || stroke.pts.length < 1) return;
     const sizeScaled = stroke.size * W / 600;
+    // Crayon de couleur (rendu draw.js)
+    if (stroke.tool === 'crayon' && typeof crayonDrawPoints === 'function') {
+        const ptsPx = stroke.pts.map(p => fromN(p.x, p.y));
+        crayonDrawPoints(ctx, null, ptsPx, stroke.color, sizeScaled, stroke.seed,
+            stroke.dot || stroke.pts.length === 1, W / 600);
+        return;
+    }
     ctx.save();
     if (stroke.tool === 'figure') {
         ctx.strokeStyle = stroke.color;

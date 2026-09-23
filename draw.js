@@ -62,7 +62,7 @@ function _setDrawCursorStyle(style) {
     _updateDrawCursorBtns();
     updateDrawCursor();
     // Si on est en mode annotation PDF avec l'outil crayon, mettre à jour le curseur PDF aussi
-    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode && _pdfAnnotTool === 'pen') {
+    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode && (_pdfAnnotTool === 'pen' || _pdfAnnotTool === 'crayon')) {
         const cursor = _pdfCursor('pen');
         if (_pdfAnnotEvTarget) {
             _pdfAnnotEvTarget.style.setProperty('cursor', cursor, 'important');
@@ -341,7 +341,7 @@ function _boardDrawMouseUp(e) {
 function _boardDrawMouseMove(e)  {
     if (window._bgPanModeActive) return;
     if (_pdfAnnotMode) return;
-    if (isDrawMode)   { if (currentDrawMode === 'free' || currentDrawMode === 'highlight') updateDrawCursor(); paint(e); return; }
+    if (isDrawMode)   { if (currentDrawMode === 'free' || currentDrawMode === 'highlight' || currentDrawMode === 'crayon') updateDrawCursor(); paint(e); return; }
     if (isEraserMode) { onEraserMouseMove(e); return; }
 }
 function _boardDrawMouseLeave(e) {
@@ -391,6 +391,11 @@ function startPaint(e) {
         opacity: (window._drawOpacity !== undefined ? window._drawOpacity : 1.0)
     };
     if (_isHighlight) currentStroke.highlight = true;
+    if (currentDrawMode === 'crayon') {
+        currentStroke.crayon = true;
+        currentStroke.seed   = Math.floor(Math.random() * 1e9); // texture reproductible au redessin
+        _crayonLive = { carry: 0, idx: 0 };
+    }
     if (currentDrawMode === 'shape' || window._drawShapeRecog) _lastStrokePoints = [...currentStroke.points];
     if (FIGURE_MODES.includes(currentDrawMode)) {
         _figureStart = getPos(e); _figureEnd = null;
@@ -476,6 +481,8 @@ function paint(e) {
         drawCtxTop.clearRect(0, 0, drawCanvasTop.width, drawCanvasTop.height);
         if (_smoothPts.length < 2) return;
         _drawHighlightPath(drawCtxTop, _smoothPts, Math.max(currentStroke.size * 6, 24), currentStroke.color);
+    } else if (currentStroke.crayon) {
+        _crayonWalkSegment(drawCtx, prev, cur2, currentStroke, _crayonLive);
     } else {
         drawCtx.save();
         drawCtx.beginPath();
@@ -1356,6 +1363,18 @@ function _fillHitTest(stroke, x, y, r = 0) {
 function drawStroke(stroke, highlight = false, ctx = drawCtx) {
     // Remplissage pot de peinture
     if (stroke.type === 'fill') { drawFillStroke(stroke, ctx); return; }
+    // Crayon de couleur (trait doux et texturé)
+    if (stroke.crayon && !stroke._figure && !stroke._dashed && stroke.points && stroke.points.length) {
+        if (highlight) {
+            // Halo de sélection
+            ctx.save(); ctx.beginPath(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#4a90e2'; ctx.lineWidth = stroke.size + 6; ctx.globalAlpha = 0.5;
+            stroke.points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+            ctx.stroke(); ctx.restore();
+        }
+        drawCrayonStroke(stroke, ctx);
+        return;
+    }
     // Stroke texte ancré (créé depuis un widget texte)
     if (stroke.type === 'text') {
         ctx.save();
@@ -1551,7 +1570,7 @@ function setDrawMode(mode) {
         board.classList.add('is-drawing');
     }
     // Appliquer le curseur point si on est en mode libre ou surligneur
-    if (mode === 'free' || mode === 'highlight') updateDrawCursor();
+    if (mode === 'free' || mode === 'highlight' || mode === 'crayon') updateDrawCursor();
     // Fermer la toolbar géométrie (shapes.js) si un mode figure dessin est activé
     if (FIGURE_MODES.includes(mode)) {
         if (typeof stopShapeToolbar === 'function') stopShapeToolbar();
@@ -2726,6 +2745,7 @@ function _figureCursorUrl() {
 function _pdfCursor(tool) {
     let svg;
     if (tool === 'fill') return _FILL_CURSOR; // pot de peinture
+    if (tool === 'crayon') tool = 'pen';      // crayon de couleur : même curseur coloré que le crayon
     if (tool === 'pan') {
         return 'grab';
     }
@@ -2867,6 +2887,7 @@ function _updatePdfToolBtns() {
 
     _setBtn('pdf-pan-btn',        tool === 'pan',         '#c8a000');
     _setBtn('draw-free-btn',      tool === 'pen',         '#1a3550');
+    _setBtn('draw-crayon-btn',    tool === 'crayon',      '#1a3550');
     _setBtn('draw-highlight-btn', tool === 'highlighter', '#2a2200');
     _setBtn('eraser-btn',         tool === 'eraser',      '#c0392b');
     _setBtn('draw-figures-btn',   tool === 'figure',      '#1a2a4a');
@@ -4480,15 +4501,15 @@ function _showPdfAnnotToast(msg) {
 // On le wrappe pour rafraîchir le curseur board ET le curseur PDF pen.
 (function() {
     function _refreshDrawCursorOnColor() {
-        // Board : mode libre ou surligneur
+        // Board : mode libre, surligneur ou crayon de couleur
         if (typeof isDrawMode !== 'undefined' && isDrawMode
             && typeof currentDrawMode !== 'undefined'
-            && (currentDrawMode === 'free' || currentDrawMode === 'highlight')) {
+            && (currentDrawMode === 'free' || currentDrawMode === 'highlight' || currentDrawMode === 'crayon')) {
             updateDrawCursor();
         }
         // PDF annotation : outil pen actif
         if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode
-            && typeof _pdfAnnotTool !== 'undefined' && _pdfAnnotTool === 'pen') {
+            && typeof _pdfAnnotTool !== 'undefined' && (_pdfAnnotTool === 'pen' || _pdfAnnotTool === 'crayon')) {
             const cursor = _pdfCursor('pen');
             if (typeof _pdfAnnotEvTarget !== 'undefined' && _pdfAnnotEvTarget) {
                 _pdfAnnotEvTarget.style.setProperty('cursor', cursor, 'important');
@@ -5135,3 +5156,200 @@ function fillPdfAt(clientX, clientY) {
     octx.putImageData(out, 0, 0);
     api.addFillStroke(off.toDataURL('image/png'), bx, by, bw, bh, _fillCurrentColor());
 }
+
+
+// =========================================================================
+// CRAYON DE COULEUR
+// Trait doux et texturé, comme un vrai crayon de couleur :
+// - chaque « touche » est un nuage de petits grains, plus denses au centre,
+//   plus rares sur les bords → contours flous, dégradés ;
+// - un grain de papier fixe (lié à la position sur le tableau) laisse des
+//   micro-trous : repasser sur une zone la fonce progressivement ;
+// - tout est pseudo-aléatoire mais reproductible (graine par trait) : le trait
+//   est identique pendant le tracé, au redessin, après sauvegarde/rechargement.
+// Stroke : { crayon:true, seed, points, color, size, opacity }
+// =========================================================================
+var _crayonLive = { carry: 0, idx: 0 };
+var _crayonCache = new WeakMap();
+
+function _crayonRand(a) {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
+// Grain du papier : fixe sur le tableau, lissé sur des cellules de 2 px
+function _crayonPaper(x, y, scale = 1) {
+    const cell = 2 * (scale || 1);
+    const ix = Math.floor(x / cell), iy = Math.floor(y / cell);
+    return _crayonRand(Math.imul(ix, 73856093) ^ Math.imul(iy, 19349663));
+}
+
+function _crayonDab(ctx, x, y, idx, stroke) {
+    const size  = Math.max(1, stroke.size || 4);
+    const r     = size * 0.58;                              // rayon un peu plus large que le trait
+    const n     = Math.max(12, Math.min(110, Math.round(size * 4)));
+    const opa   = (stroke.opacity !== undefined ? stroke.opacity : 1);
+    const base  = 0.32 * opa;
+    const speck = Math.max(1, size * 0.12);
+    const seed  = ((stroke.seed | 0) * 7919 + idx * 131) | 0;
+    for (let k = 0; k < n; k++) {
+        const s0  = (seed + k * 3) | 0;
+        const ang = _crayonRand(s0) * Math.PI * 2;
+        const u   = _crayonRand(s0 + 1);
+        const rad = r * Math.pow(u, 0.65);                  // grains plus denses au centre
+        const px  = x + Math.cos(ang) * rad;
+        const py  = y + Math.sin(ang) * rad;
+        const edge  = rad / r;
+        const paper = _crayonPaper(px, py, stroke._paper);
+        const a = base * (1 - 0.8 * edge * edge) * (0.15 + 0.85 * paper);
+        if (a <= 0.01) continue;
+        const sz = speck * (0.8 + 0.6 * _crayonRand(s0 + 2));
+        ctx.globalAlpha = a;
+        ctx.fillRect(px - sz / 2, py - sz / 2, sz, sz);
+    }
+}
+
+// Pose les touches le long du segment a→b à intervalle régulier (état : reste + index)
+function _crayonWalkSegment(ctx, a, b, stroke, state) {
+    const spacing = Math.max(0.8, (stroke.size || 4) * 0.28);
+    const dist = Math.hypot(b.x - a.x, b.y - a.y);
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = stroke.color;
+    let d = state.carry;
+    while (d <= dist) {
+        const t = dist ? d / dist : 0;
+        _crayonDab(ctx, a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, state.idx++, stroke);
+        d += spacing;
+        if (!dist) break;
+    }
+    state.carry = Math.max(0, d - dist);
+    ctx.restore();
+}
+
+function _crayonRender(ctx, stroke) {
+    const pts = stroke.points;
+    const state = { carry: 0, idx: 0 };
+    if (stroke.dot || pts.length < 2) {
+        // Simple touche : petit nuage de grains
+        for (let i = 0; i < 4; i++) _crayonWalkSegment(ctx, pts[0], pts[0], stroke, state);
+        return;
+    }
+    for (let i = 1; i < pts.length; i++) _crayonWalkSegment(ctx, pts[i - 1], pts[i], stroke, state);
+}
+
+// Rendu avec cache bitmap (redessins rapides même avec beaucoup de traits).
+// owner = objet stroke servant de clé ; pts en pixels du canvas cible ;
+// params = { color, size, opacity, seed, dot, _paper } (size déjà à l'échelle).
+function _crayonDrawCached(ctx, owner, pts, params, extraKey = '') {
+    if (!pts || !pts.length) return;
+    const last = pts[pts.length - 1];
+    const key = [params.color, params.size, params.opacity, params.seed, params.dot ? 1 : 0, params._paper || 1,
+                 pts.length, pts[0].x, pts[0].y, last.x, last.y, extraKey].join('|');
+    let c = _crayonCache.get(owner);
+    if (!c || c.key !== key) {
+        const pad = Math.ceil((params.size || 4) * 0.7) + 3;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        pts.forEach(p => {
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+        });
+        const ox = Math.floor(minX - pad), oy = Math.floor(minY - pad);
+        const w = Math.max(1, Math.ceil(maxX + pad) - ox), h = Math.max(1, Math.ceil(maxY + pad) - oy);
+        const off = document.createElement('canvas');
+        off.width = w; off.height = h;
+        const octx = off.getContext('2d');
+        octx.translate(-ox, -oy);
+        _crayonRender(octx, { ...params, points: pts });
+        c = { key, canvas: off, ox, oy };
+        _crayonCache.set(owner, c);
+    }
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(c.canvas, c.ox, c.oy);
+    ctx.restore();
+}
+
+function drawCrayonStroke(stroke, ctx = drawCtx) {
+    _crayonDrawCached(ctx, stroke, stroke.points, stroke);
+}
+
+// ── API pour les annotations PDF (pdf-viewer.js / media.js) ──
+// Rendu d'un trait crayon de couleur dont les points sont déjà en pixels.
+function crayonDrawPoints(ctx, owner, ptsPx, color, sizePx, seed, dot, paperScale, extraKey) {
+    const params = { color, size: sizePx, opacity: 1, seed: seed | 0, dot: !!dot, _paper: paperScale || 1 };
+    if (owner) _crayonDrawCached(ctx, owner, ptsPx, params, extraKey);
+    else _crayonRender(ctx, { ...params, points: ptsPx });
+}
+// Tracé en direct d'un segment (state = { carry, idx } propre au trait en cours)
+function crayonLiveSegment(ctx, a, b, color, sizePx, seed, paperScale, state) {
+    _crayonWalkSegment(ctx, a, b, { color, size: sizePx, opacity: 1, seed: seed | 0, _paper: paperScale || 1 }, state);
+}
+
+// ── Activation de l'outil ──
+function activateCrayon() {
+    if (isFillMode) stopFillMode();
+    // Mode annotation PDF : outil PDF 'crayon'
+    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode) {
+        setPdfAnnotTool('crayon');
+        return;
+    }
+    activatePencil();              // met le dessin en route, désactive les autres outils
+    currentDrawMode = 'crayon';
+    const freeBtn = document.getElementById('draw-free-btn');
+    if (freeBtn) {
+        freeBtn.style.borderColor = '#444';
+        freeBtn.style.background  = '#2a2a2e';
+        freeBtn.style.color       = '#aaa';
+        freeBtn.classList.remove('btn-mode-active');
+    }
+    _crayonSyncBtn();
+    updateDrawCursor();
+}
+
+function _crayonSyncBtn() {
+    const btn = document.getElementById('draw-crayon-btn');
+    if (!btn) return;
+    // En annotation PDF, c'est _updatePdfToolBtns qui gère ce bouton
+    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode) return;
+    const active = isDrawMode && currentDrawMode === 'crayon' && !isEraserMode
+        && !(typeof isFillMode !== 'undefined' && isFillMode)
+        && !(typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode);
+    btn.classList.toggle('btn-mode-active', active);
+    if (active) {
+        btn.style.setProperty('background',   '#1a3550', 'important');
+        btn.style.setProperty('border-color', '#4a90e2', 'important');
+        btn.style.setProperty('color',        '#fff',    'important');
+        btn.style.setProperty('box-shadow',   '0 0 8px rgba(74,144,226,0.6)', 'important');
+        const freeBtn = document.getElementById('draw-free-btn');
+        if (freeBtn && freeBtn.classList.contains('btn-mode-active')) {
+            freeBtn.style.borderColor = '#444'; freeBtn.style.background = '#2a2a2e';
+            freeBtn.style.color = '#aaa'; freeBtn.classList.remove('btn-mode-active');
+        }
+    } else {
+        btn.style.removeProperty('box-shadow');
+        btn.style.setProperty('background',   '#2a2a2e');
+        btn.style.setProperty('border-color', '#444');
+        btn.style.setProperty('color',        '#aaa');
+    }
+}
+
+// Tout changement d'outil met à jour le bouton crayon de couleur
+['activatePencil', 'activateHighlighter', 'setDrawMode', 'toggleEraserMode', 'stopEraserMode',
+ 'toggleSelectMode', 'toggleFiguresSubmenu', 'toggleFillMode', 'stopFillMode',
+ 'stopDrawing', 'stopDrawing_keepToolbar', 'togglePdfAnnotMode'].forEach(name => {
+    const orig = window[name];
+    if (typeof orig !== 'function' || orig._crayonWrapped) return;
+    const wrapped = function () {
+        const r = orig.apply(this, arguments);
+        _crayonSyncBtn();
+        return r;
+    };
+    wrapped._crayonWrapped = true;
+    window[name] = wrapped;
+});

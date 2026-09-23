@@ -423,6 +423,8 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
             let activeTool = 'pen';
             let isDrawing  = false;
             let currentStrokeAnnot = null;
+            // État du tracé en direct du crayon de couleur (draw.js : crayonLiveSegment)
+            let _crayonAnnotLive = { carry: 0, idx: 0 };
             // Images des remplissages pot de peinture (hors des strokes → sauvegarde JSON propre)
             const _annotFillCache = new Map();
 
@@ -806,6 +808,15 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                         ctx.fillText(line, pos.x, pos.y + i * fontSize * 1.3);
                     });
                     ctx.restore();
+                    return;
+                }
+                // ── Crayon de couleur (rendu draw.js, mis en cache) ───────────────────
+                if (stroke.tool === 'crayon' && typeof crayonDrawPoints === 'function') {
+                    if (!stroke.pts || stroke.pts.length < 1) return;
+                    const ptsPx = stroke.pts.map(p => fromNorm(p.x, p.y));
+                    crayonDrawPoints(ctx, stroke, ptsPx, stroke.color, sizeScaled, stroke.seed,
+                        stroke.dot || stroke.pts.length === 1, canvasW / displayW,
+                        annotCanvas.width + 'x' + annotCanvas.height);
                     return;
                 }
                 if (!stroke.pts || stroke.pts.length < 1) return;
@@ -1958,6 +1969,11 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                     startStroke(color, size, tool, px, py) {
                         const norm = toNorm(px, py);
                         currentStrokeAnnot = { tool, color, size, pts: [norm] };
+                        if (tool === 'crayon') {
+                            // Crayon de couleur : graine de texture (rendu identique au redessin)
+                            currentStrokeAnnot.seed = Math.floor(Math.random() * 1e9);
+                            _crayonAnnotLive = { carry: 0, idx: 0 };
+                        }
                         isDrawing = true;
                         // Snapshot des strokes validés → continueStroke restaure ce snapshot
                         // au lieu de tout redessiner à chaque point (critique sur gros PDF)
@@ -2023,6 +2039,12 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                                 }
                             }
                         } else {
+                            if (tool === 'crayon' && typeof crayonLiveSegment === 'function') {
+                                // Crayon de couleur : grains posés le long du nouveau segment
+                                crayonLiveSegment(actx, fromNorm(prev.x, prev.y), fromNorm(norm.x, norm.y),
+                                    color, sizeScaled, currentStrokeAnnot.seed, canvasW / displayW, _crayonAnnotLive);
+                                return;
+                            }
                             // Dessin incrémental pour pen/eraser : on ne trace que le nouveau segment
                             actx.save();
                             if (tool === 'eraser') {

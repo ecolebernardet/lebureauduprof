@@ -510,10 +510,13 @@
 					<button class="dt-plus" onmousedown="(function(btn){var iv;function step(){var i=document.getElementById('draw-size');i.value=Math.min(40,+i.value+1);i.dispatchEvent(new Event('input'));}step();iv=setInterval(step,120);btn._iv=iv;})(this)" onmouseup="clearInterval(this._iv)" onmouseleave="clearInterval(this._iv)" style="width:22px;height:22px;border-radius:6px;border:1px solid #555;background:#2a2a2e;color:#ccc;cursor:pointer;font-size:14px;line-height:1;padding:0;flex-shrink:0;">+</button>
 			</div>
 			
-			<!-- CRAYON + SURLIGNEUR côte à côte -->
-			<div style="display:flex;flex-direction:row;gap:4px;align-items:center;flex-shrink:0;justify-content:center;">
-				<button id="draw-free-btn" onclick="activatePencil()" style="width:30px;height:30px;border-radius:8px;border:2px solid #444;background:#2a2a2e;color:#aaa;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;" title="Dessin libre">✏️</button>
-				<button id="draw-highlight-btn" onclick="activateHighlighter()" style="width:30px;height:30px;border-radius:8px;border:2px solid #444;background:#2a2a2e;color:#aaa;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;" title="Surligneur">🖍️</button>
+			<!-- CRAYON + SURLIGNEUR côte à côte, POT DE PEINTURE centré dessous -->
+			<div style="display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;flex-shrink:0;">
+				<div style="display:flex;flex-direction:row;gap:4px;align-items:center;justify-content:center;">
+					<button id="draw-free-btn" onclick="activatePencil()" style="width:30px;height:30px;border-radius:8px;border:2px solid #444;background:#2a2a2e;color:#aaa;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;" title="Dessin libre">✏️</button>
+					<button id="draw-highlight-btn" onclick="activateHighlighter()" style="width:30px;height:30px;border-radius:8px;border:2px solid #444;background:#2a2a2e;color:#aaa;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;" title="Surligneur">🖍️</button>
+				</div>
+				<button id="fill-bucket-btn" onclick="toggleFillMode()" style="width:30px;height:30px;border-radius:8px;border:2px solid #444;background:#2a2a2e;color:#aaa;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;" title="Pot de peinture : cliquez dans une zone fermée pour la colorier avec la couleur choisie (Échap pour quitter)">🪣</button>
 			</div>
 
 			<!-- FIGURES + OUTILS GÉO côte à côte -->

@@ -104,6 +104,7 @@ function toggleGlobalToolbar() {
     const boardEl = document.getElementById('board');
     const btn = document.getElementById('pdf-text-btn');
     if (!isTextPlacementMode) {
+        if (typeof isFillMode !== 'undefined' && isFillMode) stopFillMode(); // l'outil texte désactive le pot de peinture
         isTextPlacementMode = true;
         // Stopper le mode dessin sans fermer la toolbar
         if (typeof stopDrawing_keepToolbar === 'function') stopDrawing_keepToolbar();
@@ -120,6 +121,7 @@ function toggleGlobalToolbar() {
 }
 
 function closeGlobalToolbar() {
+    if (typeof stopFillMode === 'function') stopFillMode();
     document.getElementById('global-toolbar').style.display = 'none';
     const boardEl = document.getElementById('board');
     boardEl.style.removeProperty('cursor');

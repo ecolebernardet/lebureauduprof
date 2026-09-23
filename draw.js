@@ -1125,13 +1125,18 @@ function redrawStrokes(extra = null, extra2 = null) {
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
     if (drawCtxTop) drawCtxTop.clearRect(0, 0, drawCanvasTop.width, drawCanvasTop.height);
 
+    // 1) Remplissages (pot de peinture) d'abord : ils restent sous les traits
+    strokes.forEach(s => { if (s.type === 'fill') drawFillStroke(s, drawCtx); });
+    // 2) Traits, textes, figures
     strokes.forEach(s => {
+        if (s.type === 'fill') return;
         const ctx = (s.pinned && drawCtxTop) ? drawCtxTop : drawCtx;
         drawStroke(s, false, ctx);
     });
     if (extra) drawStroke(extra, false, drawCtx);
     if (extra2) drawStroke(extra2, false, drawCtx);
     selectedStrokes.forEach(s => {
+        if (s.type === 'fill') return;
         const ctx = (s.pinned && drawCtxTop) ? drawCtxTop : drawCtx;
         drawStroke(s, true, ctx);
     });
@@ -1295,7 +1300,62 @@ function _drawHighlightPath(ctx, pts, lw, color) {
     ctx.restore();
 }
 
+// =========================================================================
+// POT DE PEINTURE : rendu des strokes { type:'fill', src, points:[hautGauche, basDroit] }
+// =========================================================================
+var _fillImgCache = new Map();
+
+function _fillGetImage(src) {
+    let im = _fillImgCache.get(src);
+    if (!im) {
+        im = new Image();
+        im.onload = () => redrawStrokes();
+        im.src = src;
+        _fillImgCache.set(src, im);
+    }
+    if (im instanceof HTMLImageElement && !im.complete) return null;
+    return im;
+}
+
+function drawFillStroke(stroke, ctx = drawCtx) {
+    if (!stroke.src || !stroke.points || stroke.points.length < 2) return;
+    const im = _fillGetImage(stroke.src);
+    if (!im) return;
+    const a = stroke.points[0], b = stroke.points[1];
+    const w = b.x - a.x, h = b.y - a.y;
+    if (w <= 0 || h <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    try { ctx.drawImage(im, a.x, a.y, w, h); } catch (e) {}
+    ctx.restore();
+}
+
+// Vrai si le point (x,y) du board tombe sur un pixel coloré du remplissage
+function _fillHitTest(stroke, x, y, r = 0) {
+    if (!stroke.points || stroke.points.length < 2) return false;
+    const a = stroke.points[0], b = stroke.points[1];
+    if (x < a.x - r || x > b.x + r || y < a.y - r || y > b.y + r) return false;
+    const im = _fillGetImage(stroke.src);
+    if (!im) return true;
+    if (!im._hitData) {
+        const c = document.createElement('canvas');
+        c.width = im.width || im.naturalWidth; c.height = im.height || im.naturalHeight;
+        if (!c.width || !c.height) return true;
+        const cx = c.getContext('2d');
+        cx.drawImage(im, 0, 0);
+        im._hitData = { data: cx.getImageData(0, 0, c.width, c.height).data, w: c.width, h: c.height };
+    }
+    const hd = im._hitData;
+    const sx = hd.w / (b.x - a.x), sy = hd.h / (b.y - a.y);
+    const px = Math.max(0, Math.min(hd.w - 1, Math.floor((x - a.x) * sx)));
+    const py = Math.max(0, Math.min(hd.h - 1, Math.floor((y - a.y) * sy)));
+    return hd.data[(py * hd.w + px) * 4 + 3] > 0;
+}
+
 function drawStroke(stroke, highlight = false, ctx = drawCtx) {
+    // Remplissage pot de peinture
+    if (stroke.type === 'fill') { drawFillStroke(stroke, ctx); return; }
     // Stroke texte ancré (créé depuis un widget texte)
     if (stroke.type === 'text') {
         ctx.save();
@@ -1375,6 +1435,7 @@ function drawStroke(stroke, highlight = false, ctx = drawCtx) {
 var currentDrawMode = 'free'; // 'free' | 'highlight' | 'shape' | 'text'
 
 function setDrawMode(mode) {
+    if (isFillMode) stopFillMode(); // un autre outil désactive le pot de peinture
     // Si on est en mode annotation PDF et qu'on clique sur le surligneur,
     // on bascule l'outil PDF highlighter au lieu de changer le mode dessin
     if (mode === 'highlight' && typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode) {
@@ -1511,6 +1572,7 @@ function setDrawMode(mode) {
 }
 
 function activatePencil() {
+    if (isFillMode) stopFillMode(); // un autre outil désactive le pot de peinture
     _stopBgPanIfActive();
     // En mode annotation PDF : déléguer à setPdfAnnotTool
     if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode) {
@@ -1554,6 +1616,7 @@ function activatePencil() {
 }
 
 function activateHighlighter() {
+    if (isFillMode) stopFillMode(); // un autre outil désactive le pot de peinture
     _stopBgPanIfActive();
     if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode) {
         setPdfAnnotTool('highlighter');
@@ -1633,6 +1696,7 @@ function enableDrawing() {
 }
 
 function toggleFiguresSubmenu(fromMainBtn) {
+    if (isFillMode) stopFillMode(); // un autre outil désactive le pot de peinture
     // Détecter automatiquement si appelé depuis le bouton principal ou un sous-bouton
     // (sans modifier le HTML : on inspecte l'event global si fromMainBtn non fourni)
     if (fromMainBtn === undefined && typeof event !== 'undefined' && event && event.currentTarget) {
@@ -1720,6 +1784,7 @@ function toggleFiguresSubmenu(fromMainBtn) {
 }
 
 function toggleSelectMode() {
+    if (isFillMode) stopFillMode(); // un autre outil désactive le pot de peinture
     _stopBgPanIfActive();
     if (!isDrawMode && !isEraserMode) {
         // Déjà en mode sélection → repasser en dessin libre
@@ -1964,6 +2029,7 @@ function perpendicularDist(pt, lineA, lineB) {
 var isEraserMode = false, isErasing = false;
 
 function toggleEraserMode() {
+    if (isFillMode) stopFillMode(); // un autre outil désactive le pot de peinture
     _stopBgPanIfActive();
     if (isEraserMode) { stopEraserMode(); return; }
     // En mode annotation PDF : déléguer à setPdfAnnotTool
@@ -2175,6 +2241,12 @@ function eraseAt(pos) {
 
     const newStrokes = [];
     strokes.forEach(stroke => {
+        // Remplissage pot de peinture : supprimé entièrement si la gomme touche la zone colorée
+        if (stroke.type === 'fill') {
+            if (_fillHitTest(stroke, pos.x, pos.y)) return;
+            newStrokes.push(stroke);
+            return;
+        }
         // Strokes texte : supprimer si la gomme touche la bounding box du texte
         if (stroke.type === 'text') {
             if (!drawCtx) { newStrokes.push(stroke); return; }
@@ -4438,3 +4510,450 @@ function _showPdfAnnotToast(msg) {
         document.addEventListener('DOMContentLoaded', _patchCpickDispatch);
     }
 })();
+
+
+// =========================================================================
+// OUTIL POT DE PEINTURE (remplissage de zone fermée)
+// -------------------------------------------------------------------------
+// - Un clic sur le tableau remplit la zone uniforme délimitée par les traits.
+// - Le remplissage est stocké comme un stroke { type:'fill', ... } dans
+//   `strokes` → sauvegardé (saveBoard) et annulable (snapshotNow).
+// - Rendu : drawFillStroke() / redrawStrokes() — les remplissages sont
+//   dessinés AVANT les traits, les contours restent nets par-dessus.
+// =========================================================================
+var isFillMode = false;
+const _FILL_TOLERANCE = 48;   // tolérance de couleur (0-255)
+const _FILL_DILATE    = 2;    // débord sous les traits (px) pour éviter les liserés blancs
+
+const _FILL_CURSOR = "url(\"data:image/svg+xml;utf8," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">' +
+    '<path d="M6 12 L14 4 L23 13 L15 21 Z" fill="#fff" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>' +
+    '<path d="M6 12 L15 21" stroke="#000" stroke-width="1.6"/>' +
+    '<path d="M23 13 C26 17 26 20 24 21 C22 22 21 19 23 13 Z" fill="#3a8ee6" stroke="#000" stroke-width="1.2"/>' +
+    '<circle cx="3" cy="25" r="2.2" fill="#000"/></svg>'
+) + "\") 3 25, crosshair";
+
+// Couleur de remplissage = couleur de dessin courante (pastilles / sélecteur de la barre)
+function _fillCurrentColor() {
+    const raw = window._drawColor
+        || (typeof cpickGetValue === 'function' ? cpickGetValue('draw-color') : null)
+        || document.querySelector('#cpick-draw-color .cpick-swatch')?.style?.background
+        || '#e84393';
+    // Normaliser (rgb(...), nom, #rgb...) en #rrggbb
+    const c = document.createElement('canvas').getContext('2d');
+    c.fillStyle = '#000000';
+    c.fillStyle = raw;
+    return c.fillStyle.startsWith('#') ? c.fillStyle : '#000000';
+}
+
+// Bouton 🪣 coloré quand l'outil est actif (même bleu que le crayon).
+// Les styles sont posés en !important + une règle CSS dédiée, pour qu'aucune
+// règle de style.css (thèmes, etc.) ne puisse les écraser.
+(function () {
+    const st = document.createElement('style');
+    st.textContent =
+        '#draw-toolbar #fill-bucket-btn.fill-active{' +
+        'background:#1a3550 !important;border-color:#4a90e2 !important;color:#fff !important;' +
+        'box-shadow:0 0 8px rgba(74,144,226,0.6) !important;}';
+    document.head.appendChild(st);
+})();
+
+function _fillUpdateBtn() {
+    const btn = document.getElementById('fill-bucket-btn');
+    if (!btn) return;
+    btn.classList.toggle('fill-active', isFillMode);
+    btn.classList.toggle('btn-mode-active', isFillMode);
+    if (isFillMode) {
+        btn.style.setProperty('background', '#1a3550', 'important');
+        btn.style.setProperty('border-color', '#4a90e2', 'important');
+        btn.style.setProperty('color', '#fff', 'important');
+    } else {
+        btn.style.removeProperty('box-shadow');
+        btn.style.setProperty('background', '#2a2a2e');
+        btn.style.setProperty('border-color', '#444');
+        btn.style.setProperty('color', '#aaa');
+    }
+}
+
+function toggleFillMode() {
+    if (isFillMode) { stopFillMode(); return; }
+    // En annotation PDF, les traits sont sur un autre canvas : outil non disponible
+    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode) return;
+    _stopBgPanIfActive();
+    initCanvas();
+    // Sortir des autres outils (placement texte, crayon, gomme, figures, sélection)
+    if (typeof isTextPlacementMode !== 'undefined' && isTextPlacementMode && typeof closeGlobalToolbar === 'function') closeGlobalToolbar();
+    if (isEraserMode) stopEraserMode();
+    stopDrawing_keepToolbar();
+    if (typeof stopShapeToolbar === 'function') stopShapeToolbar();
+    clearSelection();
+    ['draw-free-btn', 'draw-highlight-btn', 'draw-select-btn'].forEach(id => _setBtnActive(id, false));
+    _setBtnActive('draw-figures-btn', false, 'figures');
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+
+    isFillMode = true;
+    document.body.classList.add('is-fill-mode');
+    setTimeout(() => { if (isFillMode) board.style.setProperty('cursor', _FILL_CURSOR, 'important'); }, 0);
+    _fillUpdateBtn();
+}
+
+function stopFillMode() {
+    if (!isFillMode) return;
+    isFillMode = false;
+    document.body.classList.remove('is-fill-mode');
+    if (typeof isTextPlacementMode !== 'undefined' && isTextPlacementMode) board.style.setProperty('cursor', 'text', 'important');
+    else board.style.removeProperty('cursor');
+    _fillUpdateBtn();
+}
+
+// ── Interception des clics sur le tableau (phase de capture sur window :
+//    passe avant le dessin, la sélection, le déplacement des widgets…) ──
+// Renvoie { kind:'image', hit } si le clic tombe sur une image du tableau,
+// { kind:'canvas' } si le clic tombe sur le fond / les dessins, sinon null.
+function _fillClassify(e) {
+    if (!isFillMode || !e.target || !e.target.closest) return null;
+    const t = e.target;
+    if (!t.closest('#board')) return null;
+    if (t.closest('#draw-toolbar, #global-toolbar, .widget-action-bar, .widget-ctx-menu, .drag-handle, .widget-rotate-handle, [class*="resize"]')) return null;
+    const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+    const y = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+    if (x === undefined) return null;
+    const hit = _fillFindImageAt(x, y);
+    if (hit) return { kind: 'image', hit };
+    if (t.closest('.widget, .shape-widget')) return null; // autre widget : comportement normal
+    return { kind: 'canvas' };
+}
+
+function _fillSwallow(e) {
+    if (!_fillClassify(e)) return;
+    e.stopImmediatePropagation();
+    if (e.cancelable) e.preventDefault();
+}
+
+window.addEventListener('pointerdown', (e) => {
+    const c = _fillClassify(e);
+    if (!c) return;
+    e.stopImmediatePropagation();
+    if (e.cancelable) e.preventDefault();
+    if (e.button !== undefined && e.button !== 0) return;
+    if (c.kind === 'image') fillImageAt(c.hit);
+    else fillAtClientPoint(e.clientX, e.clientY);
+}, true);
+['mousedown', 'mouseup', 'click', 'dblclick', 'pointerup', 'contextmenu'].forEach(t =>
+    window.addEventListener(t, _fillSwallow, true));
+['touchstart', 'touchend'].forEach(t =>
+    window.addEventListener(t, _fillSwallow, { capture: true, passive: false }));
+
+// Curseur « pot de peinture » partout sur le tableau, widgets compris
+(function () {
+    const st = document.createElement('style');
+    st.textContent = 'body.is-fill-mode #board, body.is-fill-mode #board .widget, body.is-fill-mode #board .widget * { cursor: ' + _FILL_CURSOR + ' !important; }';
+    document.head.appendChild(st);
+})();
+
+// Choisir un autre outil de la barre de dessin → quitter le pot de peinture
+// (les boutons de couleur et de taille ne le désactivent pas)
+window.addEventListener('click', (e) => {
+    if (!isFillMode || !e.target || !e.target.closest) return;
+    const btn = e.target.closest('#draw-toolbar button, #figures-submenu button');
+    if (!btn || btn.id === 'fill-bucket-btn') return;
+    if (btn.closest('.dt-size-group, .dt-color, .dt-undoredo') || btn.id === 'dt-clear-btn') return;
+    if (btn.closest('.cpick-wrap, .cpick-popup')) return;
+    stopFillMode();
+}, true);
+
+// Barre de dessin fermée → quitter le pot de peinture
+function _fillWatchDrawToolbar() {
+    const dt = document.getElementById('draw-toolbar');
+    if (!dt) return;
+    new MutationObserver(() => {
+        if (dt.style.display === 'none' && isFillMode) stopFillMode();
+    }).observe(dt, { attributes: true, attributeFilter: ['style'] });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _fillWatchDrawToolbar);
+else _fillWatchDrawToolbar();
+
+// Échap → quitter le pot de peinture
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isFillMode) stopFillMode(); });
+
+// ── Remplissage (scanline flood fill) ──
+function _hexToRgb(hex) {
+    const h = String(hex).replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+// Remplissage par balayage de lignes : renvoie le masque de la zone
+// de couleur uniforme contenant (sx, sy) et sa boîte englobante.
+function _fillDiff(data, p, r0, g0, b0, a0) {
+    const i = p * 4;
+    return Math.max(Math.abs(data[i] - r0), Math.abs(data[i + 1] - g0),
+                    Math.abs(data[i + 2] - b0), Math.abs(data[i + 3] - a0));
+}
+
+function _floodMask(data, W, H, sx, sy, tol) {
+    const i0 = (sy * W + sx) * 4;
+    const r0 = data[i0], g0 = data[i0 + 1], b0 = data[i0 + 2], a0 = data[i0 + 3];
+    const matches = (p) => {
+        // Pixels (quasi) transparents : on compare surtout l'opacité
+        if (a0 < 20) return data[p * 4 + 3] < 20 + tol;
+        return _fillDiff(data, p, r0, g0, b0, a0) <= tol;
+    };
+    const mask = new Uint8Array(W * H);
+    let minX = sx, maxX = sx, minY = sy, maxY = sy;
+    const stack = [sx, sy];
+    while (stack.length) {
+        const y = stack.pop(), x = stack.pop();
+        let xl = x;
+        while (xl >= 0 && !mask[y * W + xl] && matches(y * W + xl)) xl--;
+        xl++;
+        let xr = x;
+        while (xr < W && !mask[y * W + xr] && matches(y * W + xr)) xr++;
+        xr--;
+        if (xl > xr) continue;
+        for (let xx = xl; xx <= xr; xx++) mask[y * W + xx] = 1;
+        if (xl < minX) minX = xl;
+        if (xr > maxX) maxX = xr;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+        for (const ny of [y - 1, y + 1]) {
+            if (ny < 0 || ny >= H) continue;
+            let inRun = false;
+            for (let xx = xl; xx <= xr; xx++) {
+                const p = ny * W + xx;
+                const ok = !mask[p] && matches(p);
+                if (ok && !inRun) { stack.push(xx, ny); inRun = true; }
+                else if (!ok) inRun = false;
+            }
+        }
+    }
+    return { mask, minX, maxX, minY, maxY, seed: [r0, g0, b0, a0] };
+}
+
+function fillAtClientPoint(clientX, clientY) {
+    if (!drawCanvas) return;
+    const rect = drawCanvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const W = drawCanvas.width, H = drawCanvas.height;
+    const sx = Math.floor((clientX - rect.left) * W / rect.width);
+    const sy = Math.floor((clientY - rect.top)  * H / rect.height);
+    if (sx < 0 || sy < 0 || sx >= W || sy >= H) return;
+
+    // Image de référence = canvas de dessin + canvas des traits épinglés,
+    // sans la surbrillance d'une éventuelle sélection
+    const savedSel = (typeof selectedStrokes !== 'undefined') ? selectedStrokes : null;
+    if (savedSel && savedSel.length) { selectedStrokes = []; redrawStrokes(); }
+    const ref = document.createElement('canvas');
+    ref.width = W; ref.height = H;
+    const rctx = ref.getContext('2d');
+    rctx.drawImage(drawCanvas, 0, 0);
+    if (typeof drawCanvasTop !== 'undefined' && drawCanvasTop) rctx.drawImage(drawCanvasTop, 0, 0);
+    if (savedSel && savedSel.length) { selectedStrokes = savedSel; redrawStrokes(); }
+
+    let data;
+    try { data = rctx.getImageData(0, 0, W, H).data; }
+    catch (err) { console.warn('Pot de peinture : lecture du canvas impossible', err); return; }
+
+    const { mask, minX, maxX, minY, maxY } = _floodMask(data, W, H, sx, sy, _FILL_TOLERANCE);
+
+    // Zone élargie de quelques px pour passer sous le bord antialiasé des traits
+    const D = _FILL_DILATE;
+    const bx = Math.max(0, minX - D), by = Math.max(0, minY - D);
+    const bw = Math.min(W - 1, maxX + D) - bx + 1;
+    const bh = Math.min(H - 1, maxY + D) - by + 1;
+
+    const off = document.createElement('canvas');
+    off.width = bw; off.height = bh;
+    const octx = off.getContext('2d');
+    const img = octx.createImageData(bw, bh);
+    const fillColor = _fillCurrentColor();
+    const [cr, cg, cb] = _hexToRgb(fillColor);
+    for (let y = 0; y < bh; y++) {
+        for (let x = 0; x < bw; x++) {
+            const gx = bx + x, gy = by + y;
+            let hit = false;
+            for (let dy = -D; dy <= D && !hit; dy++) {
+                const yy = gy + dy; if (yy < 0 || yy >= H) continue;
+                for (let dx = -D; dx <= D; dx++) {
+                    const xx = gx + dx; if (xx < 0 || xx >= W) continue;
+                    if (mask[yy * W + xx]) { hit = true; break; }
+                }
+            }
+            if (hit) {
+                const o = (y * bw + x) * 4;
+                img.data[o] = cr; img.data[o + 1] = cg; img.data[o + 2] = cb; img.data[o + 3] = 255;
+            }
+        }
+    }
+    octx.putImageData(img, 0, 0);
+    const src = off.toDataURL('image/png');
+    _fillImgCache.set(src, off); // dispo immédiatement
+
+    if (typeof snapshotNow === 'function') snapshotNow();
+    strokes.push({
+        type: 'fill',
+        color: fillColor,
+        src,
+        // points[0] = coin haut-gauche, points[1] = coin bas-droit :
+        // la sélection, le déplacement et le recalage PDF fonctionnent tels quels
+        points: [{ x: bx, y: by }, { x: bx + bw, y: by + bh }]
+    });
+    redrawStrokes();
+    if (typeof saveBoard === 'function') saveBoard();
+}
+
+// =========================================================================
+// POT DE PEINTURE SUR LES IMAGES DU TABLEAU (images collées, stickers image)
+// Le remplissage est fait directement dans les pixels de l'image, puis
+// l'image est remplacée par sa version coloriée (sauvegardée avec le tableau
+// via stickerUrl, annulable via snapshotNow).
+// =========================================================================
+
+// Inverse la transformation CSS (rotation, miroir…) d'un élément autour de son centre
+function _fillUntransform(el, vx, vy) {
+    const t = getComputedStyle(el).transform;
+    if (!t || t === 'none') return [vx, vy];
+    const m = new DOMMatrix(t);
+    const det = m.a * m.d - m.b * m.c;
+    if (!det) return [vx, vy];
+    return [(m.d * vx - m.c * vy) / det, (-m.b * vx + m.a * vy) / det];
+}
+
+// Point écran → pixel de l'image (null si hors de la partie visible de l'image)
+function _fillClientToImagePixel(widget, img, clientX, clientY) {
+    const nw = img.naturalWidth, nh = img.naturalHeight;
+    if (!nw || !nh || !widget.offsetWidth) return null;
+    const bRect = board.getBoundingClientRect();
+    const zoom = (board.offsetWidth ? bRect.width / board.offsetWidth : 1) || 1;
+
+    // 1) Repère du widget (sans rotation)
+    const r = widget.getBoundingClientRect();
+    let [lx, ly] = _fillUntransform(widget,
+        (clientX - (r.left + r.width / 2)) / zoom,
+        (clientY - (r.top + r.height / 2)) / zoom);
+    lx += widget.offsetWidth / 2;
+    ly += widget.offsetHeight / 2;
+
+    // 2) Repère de l'<img> (position dans le widget + miroir éventuel)
+    const iw0 = img.offsetWidth, ih0 = img.offsetHeight;
+    if (!iw0 || !ih0) return null;
+    let ix = lx - img.offsetLeft, iy = ly - img.offsetTop;
+    [ix, iy] = _fillUntransform(img, ix - iw0 / 2, iy - ih0 / 2);
+    ix += iw0 / 2; iy += ih0 / 2;
+
+    // 3) Retirer bordure et padding
+    const cs = getComputedStyle(img);
+    const pl = parseFloat(cs.paddingLeft) + parseFloat(cs.borderLeftWidth) || 0;
+    const pt = parseFloat(cs.paddingTop)  + parseFloat(cs.borderTopWidth)  || 0;
+    const iw = iw0 - pl - (parseFloat(cs.paddingRight)  + parseFloat(cs.borderRightWidth)  || 0);
+    const ih = ih0 - pt - (parseFloat(cs.paddingBottom) + parseFloat(cs.borderBottomWidth) || 0);
+    ix -= pl; iy -= pt;
+
+    // 4) object-fit
+    let sxs, sys, dx = 0, dy = 0;
+    const fit = cs.objectFit || 'fill';
+    if (fit === 'fill') { sxs = iw / nw; sys = ih / nh; }
+    else {
+        let sc;
+        if (fit === 'contain')      sc = Math.min(iw / nw, ih / nh);
+        else if (fit === 'cover')   sc = Math.max(iw / nw, ih / nh);
+        else if (fit === 'none')    sc = 1;
+        else /* scale-down */       sc = Math.min(1, iw / nw, ih / nh);
+        sxs = sys = sc;
+        dx = (iw - nw * sc) / 2; dy = (ih - nh * sc) / 2;
+    }
+    const px = Math.floor((ix - dx) / sxs), py = Math.floor((iy - dy) / sys);
+    if (px < 0 || py < 0 || px >= nw || py >= nh) return null;
+    return { x: px, y: py };
+}
+
+// Image la plus au premier plan sous le point (même ancrée / non cliquable)
+function _fillFindImageAt(clientX, clientY) {
+    let best = null, bestZ = -Infinity;
+    board.querySelectorAll('.widget[data-type="sticker"]').forEach(w => {
+        if (w.offsetParent === null) return; // masqué
+        const img = w.querySelector('img');
+        if (!img || !img.complete || !img.naturalWidth) return;
+        const px = _fillClientToImagePixel(w, img, clientX, clientY);
+        if (!px) return;
+        const z = parseInt(getComputedStyle(w).zIndex) || 0;
+        if (z >= bestZ) { best = { widget: w, img, px }; bestZ = z; } // ordre DOM à z égal
+    });
+    return best;
+}
+
+function _fillToast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#3a1a1a;color:#ff9b9b;border:1px solid #a33;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;z-index:99999;pointer-events:none;transition:opacity .3s;max-width:90vw;text-align:center;';
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 3500);
+}
+
+function fillImageAt(hit) {
+    const { img, px } = hit;
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, W, H);
+
+    let imgData;
+    try { imgData = ctx.getImageData(0, 0, W, H); }
+    catch (err) {
+        _fillToast("Cette image vient d'un autre site : le navigateur interdit de la modifier. Copiez-la puis recollez-la (Ctrl+V).");
+        return;
+    }
+    const data = imgData.data;
+    const { mask, minX, maxX, minY, maxY, seed } = _floodMask(data, W, H, px.x, px.y, _FILL_TOLERANCE);
+    const [r0, g0, b0, a0] = seed;
+    const [cr, cg, cb] = _hexToRgb(_fillCurrentColor());
+    const lum = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b;
+    const seedLum = Math.max(1, lum(r0, g0, b0));
+
+    for (let y = Math.max(0, minY - 1); y <= Math.min(H - 1, maxY + 1); y++) {
+        for (let x = Math.max(0, minX - 1); x <= Math.min(W - 1, maxX + 1); x++) {
+            const p = y * W + x, i = p * 4;
+            if (mask[p]) {
+                if (a0 < 20) {
+                    // Zone transparente : le peu de trait éventuel reste par-dessus la couleur
+                    const a = data[i + 3] / 255;
+                    data[i]     = Math.round(data[i]     * a + cr * (1 - a));
+                    data[i + 1] = Math.round(data[i + 1] * a + cg * (1 - a));
+                    data[i + 2] = Math.round(data[i + 2] * a + cb * (1 - a));
+                } else {
+                    data[i] = cr; data[i + 1] = cg; data[i + 2] = cb;
+                }
+                data[i + 3] = 255;
+                continue;
+            }
+            // Liseré antialiasé (1 px autour de la zone) : on le teinte sans l'effacer,
+            // pour éviter le contour blanc entre la couleur et le trait noir
+            let touches = false;
+            for (let dy = -1; dy <= 1 && !touches; dy++) {
+                const yy = y + dy; if (yy < 0 || yy >= H) continue;
+                for (let dx = -1; dx <= 1; dx++) {
+                    const xx = x + dx; if (xx < 0 || xx >= W) continue;
+                    if (mask[yy * W + xx]) { touches = true; break; }
+                }
+            }
+            if (!touches) continue;
+            if (a0 < 20) {
+                const a = data[i + 3] / 255;
+                if (a >= 0.98) continue;
+                data[i]     = Math.round(data[i]     * a + cr * (1 - a));
+                data[i + 1] = Math.round(data[i + 1] * a + cg * (1 - a));
+                data[i + 2] = Math.round(data[i + 2] * a + cb * (1 - a));
+                data[i + 3] = 255;
+            } else if (_fillDiff(data, p, r0, g0, b0, a0) <= _FILL_TOLERANCE * 3) {
+                const k = Math.min(1, lum(data[i], data[i + 1], data[i + 2]) / seedLum);
+                data[i] = Math.round(cr * k); data[i + 1] = Math.round(cg * k); data[i + 2] = Math.round(cb * k);
+            }
+        }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    if (typeof snapshotNow === 'function') snapshotNow();
+    img.src = c.toDataURL('image/png');
+    if (typeof saveBoard === 'function') saveBoard();
+}

@@ -1,86 +1,162 @@
 // =========================================================================
 // COLLER UNE IMAGE DEPUIS LE PRESSE-PAPIER — Le Bureau du Prof
 //
-// Écoute Ctrl+V / ⌘+V sur le document.
-// Si le presse-papier contient une image, elle est insérée sur le bureau
-// comme un widget sticker aux dimensions réelles de l'image (avec un max
-// de 600px sur le côté le plus grand pour ne pas déborder du board).
+// Problème résolu : un Ctrl+V déclenchait DEUX collages
+//   - l'image du presse-papier système (ce fichier),
+//   - le dernier widget copié en interne sur le bureau (pasteWidgets…).
+//
+// Règle appliquée : seul le DERNIER objet copié est collé.
+//   • Copie interne (Ctrl+C / Ctrl+X / bouton 📋 sur le bureau)
+//       → on mémorise l'heure : _lastBoardCopyTime
+//   • Copie externe (autre appli, capture d'écran, Impr. écran…)
+//       → impossible à voir directement, mais pour copier ailleurs
+//         la fenêtre perd le focus (blur) : _lastExternalCopyTime
+//   • Au Ctrl+V :
+//       - copie interne plus récente → on ignore l'image système,
+//         le collage interne se fait normalement ;
+//       - copie externe plus récente → on bloque le collage interne ;
+//         si le presse-papier contient une image on la colle, sinon
+//         on relance le collage interne (rien n'est perdu).
+//
+// Tous les écouteurs sont en phase de CAPTURE sur window : ils passent
+// avant ceux déclarés sur document par les autres scripts.
 //
 // Dépendances globales (définies dans stickers.js / widgets.js) :
 //   findFreePosition(), board, makeDraggable(), makeDraggableRotate(),
 //   bringToFront(), _addStickerResizeHandle(), snapshotNow(), saveBoard()
 // =========================================================================
 
-// =========================================================================
-// COLLER UNE IMAGE DEPUIS LE PRESSE-PAPIER — Le Bureau du Prof
-//
-// Écoute Ctrl+V / ⌘+V via keydown (et non l'événement paste natif).
-// Cela permet de contrôler précisément quand on lit le presse-papier,
-// et d'éviter que le contenu résiduel du presse-papier Windows soit collé
-// lors d'un Ctrl+V destiné à coller un widget ou un dessin.
-//
-// Dépendances globales (définies dans stickers.js / widgets.js) :
-//   findFreePosition(), board, makeDraggable(), makeDraggableRotate(),
-//   bringToFront(), _addStickerResizeHandle(), snapshotNow(), saveBoard()
-// =========================================================================
+(function () {
+    // Au chargement, aucune copie interne : une image déjà présente
+    // dans le presse-papier est considérée comme la plus récente.
+    window._lastBoardCopyTime    = 0;
+    window._lastExternalCopyTime = Date.now();
 
-// =========================================================================
-// COLLER UNE IMAGE DEPUIS LE PRESSE-PAPIER — Le Bureau du Prof
-//
-// Écoute l'événement paste natif (Ctrl+V / ⌘+V).
-// Ne se déclenche que si le presse-papier contient une image ET aucun
-// contenu texte/HTML (pour ne pas interférer avec le collage de widgets
-// ou de dessins qui passent par pasteWidgets()).
-//
-// Dépendances globales (définies dans stickers.js / widgets.js) :
-//   findFreePosition(), board, makeDraggable(), makeDraggableRotate(),
-//   bringToFront(), _addStickerResizeHandle(), snapshotNow(), saveBoard()
-// =========================================================================
+    let _externalWins = false; // décision prise au keydown Ctrl+V
+    let _replaying    = false; // vrai pendant la relance du collage interne
 
-// =========================================================================
-// COLLER UNE IMAGE DEPUIS LE PRESSE-PAPIER — Le Bureau du Prof
-// =========================================================================
-
-// Timestamp du dernier Ctrl+C sur le bureau (hors champ texte)
-window._lastBoardCopyTime = 0;
-
-document.addEventListener('copy', (e) => {
-    const active = document.activeElement;
-    if (active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
-    window._lastBoardCopyTime = Date.now();
-});
-
-document.addEventListener('paste', (e) => {
-    const active = document.activeElement;
-    if (active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
-
-    // Bloquer si un Ctrl+C sur le bureau a eu lieu il y a moins de 3 secondes
-    if (Date.now() - window._lastBoardCopyTime < 3000) return;
-
-    const items = e.clipboardData && e.clipboardData.items;
-    if (!items) return;
-
-    let imageItem = null;
-    for (const item of items) {
-        if (item.type.startsWith('image/')) imageItem = item;
+    function isTyping() {
+        const a = document.activeElement;
+        return !!(a && (a.isContentEditable || a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT'));
     }
-    if (!imageItem) return;
 
-    e.preventDefault();
+    function isShortcut(e, letter) {
+        return (e.ctrlKey || e.metaKey) && !e.altKey &&
+               ((e.key && e.key.toLowerCase() === letter) || e.code === 'Key' + letter.toUpperCase());
+    }
 
-    const file = imageItem.getAsFile();
-    if (!file) return;
+    function markBoardCopy() {
+        window._lastBoardCopyTime = Date.now();
+    }
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        const dataUrl = ev.target.result;
-        const tmpImg = new Image();
-        tmpImg.onload = () => _insertPastedImage(dataUrl, tmpImg.naturalWidth, tmpImg.naturalHeight);
-        tmpImg.onerror = () => _insertPastedImage(dataUrl, 300, 300);
-        tmpImg.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
-});
+    // ── 1. Détection des copies INTERNES ─────────────────────────────────
+    window.addEventListener('keydown', (e) => {
+        if (isTyping()) return;
+        if (isShortcut(e, 'c') || isShortcut(e, 'x')) markBoardCopy();
+    }, true);
+
+    window.addEventListener('copy', () => { if (!isTyping()) markBoardCopy(); }, true);
+    window.addEventListener('cut',  () => { if (!isTyping()) markBoardCopy(); }, true);
+
+    // Bouton 📋 de la barre de sélection (copySelectedWidgets)
+    function wrapCopyFunction() {
+        if (typeof window.copySelectedWidgets === 'function' && !window.copySelectedWidgets._bdpWrapped) {
+            const original = window.copySelectedWidgets;
+            const wrapped = function () { markBoardCopy(); return original.apply(this, arguments); };
+            wrapped._bdpWrapped = true;
+            window.copySelectedWidgets = wrapped;
+        }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wrapCopyFunction);
+    else wrapCopyFunction();
+    window.addEventListener('load', wrapCopyFunction);
+
+    // ── 2. Détection des copies EXTERNES ─────────────────────────────────
+    window.addEventListener('blur', () => {
+        // Un clic dans une iframe du bureau (YouTube, carte…) fait aussi
+        // perdre le focus à la fenêtre : on ne le compte pas.
+        setTimeout(() => {
+            const a = document.activeElement;
+            if (a && a.tagName === 'IFRAME') return;
+            window._lastExternalCopyTime = Date.now();
+        }, 0);
+    });
+
+    // Touche Impr. écran (copie une capture sans quitter la fenêtre)
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'PrintScreen') window._lastExternalCopyTime = Date.now();
+    }, true);
+
+    // ── 3. Ctrl+V : décider qui colle ────────────────────────────────────
+    window.addEventListener('keydown', (e) => {
+        if (_replaying) return;           // relance volontaire : on laisse passer
+        if (isTyping()) return;
+        if (!isShortcut(e, 'v')) return;
+
+        _externalWins = window._lastExternalCopyTime > window._lastBoardCopyTime;
+
+        // La copie externe est la plus récente : on empêche le collage
+        // interne déclenché au keydown (on ne fait PAS preventDefault,
+        // pour que l'événement paste natif ait bien lieu).
+        if (_externalWins) e.stopImmediatePropagation();
+    }, true);
+
+    window.addEventListener('paste', (e) => {
+        if (isTyping()) return;
+
+        const items = e.clipboardData && e.clipboardData.items;
+        let imageItem = null;
+        if (items) {
+            for (const item of items) {
+                if (item.type.startsWith('image/')) imageItem = item;
+            }
+        }
+
+        // Copie interne plus récente → l'image système est une vieille copie :
+        // on ne la colle pas et on laisse le collage interne se faire.
+        if (!_externalWins) return;
+
+        _externalWins = false;
+
+        if (!imageItem) {
+            // Copie externe sans image (du texte par ex.) : rien à coller
+            // ici, on relance donc le collage interne qu'on avait bloqué.
+            replayInternalPaste();
+            return;
+        }
+
+        // Copie externe avec image : on colle UNIQUEMENT l'image.
+        e.preventDefault();
+        e.stopImmediatePropagation(); // bloque tout autre gestionnaire paste
+
+        // Une fois collée, l'image devient « la dernière chose collée » :
+        // un Ctrl+V suivant la recolle, tant qu'on ne copie rien sur le bureau.
+        const file = imageItem.getAsFile();
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const dataUrl = ev.target.result;
+            const tmpImg = new Image();
+            tmpImg.onload  = () => _insertPastedImage(dataUrl, tmpImg.naturalWidth, tmpImg.naturalHeight);
+            tmpImg.onerror = () => _insertPastedImage(dataUrl, 300, 300);
+            tmpImg.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+    }, true);
+
+    function replayInternalPaste() {
+        _replaying = true;
+        try {
+            const target = document.activeElement || document.body;
+            target.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'v', code: 'KeyV', ctrlKey: true, bubbles: true, cancelable: true
+            }));
+        } finally {
+            _replaying = false;
+        }
+    }
+})();
 
 
 /**

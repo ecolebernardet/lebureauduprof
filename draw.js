@@ -4618,9 +4618,12 @@ function _fillClassify(e) {
     const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
     const y = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
     if (x === undefined) return null;
-    const hit = _fillFindImageAt(x, y);
-    if (hit) return { kind: 'image', hit };
-    if (t.closest('.widget, .shape-widget')) return null; // autre widget : comportement normal
+    const imgHit   = _fillFindImageAt(x, y);
+    const shapeHit = _fillFindShapeAt(x, y);
+    if (shapeHit && (!imgHit || shapeHit.z >= imgHit.z)) return { kind: 'shape', hit: shapeHit };
+    if (imgHit) return { kind: 'image', hit: imgHit };
+    if (t.closest('.widget')) return null; // autre widget : comportement normal
+    // Clic dans le cadre d'une figure mais hors de la forme → on remplit le fond
     return { kind: 'canvas' };
 }
 
@@ -4636,7 +4639,8 @@ window.addEventListener('pointerdown', (e) => {
     e.stopImmediatePropagation();
     if (e.cancelable) e.preventDefault();
     if (e.button !== undefined && e.button !== 0) return;
-    if (c.kind === 'image') fillImageAt(c.hit);
+    if (c.kind === 'shape') fillShapeAt(c.hit);
+    else if (c.kind === 'image') fillImageAt(c.hit);
     else fillAtClientPoint(e.clientX, e.clientY);
 }, true);
 ['mousedown', 'mouseup', 'click', 'dblclick', 'pointerup', 'contextmenu'].forEach(t =>
@@ -4647,7 +4651,8 @@ window.addEventListener('pointerdown', (e) => {
 // Curseur « pot de peinture » partout sur le tableau, widgets compris
 (function () {
     const st = document.createElement('style');
-    st.textContent = 'body.is-fill-mode #board, body.is-fill-mode #board .widget, body.is-fill-mode #board .widget * { cursor: ' + _FILL_CURSOR + ' !important; }';
+    st.textContent = 'body.is-fill-mode #board, body.is-fill-mode #board .widget, body.is-fill-mode #board .widget *,' +
+        ' body.is-fill-mode #board .shape-widget, body.is-fill-mode #board .shape-widget * { cursor: ' + _FILL_CURSOR + ' !important; }';
     document.head.appendChild(st);
 })();
 
@@ -4877,7 +4882,7 @@ function _fillFindImageAt(clientX, clientY) {
         const px = _fillClientToImagePixel(w, img, clientX, clientY);
         if (!px) return;
         const z = parseInt(getComputedStyle(w).zIndex) || 0;
-        if (z >= bestZ) { best = { widget: w, img, px }; bestZ = z; } // ordre DOM à z égal
+        if (z >= bestZ) { best = { widget: w, img, px, z }; bestZ = z; } // ordre DOM à z égal
     });
     return best;
 }
@@ -4955,5 +4960,69 @@ function fillImageAt(hit) {
     ctx.putImageData(imgData, 0, 0);
     if (typeof snapshotNow === 'function') snapshotNow();
     img.src = c.toDataURL('image/png');
+    if (typeof saveBoard === 'function') saveBoard();
+}
+
+
+// =========================================================================
+// POT DE PEINTURE SUR LES FIGURES DE LA BARRE DE DESSIN (cercle, carré,
+// triangle, cœur, étoile…). Ces figures sont des widgets SVG (.shape-widget) :
+// on change leur couleur de remplissage (dataset.fillColor / fillOpacity),
+// déjà sauvegardée et restaurée par save-load.js.
+// =========================================================================
+const _FILL_SHAPE_NO_INTERIOR = ['segment', 'simple-arrow'];
+
+function _fillShapeGeoms(svg) {
+    return [...svg.querySelectorAll('path, polygon, circle, ellipse, rect, polyline')]
+        .filter(el => !el.closest('defs, mask'));
+}
+
+// Figure la plus au premier plan dont l'INTÉRIEUR contient le point
+function _fillFindShapeAt(clientX, clientY) {
+    let best = null, bestZ = -Infinity;
+    board.querySelectorAll('.shape-widget').forEach(w => {
+        if (w.offsetParent === null) return;
+        if (_FILL_SHAPE_NO_INTERIOR.includes(w.dataset.shapeType)) return;
+        const svg = w.querySelector('svg');
+        if (!svg) return;
+        const r = svg.getBoundingClientRect();
+        if (clientX < r.left || clientX > r.right || clientY < r.top || clientY > r.bottom) return;
+        const inside = _fillShapeGeoms(svg).some(el => {
+            try {
+                const m = el.getScreenCTM();
+                if (!m || typeof el.isPointInFill !== 'function') return false;
+                const pt = new DOMPoint(clientX, clientY).matrixTransform(m.inverse());
+                return el.isPointInFill(pt);
+            } catch (e) { return false; }
+        });
+        if (!inside) return;
+        const z = parseInt(getComputedStyle(w).zIndex) || 0;
+        if (z >= bestZ) { best = { widget: w, svg, z }; bestZ = z; }
+    });
+    return best;
+}
+
+function fillShapeAt(hit) {
+    const { widget: w, svg } = hit;
+    const color = _fillCurrentColor();
+    if (typeof snapshotNow === 'function') snapshotNow();
+    w.dataset.fillColor   = color;
+    w.dataset.fillOpacity = '1';
+
+    const W = parseFloat(svg.getAttribute('width'))  || w.offsetWidth;
+    const H = parseFloat(svg.getAttribute('height')) || w.offsetHeight;
+    if (typeof buildShapeSVG === 'function' && w.dataset.shapeType) {
+        const html = buildShapeSVG(w.dataset.shapeType, W, H,
+            w.dataset.strokeColor, color, 1, parseInt(w.dataset.strokeWidth) || 4);
+        // Si la gomme est passée sur la figure, garder son masque
+        const maskedGroup = [...svg.children].find(el => el.tagName.toLowerCase() === 'g' && el.hasAttribute('mask'));
+        (maskedGroup || svg).innerHTML = html;
+    } else {
+        // Secours : colorer directement les formes du SVG
+        _fillShapeGeoms(svg).forEach(el => {
+            el.setAttribute('fill', color);
+            el.setAttribute('fill-opacity', '1');
+        });
+    }
     if (typeof saveBoard === 'function') saveBoard();
 }

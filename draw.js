@@ -2725,6 +2725,7 @@ function _figureCursorUrl() {
 
 function _pdfCursor(tool) {
     let svg;
+    if (tool === 'fill') return _FILL_CURSOR; // pot de peinture
     if (tool === 'pan') {
         return 'grab';
     }
@@ -2986,6 +2987,7 @@ function _startPdfAnnotModeOn(targetWidget) {
 }
 
 function _startPdfAnnotMode() {
+    if (isFillMode) stopFillMode();
     const target = window.__forcedPdfTarget || _findActivePdfWidget();
     if (!target) {
         _showPdfAnnotToast('⚠️ Ouvrez d\'abord un PDF dans un widget');
@@ -3957,6 +3959,7 @@ var _pdfLastPointerWasPen = false;
 var _pdfLastStrokeStartTime = 0; // timestamp du dernier _pdfAnnotStartStroke (déduplique touch+pointer)
 
 function _pdfAnnotMouseDown(e)  {
+    if (_pdfAnnotTool === 'fill') return; // pot de peinture : géré par fillPdfAt()
     // Le navigateur génère un mousedown synthétique après chaque pointerdown stylet/touch.
     // On l'ignore : le trait a déjà été démarré dans _pdfAnnotPointerDown.
     if (_pdfLastPointerWasPen) { _pdfLastPointerWasPen = false; return; }
@@ -3967,6 +3970,7 @@ function _pdfAnnotMouseDown(e)  {
     _pdfAnnotStartStroke(e);
 }
 function _pdfAnnotPointerDown(e) {
+    if (_pdfAnnotTool === 'fill') return; // pot de peinture : géré par fillPdfAt()
     // Clic droit (bouton gomme stylet ou clic droit souris)
     if (e.button === 2) {
         _rightClickDownX = e.clientX;
@@ -4003,6 +4007,7 @@ function _pdfAnnotPointerUp(e) {
 }
 // Mouvement stylet/touch en mode annotation PDF
 function _pdfAnnotPointerMove(e) {
+    if (_pdfAnnotTool === 'fill') return; // pot de peinture : géré par fillPdfAt()
     // Uniquement stylet et touch — la souris est gérée par mousemove
     if (e.pointerType !== 'pen' && e.pointerType !== 'touch') return;
     // Ne pas interférer avec un resize/rotate en cours (géré par les handlers document)
@@ -4038,6 +4043,7 @@ function _pdfAnnotContextMenu(e) {
     }
 }
 function _pdfAnnotMouseMove(e)  {
+    if (_pdfAnnotTool === 'fill') return; // pot de peinture : géré par fillPdfAt()
     // Ignorer les mousemove synthétiques générés par le stylet (déjà traités par pointermove)
     if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
     if (_pdfAnnotPainting && e.movementX === 0 && e.movementY === 0) return; // event fantôme
@@ -4104,6 +4110,7 @@ function _pdfAnnotMouseLeave(e) {
 }
 
 function _pdfAnnotTouchStart(e) {
+    if (_pdfAnnotTool === 'fill') return; // pot de peinture : géré par fillPdfAt()
     // touchstart et pointerdown se déclenchent tous les deux pour le même tap stylet/touch.
     // On ignore touchstart si pointerdown a déjà traité ce tap (même instant ±50ms).
     if (Date.now() - _pdfLastStrokeStartTime < 50) return;
@@ -4114,6 +4121,7 @@ function _pdfAnnotTouchStart(e) {
     }
 }
 function _pdfAnnotTouchMove(e) {
+    if (_pdfAnnotTool === 'fill') return; // pot de peinture : géré par fillPdfAt()
     e.preventDefault();
     if (e.touches.length === 1) _pdfAnnotContinueStroke(e.touches[0]);
 }
@@ -4522,6 +4530,7 @@ function _showPdfAnnotToast(msg) {
 //   dessinés AVANT les traits, les contours restent nets par-dessus.
 // =========================================================================
 var isFillMode = false;
+var _fillPrevPdfTool = 'pen'; // outil PDF mémorisé pendant le pot de peinture
 const _FILL_TOLERANCE = 48;   // tolérance de couleur (0-255)
 const _FILL_DILATE    = 2;    // débord sous les traits (px) pour éviter les liserés blancs
 
@@ -4577,8 +4586,20 @@ function _fillUpdateBtn() {
 
 function toggleFillMode() {
     if (isFillMode) { stopFillMode(); return; }
-    // En annotation PDF, les traits sont sur un autre canvas : outil non disponible
-    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode) return;
+    // ── Mode annotation PDF : le pot de peinture devient l'outil PDF courant ──
+    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode) {
+        if (isEraserMode) stopEraserMode();
+        ['_annot-delete-btn','_annot-resize-btn','_annot-rotate-btn','_annot-lock-btn'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.remove();
+        });
+        _fillPrevPdfTool = (_pdfAnnotTool && _pdfAnnotTool !== 'fill') ? _pdfAnnotTool : 'pen';
+        _pdfAnnotTool = 'fill';
+        isFillMode = true;
+        document.body.classList.add('is-fill-mode');
+        _updatePdfToolBtns();   // désactive les autres boutons + curseur 🪣 sur le PDF
+        _fillUpdateBtn();
+        return;
+    }
     _stopBgPanIfActive();
     initCanvas();
     // Sortir des autres outils (placement texte, crayon, gomme, figures, sélection)
@@ -4601,6 +4622,11 @@ function stopFillMode() {
     if (!isFillMode) return;
     isFillMode = false;
     document.body.classList.remove('is-fill-mode');
+    // Mode annotation PDF : revenir à l'outil PDF d'avant
+    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode && _pdfAnnotTool === 'fill') {
+        _pdfAnnotTool = _fillPrevPdfTool || 'pen';
+        _updatePdfToolBtns();
+    }
     if (typeof isTextPlacementMode !== 'undefined' && isTextPlacementMode) board.style.setProperty('cursor', 'text', 'important');
     else board.style.removeProperty('cursor');
     _fillUpdateBtn();
@@ -4618,6 +4644,11 @@ function _fillClassify(e) {
     const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
     const y = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
     if (x === undefined) return null;
+    // Mode annotation PDF : clic sur la page du PDF annoté
+    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode && _pdfAnnotWidget) {
+        if (t.closest('.editor-toolbar')) return null;
+        if (_pdfAnnotWidget.contains(t) && t.closest('.pdf-canvas-wrap')) return { kind: 'pdf' };
+    }
     const imgHit   = _fillFindImageAt(x, y);
     const shapeHit = _fillFindShapeAt(x, y);
     if (shapeHit && (!imgHit || shapeHit.z >= imgHit.z)) return { kind: 'shape', hit: shapeHit };
@@ -4639,7 +4670,8 @@ window.addEventListener('pointerdown', (e) => {
     e.stopImmediatePropagation();
     if (e.cancelable) e.preventDefault();
     if (e.button !== undefined && e.button !== 0) return;
-    if (c.kind === 'shape') fillShapeAt(c.hit);
+    if (c.kind === 'pdf') fillPdfAt(e.clientX, e.clientY);
+    else if (c.kind === 'shape') fillShapeAt(c.hit);
     else if (c.kind === 'image') fillImageAt(c.hit);
     else fillAtClientPoint(e.clientX, e.clientY);
 }, true);
@@ -5025,4 +5057,81 @@ function fillShapeAt(hit) {
         });
     }
     if (typeof saveBoard === 'function') saveBoard();
+}
+
+
+// =========================================================================
+// POT DE PEINTURE EN MODE ANNOTATION PDF
+// La zone est calculée sur la page affichée (PDF + annotations), puis stockée
+// comme annotation { tool:'fill' } de la page (pdf-viewer.js : addFillStroke) :
+// sauvegardée, annulable (↩) et exportée avec les autres annotations.
+// =========================================================================
+function fillPdfAt(clientX, clientY) {
+    const api = _pdfAnnotWidget && _pdfAnnotWidget._pdfAnnotAPI;
+    if (!api || typeof api.addFillStroke !== 'function') {
+        _fillToast('Pot de peinture indisponible sur ce PDF (pdf-viewer.js à mettre à jour).');
+        return;
+    }
+    const annotCanvas = api.getAnnotCanvas();
+    const pdfCanvas   = _pdfAnnotWidget.querySelector('.pdf-canvas');
+    if (!annotCanvas || !annotCanvas.width) return;
+    const rect = annotCanvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const W = annotCanvas.width, H = annotCanvas.height;
+    const sx = Math.floor((clientX - rect.left) * W / rect.width);
+    const sy = Math.floor((clientY - rect.top)  * H / rect.height);
+    if (sx < 0 || sy < 0 || sx >= W || sy >= H) return;
+
+    // Image de référence = page PDF + annotations, telle qu'on la voit
+    const ref = document.createElement('canvas');
+    ref.width = W; ref.height = H;
+    const rctx = ref.getContext('2d');
+    rctx.fillStyle = '#ffffff';
+    rctx.fillRect(0, 0, W, H);
+    if (pdfCanvas && pdfCanvas.width) rctx.drawImage(pdfCanvas, 0, 0, W, H);
+    rctx.drawImage(annotCanvas, 0, 0);
+    let data;
+    try { data = rctx.getImageData(0, 0, W, H).data; }
+    catch (err) { _fillToast('Lecture de la page PDF impossible.'); return; }
+
+    const flood = _floodMask(data, W, H, sx, sy, _FILL_TOLERANCE);
+    const { mask, minX, maxX, minY, maxY, seed } = flood;
+    const [r0, g0, b0, a0] = seed;
+    const [cr, cg, cb] = _hexToRgb(_fillCurrentColor());
+    const lum = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b;
+    const seedLum = Math.max(1, lum(r0, g0, b0));
+
+    // Calque transparent : couleur dans la zone + liseré antialiasé teinté
+    // (le trait garde sa noirceur, pas de contour blanc, pas de trait « mangé »)
+    const bx = Math.max(0, minX - 1), by = Math.max(0, minY - 1);
+    const bw = Math.min(W - 1, maxX + 1) - bx + 1;
+    const bh = Math.min(H - 1, maxY + 1) - by + 1;
+    const off = document.createElement('canvas');
+    off.width = bw; off.height = bh;
+    const octx = off.getContext('2d');
+    const out = octx.createImageData(bw, bh);
+    for (let y = by; y < by + bh; y++) {
+        for (let x = bx; x < bx + bw; x++) {
+            const p = y * W + x, i = p * 4;
+            const o = ((y - by) * bw + (x - bx)) * 4;
+            if (mask[p]) {
+                out.data[o] = cr; out.data[o + 1] = cg; out.data[o + 2] = cb; out.data[o + 3] = 255;
+                continue;
+            }
+            let touches = false;
+            for (let dy = -1; dy <= 1 && !touches; dy++) {
+                const yy = y + dy; if (yy < 0 || yy >= H) continue;
+                for (let dx = -1; dx <= 1; dx++) {
+                    const xx = x + dx; if (xx < 0 || xx >= W) continue;
+                    if (mask[yy * W + xx]) { touches = true; break; }
+                }
+            }
+            if (!touches || _fillDiff(data, p, r0, g0, b0, a0) > _FILL_TOLERANCE * 3) continue;
+            const k = Math.min(1, lum(data[i], data[i + 1], data[i + 2]) / seedLum);
+            out.data[o] = Math.round(cr * k); out.data[o + 1] = Math.round(cg * k);
+            out.data[o + 2] = Math.round(cb * k); out.data[o + 3] = 255;
+        }
+    }
+    octx.putImageData(out, 0, 0);
+    api.addFillStroke(off.toDataURL('image/png'), bx, by, bw, bh, _fillCurrentColor());
 }

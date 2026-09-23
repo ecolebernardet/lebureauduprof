@@ -467,6 +467,18 @@ async function _exportPdfWithAnnotations(container) {
                 }
                 if (layer.strokes) {
                     for (const stroke of layer.strokes) {
+                        // Remplissage pot de peinture : image à charger avant de la dessiner
+                        if (stroke.tool === 'fill') {
+                            if (!stroke.src) continue;
+                            const fimg = await new Promise(res => {
+                                const im = new Image();
+                                im.onload = () => res(im);
+                                im.onerror = () => res(null);
+                                im.src = stroke.src;
+                            });
+                            if (fimg) annotCtx.drawImage(fimg, stroke.nx * W, stroke.ny * H, stroke.nw * W, stroke.nh * H);
+                            continue;
+                        }
                         _drawStrokeScaled(annotCtx, stroke, W, H);
                     }
                 }

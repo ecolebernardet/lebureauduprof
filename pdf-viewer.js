@@ -423,6 +423,8 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
             let activeTool = 'pen';
             let isDrawing  = false;
             let currentStrokeAnnot = null;
+            // Images des remplissages pot de peinture (hors des strokes → sauvegarde JSON propre)
+            const _annotFillCache = new Map();
 
             // Convertit un point canvas-pixels → normalisé [0-1]
             function toNorm(px, py) {
@@ -714,6 +716,28 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 const canvasW = annotCanvas.width;
                 const displayW = annotCanvas.getBoundingClientRect().width || 600;
                 const sizeScaled = stroke.size * canvasW / displayW; // normalisé par la largeur d'affichage CSS
+
+                // ── Remplissage pot de peinture (draw.js : fillPdfAt) ─────────────────
+                // nx, ny, nw, nh normalisés sur la largeur / hauteur du canvas
+                if (stroke.tool === 'fill') {
+                    if (!stroke.src) return;
+                    let fimg = _annotFillCache.get(stroke.src);
+                    if (!fimg) {
+                        fimg = new Image();
+                        fimg.onload = () => redrawAnnotations(currentPage);
+                        fimg.src = stroke.src;
+                        _annotFillCache.set(stroke.src, fimg);
+                    }
+                    if (fimg instanceof HTMLImageElement && !(fimg.complete && fimg.naturalWidth)) return;
+                    const pos = fromNorm(stroke.nx, stroke.ny);
+                    ctx.save();
+                    ctx.globalAlpha = 1;
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.drawImage(fimg, pos.x, pos.y, stroke.nw * canvasW, stroke.nh * annotCanvas.height);
+                    ctx.restore();
+                    return;
+                }
 
                 // ── Image collée ──────────────────────────────────────────────────────
                 if (stroke.tool === 'image') {
@@ -2140,6 +2164,27 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                         actx.stroke();
                         actx.setLineDash([]);
                         actx.restore();
+                    },
+                    // Ajouter un remplissage pot de peinture (x, y, w, h en pixels canvas)
+                    addFillStroke(src, x, y, w, h, color) {
+                        const stroke = {
+                            tool: 'fill', color: color || '#000000', size: 1, src,
+                            nx: x / annotCanvas.width,  ny: y / annotCanvas.height,
+                            nw: w / annotCanvas.width,  nh: h / annotCanvas.height
+                        };
+                        // Image déjà prête : dessin immédiat, sans attendre le chargement
+                        const pre = new Image();
+                        pre.src = src;
+                        _annotFillCache.set(src, pre);
+                        const layer = getLayer(currentPage);
+                        if (!layer.history) layer.history = [];
+                        layer.redoHistory = [];
+                        layer.history.push([...layer.strokes]);
+                        if (layer.history.length > 30) layer.history.shift();
+                        layer.strokes.push(stroke);
+                        if (pre.complete && pre.naturalWidth) redrawAnnotations(currentPage);
+                        else pre.onload = () => redrawAnnotations(currentPage);
+                        try { _saveAnnotations(); } catch(e) {}
                     },
                     // Ajouter une figure (stockée en normalisé dans annotLayers)
                     addFigureStroke(color, size, pts, fillColor, fillOpacity) {

@@ -160,6 +160,11 @@ function buildBoardState() {
                 level:      w.dataset.monnaieLevel || 'facile'
             };
         }
+        // Données propres au widget le mot le plus long
+        let motLongData = null;
+        if (w.dataset.type === 'mot-long' && typeof w._mlGetData === 'function') {
+            motLongData = w._mlGetData();
+        }
         // Données propres au widget tableau de numération
         let tableauNumData = null;
         if (w.dataset.type === 'tableau-num' && typeof w._tnumGetData === 'function') {
@@ -340,6 +345,7 @@ function buildBoardState() {
 			heureData,
 			conjData,
 			tableauNumData,
+			motLongData,
 			horlogeData,
 			sondageData,
 			clrData,
@@ -568,6 +574,11 @@ function restoreBoardFromJSON(json) {
                 if (mz && w.monnaieData.itemsH)     mz.style.height  = w.monnaieData.itemsH     + 'px';
                 // Restaurer le niveau
                 if (w.monnaieData.level && widget._setLevel) widget._setLevel(w.monnaieData.level);
+            }
+        } else if (w.type === 'mot-long') {
+            widget = createMotLePlusLongWidget();
+            if (w.motLongData && typeof widget._mlSetData === 'function') {
+                widget._mlSetData(w.motLongData);
             }
         } else if (w.type === 'tableau-num') {
             widget = createTableauNumWidget();

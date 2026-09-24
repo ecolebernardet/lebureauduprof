@@ -1023,6 +1023,7 @@ function setVisuelsMode(mode) {
 <script src="widget-plan.js"></script>
 <script src="widget-emploi-du-temps.js"></script>
 <script src="widget-monnaie.js"></script>
+<script src="widget-mot-le-plus-long.js"></script>
 <script src="widget-pause-calme.js"></script>
 <script src="widget-conversion.js"></script>
 <script src="widget-seyes.js"></script>
@@ -1377,6 +1378,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activites-motsmeles6.jpeg" alt="Mots mêlés" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Mots Mêlés</div>
                 <div class="act-card-desc">Générer et jouer à une grille interactive de mots mêlés</div>
+            </div>
+            <div class="act-card" onclick="createMotLePlusLongWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-mot-le-plus-long.jpeg" alt="Le mot le plus long" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔤'"></div>
+                <div class="act-card-name">Le mot le plus long</div>
+                <div class="act-card-desc">Former le mot le plus long avec 9 lettres tirées au sort</div>
             </div>
         </div>
 		<div class="act-section-label">🎨 Autres activités</div>

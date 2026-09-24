@@ -510,13 +510,16 @@
 					<button class="dt-plus" onmousedown="(function(btn){var iv;function step(){var i=document.getElementById('draw-size');i.value=Math.min(40,+i.value+1);i.dispatchEvent(new Event('input'));}step();iv=setInterval(step,120);btn._iv=iv;})(this)" onmouseup="clearInterval(this._iv)" onmouseleave="clearInterval(this._iv)" style="width:22px;height:22px;border-radius:6px;border:1px solid #555;background:#2a2a2e;color:#ccc;cursor:pointer;font-size:14px;line-height:1;padding:0;flex-shrink:0;">+</button>
 			</div>
 			
-			<!-- CRAYON + SURLIGNEUR côte à côte, POT DE PEINTURE centré dessous -->
+			<!-- CRAYON + SURLIGNEUR côte à côte, POT DE PEINTURE + CRAYON DE COULEUR dessous -->
 			<div style="display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;flex-shrink:0;">
 				<div style="display:flex;flex-direction:row;gap:4px;align-items:center;justify-content:center;">
 					<button id="draw-free-btn" onclick="activatePencil()" style="width:30px;height:30px;border-radius:8px;border:2px solid #444;background:#2a2a2e;color:#aaa;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;" title="Dessin libre">✏️</button>
 					<button id="draw-highlight-btn" onclick="activateHighlighter()" style="width:30px;height:30px;border-radius:8px;border:2px solid #444;background:#2a2a2e;color:#aaa;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;" title="Surligneur">🖍️</button>
 				</div>
-				<button id="fill-bucket-btn" onclick="toggleFillMode()" style="width:30px;height:30px;border-radius:8px;border:2px solid #444;background:#2a2a2e;color:#aaa;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;" title="Pot de peinture : cliquez dans une zone fermée pour la colorier avec la couleur choisie (Échap pour quitter)">🪣</button>
+				<div style="display:flex;flex-direction:row;gap:4px;align-items:center;justify-content:center;">
+					<button id="fill-bucket-btn" onclick="toggleFillMode()" style="width:30px;height:30px;border-radius:8px;border:2px solid #444;background:#2a2a2e;color:#aaa;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;padding:0;" title="Pot de peinture : cliquez dans une zone fermée pour la colorier avec la couleur choisie (Échap pour quitter)">🪣</button>
+					<button id="draw-crayon-btn" onclick="activateCrayon()" style="width:30px;height:30px;border-radius:8px;border:2px solid #444;background:#2a2a2e;color:#aaa;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;" title="Crayon de couleur : trait doux, texturé, pour colorier"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 17 L17.5 7.5 L20.5 10.5 L11 20 Z" fill="#e8a33d" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M17.5 7.5 L19 6 L22 9 L20.5 10.5 Z" fill="#c9c9c9" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 17 L11 20 L5.5 21.5 Z" fill="#f3d9b1" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5.5 21.5 L6.4 18.9 L7.9 20.4 Z" fill="#d6336c"/><g fill="#d6336c"><circle cx="2.4" cy="15.2" r=".9" opacity=".9"/><circle cx="4.3" cy="13.6" r=".7" opacity=".6"/><circle cx="1.8" cy="12.4" r=".6" opacity=".45"/><circle cx="5.2" cy="11.3" r=".5" opacity=".35"/><circle cx="3.4" cy="10.2" r=".45" opacity=".25"/></g></svg></button>
+				</div>
 			</div>
 
 			<!-- FIGURES + OUTILS GÉO côte à côte -->

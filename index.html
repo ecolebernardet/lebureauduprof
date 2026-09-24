@@ -1063,6 +1063,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-conju.js"></script>
 <script src="widget-jeu-nature-mots-pacman.js"></script>
 <script src="widget-jeu-mot-le-plus-long.js"></script>
+<script src="widget-jeu-mot-alpha.js"></script>
 <script src="widget-de.js"></script>
 <script src="widget-fractions.js"></script>
 <script src="widget-minuteur-chrono.js"></script>
@@ -1158,10 +1159,10 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 		</div>
 		<div class="act-section-label">🎮 Jeux de français</div>
 		<div class="act-grid">
-			<div class="act-card" onclick="createWidget('mots-alpha');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-ordre-alpha.png" alt="Ordre alphabétique" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Ordre alphabétique</div>
-                <div class="act-card-desc">Classer des mots dans l'ordre alphabétique</div>
+			<div class="act-card" onclick="createWidget('jeu-mot-alpha');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-ordre-alpha.png" alt="Le train de l'alphabet" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Le train de l'alphabet</div>
+                <div class="act-card-desc">Charger les mots dans les wagons dans l'ordre alphabétique</div>
             </div>
 			<div class="act-card" onclick="createWidget('jeu-conju');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-conju.png" alt="Conju" style="width:100%;height:100%;object-fit:contain;"></div>

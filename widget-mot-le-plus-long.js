@@ -411,6 +411,15 @@
         }
         .ml-solution .ml-sol-others { color: #2f6b45; }
         .ml-solution .ml-sol-next { color: #6b7280; font-size: 12px; margin-top: 2px; }
+        .ml-solution .ml-sol-def {
+            font-size: 14px;
+            color: #2f4f3a;
+            margin: 2px 0 4px;
+            padding-left: 8px;
+            border-left: 3px solid #b7e4c7;
+        }
+        .ml-solution .ml-sol-def .ml-def-lemma { color: #6b7280; font-size: 12px; }
+        .ml-solution .ml-sol-def.loading { color: #9ca3af; font-style: italic; }
 
         /* Aide */
         .ml-help-btn {
@@ -1280,6 +1289,80 @@ function _mlClassify(text) {
     return { ok: false, reason: 'autre' };
 }
 
+// ── Définition rapide (Wiktionnaire) ──────────────────────────────────────
+const _mlDefCache = new Map(); // mot -> { def, lemma } | null
+
+async function _mlWikiText(title) {
+    const url = ML_WIKI_API + '?action=query&format=json&formatversion=2&origin=*' +
+        '&prop=revisions&rvprop=content&rvslots=main&titles=' + encodeURIComponent(title);
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('Wiktionnaire indisponible');
+    const data = await r.json();
+    const p = data.query && data.query.pages && data.query.pages[0];
+    const rev = p && !p.missing && p.revisions && p.revisions[0];
+    return (rev && rev.slots && rev.slots.main && rev.slots.main.content) || '';
+}
+
+// Transforme une ligne de wikicode en texte lisible
+function _mlCleanWiki(str) {
+    let t = str;
+    t = t.replace(/<ref[^>]*\/>/g, '').replace(/<ref[\s\S]*?<\/ref>/g, '').replace(/<[^>]+>/g, '');
+    for (let i = 0; i < 3; i++) {
+        t = t.replace(/\{\{(?:lien|l|w|ws)\|([^|{}]+)[^{}]*\}\}/g, '$1');
+        t = t.replace(/\{\{term\|([^|{}]+)[^{}]*\}\}/g, '($1)');
+        t = t.replace(/\{\{([^|{}]+)\|fr[^{}]*\}\}/g, (m, x) => '(' + x.charAt(0).toUpperCase() + x.slice(1) + ')');
+        t = t.replace(/\{\{[^{}]*\}\}/g, '');
+    }
+    t = t.replace(/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/g, '$1');
+    t = t.replace(/'{2,}/g, '').replace(/\(\s*\)/g, '').replace(/\s+/g, ' ');
+    t = t.replace(/^\s*[:;,.]\s*/, '').trim();
+    return t;
+}
+
+// Première définition française d'un mot (nom, adjectif, infinitif…)
+function _mlExtractDef(text) {
+    const start = text.search(/==\s*\{\{langue\|fr\}\}\s*==/);
+    if (start < 0) return null;
+    let sect = text.slice(start + 10);
+    const end = sect.search(/\n==\s*\{\{langue\|/);
+    if (end >= 0) sect = sect.slice(0, end);
+    const re = /\{\{S\|([^|}]+)\|fr(\|[^}]*)?\}\}/g;
+    let m, from = -1;
+    while ((m = re.exec(sect))) {
+        const t = m[1].trim().toLowerCase(), flex = /flexion/.test(m[2] || '');
+        if (t === 'verbe' ? !flex : (/^(nom|adj|adv|prép|conj|pron|art)/.test(t) && !/propre|prénom|famille/.test(t))) {
+            from = m.index; break;
+        }
+    }
+    if (from < 0) return null;
+    const lines = sect.slice(from).split('\n');
+    for (const line of lines.slice(1)) {
+        if (/^={3,}/.test(line)) break;
+        if (/^#(?![*:#])/.test(line)) {
+            const def = _mlCleanWiki(line.replace(/^#\s*/, ''));
+            if (def.length > 2) return def;
+        }
+    }
+    return null;
+}
+
+async function _mlGetDefinition(word) {
+    if (_mlDefCache.has(word)) return _mlDefCache.get(word);
+    let def = _mlExtractDef(await _mlWikiText(word));
+    let lemma = null;
+    // « Pluriel de étoile. » → on va chercher la définition de « étoile »
+    const fm = def && def.match(/^(?:(?:pluriel|féminin|masculin|singulier)[^.]*?) de ([a-zàâäçéèêëîïôöùûüÿœæ]+)\.?$/i);
+    if (fm) {
+        lemma = { form: def.replace(/\.$/, ''), word: fm[1] };
+        const d2 = _mlExtractDef(await _mlWikiText(fm[1]));
+        def = d2 || def;
+    }
+    if (def && def.length > 180) def = def.slice(0, 177).replace(/\s+\S*$/, '') + '…';
+    const res = def ? { def, lemma } : null;
+    _mlDefCache.set(word, res);
+    return res;
+}
+
 async function _mlWikiFetch(batch) {
     const url = ML_WIKI_API + '?action=query&format=json&formatversion=2&origin=*' +
         '&prop=revisions&rvprop=content&rvslots=main&titles=' + encodeURIComponent(batch.join('|'));
@@ -1703,6 +1786,30 @@ function createMotLePlusLongWidget() {
         info.style.fontWeight = '700';
         bestEl.appendChild(info);
         solutionZone.appendChild(bestEl);
+
+        // Définition rapide du mot gagnant
+        const defWord = best[0].link || best[0].w.split(' / ')[0];
+        const defEl = document.createElement('div');
+        defEl.className = 'ml-sol-def loading';
+        defEl.textContent = '📖 Recherche de la définition…';
+        solutionZone.appendChild(defEl);
+        const defToken = searchToken;
+        _mlGetDefinition(defWord).then(res => {
+            if (defToken !== searchToken) return;
+            defEl.classList.remove('loading');
+            defEl.textContent = '';
+            if (!res) { defEl.textContent = '📖 Pas de définition trouvée.'; defEl.classList.add('loading'); return; }
+            if (res.lemma) {
+                const l = document.createElement('span');
+                l.className = 'ml-def-lemma';
+                l.textContent = `(${res.lemma.form.charAt(0).toLowerCase() + res.lemma.form.slice(1)}) `;
+                defEl.appendChild(l);
+            }
+            defEl.appendChild(document.createTextNode('📖 ' + res.def));
+        }).catch(() => {
+            if (defToken !== searchToken) return;
+            defEl.textContent = '📖 Définition indisponible (pas de connexion).';
+        });
 
         if (best.length > 1) {
             const others = document.createElement('div');

@@ -2281,18 +2281,51 @@ function eraseAt(pos) {
             newStrokes.push(stroke);
             return;
         }
+        // Trait loin de la gomme : on le garde TEL QUEL (même objet).
+        // Évite de recréer tous les traits à chaque mouvement de la gomme,
+        // ce qui invalidait les caches (crayon de couleur) et faisait ramer.
+        const sp = stroke.points || [];
+        if (!sp.length) return;
+        const margin = r + (stroke.size || 0) / 2 + 4;
+        let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+        for (const p of sp) {
+            if (p.x < bx0) bx0 = p.x;
+            if (p.x > bx1) bx1 = p.x;
+            if (p.y < by0) by0 = p.y;
+            if (p.y > by1) by1 = p.y;
+        }
+        if (pos.x < bx0 - margin || pos.x > bx1 + margin || pos.y < by0 - margin || pos.y > by1 + margin) {
+            newStrokes.push(stroke);
+            return;
+        }
         // Densifier à un pas de 4px pour que la gomme puisse couper n'importe où
-        const pts = densify(stroke.points, 4);
+        const pts = densify(sp, 4);
+        if (!pts.some(p => Math.hypot(p.x - pos.x, p.y - pos.y) <= r)) {
+            newStrokes.push(stroke); // pas touché : inchangé
+            return;
+        }
+        // Crayon de couleur : chaque morceau garde sa position le long du trait
+        // d'origine (crayonOffset) → même texture, pas de « grésillement »
+        const isCrayon = !!stroke.crayon;
+        let cum = 0, startLen = 0;
         let current = [];
+        const pushPiece = () => {
+            if (current.length < 2) return;
+            const piece = { ...stroke, points: current };
+            if (isCrayon) piece.crayonOffset = (stroke.crayonOffset || 0) + startLen;
+            newStrokes.push(piece);
+        };
         for (let i = 0; i < pts.length; i++) {
+            if (i > 0) cum += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
             if (Math.hypot(pts[i].x - pos.x, pts[i].y - pos.y) <= r) {
-                if (current.length >= 2) newStrokes.push({ ...stroke, points: current });
+                pushPiece();
                 current = [];
             } else {
+                if (!current.length) startLen = cum;
                 current.push(pts[i]);
             }
         }
-        if (current.length >= 2) newStrokes.push({ ...stroke, points: current });
+        pushPiece();
     });
     strokes = newStrokes;
 
@@ -5170,7 +5203,6 @@ function fillPdfAt(clientX, clientY) {
 // Stroke : { crayon:true, seed, points, color, size, opacity }
 // =========================================================================
 var _crayonLive = { carry: 0, idx: 0 };
-var _crayonCache = new WeakMap();
 
 function _crayonRand(a) {
     a = (a + 0x6D2B79F5) | 0;
@@ -5230,48 +5262,103 @@ function _crayonWalkSegment(ctx, a, b, stroke, state) {
 }
 
 function _crayonRender(ctx, stroke) {
-    const pts = stroke.points;
-    const state = { carry: 0, idx: 0 };
-    if (stroke.dot || pts.length < 2) {
-        // Simple touche : petit nuage de grains
-        for (let i = 0; i < 4; i++) _crayonWalkSegment(ctx, pts[0], pts[0], stroke, state);
-        return;
-    }
-    for (let i = 1; i < pts.length; i++) _crayonWalkSegment(ctx, pts[i - 1], pts[i], stroke, state);
+    // Rendu direct (sans cache) : export PDF
+    const dabs = _crayonDabPositions(stroke);
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = stroke.color;
+    for (const d of dabs) _crayonDab(ctx, d.x, d.y, d.idx, stroke);
+    ctx.restore();
 }
 
-// Rendu avec cache bitmap (redessins rapides même avec beaucoup de traits).
-// owner = objet stroke servant de clé ; pts en pixels du canvas cible ;
-// params = { color, size, opacity, seed, dot, _paper } (size déjà à l'échelle).
+// Rendu avec cache bitmap PAR MORCEAUX de 32 touches.
+// Les morceaux sont repérés par leur contenu (graine, n° de touche, position…),
+// pas par l'objet stroke : quand la gomme coupe un trait, les morceaux intacts
+// sont réutilisés tels quels, seuls les 1 ou 2 morceaux coupés sont recalculés.
+// owner / extraKey : conservés pour compatibilité, non utilisés.
+var _crayonChunkCache = new Map();
+const _CRAYON_CHUNK = 32;
+const _CRAYON_CACHE_MAX = 3000;
+
+// Positions des touches le long du trait (même calcul que _crayonWalkSegment)
+function _crayonDabPositions(stroke) {
+    const pts = stroke.points;
+    const out = [];
+    if (!pts || !pts.length) return out;
+    if (stroke.dot || pts.length < 2) {
+        for (let i = 0; i < 4; i++) out.push({ x: pts[0].x, y: pts[0].y, idx: i });
+        return out;
+    }
+    const spacing = Math.max(0.8, (stroke.size || 4) * 0.28);
+    let carry = 0, idx = 0;
+    const off = stroke.crayonOffset || 0;
+    if (off > 0) {
+        const k = Math.ceil(off / spacing - 1e-9);
+        idx = k; carry = k * spacing - off;
+    }
+    for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1], b = pts[i];
+        const dist = Math.hypot(b.x - a.x, b.y - a.y);
+        let d = carry;
+        while (d <= dist) {
+            const t = dist ? d / dist : 0;
+            out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, idx: idx++ });
+            d += spacing;
+            if (!dist) break;
+        }
+        carry = Math.max(0, d - dist);
+    }
+    return out;
+}
+
 function _crayonDrawCached(ctx, owner, pts, params, extraKey = '') {
     if (!pts || !pts.length) return;
-    const last = pts[pts.length - 1];
-    const key = [params.color, params.size, params.opacity, params.seed, params.dot ? 1 : 0, params._paper || 1,
-                 pts.length, pts[0].x, pts[0].y, last.x, last.y, extraKey].join('|');
-    let c = _crayonCache.get(owner);
-    if (!c || c.key !== key) {
-        const pad = Math.ceil((params.size || 4) * 0.7) + 3;
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        pts.forEach(p => {
-            if (p.x < minX) minX = p.x;
-            if (p.x > maxX) maxX = p.x;
-            if (p.y < minY) minY = p.y;
-            if (p.y > maxY) maxY = p.y;
-        });
-        const ox = Math.floor(minX - pad), oy = Math.floor(minY - pad);
-        const w = Math.max(1, Math.ceil(maxX + pad) - ox), h = Math.max(1, Math.ceil(maxY + pad) - oy);
-        const off = document.createElement('canvas');
-        off.width = w; off.height = h;
-        const octx = off.getContext('2d');
-        octx.translate(-ox, -oy);
-        _crayonRender(octx, { ...params, points: pts });
-        c = { key, canvas: off, ox, oy };
-        _crayonCache.set(owner, c);
-    }
+    const stroke = { ...params, points: pts };
+    const dabs = _crayonDabPositions(stroke);
+    if (!dabs.length) return;
+    const size = Math.max(1, params.size || 4);
+    const pad = Math.ceil(size * 0.58 + Math.max(1, size * 0.12) * 1.4) + 2;
+    const base = [params.color, size, params.opacity === undefined ? 1 : params.opacity,
+                  params.seed | 0, params._paper || 1].join('|');
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.drawImage(c.canvas, c.ox, c.oy);
+    let i = 0;
+    while (i < dabs.length) {
+        const chunkId = Math.floor(dabs[i].idx / _CRAYON_CHUNK);
+        let j = i;
+        while (j < dabs.length && Math.floor(dabs[j].idx / _CRAYON_CHUNK) === chunkId) j++;
+        const f = dabs[i], l = dabs[j - 1];
+        const key = base + '|' + f.idx + '|' + (j - i) + '|' + f.x.toFixed(1) + ',' + f.y.toFixed(1)
+                  + '|' + l.x.toFixed(1) + ',' + l.y.toFixed(1);
+        let c = _crayonChunkCache.get(key);
+        if (c) {
+            _crayonChunkCache.delete(key); _crayonChunkCache.set(key, c); // LRU
+        } else {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (let k = i; k < j; k++) {
+                const d = dabs[k];
+                if (d.x < minX) minX = d.x;
+                if (d.x > maxX) maxX = d.x;
+                if (d.y < minY) minY = d.y;
+                if (d.y > maxY) maxY = d.y;
+            }
+            const ox = Math.floor(minX - pad), oy = Math.floor(minY - pad);
+            const w = Math.max(1, Math.ceil(maxX + pad) - ox), h = Math.max(1, Math.ceil(maxY + pad) - oy);
+            const off = document.createElement('canvas');
+            off.width = w; off.height = h;
+            const octx = off.getContext('2d');
+            octx.translate(-ox, -oy);
+            octx.fillStyle = params.color;
+            for (let k = i; k < j; k++) _crayonDab(octx, dabs[k].x, dabs[k].y, dabs[k].idx, stroke);
+            c = { canvas: off, ox, oy };
+            _crayonChunkCache.set(key, c);
+            if (_crayonChunkCache.size > _CRAYON_CACHE_MAX)
+                _crayonChunkCache.delete(_crayonChunkCache.keys().next().value);
+        }
+        ctx.drawImage(c.canvas, c.ox, c.oy);
+        i = j;
+    }
     ctx.restore();
 }
 

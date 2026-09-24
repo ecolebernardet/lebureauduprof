@@ -114,6 +114,8 @@
         const s = document.createElement('style');
         s.id = 'widget-jeu-memory-style';
         s.textContent = `
+        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@700;800;900&display=swap');
+
         /* ── Widget transparent ── */
         .widget[data-type="jeu-memory"] {
             min-width: unset;
@@ -122,18 +124,31 @@
             box-shadow: none !important;
         }
 
-        /* ── Conteneur principal ── */
+        /* Palette « table de jeu » : feutre, bois, or, ivoire, bleu nuit */
         .jmm-container {
-            background: #ffffff;
-            border: 1.5px solid #d1d5db;
-            border-radius: 16px;
-            padding: 14px 16px 12px;
+            --feutre: #137A64;
+            --feutre-fonce: #0B4F41;
+            --bois: #7A4A25;
+            --bois-clair: #B0773F;
+            --or: #F5C542;
+            --or-fonce: #B98A12;
+            --ivoire: #FFFBF0;
+            --nuit: #2A1D6B;
+            --nuit-clair: #4B38B0;
+            --encre: #1E2A3A;
+
+            background: #13211D;
+            background-image: radial-gradient(circle at 20% 0%, rgba(245,197,66,0.10), transparent 45%);
+            border: 3px solid #2B3F39;
+            border-radius: 22px;
+            padding: 14px 16px 14px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            color: var(--ivoire);
+            box-shadow: 0 8px 0 #0A1512, 0 16px 36px rgba(0,0,0,0.35);
             position: relative;
             user-select: none;
             overflow: hidden;
@@ -152,17 +167,7 @@
             border-radius: 0 !important;
             padding-left: 52px !important;
         }
-
-        /* ── État plein écran, adapté au téléphone ──
-           Le padding-left de 52px (pensé pour dégager les onglets
-           latéraux desktop) prend trop de place sur un petit écran, mais
-           il en faut quand même un peu : les onglets latéraux (Jeux,
-           Activités, etc. — voir style-phone.css) débordent d'environ
-           33px sur le bord gauche de l'écran même en fullboard, il ne
-           faut donc pas descendre en dessous pour ne pas les recouvrir.
-           min-width est aussi annulé : sans ça, le min-width fixe pensé
-           pour desktop empêchait le conteneur de rétrécir sous l'écran
-           du téléphone et le faisait déborder à droite. */
+        /* Plein écran sur téléphone (voir la version d'origine pour le détail) */
         .jmm-container.wf-fullboard.jti-mobile {
             min-width: unset !important;
             width: 100% !important;
@@ -176,49 +181,63 @@
         .jmm-header {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             cursor: move;
             user-select: none;
             flex-shrink: 0;
         }
         .jmm-title {
-            font-size: 13px;
+            display: flex; align-items: center; gap: 8px;
+            font-family: 'Baloo 2', 'Nunito', sans-serif;
+            font-size: 26px;
             font-weight: 800;
-            color: #374151;
-            letter-spacing: 0.3px;
+            line-height: 1;
+            color: var(--or);
+            text-shadow: 0 3px 0 #6E4F05;
             pointer-events: none;
             white-space: nowrap;
         }
+        .jmm-title-cards { display: inline-flex; pointer-events: none; }
+        .jmm-title-cards i {
+            display: inline-block; width: 18px; height: 25px; border-radius: 4px;
+            border: 2px solid var(--or);
+            background: var(--nuit);
+            background-image: repeating-linear-gradient(45deg, rgba(245,197,66,0.35) 0 1px, transparent 1px 5px);
+        }
+        .jmm-title-cards i:first-child { transform: rotate(-10deg); }
+        .jmm-title-cards i:last-child  { transform: rotate(8deg) translateX(-7px); background: var(--ivoire); }
 
         /* ── Boutons paramètres / aide ── */
         .jmm-params-btn, .jmm-help-btn {
-            width: 22px; height: 22px; border-radius: 50%;
-            border: 1px solid #bbb; background: #f5f5f5;
-            color: #666; font-size: 12px; font-weight: 700;
+            width: 26px; height: 26px; border-radius: 50%;
+            border: none; background: rgba(255,255,255,0.12);
+            color: var(--ivoire); font-size: 13px; font-weight: 900; font-family: inherit;
             cursor: pointer; display: flex; align-items: center;
             justify-content: center; flex-shrink: 0;
             transition: background .15s;
         }
-        .jmm-params-btn:hover, .jmm-help-btn:hover { background: #e0e0e0; color: #333; }
-        .jmm-params-btn.active { background: #4a90e2; color: white; border-color: #357abd; }
+        .jmm-params-btn:hover, .jmm-help-btn:hover { background: rgba(255,255,255,0.25); }
+        .jmm-params-btn.active { background: var(--or); color: var(--encre); }
 
         /* ── Popup aide ── */
         .jmm-help-popup {
             display: none; position: absolute;
-            top: 42px; right: 10px;
-            background: #fff; border: 1px solid #ddd;
-            border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-            padding: 12px 14px; width: 320px;
-            font-size: 11px; color: #444; z-index: 20; line-height: 1.6;
+            top: 50px; right: 12px;
+            background: var(--ivoire); color: var(--encre);
+            border-radius: 14px;
+            box-shadow: 0 6px 0 #C9BC98, 0 12px 30px rgba(0,0,0,0.35);
+            padding: 12px 14px; width: 340px;
+            font-size: 12px; z-index: 30; line-height: 1.55;
         }
         .jmm-help-popup.show { display: block; }
-        .jmm-help-popup h4 { margin: 0 0 8px; font-size: 12px; color: #374151; }
+        .jmm-help-popup h4 { margin: 0 0 8px; font-family: 'Baloo 2', sans-serif; font-size: 17px; color: var(--encre); }
+        .jmm-help-popup p { color: #3A4556 !important; }
 
         /* ── Panneau paramètres ── */
         .jmm-params-panel {
-            background: #f8f9fa;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
+            background: rgba(255,255,255,0.06);
+            border: 1.5px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
             padding: 10px 14px;
             display: none;
             flex-direction: column;
@@ -229,57 +248,92 @@
         .jmm-params-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 8px 10px;
             flex-wrap: wrap;
         }
         .jmm-params-row label {
-            font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;
+            font-size: 12px; font-weight: 800; color: rgba(255,251,240,0.8); white-space: nowrap;
         }
         .jmm-content-select, .jmm-pairs-select, .jmm-color-select {
-            padding: 5px 10px; border-radius: 7px;
-            border: 1px solid #d1d5db; font-size: 12px;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            outline: none; cursor: pointer; background: white;
+            padding: 6px 12px; border-radius: 999px;
+            border: 2px solid transparent; font-size: 13px; font-weight: 800;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            outline: none; cursor: pointer;
+            background: var(--ivoire); color: var(--encre);
         }
-        .jmm-content-select:focus, .jmm-pairs-select:focus, .jmm-color-select:focus { border-color: #4a90e2; }
+        .jmm-content-select:focus, .jmm-pairs-select:focus, .jmm-color-select:focus,
+        .jmm-content-select:focus-visible, .jmm-pairs-select:focus-visible, .jmm-color-select:focus-visible { border-color: var(--or); }
         .jmm-custom-row { display: none; flex-direction: column; align-items: stretch; gap: 4px; }
         .jmm-custom-row.show { display: flex; }
         .jmm-custom-textarea {
             width: 100%; box-sizing: border-box;
             min-height: 74px; resize: vertical;
-            border: 1px solid #d1d5db; border-radius: 8px;
-            padding: 7px 9px; font-size: 12px;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            border: 2px solid transparent; border-radius: 10px;
+            padding: 8px 10px; font-size: 13px; font-weight: 700;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            background: var(--ivoire); color: var(--encre);
             outline: none;
         }
-        .jmm-custom-textarea:focus { border-color: #4a90e2; }
-        .jmm-custom-hint { font-size: 10px; color: #888; }
-        .jmm-custom-hint.ok { color: #2e7d32; }
-        .jmm-custom-hint.bad { color: #c53030; }
+        .jmm-custom-textarea:focus { border-color: var(--or); }
+        .jmm-custom-hint { font-size: 11px; font-weight: 800; color: rgba(255,251,240,0.6); }
+        .jmm-custom-hint.ok { color: #7EE2B0; }
+        .jmm-custom-hint.bad { color: #FF9A9A; }
 
         /* ── HUD ── */
         .jmm-hud {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            font-size: 14px;
-            font-weight: 800;
-            color: #374151;
+            gap: 10px;
             flex-shrink: 0;
-            padding: 0 2px;
         }
-        .jmm-moves { color: #374151; }
-        .jmm-timer { color: #374151; font-variant-numeric: tabular-nums; }
-        .jmm-matches { color: #2e7d32; }
+        .jmm-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 999px;
+            padding: 5px 14px 5px 6px;
+            font-weight: 900; font-size: 15px; color: var(--ivoire);
+            white-space: nowrap;
+        }
+        .jmm-chip-ico {
+            width: 26px; height: 26px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 14px; background: rgba(255,255,255,0.12);
+        }
+        .jmm-chip small { font-weight: 800; font-size: 12px; color: rgba(255,251,240,0.6); }
+        .jmm-chip b { font-family: 'Baloo 2', sans-serif; font-size: 19px; line-height: 1; font-variant-numeric: tabular-nums; }
+        .jmm-timer b { min-width: 48px; display: inline-block; }
+        .jmm-matches { flex: 1; padding-right: 14px; }
+        .jmm-progress {
+            display: block;
+            flex: 1; min-width: 60px; height: 12px; border-radius: 999px;
+            background: rgba(0,0,0,0.35); overflow: hidden;
+        }
+        .jmm-progress-fill {
+            display: block;
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--or), #FFE08A);
+            border-radius: 999px;
+            transition: width .4s cubic-bezier(.3,1.3,.5,1);
+        }
+        @keyframes jmm-chip-bump { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+        .jmm-chip.bump { animation: jmm-chip-bump .35s ease; }
 
-        /* ── Zone de jeu ── */
+        /* ── Zone de jeu : tapis de feutre dans un cadre en bois ── */
         .jmm-board-zone {
             flex: 1;
             min-height: 140px;
             position: relative;
-            border-radius: 12px;
-            background: linear-gradient(180deg, #eef4ff 0%, #f7fbff 100%);
-            border: 1.5px solid #d9e6f7;
+            border-radius: 18px;
+            background:
+                radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.10), transparent 65%),
+                repeating-linear-gradient(135deg, rgba(0,0,0,0.035) 0 2px, transparent 2px 5px),
+                var(--feutre);
+            border: 9px solid var(--bois);
+            box-shadow:
+                inset 0 0 0 2px var(--feutre-fonce),
+                inset 0 0 50px rgba(0,0,0,0.35),
+                0 0 0 2px var(--bois-clair),
+                0 6px 0 #4A2B12;
             overflow: hidden;
             padding: 10px;
             box-sizing: border-box;
@@ -298,9 +352,8 @@
         .jmm-card {
             width: 100%;
             height: 100%;
-            perspective: 700px;
+            perspective: 800px;
             cursor: pointer;
-            /* reset des styles natifs de <button> */
             display: block;
             background: none;
             border: none;
@@ -309,12 +362,15 @@
             font: inherit;
             outline: none;
             -webkit-tap-highlight-color: transparent;
+            transition: transform .15s ease;
         }
+        .jmm-card:not(.flipped):not(.matched):hover { transform: translateY(-4px) rotate(-1deg); }
+        .jmm-card:focus-visible .jmm-card-inner { outline: 3px solid var(--or); outline-offset: 3px; border-radius: 12px; }
         .jmm-card.matched { cursor: default; }
         .jmm-card-inner {
             position: relative;
             width: 100%; height: 100%;
-            transition: transform .4s cubic-bezier(.4,0,.2,1);
+            transition: transform .45s cubic-bezier(.3,1.25,.5,1);
             transform-style: preserve-3d;
             pointer-events: none;
         }
@@ -325,27 +381,48 @@
         .jmm-card-face {
             position: absolute; inset: 0;
             backface-visibility: hidden;
-            border-radius: 10px;
+            -webkit-backface-visibility: hidden;
+            border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
             text-align: center;
             box-sizing: border-box;
-            padding: 4px;
-            font-weight: 800;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            padding: 6px 5px 4px;
+            font-weight: 900;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.25), 0 6px 12px rgba(0,0,0,0.25);
         }
+        /* Dos : bleu nuit, motif doré en losanges, médaillon central */
         .jmm-card-back {
-            background: radial-gradient(circle at 35% 30%, #90cdf4, #3182ce 70%, #2c5282);
-            border: 2px solid #2b6cb0;
-            color: white;
-            font-size: 22px;
+            background:
+                radial-gradient(circle at 50% 50%, var(--nuit-clair) 0 27%, transparent 28%),
+                repeating-linear-gradient(45deg,  rgba(245,197,66,0.22) 0 1.5px, transparent 1.5px 9px),
+                repeating-linear-gradient(-45deg, rgba(245,197,66,0.22) 0 1.5px, transparent 1.5px 9px),
+                linear-gradient(160deg, #3A2A8F, var(--nuit));
+            box-shadow:
+                inset 0 0 0 3px var(--nuit),
+                inset 0 0 0 5px rgba(245,197,66,0.85),
+                0 4px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.25);
+            color: var(--or);
         }
+        .jmm-back-emblem {
+            font-family: 'Baloo 2', 'Nunito', sans-serif; font-weight: 800;
+            font-size: calc(var(--jmm-cell, 90px) * 0.3);
+            line-height: 1;
+            width: 46%; aspect-ratio: 1; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--or);
+            text-shadow: 0 2px 0 rgba(0,0,0,0.35);
+        }
+        /* Face : ivoire avec la bande de couleur de la paire */
         .jmm-card-front {
-            background: var(--jmm-card-bg, white);
-            border: 2px solid var(--jmm-card-border, #d1d5db);
-            color: var(--jmm-card-text, #374151);
+            background: var(--jmm-card-bg, var(--ivoire));
+            border: 3px solid var(--jmm-card-border, #D8CFB8);
+            border-top-width: 9px;
+            color: var(--jmm-card-text, var(--encre));
             transform: rotateY(180deg);
             font-size: var(--jmm-fs, 15px);
+            line-height: 1.15;
             word-break: break-word;
+            overflow: hidden;
         }
         .jmm-card-front-flag {
             font-size: calc(var(--jmm-fs, 15px) * 2.4);
@@ -363,72 +440,133 @@
         .jmm-frac-den {
             padding: 2px 4px 0;
         }
+        /* Paire trouvée : liseré doré, halo et pastille ✓ */
         .jmm-card.matched .jmm-card-front {
-            animation: jmm-pop .35s ease;
+            box-shadow: 0 0 0 3px var(--or), 0 0 18px rgba(245,197,66,0.75), 0 4px 0 rgba(0,0,0,0.25);
+            animation: jmm-pop .5s ease;
+        }
+        .jmm-card.matched .jmm-card-front::after {
+            content: '✓';
+            position: absolute; top: 3px; right: 4px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--or); color: var(--encre);
+            font-size: 12px; line-height: 18px; font-weight: 900;
+        }
+        .jmm-card.matched .jmm-card-inner::after {
+            content: ''; position: absolute; inset: -6px; border-radius: 16px;
+            border: 3px solid var(--or);
+            transform: rotateY(180deg);
+            animation: jmm-ring .6s ease-out forwards;
+            pointer-events: none;
+        }
+        .jmm-card.mismatch .jmm-card-front {
+            box-shadow: 0 0 0 3px #FF5D6C, 0 4px 0 rgba(0,0,0,0.25);
         }
         .jmm-card.mismatch .jmm-card-inner {
-            animation: jmm-shake .35s ease;
+            animation: jmm-shake .4s ease;
         }
         @keyframes jmm-pop {
             0%   { filter: brightness(1); }
-            50%  { filter: brightness(1.25); }
+            40%  { filter: brightness(1.25); }
             100% { filter: brightness(1); }
+        }
+        @keyframes jmm-ring {
+            0%   { opacity: 1; transform: rotateY(180deg) scale(0.9); }
+            100% { opacity: 0; transform: rotateY(180deg) scale(1.25); }
         }
         @keyframes jmm-shake {
             0%,100% { transform: rotateY(180deg) translateX(0); }
-            25%     { transform: rotateY(180deg) translateX(-6px); }
-            75%     { transform: rotateY(180deg) translateX(6px); }
+            20%     { transform: rotateY(180deg) translateX(-7px) rotate(-2deg); }
+            40%     { transform: rotateY(180deg) translateX(7px) rotate(2deg); }
+            60%     { transform: rotateY(180deg) translateX(-4px); }
+            80%     { transform: rotateY(180deg) translateX(4px); }
         }
 
-        /* ── Overlay démarrage / fin de partie ── */
+        /* ── Overlay démarrage / pause / fin de partie ── */
         .jmm-overlay {
             position: absolute; inset: 0;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             gap: 10px;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(1px);
+            background: rgba(8,30,25,0.72);
             z-index: 10;
             text-align: center;
             padding: 14px;
-            border-radius: 12px;
         }
         .jmm-overlay.hidden { display: none; }
-        .jmm-overlay-title { font-size: 18px; font-weight: 800; color: #374151; }
-        .jmm-overlay-sub { font-size: 13px; color: #6b7280; max-width: 340px; }
-        .jmm-start-btn {
-            padding: 10px 22px; border-radius: 10px; border: none;
-            background: #4a90e2; color: white; font-size: 14px;
-            font-weight: 800; cursor: pointer; transition: background .15s, transform .1s;
+        .jmm-overlay-deco { display: flex; gap: 6px; margin-bottom: 2px; }
+        .jmm-overlay-deco i {
+            width: 34px; height: 48px; border-radius: 6px; display: block;
+            background:
+                repeating-linear-gradient(45deg,  rgba(245,197,66,0.3) 0 1.5px, transparent 1.5px 7px),
+                repeating-linear-gradient(-45deg, rgba(245,197,66,0.3) 0 1.5px, transparent 1.5px 7px),
+                var(--nuit);
+            box-shadow: inset 0 0 0 2px var(--nuit), inset 0 0 0 4px var(--or), 0 4px 0 rgba(0,0,0,0.3);
         }
-        .jmm-start-btn:hover { background: #357abd; }
-        .jmm-start-btn:active { transform: scale(0.96); }
-        .jmm-start-btn:disabled { background: #b7c6d9; cursor: not-allowed; }
+        .jmm-overlay-deco i:nth-child(1) { transform: rotate(-14deg) translateY(4px); }
+        .jmm-overlay-deco i:nth-child(2) { background: var(--ivoire); box-shadow: inset 0 0 0 3px var(--or), 0 4px 0 rgba(0,0,0,0.3); }
+        .jmm-overlay-deco i:nth-child(3) { transform: rotate(14deg) translateY(4px); }
+        .jmm-overlay-title {
+            font-family: 'Baloo 2', 'Nunito', sans-serif;
+            font-size: 34px; font-weight: 800; line-height: 1.1;
+            color: var(--or); text-shadow: 0 3px 0 #6E4F05;
+        }
+        .jmm-overlay-sub { font-size: 15px; font-weight: 800; color: var(--ivoire); max-width: 380px; line-height: 1.4; }
+        .jmm-stars { display: none; gap: 8px; }
+        .jmm-stars.show { display: flex; }
+        .jmm-stars span { font-size: 40px; line-height: 1; opacity: 0.2; filter: grayscale(1); }
+        .jmm-stars span.on { opacity: 1; filter: none; animation: jmm-star .45s cubic-bezier(.3,1.6,.5,1) both; }
+        .jmm-stars span.on:nth-child(2) { animation-delay: .2s; }
+        .jmm-stars span.on:nth-child(3) { animation-delay: .4s; }
+        @keyframes jmm-star { 0% { transform: scale(0) rotate(-40deg); } 100% { transform: scale(1) rotate(0); } }
+        .jmm-start-btn {
+            padding: 11px 28px; border-radius: 16px; border: none;
+            background: var(--or); color: var(--encre);
+            font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 20px; font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 5px 0 var(--or-fonce);
+            transition: transform .08s, box-shadow .08s, filter .15s;
+        }
+        .jmm-start-btn:hover { filter: brightness(1.06); }
+        .jmm-start-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--or-fonce); }
+        .jmm-start-btn:disabled { background: #7C8A86; color: #D5DBD9; box-shadow: 0 5px 0 #56615E; cursor: not-allowed; }
+
+        /* ── Confettis ── */
+        .jmm-confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 12; }
+        .jmm-confetti i { position: absolute; top: -14px; width: 9px; height: 14px; border-radius: 2px; animation: jmm-fall 2s ease-in forwards; }
+        @keyframes jmm-fall { to { transform: translateY(900px) rotate(620deg); opacity: 0; } }
 
         /* ── Barre contrôles bas ── */
         .jmm-controls {
-            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+            display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
             flex-shrink: 0;
         }
         .jmm-btn {
-            padding: 5px 12px; border-radius: 8px; border: none;
-            font-size: 11px; font-weight: 700; cursor: pointer;
-            transition: background .15s, transform .1s;
+            padding: 8px 18px; border-radius: 14px; border: none;
+            font-family: inherit; font-size: 14px; font-weight: 900; cursor: pointer;
+            transition: transform .08s, box-shadow .08s, filter .15s;
         }
-        .jmm-btn:active { transform: scale(0.96); }
-        .jmm-btn-reset { background: #6b7280; color: white; }
-        .jmm-btn-reset:hover { background: #4b5563; }
-        .jmm-btn-pause { background: #4a90e2; color: white; }
-        .jmm-btn-pause:hover { background: #357abd; }
+        .jmm-btn:hover { filter: brightness(1.08); }
+        .jmm-btn-reset { background: var(--ivoire); color: var(--encre); box-shadow: 0 4px 0 #C9BC98; }
+        .jmm-btn-reset:active { transform: translateY(3px); box-shadow: 0 1px 0 #C9BC98; }
+        .jmm-btn-pause { background: var(--nuit-clair); color: #fff; box-shadow: 0 4px 0 var(--nuit); }
+        .jmm-btn-pause:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--nuit); }
+        .jmm-btn:focus-visible, .jmm-start-btn:focus-visible { outline: 3px solid var(--or); outline-offset: 2px; }
 
         /* ── Poignée resize ── */
         .jmm-resize-handle {
             position: absolute; right: 0; bottom: 0;
-            width: 18px; height: 18px; cursor: se-resize;
-            background: linear-gradient(135deg, transparent 50%, #aaa 50%);
-            border-radius: 0 0 14px 0; opacity: 0; transition: opacity .2s; z-index: 5;
+            width: 20px; height: 20px; cursor: se-resize;
+            background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.45) 50%);
+            border-radius: 0 0 20px 0; opacity: 0; transition: opacity .2s; z-index: 15;
         }
         .jmm-container:hover .jmm-resize-handle { opacity: 1; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .jmm-container *, .jmm-container *::before, .jmm-container *::after {
+                animation-duration: 0.01ms !important; transition-duration: 0.01ms !important;
+            }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -443,7 +581,7 @@
 
   <!-- En-tête -->
   <div class="jmm-header">
-    <span class="jmm-title">🧠 Jeu de memory</span>
+    <span class="jmm-title"><span class="jmm-title-cards"><i></i><i></i></span>Memory</span>
     <div class="wf-btns" style="margin-left:auto">
       <button class="jmm-params-btn" title="Paramètres">⚙</button>
       <button class="jmm-help-btn"   title="Aide">?</button>
@@ -493,19 +631,23 @@
 
   <!-- HUD -->
   <div class="jmm-hud">
-    <span class="jmm-moves">🔄 Essais : 0</span>
-    <span class="jmm-timer">⏱️ 00:00</span>
-    <span class="jmm-matches">✅ 0/8</span>
+    <span class="jmm-chip jmm-moves"><span class="jmm-chip-ico">🔄</span><small>Essais</small><b class="jmm-moves-val">0</b></span>
+    <span class="jmm-chip jmm-timer"><span class="jmm-chip-ico">⏱️</span><b class="jmm-timer-val">00:00</b></span>
+    <span class="jmm-chip jmm-matches"><span class="jmm-chip-ico">✨</span><small>Paires</small><b class="jmm-matches-val">0/8</b>
+      <span class="jmm-progress"><span class="jmm-progress-fill"></span></span></span>
   </div>
 
   <!-- Zone de jeu -->
   <div class="jmm-board-zone">
     <div class="jmm-grid"></div>
     <div class="jmm-overlay">
-      <div class="jmm-overlay-title">🧠 Jeu de memory</div>
+      <div class="jmm-overlay-deco"><i></i><i></i><i></i></div>
+      <div class="jmm-overlay-title">Jeu de memory</div>
+      <div class="jmm-stars"><span>⭐</span><span>⭐</span><span>⭐</span></div>
       <div class="jmm-overlay-sub">Retrouve les paires en retournant deux cartes à la fois !</div>
       <button class="jmm-start-btn">▶ Démarrer</button>
     </div>
+    <div class="jmm-confetti"></div>
   </div>
 
   <!-- Contrôles -->
@@ -562,17 +704,23 @@
         const startBtn         = widget.querySelector('.jmm-start-btn');
         const resetBtn         = widget.querySelector('.jmm-btn-reset');
         const pauseBtn         = widget.querySelector('.jmm-btn-pause');
+        const movesVal         = widget.querySelector('.jmm-moves-val');
+        const timerVal         = widget.querySelector('.jmm-timer-val');
+        const matchesVal       = widget.querySelector('.jmm-matches-val');
+        const progressFill     = widget.querySelector('.jmm-progress-fill');
+        const starsEl          = widget.querySelector('.jmm-stars');
+        const confettiEl       = widget.querySelector('.jmm-confetti');
 
         // ── Palette de couleurs par paire (cohérente avec le jeu des tables) ──
         const PAIR_COLORS = [
-            { bg: '#e6f3ff', border: '#3182ce', text: '#1a4971' }, // bleu
-            { bg: '#fff0f0', border: '#e53e3e', text: '#822727' }, // rouge
-            { bg: '#eefcf0', border: '#38a169', text: '#1e5e2e' }, // vert
-            { bg: '#fff7ec', border: '#dd6b20', text: '#7b341e' }, // orange
-            { bg: '#f6f0ff', border: '#805ad5', text: '#44337a' }, // violet
-            { bg: '#effcfb', border: '#319795', text: '#1d4044' }, // turquoise
-            { bg: '#fff5f7', border: '#d53f8c', text: '#702459' }, // rose
-            { bg: '#fefce8', border: '#ca8a04', text: '#713f12' }, // jaune
+            { bg: '#EEF6FF', border: '#3B82F6', text: '#1E3A8A' }, // bleu
+            { bg: '#FFF1F1', border: '#EF4444', text: '#7F1D1D' }, // rouge
+            { bg: '#EDFCF2', border: '#22A55A', text: '#14532D' }, // vert
+            { bg: '#FFF6EC', border: '#F97316', text: '#7C2D12' }, // orange
+            { bg: '#F5F0FF', border: '#8B5CF6', text: '#4C1D95' }, // violet
+            { bg: '#ECFDFB', border: '#14B8A6', text: '#134E4A' }, // turquoise
+            { bg: '#FFF1F7', border: '#EC4899', text: '#831843' }, // rose
+            { bg: '#FFFBEA', border: '#EAB308', text: '#713F12' }, // jaune
         ];
 
         // ── État du jeu ──────────────────────────────────────────────────
@@ -686,7 +834,7 @@
             container.style.setProperty('--jmm-cell', cellPx + 'px');
             container.style.setProperty('--jmm-gap', gap + 'px');
 
-            const fs = Math.max(9, Math.min(20, Math.round(cellPx * 0.19)));
+            const fs = Math.max(9, Math.min(30, Math.round(cellPx * 0.2)));
             container.style.setProperty('--jmm-fs', fs + 'px');
         }
 
@@ -708,7 +856,7 @@
                     if (_savedH) container.style.height = _savedH;
                     applyFontScale();
                 }
-                window._wfMiniBarCollapse(widget, '🧠 Jeu de memory', {
+                window._wfMiniBarCollapse(widget, '🃏 Memory', {
                     onExpand: applyFontScale
                 });
             });
@@ -780,15 +928,20 @@
             const ss = (totalSec % 60).toString().padStart(2, '0');
             return mm + ':' + ss;
         }
+        let _lastMatches = 0;
+        function bumpChip(el) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
         function updateHUD() {
-            movesEl.textContent = '🔄 Essais : ' + moves;
-            matchesEl.textContent = '✅ ' + matches + '/' + totalPairs;
+            movesVal.textContent = moves;
+            matchesVal.textContent = matches + '/' + totalPairs;
+            progressFill.style.width = (totalPairs ? (matches / totalPairs) * 100 : 0) + '%';
+            if (matches > _lastMatches) bumpChip(matchesEl);
+            _lastMatches = matches;
         }
         function updateTimerDisplay(force) {
             const sec = Math.floor(elapsedMs / 1000);
             if (!force && sec === lastShownSeconds) return;
             lastShownSeconds = sec;
-            timerEl.textContent = '⏱️ ' + formatTime(elapsedMs);
+            timerVal.textContent = formatTime(elapsedMs);
         }
 
         // ── Banque de pays et capitales (pour le mode "🌍 Pays et capitales") ──
@@ -1086,7 +1239,10 @@
                 inner.className = 'jmm-card-inner';
                 const back = document.createElement('div');
                 back.className = 'jmm-card-face jmm-card-back';
-                back.textContent = '❓';
+                const emblem = document.createElement('span');
+                emblem.className = 'jmm-back-emblem';
+                emblem.textContent = '?';
+                back.appendChild(emblem);
                 const front = document.createElement('div');
                 front.className = 'jmm-card-face jmm-card-front';
                 const fracMatch = /^(\d+)\/(\d+)$/.exec(card.text);
@@ -1155,7 +1311,9 @@
             }
         }
 
-        function showOverlay(title, sub, btnLabel, btnDisabled) {
+        function showOverlay(title, sub, btnLabel, btnDisabled, stars) {
+            starsEl.classList.toggle('show', !!stars);
+            starsEl.querySelectorAll('span').forEach((st, i) => st.classList.toggle('on', !!stars && i < stars));
             overlayTitle.textContent = title;
             overlaySub.textContent = sub;
             startBtn.textContent = btnLabel;
@@ -1172,12 +1330,12 @@
         function startGame() {
             if (running && !paused) return;
             if (!canStart()) {
-                showOverlay('🧠 Jeu de memory', 'Ajoute au moins 3 paires personnalisées dans les paramètres ⚙ avant de démarrer.', '▶ Démarrer', true);
+                showOverlay('Jeu de memory', 'Ajoute au moins 3 paires personnalisées dans les paramètres ⚙ avant de démarrer.', '▶ Démarrer', true);
                 return;
             }
             if (!running) {
                 buildBoard();
-                moves = 0; matches = 0;
+                moves = 0; matches = 0; _lastMatches = 0;
                 elapsedMs = 0; lastShownSeconds = -1;
                 updateHUD();
                 updateTimerDisplay(true);
@@ -1212,18 +1370,36 @@
         function endGame() {
             running = false;
             paused = true;
-            showOverlay('🏆 Bravo !', 'Toutes les paires trouvées en ' + moves + ' essais et ' + formatTime(elapsedMs) + '. Clique sur Démarrer pour rejouer.', '▶ Rejouer');
+            // Étoiles selon le nombre d'essais (un essai parfait = une paire)
+            const ratio = moves / Math.max(1, totalPairs);
+            const stars = ratio <= 1.6 ? 3 : ratio <= 2.4 ? 2 : 1;
+            const titles = { 3: 'Mémoire d\'éléphant !', 2: 'Bravo !', 1: 'Toutes les paires !' };
+            showOverlay('🏆 ' + titles[stars], 'Toutes les paires trouvées en ' + moves + ' essais et ' + formatTime(elapsedMs) + '.', '▶ Rejouer', false, stars);
+            launchConfetti();
+        }
+
+        function launchConfetti() {
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            const colors = ['#F5C542', '#FFFBF0', '#FF7A7A', '#6FD3FF', '#9B86FF', '#6EE7A8'];
+            for (let i = 0; i < 60; i++) {
+                const c = document.createElement('i');
+                c.style.left = (Math.random() * 100) + '%';
+                c.style.background = colors[i % colors.length];
+                c.style.animationDelay = (Math.random() * 0.6) + 's';
+                confettiEl.appendChild(c);
+            }
+            setTimeout(() => { confettiEl.innerHTML = ''; }, 2800);
         }
 
         function resetGame() {
             grid.innerHTML = '';
             cards = []; flipped = []; locked = false;
-            moves = 0; matches = 0; totalPairs = parseInt(pairsSelect.value, 10) || 8;
+            moves = 0; matches = 0; _lastMatches = 0; totalPairs = parseInt(pairsSelect.value, 10) || 8;
             running = false; paused = true;
             elapsedMs = 0; lastShownSeconds = -1;
             updateHUD();
             updateTimerDisplay(true);
-            showOverlay('🧠 Jeu de memory', 'Retrouve les paires en retournant deux cartes à la fois !', '▶ Démarrer');
+            showOverlay('Jeu de memory', 'Retrouve les paires en retournant deux cartes à la fois !', '▶ Démarrer');
         }
 
         function gameLoop(now) {

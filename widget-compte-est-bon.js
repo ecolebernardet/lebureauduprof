@@ -284,11 +284,11 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: calc(50px * var(--ceb-s));
-            height: calc(50px * var(--ceb-s));
+            min-width: calc(60px * var(--ceb-s));
+            height: calc(60px * var(--ceb-s));
             padding: 0 calc(10px * var(--ceb-s));
             border-radius: calc(10px * var(--ceb-s));
-            font-size: calc(20px * var(--ceb-s));
+            font-size: calc(30px * var(--ceb-s));
             font-weight: 800;
             cursor: pointer;
             border: calc(2px * var(--ceb-s)) solid #d1d5db;
@@ -377,12 +377,12 @@
             gap: calc(6px * var(--ceb-s));
         }
         .ceb-op-btn {
-            width: calc(46px * var(--ceb-s));
-            height: calc(46px * var(--ceb-s));
+            width: calc(55px * var(--ceb-s));
+            height: calc(55px * var(--ceb-s));
             border-radius: calc(10px * var(--ceb-s));
             border: calc(1.5px * var(--ceb-s)) solid #d1d5db;
             background: white;
-            font-size: calc(22px * var(--ceb-s));
+            font-size: calc(40px * var(--ceb-s));
             font-weight: 900;
             color: #374151;
             cursor: pointer;
@@ -607,93 +607,94 @@
     };
 
     // =========================================================================
-    // SOLVEUR FACILE (sans division, × uniquement si a<10 et b<10)
+    // SOLVEUR « SOLUTION LA PLUS SIMPLE » (point de vue d'un élève)
+    // Critères, dans l'ordre :
+    //   1. atteindre la cible (ou s'en approcher le plus possible)
+    //   2. utiliser le MOINS d'opérations possible
+    //   3. préférer les calculs faciles : + avant −, avant ×, avant ÷,
+    //      tables de multiplication simples, petits résultats intermédiaires
+    // Les calculs inutiles (× 1, ÷ 1) sont écartés et chaque opération est
+    // écrite avec le plus grand nombre en premier (ex. « 8 + 3 », « 7 × 4 »).
     // =========================================================================
 
-    function cebSolveFacile(numbers, target) {
-        let best = null;
-
-        function rec(nums, steps) {
-            for (let i = 0; i < nums.length; i++) {
-                for (let j = 0; j < nums.length; j++) {
-                    if (i === j) continue;
-                    const a = nums[i], b = nums[j];
-                    const candidates = [
-                        { op: '+', r: a + b },
-                        { op: '−', r: a - b },
-                    ];
-                    // Multiplication : uniquement si les DEUX opérandes sont < 10
-                    if (a < 10 && b < 10) candidates.push({ op: '×', r: a * b });
-
-                    for (const { op, r } of candidates) {
-                        if (r === null || r <= 0) continue;
-                        const newStep = `${a} ${op} ${b} = ${r}`;
-                        const newSteps = [...steps, newStep];
-                        const newNums = nums.filter((_, k) => k !== i && k !== j).concat(r);
-
-                        const dist = Math.abs(r - target);
-                        if (!best || dist < Math.abs(best.result - target)) {
-                            best = { steps: newSteps, result: r };
-                        }
-                        if (r === target) return;
-                        if (newNums.length > 1) rec(newNums, newSteps);
-                        if (best && best.result === target) return;
-                    }
-                    if (best && best.result === target) return;
-                }
-                if (best && best.result === target) return;
-            }
+    // « Difficulté » d'une opération pour un élève (plus c'est bas, plus c'est simple)
+    function cebOpCost(op, a, b, r) {
+        let c;
+        if (op === '+') c = 1;
+        else if (op === '−') c = 1.2;
+        else if (op === '×') {
+            if (b === 2 || b === 10 || b === 100 || a === 10 || a === 100) c = 1.5; // double, ×10, ×100
+            else if (b <= 10) c = 2;                                               // table de multiplication
+            else c = 3.5;                                                          // grand × grand
+        } else { // ÷
+            c = (b === 2 || b === 10) ? 2.5 : 3;                                   // moitié, ÷10 plus faciles
         }
-
-        rec(numbers, []);
-        return best;
+        if (r > 100)  c += 0.3;  // grands résultats intermédiaires = plus dur de tête
+        if (r > 1000) c += 0.7;
+        return c;
     }
 
-    // =========================================================================
-    // SOLVEUR GÉNÉRAL (recherche de solution)
-    // =========================================================================
+    function cebSolveSimple(numbers, target, facile) {
+        let best = null; // { steps, result, dist, nbSteps, cost }
+        const seen = new Map(); // état (plaques restantes triées) → plus petit coût déjà atteint
 
-    function cebSolve(numbers, target) {
-        // Recherche récursive — retourne la meilleure solution trouvée
-        // { steps: [...], result: number } ou null
-        let best = null;
+        function isBetter(dist, nbSteps, cost) {
+            if (!best) return true;
+            if (dist !== best.dist) return dist < best.dist;
+            if (nbSteps !== best.nbSteps) return nbSteps < best.nbSteps;
+            return cost < best.cost - 1e-9;
+        }
 
-        function rec(nums, steps) {
+        // Une plaque déjà égale (ou proche) de la cible, sans aucun calcul
+        numbers.forEach(n => {
+            const dist = Math.abs(n - target);
+            if (isBetter(dist, 0, 0)) best = { steps: [], result: n, dist, nbSteps: 0, cost: 0 };
+        });
+
+        function rec(nums, steps, cost) {
+            const key = nums.slice().sort((x, y) => x - y).join(',');
+            const prev = seen.get(key);
+            if (prev !== undefined && prev <= cost) return;
+            seen.set(key, cost);
+
+            const nbSteps = steps.length + 1;
+            // Si on a déjà une solution exacte plus courte (ou aussi courte et moins chère), inutile d'aller plus loin
+            if (best && best.dist === 0 &&
+                (nbSteps > best.nbSteps || (nbSteps === best.nbSteps && cost >= best.cost))) return;
+
             for (let i = 0; i < nums.length; i++) {
-                for (let j = 0; j < nums.length; j++) {
-                    if (i === j) continue;
-                    const a = nums[i], b = nums[j];
-                    const ops = [
-                        { op: '+', r: a + b },
-                        { op: '−', r: a - b },
-                        { op: '×', r: a * b },
-                        { op: '÷', r: b !== 0 && a % b === 0 ? a / b : null },
-                    ];
+                for (let j = i + 1; j < nums.length; j++) {
+                    const a = Math.max(nums[i], nums[j]);
+                    const b = Math.min(nums[i], nums[j]);
+                    const ops = [{ op: '+', r: a + b }];
+                    if (a > b) ops.push({ op: '−', r: a - b });
+                    if (b > 1 && (!facile || (a < 10 && b < 10))) ops.push({ op: '×', r: a * b });
+                    if (!facile && b > 1 && a % b === 0) ops.push({ op: '÷', r: a / b });
+
                     for (const { op, r } of ops) {
-                        if (r === null || r <= 0) continue;
-                        const newStep = `${a} ${op} ${b} = ${r}`;
-                        const newSteps = [...steps, newStep];
-                        const newNums = nums.filter((_, k) => k !== i && k !== j).concat(r);
-
-                        // Évaluer la qualité
+                        const newCost = cost + cebOpCost(op, a, b, r);
+                        const newSteps = steps.concat(`${a} ${op} ${b} = ${r}`);
                         const dist = Math.abs(r - target);
-                        if (!best || dist < Math.abs(best.result - target)) {
-                            best = { steps: newSteps, result: r };
+                        if (isBetter(dist, nbSteps, newCost)) {
+                            best = { steps: newSteps, result: r, dist, nbSteps, cost: newCost };
                         }
-                        if (r === target) return; // solution exacte trouvée
-
-                        if (newNums.length > 1) rec(newNums, newSteps);
-                        if (best && best.result === target) return;
+                        if (r === target) continue; // inutile de continuer après la cible
+                        const rest = nums.filter((_, k) => k !== i && k !== j);
+                        rest.push(r);
+                        if (rest.length > 1) rec(rest, newSteps, newCost);
                     }
-                    if (best && best.result === target) return;
                 }
-                if (best && best.result === target) return;
             }
         }
 
-        rec(numbers, []);
-        return best;
+        rec(numbers.slice(), [], 0);
+        return best ? { steps: best.steps, result: best.result } : null;
     }
+
+    // Facile : sans division, × uniquement si les deux nombres sont < 10
+    function cebSolveFacile(numbers, target) { return cebSolveSimple(numbers, target, true); }
+    // Moyen / difficile : les 4 opérations
+    function cebSolve(numbers, target)       { return cebSolveSimple(numbers, target, false); }
 
     // =========================================================================
     // GÉNÉRATEUR DE TIRAGE
@@ -1249,7 +1250,9 @@
                     const header = diff === 0
                         ? `<strong>✅ Solution exacte :</strong>`
                         : `<strong>⚠️ Meilleure approche trouvée (à ${diff} près) :</strong>`;
-                    solutionCard.innerHTML = header + '<br>' + sol.steps.map(s => `<span>→ ${s}</span>`).join('<br>');
+                    solutionCard.innerHTML = sol.steps.length === 0
+                        ? header + '<br><span>→ La plaque ' + sol.result + ' suffit, aucun calcul !</span>'
+                        : header + '<br>' + sol.steps.map(s => `<span>→ ${s}</span>`).join('<br>');
                 } else {
                     solutionCard.innerHTML = '<strong>Aucune solution trouvée.</strong>';
                 }

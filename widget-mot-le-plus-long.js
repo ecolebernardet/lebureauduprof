@@ -336,14 +336,14 @@
             gap: 6px;
             flex-wrap: wrap;
         }
-        .ml-answer-label { font-size: 12px; color: #888; }
+        .ml-answer-label { font-size: 20px; color: #888; }
         .ml-answer-input {
             font-family: 'Nunito', 'Segoe UI', sans-serif !important;
-            width: 190px;
+            width: 350px;
             padding: 5px 10px;
             border: 2px solid #ddd;
             border-radius: 8px;
-            font-size: 18px;
+            font-size: 40px;
             font-weight: 800;
             letter-spacing: 1px;
             text-transform: uppercase;
@@ -358,7 +358,7 @@
             padding: 5px 10px;
             border-radius: 8px;
             border: 1px solid #ddd;
-            font-size: 11px;
+            font-size: 25px;
             font-weight: 700;
             cursor: pointer;
             background: #f5f5f5;
@@ -369,7 +369,7 @@
             padding: 5px 12px;
             border-radius: 8px;
             border: none;
-            font-size: 11px;
+            font-size: 20px;
             font-weight: 700;
             cursor: pointer;
             background: #4a90e2;
@@ -378,7 +378,7 @@
         }
         .ml-check-btn:hover { background: #357abd; }
         .ml-feedback {
-            font-size: 14px;
+            font-size: 18px;
             font-weight: 700;
             opacity: 0;
             transition: opacity .3s;
@@ -396,13 +396,13 @@
             border: 1px solid #b7e4c7;
             border-radius: 10px;
             color: #1a5c32;
-            font-size: 13px;
+            font-size: 18px;
             line-height: 1.5;
         }
         .ml-solution.show { display: block; }
         .ml-solution .ml-sol-best {
             font-family: 'Nunito', 'Segoe UI', sans-serif;
-            font-size: 26px;
+            font-size: 35px;
             font-weight: 900;
             color: #28a745;
             letter-spacing: 1px;
@@ -410,9 +410,9 @@
             margin-right: 10px;
         }
         .ml-solution .ml-sol-others { color: #2f6b45; }
-        .ml-solution .ml-sol-next { color: #6b7280; font-size: 12px; margin-top: 2px; }
+        .ml-solution .ml-sol-next { color: #6b7280; font-size: 15px; margin-top: 2px; }
         .ml-solution .ml-sol-def {
-            font-size: 14px;
+            font-size: 22px;
             color: #2f4f3a;
             margin: 2px 0 4px;
             padding-left: 8px;
@@ -1705,6 +1705,55 @@ function createMotLePlusLongWidget() {
         saveBoard();
     }
 
+    // ── Sons ──────────────────────────────────────────────────────────────
+    // Un seul contexte audio, "déverrouillé" lors d'une interaction de
+    // l'utilisateur (obligatoire sur tablette / Safari / Chrome), puis
+    // réutilisé quand le chrono se termine.
+    let mlAudioCtx = null;
+    function getAudioCtx() {
+        if (!mlAudioCtx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return null;
+            mlAudioCtx = new AC();
+        }
+        return mlAudioCtx;
+    }
+    function unlockAudio() {
+        try {
+            const ctx = getAudioCtx();
+            if (!ctx) return;
+            if (ctx.state === 'suspended') ctx.resume();
+            // Son silencieux pour débloquer l'audio (iOS)
+            const buf = ctx.createBuffer(1, 1, 22050);
+            const src = ctx.createBufferSource();
+            src.buffer = buf; src.connect(ctx.destination); src.start(0);
+        } catch (e) {}
+    }
+    ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'].forEach(evt => {
+        widget.addEventListener(evt, unlockAudio, { capture: true, passive: true });
+    });
+
+    function playBeep() {
+        try {
+            const ctx = getAudioCtx();
+            if (!ctx) return;
+            const schedule = () => {
+                const t0 = ctx.currentTime + 0.02;
+                [[880,0,0.18],[880,0.22,0.18],[1318,0.44,0.4]].forEach(function (p) {
+                    var osc = ctx.createOscillator(), gain = ctx.createGain();
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.frequency.value = p[0]; osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.5, t0 + p[1]);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t0 + p[1] + p[2]);
+                    osc.start(t0 + p[1]);
+                    osc.stop(t0 + p[1] + p[2] + 0.05);
+                });
+            };
+            if (ctx.state === 'suspended') ctx.resume().then(schedule).catch(() => {});
+            else schedule();
+        } catch (e) {}
+    }
+
     // ── Chronomètre ───────────────────────────────────────────────────────
     function stopChrono() {
         if (chronoId) { clearInterval(chronoId); chronoId = null; }
@@ -1723,6 +1772,7 @@ function createMotLePlusLongWidget() {
                 stopChrono();
                 chronoEl.className = 'ml-chrono over';
                 chronoEl.textContent = '⏰ Temps écoulé !';
+                playBeep();
             } else {
                 chronoEl.textContent = '⏱ ' + chronoLeft + ' s';
                 if (chronoLeft <= 5) chronoEl.classList.add('urgent');

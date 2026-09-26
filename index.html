@@ -1068,6 +1068,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-homophones.js"></script>
 <script src="widget-jeu-pendu.js"></script>
 <script src="widget-jeu-tangram.js"></script>
+<script src="widget-jeu-simon.js"></script>
 <script src="widget-de.js"></script>
 <script src="widget-fractions.js"></script>
 <script src="widget-minuteur-chrono.js"></script>
@@ -1165,11 +1166,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">La caisse du marchand</div>
                 <div class="act-card-desc">Rendre la monnaie au client avec les pièces et les billets</div>
             </div>
-            <div class="act-card" onclick="createWidget('jeu-tangram');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-tangram.png" alt="Le tangram" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Le tangram</div>
-                <div class="act-card-desc">Reproduire une figure avec les 7 pièces du puzzle chinois</div>
-            </div>
 		</div>
 		<div class="act-section-label">🎮 Jeux de français</div>
 		<div class="act-grid">
@@ -1215,6 +1211,16 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-sudokus.png" alt="Memory" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Sudoku</div>
                 <div class="act-card-desc">Glisser les chiffres dans la grille pour compléter le sudoku</div>
+            </div>
+			<div class="act-card" onclick="createWidget('jeu-tangram');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-tangram.png" alt="Le tangram" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Le tangram</div>
+                <div class="act-card-desc">Reproduire une figure avec les 7 pièces du puzzle chinois</div>
+            </div>
+            <div class="act-card" onclick="createWidget('jeu-simon');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-simon.png" alt="Simon" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Simon</div>
+                <div class="act-card-desc">Mémoriser et répéter une suite de couleurs, de notes ou d'animaux</div>
             </div>
 		</div>
     </div>

@@ -1067,7 +1067,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-caisse-marchand.js"></script>
 <script src="widget-jeu-homophones.js"></script>
 <script src="widget-jeu-pendu.js"></script>
-<script src="widget-jeu-motsmeles.js"></script>
+<script src="widget-jeu-tangram.js"></script>
 <script src="widget-de.js"></script>
 <script src="widget-fractions.js"></script>
 <script src="widget-minuteur-chrono.js"></script>
@@ -1165,6 +1165,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">La caisse du marchand</div>
                 <div class="act-card-desc">Rendre la monnaie au client avec les pièces et les billets</div>
             </div>
+            <div class="act-card" onclick="createWidget('jeu-tangram');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-tangram.png" alt="Le tangram" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Le tangram</div>
+                <div class="act-card-desc">Reproduire une figure avec les 7 pièces du puzzle chinois</div>
+            </div>
 		</div>
 		<div class="act-section-label">🎮 Jeux de français</div>
 		<div class="act-grid">
@@ -1175,7 +1180,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             </div>
 			<div class="act-card" onclick="createWidget('jeu-conju');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-conju.png" alt="Conju" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Les portes du temps</div>
+                <div class="act-card-name">Jeu de conjugaison</div>
                 <div class="act-card-desc">Glisser les verbes conjugués dans le bon temps</div>
             </div>
 			<div class="act-card" onclick="createWidget('jeu-nature-mots-pacman');toggleJeuxPanel()">
@@ -1197,11 +1202,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-pendu.png" alt="Le pendu" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Le pendu</div>
                 <div class="act-card-desc">Deviner le mot mystère lettre par lettre avant que les ballons n'éclatent</div>
-            </div>
-			<div class="act-card" onclick="createJeuMotsMelesWidget();toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-motsmeles.png" alt="Mots mêlés" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Mots mêlés</div>
-                <div class="act-card-desc">Retrouver les mots cachés dans la grille en glissant d'une lettre à l'autre</div>
             </div>
 		</div>
 		<div class="act-section-label">🎮 Jeux divers</div>

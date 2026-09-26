@@ -276,23 +276,12 @@
             background: #fff;
             border: 1px solid #e5e7eb;
             border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s;
+            cursor: default;
             user-select: none;
             position: relative;
             z-index: 1;
         }
-        .mm-cell.selected {
-            background: transparent;
-            border-color: #e5e7eb;
-            color: #1e3a5f;
-        }
-        .mm-cell.correct {
-            background: transparent;
-            border-color: #e5e7eb;
-            color: #1e3a5f;
-        }
-        .mm-correction-canvas, .mm-play-canvas {
+        .mm-correction-canvas {
             position: absolute;
             top: 0; left: 0;
             pointer-events: none;
@@ -319,11 +308,6 @@
             border-radius: 20px;
             text-transform: uppercase;
             transition: all 0.3s;
-        }
-        .mm-word-chip.found {
-            color: #fff;
-            text-decoration: line-through;
-            opacity: 0.75;
         }
 
         /* ── Actions ── */
@@ -428,21 +412,6 @@
         /* ── Thème selector ── */
         .mm-theme-select { font-size: 13px; }
 
-        /* ── Victoire ── */
-        .mm-victory-banner {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: linear-gradient(135deg, #10b981, #3b82f6);
-            color: white;
-            font-weight: 800;
-            font-size: 13px;
-            border-radius: 8px;
-            padding: 8px 12px;
-            text-align: center;
-        }
-        .mm-victory-banner.show { display: flex; }
     `;
     document.head.appendChild(s);
 })();
@@ -559,15 +528,7 @@ function createMotsMelesWidget(savedData) {
             Saisissez vos mots séparés par des <b>virgules</b>, choisissez la taille de la grille et la difficulté, puis cliquez sur <b>Générer</b>.
         </div>
         <div class="mm-help-section">
-            <strong>🔍 2. Recherche</strong><br>
-            Cliquez sur les lettres pour les <b>sélectionner</b>. Cliquez à nouveau pour désélectionner.
-        </div>
-        <div class="mm-help-section">
-            <strong>✅ 3. Validation automatique</strong><br>
-            Quand un mot complet est trouvé, il se <b>surligne en couleur</b> et se barre dans la liste. Chaque mot a sa propre couleur.
-        </div>
-        <div class="mm-help-section">
-            <strong>👁️ 4. Correction</strong><br>
+            <strong>👁️ 2. Correction</strong><br>
             Cliquez sur <b>Correction</b> pour révéler l'emplacement de tous les mots.
         </div>
         <div class="mm-help-section">
@@ -580,7 +541,7 @@ function createMotsMelesWidget(savedData) {
         </div>
         <div class="mm-help-section">
             <strong>📄 Exporter en PDF</strong><br>
-            Depuis la grille, cliquez sur <b>PDF</b> pour générer une fiche imprimable avec la grille vierge et sa correction sur deux pages.
+            Depuis la grille, cliquez sur <b>PDF</b> pour générer une fiche imprimable : <b>2 grilles vierges</b> en page 1 (à découper) et <b>2 corrections</b> en page 2.
         </div>
     `;
     container.appendChild(helpPopup);
@@ -669,12 +630,10 @@ function createMotsMelesWidget(savedData) {
         </div>
         <div class="mm-game-title" style="font-size:13px;font-weight:800;text-align:center;color:#374151;"></div>
         <div class="mm-grid-zone" style="position:relative;">
-            <canvas class="mm-play-canvas"></canvas>
             <canvas class="mm-correction-canvas"></canvas>
             <div class="mm-grid"></div>
         </div>
         <div class="mm-words-list"></div>
-        <div class="mm-victory-banner">🏆 Bravo ! Tous les mots ont été trouvés !</div>
     `;
     container.appendChild(gameZone);
 
@@ -712,9 +671,7 @@ function createMotsMelesWidget(savedData) {
     const gameTitleEl   = gameZone.querySelector('.mm-game-title');
     const gridEl        = gameZone.querySelector('.mm-grid');
     const canvas        = gameZone.querySelector('.mm-correction-canvas');
-    const playCanvas    = gameZone.querySelector('.mm-play-canvas');
     const wordsList     = gameZone.querySelector('.mm-words-list');
-    const victoryBanner = gameZone.querySelector('.mm-victory-banner');
 
     // ── Compteur de mots ──────────────────────────────────────────────────
     function updateWordCount() {
@@ -724,7 +681,7 @@ function createMotsMelesWidget(savedData) {
     wordsInput.addEventListener('input', updateWordCount);
 
     // ── Thème rapide ──────────────────────────────────────────────────────
-    themeSelector.addEventListener('change', () => {
+    function applyTheme() {
         const key = themeSelector.value;
         if (key && MM_THEMES[key]) {
             wordsInput.value = MM_THEMES[key];
@@ -732,7 +689,12 @@ function createMotsMelesWidget(savedData) {
             titleInput.value = optText.replace(/^[^\s]+\s/, '');
             updateWordCount();
         }
-    });
+    }
+    themeSelector.addEventListener('change', applyTheme);
+
+    // À l'ouverture : pré-remplir avec le thème affiché (Animaux par défaut)
+    // (setData écrasera ces valeurs si le widget est restauré depuis une sauvegarde)
+    applyTheme();
 
     // ── Algorithme : vérifier placement ───────────────────────────────────
     function canPlace(word, row, col, dr, dc) {
@@ -780,7 +742,17 @@ function createMotsMelesWidget(savedData) {
         const title   = titleInput.value.trim() || 'Mots Mêlés';
         const rawWords = wordsInput.value;
         _gridSize = Math.min(20, Math.max(5, parseInt(sizeInput.value) || 10));
-        if (!rawWords.trim()) return;
+        if (!rawWords.trim()) {
+            // Liste vide : utiliser le thème sélectionné, sinon prévenir l'utilisateur
+            if (MM_THEMES[themeSelector.value]) {
+                applyTheme();
+                return generateGrid();
+            }
+            wordsInput.focus();
+            wordsInput.style.borderColor = '#ef4444';
+            setTimeout(() => { wordsInput.style.borderColor = ''; }, 1500);
+            return;
+        }
 
         const words = rawWords.split(',')
             .map(w => w.trim().toUpperCase()
@@ -832,7 +804,22 @@ function createMotsMelesWidget(savedData) {
             ? csFromW
             : Math.floor((availH - (_gridSize - 1) * GAP) / _gridSize);
 
-        return Math.max(12, Math.min(csFromW, csFromH));
+        // Les cases ont une bordure de 1px (content-box) : +2px à retirer
+        const CELL_BORDER = 2;
+        return Math.max(12, Math.min(csFromW, csFromH) - CELL_BORDER);
+    }
+
+    // ── Limite de hauteur à l'ouverture ───────────────────────────────────
+    const MM_INITIAL_MAX_H = 600;
+    function fitGridZoneToMaxHeight() {
+        const gz = gameZone.querySelector('.mm-grid-zone');
+        if (gz.style.height) return;            // déjà dimensionnée par l'utilisateur
+        const MIN_GZ = 80;
+        gz.style.height = MIN_GZ + 'px';        // hauteur provisoire pour mesurer le reste
+        const others = container.offsetHeight - gz.offsetHeight;
+        const extras = gz.offsetHeight - MIN_GZ;  // padding + bordures (content-box)
+        gz.style.height = Math.max(MIN_GZ, MM_INITIAL_MAX_H - others - extras) + 'px';
+        refreshGridLayout();
     }
 
     // ── Rendu de la zone de jeu ───────────────────────────────────────────
@@ -859,15 +846,10 @@ function createMotsMelesWidget(savedData) {
             cell.dataset.sol = obj.isSolution ? 'true' : 'false';
             cell.dataset.idx = idx;
             cell.style.cssText = `width:${_cellSize}px;height:${_cellSize}px;font-size:${fontSize}px;`;
-            cell.addEventListener('click',     (e) => { e.stopPropagation(); toggleCell(cell); });
-            cell.addEventListener('pointerup', (e) => { e.stopPropagation(); });
             gridEl.appendChild(cell);
         });
 
-        // Canvas de jeu (surlignages de sélection) — au-dessus des cellules
-        playCanvas.style.cssText = `position:absolute;pointer-events:none;z-index:3;top:0;left:0;`;
-
-        // Canvas correction — au-dessus du canvas de jeu
+        // Canvas correction — au-dessus des cellules
         canvas.style.cssText = `position:absolute;pointer-events:none;z-index:4;top:0;left:0;`;
 
         // Liste des mots
@@ -876,165 +858,15 @@ function createMotsMelesWidget(savedData) {
             `<span class="mm-word-chip" data-word="${w}">• ${w}</span>`
         ).join('');
 
-        // Réinitialiser bannière victoire
-        victoryBanner.classList.remove('show');
         revealBtn.textContent = '👁️ Correction';
 
-        // Vider les canvas
-        const ctxP = playCanvas.getContext('2d');
-        ctxP.clearRect(0, 0, playCanvas.width, playCanvas.height);
+        // Hauteur initiale : le widget ne dépasse pas MM_INITIAL_MAX_H à l'ouverture.
+        // Si la zone grille a déjà une hauteur (redimensionnée ou restaurée), on la garde.
+        fitGridZoneToMaxHeight();
+
+        // Vider le canvas de correction
         const ctxC = canvas.getContext('2d');
         ctxC.clearRect(0, 0, canvas.width, canvas.height);
-
-        autoSave();
-    }
-
-    // ── Interaction cellule ───────────────────────────────────────────────
-    function toggleCell(cell) {
-        if (_isRevealed) return;
-        if (cell.classList.contains('correct')) return;
-
-        const idx = parseInt(cell.dataset.idx);
-
-        if (cell.classList.contains('selected')) {
-            cell.classList.remove('selected');
-        } else {
-            cell.classList.add('selected');
-        }
-        // Redessiner le canvas de jeu (couleurs semi-transparentes superposées)
-        drawPlayCanvas();
-        checkVictory();
-    }
-
-    /**
-     * Canvas de jeu : dessine un surlignage semi-transparent par mot,
-     * pour toutes les cellules de ce mot qui sont sélectionnées ou correctes.
-     * Les lettres partagées par 2 mots reçoivent naturellement le mélange
-     * des deux couleurs par superposition.
-     */
-    function drawPlayCanvas() {
-        const cells = Array.from(gridEl.querySelectorAll('.mm-cell'));
-        if (!cells.length) return;
-
-        const zoneRect  = playCanvas.parentElement.getBoundingClientRect();
-        const gridRect  = gridEl.getBoundingClientRect();
-
-        // Caler le canvas exactement sur la grille
-        playCanvas.style.left = (gridRect.left - zoneRect.left) + 'px';
-        playCanvas.style.top  = (gridRect.top  - zoneRect.top)  + 'px';
-        playCanvas.width  = gridRect.width;
-        playCanvas.height = gridRect.height;
-
-        const ctx = playCanvas.getContext('2d');
-        ctx.clearRect(0, 0, playCanvas.width, playCanvas.height);
-
-        const cell0Rect = cells[0].getBoundingClientRect();
-        const realCell  = cell0Rect.width;
-
-        ctx.lineWidth = realCell * 0.78;
-        ctx.lineCap   = 'round';
-
-        // Un tracé par mot — seulement si au moins une cellule est active
-        _placedWords.forEach(pw => {
-            const dr  = pw.r2 === pw.r1 ? 0 : (pw.r2 > pw.r1 ? 1 : -1);
-            const dc  = pw.c2 === pw.c1 ? 0 : (pw.c2 > pw.c1 ? 1 : -1);
-            const len = Math.max(Math.abs(pw.r2 - pw.r1), Math.abs(pw.c2 - pw.c1)) + 1;
-
-            // Collecter les cellules actives (selected ou correct) de ce mot
-            const active = [];
-            for (let i = 0; i < len; i++) {
-                const nr  = pw.r1 + i * dr;
-                const nc  = pw.c1 + i * dc;
-                const c   = cells[nr * _gridSize + nc];
-                if (c && (c.classList.contains('selected') || c.classList.contains('correct'))) {
-                    active.push(c);
-                }
-            }
-            if (!active.length) return;
-
-            // Dessiner un trait continu entre la première et la dernière cellule active
-            // du mot (dans l'ordre du mot, pas de l'ordre de clic)
-            const first = active[0];
-            const last  = active[active.length - 1];
-            const r0 = first.getBoundingClientRect();
-            const r1 = last.getBoundingClientRect();
-            const x1 = r0.left + r0.width  / 2 - gridRect.left;
-            const y1 = r0.top  + r0.height / 2 - gridRect.top;
-            const x2 = r1.left + r1.width  / 2 - gridRect.left;
-            const y2 = r1.top  + r1.height / 2 - gridRect.top;
-
-            ctx.strokeStyle = _hexToRgba(pw.color, 0.45);
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-        });
-    }
-
-    // Vérifie si la cellule (r,c) fait partie du mot placé pw
-    function _cellBelongsTo(r, c, pw) {
-        const dr = pw.r2 === pw.r1 ? 0 : (pw.r2 > pw.r1 ? 1 : -1);
-        const dc = pw.c2 === pw.c1 ? 0 : (pw.c2 > pw.c1 ? 1 : -1);
-        const len = Math.max(Math.abs(pw.r2 - pw.r1), Math.abs(pw.c2 - pw.c1)) + 1;
-        for (let i = 0; i < len; i++) {
-            if (pw.r1 + i * dr === r && pw.c1 + i * dc === c) return true;
-        }
-        return false;
-    }
-
-    // ── Vérification des mots trouvés ─────────────────────────────────────
-    function checkVictory() {
-        const cells = Array.from(gridEl.querySelectorAll('.mm-cell'));
-        const selectedIdx = cells
-            .filter(c => c.classList.contains('selected') || c.classList.contains('correct'))
-            .map(c => parseInt(c.dataset.idx));
-        const selSet = new Set(selectedIdx);
-
-        _placedWords.forEach(pw => {
-            const dr = pw.r2 === pw.r1 ? 0 : (pw.r2 > pw.r1 ? 1 : -1);
-            const dc = pw.c2 === pw.c1 ? 0 : (pw.c2 > pw.c1 ? 1 : -1);
-            const len = Math.max(Math.abs(pw.r2 - pw.r1), Math.abs(pw.c2 - pw.c1)) + 1;
-            let allSelected = true;
-            const wordCellsIdx = [];
-            for (let i = 0; i < len; i++) {
-                const r = pw.r1 + i * dr;
-                const c = pw.c1 + i * dc;
-                const idx = r * _gridSize + c;
-                wordCellsIdx.push(idx);
-                if (!selSet.has(idx)) allSelected = false;
-            }
-            const chip = wordsList.querySelector(`[data-word="${pw.word}"]`);
-            if (allSelected) {
-                if (chip) {
-                    chip.classList.add('found');
-                    chip.style.background = pw.color;
-                }
-                // Passer les cellules en état "correct" (sans couleur CSS inline)
-                wordCellsIdx.forEach(idx => {
-                    const cell = cells[idx];
-                    if (cell) {
-                        cell.classList.remove('selected');
-                        cell.classList.add('correct');
-                        cell.style.background  = '';
-                        cell.style.borderColor = '';
-                    }
-                });
-            } else {
-                if (chip && chip.classList.contains('found')) {
-                    chip.classList.remove('found');
-                    chip.style.background = '';
-                }
-            }
-        });
-
-        // Redessiner le canvas de jeu après validation
-        drawPlayCanvas();
-
-        // Vérification victoire globale
-        const allFound = Array.from(wordsList.querySelectorAll('.mm-word-chip')).every(c => c.classList.contains('found'));
-        if (allFound && _placedWords.length > 0) {
-            victoryBanner.classList.add('show');
-        }
 
         autoSave();
     }
@@ -1111,9 +943,6 @@ function createMotsMelesWidget(savedData) {
 
     // ── getData / setData (pour save-load.js) ─────────────────────────────
     function getData() {
-        const cells = Array.from(gridEl.querySelectorAll('.mm-cell'));
-        const selectedIdx = cells.filter(c => c.classList.contains('selected')).map(c => parseInt(c.dataset.idx));
-        const correctIdx  = cells.filter(c => c.classList.contains('correct')).map(c => parseInt(c.dataset.idx));
         return {
             // Paramètres config
             title:    titleInput.value,
@@ -1126,8 +955,6 @@ function createMotsMelesWidget(savedData) {
             isRevealed:  _isRevealed,
             inGame:      gameZone.style.display !== 'none',
             gameTitle:   gameTitleEl.textContent,
-            selectedIdx,
-            correctIdx,
             // Dimensions container
             containerW:   container.offsetWidth,
             gridZoneH:    gridZoneEl ? gridZoneEl.offsetHeight : 0
@@ -1152,41 +979,6 @@ function createMotsMelesWidget(savedData) {
             // Construire la liste des mots placés pour renderGame
             const wordLabels = _placedWords.map(pw => pw.word).filter(Boolean);
             renderGame(d.gameTitle || d.title || 'Mots Mêlés', wordLabels);
-
-            // Restaurer la sélection (classes uniquement, le canvas peint les couleurs)
-            if (d.selectedIdx && d.selectedIdx.length) {
-                const cells = Array.from(gridEl.querySelectorAll('.mm-cell'));
-                d.selectedIdx.forEach(idx => {
-                    if (cells[idx]) cells[idx].classList.add('selected');
-                });
-            }
-            if (d.correctIdx && d.correctIdx.length) {
-                const cells = Array.from(gridEl.querySelectorAll('.mm-cell'));
-                d.correctIdx.forEach(idx => {
-                    if (cells[idx]) {
-                        cells[idx].classList.remove('selected');
-                        cells[idx].classList.add('correct');
-                    }
-                });
-                // Réappliquer la couleur sur les chips trouvés
-                _placedWords.forEach(pw => {
-                    const dr = pw.r2 === pw.r1 ? 0 : (pw.r2 > pw.r1 ? 1 : -1);
-                    const dc = pw.c2 === pw.c1 ? 0 : (pw.c2 > pw.c1 ? 1 : -1);
-                    const len = Math.max(Math.abs(pw.r2 - pw.r1), Math.abs(pw.c2 - pw.c1)) + 1;
-                    const allCorrect = Array.from({length: len}, (_, i) => {
-                        const idx = (pw.r1 + i * dr) * _gridSize + (pw.c1 + i * dc);
-                        const cells2 = Array.from(gridEl.querySelectorAll('.mm-cell'));
-                        return cells2[idx] && cells2[idx].classList.contains('correct');
-                    }).every(Boolean);
-                    if (allCorrect) {
-                        const chip = wordsList.querySelector(`[data-word="${pw.word}"]`);
-                        if (chip) { chip.classList.add('found'); chip.style.background = pw.color; }
-                    }
-                });
-            }
-
-            // Redessiner le canvas de jeu après restauration
-            requestAnimationFrame(() => drawPlayCanvas());
 
             // Restaurer la correction si elle était affichée
             if (d.isRevealed) requestAnimationFrame(() => { toggleReveal(); });
@@ -1267,16 +1059,12 @@ function createMotsMelesWidget(savedData) {
             const title  = gameTitleEl.textContent || titleInput.value.trim() || 'Mots Mêlés';
             const words  = _placedWords.map(pw => pw.word)
                 .sort((a, b) => a.localeCompare(b, 'fr'));
-            const cs     = 8;   // cellSize PDF en mm
-            const startX = (210 - (_gridSize * cs)) / 2;
-            const startY = 40;
+            // ── Page 1 : 2 grilles vierges ────────────────────────────────
+            _pdfTwoBlocks(doc, title, words, false);
 
-            // ── Page 1 : grille vierge ────────────────────────────────────
-            _pdfPage(doc, title, startX, startY, cs, words, false);
-
-            // ── Page 2 : correction ───────────────────────────────────────
+            // ── Page 2 : 2 corrections ────────────────────────────────────
             doc.addPage();
-            _pdfPage(doc, title + ' (CORRECTION)', startX, startY, cs, words, true);
+            _pdfTwoBlocks(doc, title + ' (CORRECTION)', words, true);
 
             // Nom de fichier
             const clean = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -1302,22 +1090,53 @@ function createMotsMelesWidget(savedData) {
         }
     }
 
-    function _pdfPage(doc, title, startX, startY, cs, words, showSol) {
+    // Page A4 (210 × 297 mm) coupée en deux moitiés identiques + trait de découpe
+    const PDF_W = 210, PDF_H = 297, PDF_HALF = PDF_H / 2;
+
+    function _pdfTwoBlocks(doc, title, words, showSol) {
+        _pdfBlock(doc, title, 0,        words, showSol);
+        _pdfBlock(doc, title, PDF_HALF, words, showSol);
+
+        // Trait de découpe en pointillés au milieu de la page
+        doc.setDrawColor(170).setLineWidth(0.2);
+        doc.setLineDashPattern([2, 2], 0);
+        doc.line(8, PDF_HALF, PDF_W - 8, PDF_HALF);
+        doc.setLineDashPattern([], 0);
+    }
+
+    // Dessine un bloc (titre + grille + liste de mots) dans une demi-page
+    function _pdfBlock(doc, title, oy, words, showSol) {
+        const gs       = _gridSize;
+        const LIST_COLS = 4;
+        const LIST_COL_W = 45;
+        const LIST_ROW_H = 4.5;
+        const listRows = Math.ceil(words.length / LIST_COLS);
+        const listH    = 7 + listRows * LIST_ROW_H;
+        const gridTop  = oy + 18;
+        const bottomM  = 8;
+
+        // Taille de case : 8 mm max, réduite pour tenir dans la demi-page
+        const availH = PDF_HALF - 18 - 5 - listH - bottomM;
+        const cs     = Math.min(8, availH / gs, (PDF_W - 20) / gs);
+        const startX = (PDF_W - gs * cs) / 2;
+        const fs     = Math.max(6, 11 * cs / 8);        // taille police des lettres (pt)
+        const textDy = fs * 0.3528 * 0.36;              // centrage vertical (pt → mm)
+
         // Titre
-        doc.setFont('helvetica', 'bold').setFontSize(18)
-           .text(title, 105, 20, { align: 'center' });
+        doc.setTextColor(0).setFont('helvetica', 'bold').setFontSize(14)
+           .text(title, PDF_W / 2, oy + 12, { align: 'center' });
 
         // Traits de correction (opacité 30%)
         if (showSol) {
             doc.setGState(new doc.GState({ opacity: 0.3 }));
             doc.setDrawColor(150, 150, 150);
             doc.setLineCap('round');
-            doc.setLineWidth(cs - 4);
+            doc.setLineWidth(cs * 0.5);
             _placedWords.forEach(pw => {
                 const x1 = startX + pw.c1 * cs + cs / 2;
-                const y1 = startY + pw.r1 * cs + cs / 2;
+                const y1 = gridTop + pw.r1 * cs + cs / 2;
                 const x2 = startX + pw.c2 * cs + cs / 2;
-                const y2 = startY + pw.r2 * cs + cs / 2;
+                const y2 = gridTop + pw.r2 * cs + cs / 2;
                 doc.line(x1, y1, x2, y2);
             });
             doc.setGState(new doc.GState({ opacity: 1 }));
@@ -1327,23 +1146,23 @@ function createMotsMelesWidget(savedData) {
         _finalGrid.forEach((row, r) => {
             row.forEach((obj, c) => {
                 const x = startX + c * cs;
-                const y = startY + r * cs;
+                const y = gridTop + r * cs;
                 doc.setDrawColor(200).setLineWidth(0.1).rect(x, y, cs, cs);
-                doc.setTextColor(0).setFont('helvetica', 'bold').setFontSize(11)
-                   .text(obj.char, x + cs / 2, y + cs / 2 + 1.5, { align: 'center' });
+                doc.setTextColor(0).setFont('helvetica', 'bold').setFontSize(fs)
+                   .text(obj.char, x + cs / 2, y + cs / 2 + textDy, { align: 'center' });
             });
         });
 
-        // Liste des mots à trouver
-        const yList = startY + _gridSize * cs;
-        doc.setTextColor(0).setFont('helvetica', 'bold').setFontSize(12)
-           .text('Mots à trouver :', startX, yList + 15);
-        doc.setFont('helvetica', 'normal').setFontSize(10);
-        const nbPerCol = Math.ceil(words.length / 3);
+        // Liste des mots à trouver (4 colonnes, centrée)
+        const listX = (PDF_W - LIST_COLS * LIST_COL_W) / 2;
+        const yList = gridTop + gs * cs + 5;
+        doc.setTextColor(0).setFont('helvetica', 'bold').setFontSize(10)
+           .text('Mots à trouver :', listX, yList + 3);
+        doc.setFont('helvetica', 'normal').setFontSize(9);
         words.forEach((word, i) => {
-            const col = Math.floor(i / nbPerCol);
-            const row = i % nbPerCol;
-            doc.text('• ' + word, startX + col * 55, yList + 22 + row * 5);
+            const col = Math.floor(i / listRows);
+            const row = i % listRows;
+            doc.text('• ' + word, listX + col * LIST_COL_W, yList + 8 + row * LIST_ROW_H);
         });
     }
 
@@ -1513,7 +1332,6 @@ function createMotsMelesWidget(savedData) {
         if (_isRevealed) {
             requestAnimationFrame(() => drawCorrectionCanvas());
         }
-        requestAnimationFrame(() => drawPlayCanvas());
     }
 
     // Redessiner / recalculer si le widget est redimensionné

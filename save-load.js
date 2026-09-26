@@ -297,6 +297,11 @@ function buildBoardState() {
         if (w.dataset.type === 'motsmeles' && typeof w._mmGetData === 'function') {
             mmData = w._mmGetData();
         }
+        // Données propres au widget jeu mots mêlés
+        let jmmData = null;
+        if (w.dataset.type === 'jeu-motsmeles' && typeof w._jmmGetData === 'function') {
+            jmmData = w._jmmGetData();
+        }
         // Données propres au widget droite numérique
         let dnData = null;
         if ((w.dataset.type === 'droite-num' || w.dataset.subtype === 'droite-num') && typeof w._dnGetData === 'function') {
@@ -358,6 +363,7 @@ function buildBoardState() {
 			rqData,
 			saData,
 			mmData,
+			jmmData,
 			dnData,
 			nclData,
 			pixelartData
@@ -759,6 +765,12 @@ function restoreBoardFromJSON(json) {
         } else if (w.type === 'motsmeles') {
             if (typeof createMotsMelesWidget === 'function') {
                 widget = createMotsMelesWidget(w.mmData || null);
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-motsmeles') {
+            if (typeof createJeuMotsMelesWidget === 'function') {
+                widget = createJeuMotsMelesWidget(w.jmmData || null);
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

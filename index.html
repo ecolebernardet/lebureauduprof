@@ -1066,6 +1066,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-mot-alpha.js"></script>
 <script src="widget-jeu-caisse-marchand.js"></script>
 <script src="widget-jeu-homophones.js"></script>
+<script src="widget-jeu-pendu.js"></script>
 <script src="widget-de.js"></script>
 <script src="widget-fractions.js"></script>
 <script src="widget-minuteur-chrono.js"></script>
@@ -1190,6 +1191,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-chasse-homophones.png" alt="La chasse aux homophones" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">La chasse aux homophones</div>
                 <div class="act-card-desc">Tirer sur le canard qui porte le bon homophone pour compléter la phrase</div>
+            </div>
+			<div class="act-card" onclick="createWidget('jeu-pendu');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-pendu.png" alt="Le pendu" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Le pendu</div>
+                <div class="act-card-desc">Deviner le mot mystère lettre par lettre avant que les ballons n'éclatent</div>
             </div>
 		</div>
 		<div class="act-section-label">🎮 Jeux divers</div>

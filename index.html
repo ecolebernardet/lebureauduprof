@@ -1064,6 +1064,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-nature-mots-pacman.js"></script>
 <script src="widget-jeu-mot-le-plus-long.js"></script>
 <script src="widget-jeu-mot-alpha.js"></script>
+<script src="widget-jeu-caisse-marchand.js"></script>
 <script src="widget-de.js"></script>
 <script src="widget-fractions.js"></script>
 <script src="widget-minuteur-chrono.js"></script>
@@ -1155,6 +1156,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-nombres.png" alt="Jeu des nombres" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Le Jeu des Nombres</div>
                 <div class="act-card-desc">Écrire le nombre en chiffres ou en lettres avant la fin du chrono</div>
+            </div>
+            <div class="act-card" onclick="createWidget('jeu-caisse-marchand');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-caisse-marchand.png" alt="La caisse du marchand" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">La caisse du marchand</div>
+                <div class="act-card-desc">Rendre la monnaie au client avec les pièces et les billets</div>
             </div>
 		</div>
 		<div class="act-section-label">🎮 Jeux de français</div>

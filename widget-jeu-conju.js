@@ -119,6 +119,8 @@
         const s = document.createElement('style');
         s.id = 'widget-jeu-conju-style';
         s.textContent = `
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@700;800;900&display=swap');
+
         /* ── Widget transparent ── */
         .widget[data-type="jeu-conju"] {
             min-width: unset;
@@ -127,18 +129,40 @@
             box-shadow: none !important;
         }
 
-        /* ── Conteneur principal ── */
+        /* Palette « portes du temps » : nuit étoilée + 4 couleurs de temps */
         .jcj-container {
-            background: #ffffff;
-            border: 1.5px solid #d1d5db;
-            border-radius: 16px;
-            padding: 14px 16px 12px;
+            --nuit: #141B3D;
+            --nuit-2: #1F2856;
+            --or: #FFD35A;
+            --billet: #FFF6E0;
+            --encre: #1B2146;
+            --present: #FFB020;   --present-2: #FF7A00;
+            --futur: #22D3EE;     --futur-2: #3B6CF6;
+            --imparfait: #A78BFA; --imparfait-2: #6D28D9;
+            --passe: #F59E0B;     --passe-2: #B45309;
+            --ok: #22C55E;
+            --ko: #F43F5E;
+
+            background-color: var(--nuit);
+            background-image:
+                radial-gradient(1.5px 1.5px at 12% 18%, rgba(255,255,255,0.8), transparent 60%),
+                radial-gradient(1px 1px at 32% 72%, rgba(255,255,255,0.6), transparent 60%),
+                radial-gradient(1.5px 1.5px at 58% 12%, rgba(255,255,255,0.7), transparent 60%),
+                radial-gradient(1px 1px at 78% 48%, rgba(255,255,255,0.6), transparent 60%),
+                radial-gradient(1.5px 1.5px at 90% 86%, rgba(255,255,255,0.7), transparent 60%),
+                radial-gradient(1px 1px at 6% 90%, rgba(255,255,255,0.5), transparent 60%),
+                radial-gradient(ellipse at 85% 0%, rgba(59,108,246,0.35), transparent 55%),
+                radial-gradient(ellipse at 0% 100%, rgba(167,139,250,0.28), transparent 55%);
+            border: 3px solid #2A3570;
+            border-radius: 22px;
+            padding: 14px 16px 14px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            color: #fff;
+            box-shadow: 0 8px 0 #0B1028, 0 16px 36px rgba(0,0,0,0.35);
             position: relative;
             user-select: none;
             overflow: hidden;
@@ -157,17 +181,7 @@
             border-radius: 0 !important;
             padding-left: 52px !important;
         }
-
-        /* ── État plein écran, adapté au téléphone ──
-           Le padding-left de 52px (pensé pour dégager les onglets
-           latéraux desktop) prend trop de place sur un petit écran, mais
-           il en faut quand même un peu : les onglets latéraux (Jeux,
-           Activités, etc. — voir style-phone.css) débordent d'environ
-           33px sur le bord gauche de l'écran même en fullboard, il ne
-           faut donc pas descendre en dessous pour ne pas les recouvrir.
-           min-width est aussi annulé : sans ça, le min-width fixe pensé
-           pour desktop empêchait le conteneur de rétrécir sous l'écran
-           du téléphone et le faisait déborder à droite. */
+        /* Plein écran sur téléphone (voir la version d'origine pour le détail) */
         .jcj-container.wf-fullboard.jti-mobile {
             min-width: unset !important;
             width: 100% !important;
@@ -181,49 +195,71 @@
         .jcj-header {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             cursor: move;
             user-select: none;
             flex-shrink: 0;
         }
         .jcj-title {
-            font-size: 13px;
-            font-weight: 800;
-            color: #374151;
-            letter-spacing: 0.3px;
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'Fredoka', 'Nunito', sans-serif;
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--or);
+            text-shadow: 0 0 18px rgba(255,211,90,0.45), 0 3px 0 #7A5A00;
             pointer-events: none;
             white-space: nowrap;
         }
+        .jcj-title small {
+            font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 900;
+            color: #C7CFFF; text-shadow: none; letter-spacing: 1px; text-transform: uppercase;
+            background: rgba(255,255,255,0.1); border-radius: 999px; padding: 4px 10px;
+        }
+        .jcj-title-clock {
+            position: relative; width: 26px; height: 26px; border-radius: 50%;
+            background: var(--billet); border: 3px solid var(--or); box-sizing: border-box;
+            box-shadow: 0 0 12px rgba(255,211,90,0.5);
+        }
+        .jcj-title-clock::before, .jcj-title-clock::after {
+            content: ''; position: absolute; left: 50%; bottom: 50%;
+            width: 2px; background: var(--encre); border-radius: 2px; transform-origin: bottom center;
+        }
+        .jcj-title-clock::before { height: 7px; transform: translateX(-50%) rotate(40deg); }
+        .jcj-title-clock::after  { height: 9px; transform: translateX(-50%) rotate(-70deg); animation: jcj-tick 8s linear infinite; }
+        @keyframes jcj-tick { to { transform: translateX(-50%) rotate(290deg); } }
 
         /* ── Boutons paramètres / aide ── */
         .jcj-params-btn, .jcj-help-btn {
-            width: 22px; height: 22px; border-radius: 50%;
-            border: 1px solid #bbb; background: #f5f5f5;
-            color: #666; font-size: 12px; font-weight: 700;
+            width: 26px; height: 26px; border-radius: 50%;
+            border: none; background: rgba(255,255,255,0.12);
+            color: #fff; font-size: 13px; font-weight: 900; font-family: inherit;
             cursor: pointer; display: flex; align-items: center;
             justify-content: center; flex-shrink: 0;
             transition: background .15s;
         }
-        .jcj-params-btn:hover, .jcj-help-btn:hover { background: #e0e0e0; color: #333; }
-        .jcj-params-btn.active { background: #4a90e2; color: white; border-color: #357abd; }
+        .jcj-params-btn:hover, .jcj-help-btn:hover { background: rgba(255,255,255,0.25); }
+        .jcj-params-btn.active { background: var(--or); color: var(--encre); }
 
         /* ── Popup aide ── */
         .jcj-help-popup {
             display: none; position: absolute;
-            top: 42px; right: 10px;
-            background: #fff; border: 1px solid #ddd;
-            border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-            padding: 12px 14px; width: 320px;
-            font-size: 11px; color: #444; z-index: 20; line-height: 1.6;
+            top: 50px; right: 12px;
+            background: var(--billet); color: var(--encre);
+            border-radius: 14px;
+            box-shadow: 0 6px 0 #C9BC98, 0 12px 30px rgba(0,0,0,0.4);
+            padding: 12px 14px; width: 340px;
+            font-size: 12px; z-index: 30; line-height: 1.55;
         }
         .jcj-help-popup.show { display: block; }
-        .jcj-help-popup h4 { margin: 0 0 8px; font-size: 12px; color: #374151; }
+        .jcj-help-popup h4 { margin: 0 0 8px; font-family: 'Fredoka', sans-serif; font-size: 17px; color: var(--encre); }
+        .jcj-help-popup p { color: #3A4166 !important; }
 
         /* ── Panneau paramètres ── */
         .jcj-params-panel {
-            background: #f8f9fa;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
+            background: rgba(255,255,255,0.07);
+            border: 1.5px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
             padding: 10px 14px;
             display: none;
             flex-direction: column;
@@ -234,49 +270,78 @@
         .jcj-params-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 8px 10px;
             flex-wrap: wrap;
         }
         .jcj-params-row label {
-            font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;
+            font-size: 12px; font-weight: 800; color: #C7CFFF; white-space: nowrap;
         }
         .jcj-count-select, .jcj-group-select {
-            padding: 5px 10px; border-radius: 7px;
-            border: 1px solid #d1d5db; font-size: 12px;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            outline: none; cursor: pointer; background: white;
+            padding: 6px 12px; border-radius: 999px;
+            border: 2px solid transparent; font-size: 13px; font-weight: 800;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            outline: none; cursor: pointer;
+            background: var(--billet); color: var(--encre);
         }
-        .jcj-count-select:focus, .jcj-group-select:focus { border-color: #4a90e2; }
+        .jcj-count-select:focus, .jcj-group-select:focus { border-color: var(--or); }
 
         /* ── HUD ── */
         .jcj-hud {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            font-size: 14px;
-            font-weight: 800;
-            color: #374151;
+            gap: 10px;
             flex-shrink: 0;
-            padding: 0 2px;
         }
-        .jcj-score { color: #2e7d32; }
-        .jcj-errors { color: #c53030; }
-        .jcj-timer { color: #374151; font-variant-numeric: tabular-nums; }
+        .jcj-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.09);
+            border-radius: 999px;
+            padding: 5px 14px 5px 6px;
+            font-weight: 900; font-size: 15px; color: #fff;
+            white-space: nowrap;
+        }
+        .jcj-chip-ico {
+            width: 26px; height: 26px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 14px; background: rgba(255,255,255,0.12);
+        }
+        .jcj-chip small { font-weight: 800; font-size: 12px; color: #C7CFFF; }
+        .jcj-chip b { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 19px; line-height: 1; font-variant-numeric: tabular-nums; }
+        .jcj-score { flex: 1; padding-right: 14px; }
+        .jcj-progress {
+            display: block; flex: 1; min-width: 60px; height: 12px; border-radius: 999px;
+            background: rgba(0,0,0,0.35); overflow: hidden;
+        }
+        .jcj-progress-fill {
+            display: block; height: 100%; width: 0%; border-radius: 999px;
+            background: linear-gradient(90deg, var(--or), #FFE9A8);
+            transition: width .4s cubic-bezier(.3,1.3,.5,1), background .3s;
+        }
+        .jcj-score.scored .jcj-progress-fill { background: linear-gradient(90deg, #16A34A, #6EE7A0); }
+        .jcj-errors.has-errors { background: rgba(244,63,94,0.28); }
+        .jcj-timer b { min-width: 48px; display: inline-block; }
 
         /* ── Bandeau message de correction ── */
         .jcj-message {
             display: none;
-            padding: 8px 14px;
-            border-radius: 10px;
-            font-size: 12.5px;
-            font-weight: 700;
+            align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
+            padding: 9px 16px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 800;
             text-align: center;
             flex-shrink: 0;
             box-sizing: border-box;
         }
-        .jcj-message.show { display: block; }
-        .jcj-message.success { background: #eafcef; color: #1e5e2e; border: 1.5px solid #38a169; }
-        .jcj-message.error   { background: #fff0f0; color: #822727; border: 1.5px solid #e53e3e; }
+        .jcj-message.show { display: flex; animation: jcj-drop .35s cubic-bezier(.3,1.4,.5,1); }
+        @keyframes jcj-drop { 0% { transform: translateY(-10px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+        .jcj-message.success { background: #DCFCE7; color: #14532D; box-shadow: 0 4px 0 #16A34A; }
+        .jcj-message.error   { background: #FFE4E6; color: #881337; box-shadow: 0 4px 0 #E11D48; }
+        .jcj-msg-stars span { font-size: 22px; opacity: 0.25; filter: grayscale(1); }
+        .jcj-msg-stars span.on { opacity: 1; filter: none; animation: jcj-star .45s cubic-bezier(.3,1.6,.5,1) both; }
+        .jcj-msg-stars span.on:nth-child(2) { animation-delay: .15s; }
+        .jcj-msg-stars span.on:nth-child(3) { animation-delay: .3s; }
+        @keyframes jcj-star { 0% { transform: scale(0) rotate(-40deg); } 100% { transform: scale(1) rotate(0); } }
 
         /* ── Zone de jeu ── */
         .jcj-play-zone {
@@ -284,177 +349,282 @@
             min-height: 160px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             position: relative;
         }
 
-        /* ── Réservoir d'étiquettes ── */
+        /* ── Réservoir de billets ── */
         .jcj-pool {
             flex: 0 0 auto;
             max-height: 38%;
+            min-height: 58px;
             overflow-y: auto;
             display: flex;
             flex-wrap: wrap;
             align-content: flex-start;
-            gap: 8px;
-            padding: 10px;
-            border-radius: 12px;
-            background: linear-gradient(180deg, #eef4ff 0%, #f7fbff 100%);
-            border: 1.5px solid #d9e6f7;
+            justify-content: center;
+            gap: 10px;
+            padding: 30px 12px 12px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.06);
+            border: 2px dashed rgba(199,207,255,0.35);
             box-sizing: border-box;
+            position: relative;
+        }
+        .jcj-pool::before {
+            content: '🎫 Billets à ranger';
+            position: absolute; top: 7px; left: 12px;
+            font-size: 12px; font-weight: 900; color: #C7CFFF; letter-spacing: .5px;
+        }
+        .jcj-pool:empty::after {
+            content: 'Tous les billets sont rangés : clique sur ✔️ Correction !';
+            align-self: center; margin: auto;
+            font-weight: 800; font-size: 14px; color: rgba(255,255,255,0.55);
+        }
+        .jcj-container.jcj-done .jcj-pool:empty::after {
+            content: '🎉 Tous les billets ont passé la bonne porte du temps !';
+            color: #86EFAC;
         }
 
-        /* ── Grille des 4 catégories ── */
+        /* ── Les 4 portes du temps ── */
         .jcj-zones {
             flex: 1;
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            gap: 10px;
+            gap: 12px;
             min-height: 140px;
         }
         .jcj-zone {
-            border-radius: 12px;
-            border: 2.5px dashed #cbd5e0;
-            padding: 8px;
+            --c1: #fff; --c2: #999;
+            position: relative;
+            border-radius: 16px;
+            padding: 0 10px 10px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
             overflow: hidden;
             box-sizing: border-box;
-            transition: filter .15s, box-shadow .15s;
+            background: var(--nuit-2);                 /* repli navigateurs anciens */
+            border: 2.5px solid var(--c1);
+            background:
+                linear-gradient(180deg, color-mix(in srgb, var(--c1) 16%, transparent), rgba(255,255,255,0.04) 70%),
+                var(--nuit-2);
+            border: 2.5px solid color-mix(in srgb, var(--c1) 70%, transparent);
+            box-shadow: 0 5px 0 rgba(0,0,0,0.35), inset 0 0 30px color-mix(in srgb, var(--c1) 12%, transparent);
+            transition: transform .15s, box-shadow .15s;
         }
-        .jcj-zone[data-tense="present"]       { border-color: #3182ce; background: #eaf4ff; }
-        .jcj-zone[data-tense="futur"]         { border-color: #38a169; background: #eafcef; }
-        .jcj-zone[data-tense="imparfait"]     { border-color: #dd6b20; background: #fff6ec; }
-        .jcj-zone[data-tense="passecompose"]  { border-color: #805ad5; background: #f5f0ff; }
+        .jcj-zone[data-tense="present"]       { --c1: var(--present);   --c2: var(--present-2); }
+        .jcj-zone[data-tense="futur"]         { --c1: var(--futur);     --c2: var(--futur-2); }
+        .jcj-zone[data-tense="imparfait"]     { --c1: var(--imparfait); --c2: var(--imparfait-2); }
+        .jcj-zone[data-tense="passecompose"]  { --c1: var(--passe);     --c2: var(--passe-2); }
+        /* Grand symbole en filigrane */
+        .jcj-zone::after {
+            position: absolute; right: 8px; bottom: -6px;
+            font-size: 64px; opacity: 0.12; pointer-events: none; line-height: 1;
+        }
+        .jcj-zone[data-tense="present"]::after      { content: '☀️'; }
+        .jcj-zone[data-tense="futur"]::after        { content: '🚀'; }
+        .jcj-zone[data-tense="imparfait"]::after    { content: '🌙'; }
+        .jcj-zone[data-tense="passecompose"]::after { content: '⏳'; }
         .jcj-zone.jcj-zone-hover {
-            box-shadow: inset 0 0 0 3px rgba(0,0,0,0.18);
-            border-color: #374151;
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 0 0 3px var(--c1), 0 0 28px var(--c1), 0 5px 0 rgba(0,0,0,0.35);
         }
         .jcj-zone-title {
-            font-weight: 800;
-            font-size: 12px;
+            margin: 0 -10px;
+            padding: 7px 10px;
+            background: linear-gradient(90deg, var(--c1), var(--c2));
+            font-family: 'Fredoka', 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 17px;
+            letter-spacing: .3px;
             text-align: center;
             flex-shrink: 0;
-            color: #374151;
+            color: #fff;
+            text-shadow: 0 2px 0 rgba(0,0,0,0.25);
+            border-radius: 12px 12px 0 0;
         }
         .jcj-zone-drops {
             flex: 1;
             display: flex;
             flex-wrap: wrap;
             align-content: flex-start;
-            gap: 6px;
+            gap: 7px;
             overflow-y: auto;
+            position: relative; z-index: 1;
         }
 
-        /* ── Étiquette ── */
+        /* ── Billet (étiquette) ── */
         .jcj-tag {
-            padding: 8px 13px;
-            border-radius: 20px;
-            background: white;
-            border: 2px solid #cbd5e0;
-            color: #374151;
-            font-weight: 700;
+            position: relative;
+            padding: 8px 14px 8px 18px;
+            border-radius: 10px;
+            background: var(--billet);
+            border: 2px solid #E8D9B0;
+            color: var(--encre);
+            font-weight: 900;
             font-size: var(--jcj-fs, 13px);
             cursor: grab;
             user-select: none;
             touch-action: none;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 0 #C9B57F, 0 6px 12px rgba(0,0,0,0.25);
             white-space: nowrap;
             box-sizing: border-box;
+            transition: transform .12s;
         }
-        .jcj-tag.is-dragging { opacity: 0.3; }
+        /* perforation du billet */
+        .jcj-tag::after {
+            content: ''; position: absolute; left: 7px; top: 5px; bottom: 5px;
+            border-left: 2px dashed rgba(27,33,70,0.25);
+        }
+        .jcj-tag:hover { transform: translateY(-2px) rotate(-1deg); }
+        .jcj-tag.is-dragging { opacity: 0.25; }
         .jcj-tag.placed {
             cursor: grab;
-            font-size: 12px;
-            padding: 6px 10px;
-            background: white;
+            font-size: calc(var(--jcj-fs, 13px) * 0.9);
+            padding: 6px 10px 6px 16px;
+            box-shadow: 0 3px 0 #C9B57F;
         }
         .jcj-tag.correct {
             cursor: default;
-            border-color: #38a169;
-            color: #1e5e2e;
-            background: #eafcef;
+            border-color: var(--ok);
+            color: #14532D;
+            background: #DCFCE7;
+            box-shadow: 0 3px 0 #16A34A, 0 0 12px rgba(34,197,94,0.45);
+            animation: jcj-stamp .35s ease-out;
         }
-        .jcj-tag.correct::before { content: '✓ '; }
+        .jcj-tag.correct:hover { transform: none; }
+        .jcj-tag.correct::before { content: '✓ '; font-weight: 900; }
+        .jcj-tag.correct::after { border-left-color: rgba(20,83,45,0.3); }
         .jcj-tag.incorrect {
             cursor: grab;
-            border-color: #e53e3e;
-            color: #822727;
-            background: #fff0f0;
+            border-color: var(--ko);
+            color: #881337;
+            background: #FFE4E6;
+            box-shadow: 0 3px 0 #E11D48;
+            animation: jcj-shake .45s ease;
         }
-        .jcj-tag.incorrect::before { content: '✗ '; }
+        .jcj-tag.incorrect::before { content: '✗ '; font-weight: 900; }
+        .jcj-tag.incorrect::after { border-left-color: rgba(136,19,55,0.3); }
+        @keyframes jcj-stamp { 0% { transform: scale(1.25); } 60% { transform: scale(0.95); } 100% { transform: scale(1); } }
+        @keyframes jcj-shake {
+            0%,100% { transform: translateX(0); } 20% { transform: translateX(-5px) rotate(-2deg); }
+            40% { transform: translateX(5px) rotate(2deg); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); }
+        }
 
-        /* ── Fantôme drag (suit le curseur/doigt/stylet, n'intercepte jamais les clics) ── */
+        /* ── Fantôme du glisser (suit le curseur, n'intercepte jamais les clics) ── */
         .jcj-drag-ghost {
             position: fixed;
             pointer-events: none;
             z-index: 99999;
-            padding: 8px 13px;
-            border-radius: 20px;
-            font-weight: 700;
-            background: #4a90e2;
-            color: white;
-            border: 2px solid #357abd;
-            box-shadow: 0 6px 18px rgba(74,144,226,0.45);
-            transform: translate(-50%, -50%) rotate(2deg);
+            padding: 9px 15px 9px 19px;
+            border-radius: 10px;
+            font-weight: 900;
+            background: var(--billet, #FFF6E0);
+            color: #1B2146;
+            border: 2px solid #FFD35A;
+            box-shadow: 0 16px 28px rgba(0,0,0,0.4), 0 0 18px rgba(255,211,90,0.55);
+            transform: translate(-50%, -50%) rotate(-4deg) scale(1.08);
             white-space: nowrap;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
         }
 
-        /* ── Overlay démarrage / fin de partie ── */
+        /* ── Overlay démarrage / pause ── */
         .jcj-overlay {
             position: absolute; inset: 0;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            gap: 10px;
-            background: rgba(255,255,255,0.94);
-            backdrop-filter: blur(1px);
+            gap: 12px;
+            background: rgba(12,17,45,0.82);
             z-index: 10;
             text-align: center;
             padding: 14px;
-            border-radius: 12px;
+            border-radius: 16px;
         }
         .jcj-overlay.hidden { display: none; }
-        .jcj-overlay-title { font-size: 18px; font-weight: 800; color: #374151; }
-        .jcj-overlay-sub { font-size: 13px; color: #6b7280; max-width: 380px; }
-        .jcj-start-btn {
-            padding: 10px 22px; border-radius: 10px; border: none;
-            background: #4a90e2; color: white; font-size: 14px;
-            font-weight: 800; cursor: pointer; transition: background .15s, transform .1s;
+        .jcj-overlay-clock {
+            position: relative; width: 84px; height: 84px; border-radius: 50%;
+            background: var(--billet); border: 6px solid var(--or); box-sizing: border-box;
+            box-shadow: 0 0 0 6px rgba(255,211,90,0.18), 0 0 40px rgba(255,211,90,0.45);
         }
-        .jcj-start-btn:hover { background: #357abd; }
-        .jcj-start-btn:active { transform: scale(0.96); }
+        .jcj-overlay-clock::before, .jcj-overlay-clock::after {
+            content: ''; position: absolute; left: 50%; bottom: 50%;
+            background: var(--encre); border-radius: 3px; transform-origin: bottom center;
+        }
+        .jcj-overlay-clock::before { width: 5px; height: 20px; animation: jcj-hand 12s linear infinite; }
+        .jcj-overlay-clock::after  { width: 3px; height: 30px; animation: jcj-hand 2s linear infinite; }
+        @keyframes jcj-hand { from { transform: translateX(-50%) rotate(0); } to { transform: translateX(-50%) rotate(360deg); } }
+        .jcj-overlay-clock i {
+            position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; border-radius: 50%;
+            background: var(--encre); transform: translate(-50%, -50%); z-index: 1;
+        }
+        .jcj-overlay-title {
+            font-family: 'Fredoka', 'Nunito', sans-serif;
+            font-size: 32px; font-weight: 700; line-height: 1.1;
+            color: var(--or); text-shadow: 0 0 18px rgba(255,211,90,0.45), 0 3px 0 #7A5A00;
+        }
+        .jcj-overlay-sub { font-size: 15px; font-weight: 800; color: #E3E7FF; max-width: 400px; line-height: 1.4; }
+        .jcj-overlay-doors { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+        .jcj-overlay-doors span {
+            font-size: 12px; font-weight: 900; padding: 4px 10px; border-radius: 999px; color: #fff;
+        }
+        .jcj-start-btn {
+            padding: 11px 28px; border-radius: 16px; border: none;
+            background: var(--or); color: var(--encre);
+            font-family: 'Fredoka', 'Nunito', sans-serif; font-size: 20px; font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #B38A12;
+            transition: transform .08s, box-shadow .08s, filter .15s;
+        }
+        .jcj-start-btn:hover { filter: brightness(1.06); }
+        .jcj-start-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #B38A12; }
+
+        /* ── Confettis ── */
+        .jcj-confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 40; border-radius: inherit; }
+        .jcj-confetti i { position: absolute; top: -14px; width: 9px; height: 14px; border-radius: 2px; animation: jcj-fall 2s ease-in forwards; }
+        @keyframes jcj-fall { to { transform: translateY(900px) rotate(620deg); opacity: 0; } }
 
         /* ── Barre contrôles bas ── */
         .jcj-controls {
-            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+            display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
             flex-shrink: 0;
         }
         .jcj-btn {
-            padding: 5px 12px; border-radius: 8px; border: none;
-            font-size: 11px; font-weight: 700; cursor: pointer;
-            transition: background .15s, transform .1s;
+            padding: 8px 18px; border-radius: 14px; border: none;
+            font-family: inherit; font-size: 14px; font-weight: 900; cursor: pointer;
+            transition: transform .08s, box-shadow .08s, filter .15s;
         }
-        .jcj-btn:active { transform: scale(0.96); }
-        .jcj-btn-reset { background: #6b7280; color: white; }
-        .jcj-btn-reset:hover { background: #4b5563; }
-        .jcj-btn-pause { background: #4a90e2; color: white; }
-        .jcj-btn-pause:hover { background: #357abd; }
-        .jcj-btn-correction { background: #f59e0b; color: white; }
-        .jcj-btn-correction:hover { background: #d97e06; }
-        .jcj-btn-correction:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-        .jcj-btn-correction:disabled:hover { background: #f59e0b; }
+        .jcj-btn:hover { filter: brightness(1.08); }
+        .jcj-btn-reset { background: var(--billet); color: var(--encre); box-shadow: 0 4px 0 #C9BC98; }
+        .jcj-btn-reset:active { transform: translateY(3px); box-shadow: 0 1px 0 #C9BC98; }
+        .jcj-btn-pause { background: #4B5BD7; color: #fff; box-shadow: 0 4px 0 #2E3A9E; }
+        .jcj-btn-pause:active { transform: translateY(3px); box-shadow: 0 1px 0 #2E3A9E; }
+        .jcj-btn-correction {
+            background: var(--ok); color: #fff; box-shadow: 0 4px 0 #15803D;
+            font-family: 'Fredoka', 'Nunito', sans-serif; font-weight: 700; font-size: 17px;
+            padding: 8px 24px; text-shadow: 0 2px 0 rgba(0,0,0,0.2);
+        }
+        .jcj-btn-correction:not(:disabled) { animation: jcj-pulse 1.6s ease-in-out infinite; }
+        @keyframes jcj-pulse { 0%,100% { box-shadow: 0 4px 0 #15803D, 0 0 0 0 rgba(34,197,94,0.5); } 50% { box-shadow: 0 4px 0 #15803D, 0 0 0 8px rgba(34,197,94,0); } }
+        .jcj-btn-correction:active { transform: translateY(3px); }
+        .jcj-btn-correction:disabled { background: #4A5378; color: #9AA2C7; box-shadow: 0 4px 0 #2F3656; cursor: not-allowed; filter: none; transform: none; text-shadow: none; }
+        .jcj-btn:focus-visible, .jcj-start-btn:focus-visible { outline: 3px solid var(--or); outline-offset: 2px; }
 
         /* ── Poignée resize ── */
         .jcj-resize-handle {
             position: absolute; right: 0; bottom: 0;
-            width: 18px; height: 18px; cursor: se-resize;
-            background: linear-gradient(135deg, transparent 50%, #aaa 50%);
-            border-radius: 0 0 14px 0; opacity: 0; transition: opacity .2s; z-index: 5;
+            width: 20px; height: 20px; cursor: se-resize;
+            background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.45) 50%);
+            border-radius: 0 0 20px 0; opacity: 0; transition: opacity .2s; z-index: 45;
         }
         .jcj-container:hover .jcj-resize-handle { opacity: 1; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .jcj-container *, .jcj-container *::before, .jcj-container *::after {
+                animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important;
+            }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -469,7 +639,7 @@
 
   <!-- En-tête -->
   <div class="jcj-header">
-    <span class="jcj-title">📖 Jeu de conjugaison</span>
+    <span class="jcj-title"><span class="jcj-title-clock"></span>Conjugaison <small>Les portes du temps</small></span>
     <div class="wf-btns" style="margin-left:auto">
       <button class="jcj-params-btn" title="Paramètres">⚙</button>
       <button class="jcj-help-btn"   title="Aide">?</button>
@@ -499,9 +669,10 @@
 
   <!-- HUD -->
   <div class="jcj-hud">
-    <span class="jcj-score">🗂️ 0/10 placées</span>
-    <span class="jcj-errors">❌ —</span>
-    <span class="jcj-timer">⏱️ 00:00</span>
+    <span class="jcj-chip jcj-score"><span class="jcj-chip-ico">🎫</span><small class="jcj-score-label">Placés</small><b class="jcj-score-val">0/10</b>
+      <span class="jcj-progress"><span class="jcj-progress-fill"></span></span></span>
+    <span class="jcj-chip jcj-errors"><span class="jcj-chip-ico">❌</span><small>Erreurs</small><b class="jcj-errors-val">—</b></span>
+    <span class="jcj-chip jcj-timer"><span class="jcj-chip-ico">⏱️</span><b class="jcj-timer-val">00:00</b></span>
   </div>
 
   <!-- Message de correction -->
@@ -529,10 +700,18 @@
       </div>
     </div>
     <div class="jcj-overlay">
-      <div class="jcj-overlay-title">📖 Jeu de conjugaison</div>
+      <div class="jcj-overlay-clock"><i></i></div>
+      <div class="jcj-overlay-title">Jeu de conjugaison</div>
+      <div class="jcj-overlay-doors">
+        <span style="background:linear-gradient(90deg,#F59E0B,#B45309)">⏳ Passé composé</span>
+        <span style="background:linear-gradient(90deg,#A78BFA,#6D28D9)">🌙 Imparfait</span>
+        <span style="background:linear-gradient(90deg,#FFB020,#FF7A00)">☀️ Présent</span>
+        <span style="background:linear-gradient(90deg,#22D3EE,#3B6CF6)">🚀 Futur</span>
+      </div>
       <div class="jcj-overlay-sub">Glisse chaque étiquette dans le bon temps de conjugaison !</div>
       <button class="jcj-start-btn">▶ Démarrer</button>
     </div>
+    <div class="jcj-confetti"></div>
   </div>
 
   <!-- Contrôles -->
@@ -768,6 +947,13 @@
         const resetBtn         = widget.querySelector('.jcj-btn-reset');
         const pauseBtn         = widget.querySelector('.jcj-btn-pause');
         const correctionBtn    = widget.querySelector('.jcj-btn-correction');
+        const scoreLabel       = widget.querySelector('.jcj-score-label');
+        const scoreVal         = widget.querySelector('.jcj-score-val');
+        const errorsVal        = widget.querySelector('.jcj-errors-val');
+        const timerVal         = widget.querySelector('.jcj-timer-val');
+        const progressFill     = widget.querySelector('.jcj-progress-fill');
+        const confettiEl       = widget.querySelector('.jcj-confetti');
+        let firstErrors        = null;   // erreurs à la 1re correction (pour les étoiles)
 
         // ── État du jeu ──────────────────────────────────────────────────
         let deck           = [];
@@ -831,7 +1017,7 @@
         // ── Taille de police adaptative ─────────────────────────────────
         function applyFontScale() {
             const w = container.offsetWidth || 760;
-            const fs = Math.max(11, Math.min(16, Math.round(w / 52)));
+            const fs = Math.max(11, Math.min(20, Math.round(w / 50)));
             container.style.setProperty('--jcj-fs', fs + 'px');
         }
 
@@ -853,7 +1039,7 @@
                     if (_savedH) container.style.height = _savedH;
                     applyFontScale();
                 }
-                window._wfMiniBarCollapse(widget, '📖 Jeu de conjugaison', {
+                window._wfMiniBarCollapse(widget, '⏳ Jeu de conjugaison', {
                     onExpand: applyFontScale
                 });
             });
@@ -928,11 +1114,19 @@
         function updateHUD() {
             if (!hasCorrected) {
                 const placed = boardBuilt ? (totalCards - pool.children.length) : 0;
-                scoreEl.textContent  = '🗂️ ' + placed + '/' + totalCards + ' placées';
-                errorsEl.textContent = '❌ —';
+                scoreLabel.textContent = 'Placés';
+                scoreVal.textContent   = placed + '/' + totalCards;
+                errorsVal.textContent  = '—';
+                progressFill.style.width = (totalCards ? placed / totalCards * 100 : 0) + '%';
+                scoreEl.classList.remove('scored');
+                errorsEl.classList.remove('has-errors');
             } else {
-                scoreEl.textContent  = '✅ ' + score + '/' + totalCards;
-                errorsEl.textContent = '❌ ' + errors;
+                scoreLabel.textContent = 'Justes';
+                scoreVal.textContent   = score + '/' + totalCards;
+                errorsVal.textContent  = errors;
+                progressFill.style.width = (totalCards ? score / totalCards * 100 : 0) + '%';
+                scoreEl.classList.add('scored');
+                errorsEl.classList.toggle('has-errors', errors > 0);
             }
         }
 
@@ -954,7 +1148,7 @@
             const sec = Math.floor(elapsedMs / 1000);
             if (!force && sec === lastShownSeconds) return;
             lastShownSeconds = sec;
-            timerEl.textContent = '⏱️ ' + formatTime(elapsedMs);
+            timerVal.textContent = formatTime(elapsedMs);
         }
 
         function clearZoneHover() {
@@ -1065,6 +1259,8 @@
             score = 0;
             errors = 0;
             hasCorrected = false;
+            firstErrors = null;
+            container.classList.remove('jcj-done');
             boardBuilt = true;
             hideMessage();
             deck.forEach(card => {
@@ -1107,6 +1303,7 @@
             });
             score = currentScore;
             errors = currentErrors;
+            if (firstErrors === null) firstErrors = currentErrors;
             updateHUD();
             updateCorrectionButton();
             if (errors === 0) {
@@ -1114,9 +1311,30 @@
                 paused = true;
                 if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
                 showMessage('🎉 Bravo, tout est correct ! ' + score + '/' + totalCards + ' bonnes réponses en ' + formatTime(elapsedMs) + '.', 'success');
+                // Étoiles selon les erreurs de la 1re correction
+                const stars = firstErrors === 0 ? 3 : (firstErrors <= Math.max(1, Math.round(totalCards * 0.2)) ? 2 : 1);
+                const st = document.createElement('span');
+                st.className = 'jcj-msg-stars';
+                st.innerHTML = [1, 2, 3].map(n => '<span class="' + (n <= stars ? 'on' : '') + '">⭐</span>').join('');
+                messageEl.appendChild(st);
+                container.classList.add('jcj-done');
+                launchConfetti();
             } else {
-                showMessage('❌ ' + errors + ' erreur(s) sur ' + totalCards + '. Fais glisser les étiquettes rouges dans la bonne catégorie, puis clique de nouveau sur Correction.', 'error');
+                showMessage('❌ ' + errors + ' erreur(s) sur ' + totalCards + '. Fais glisser les billets rouges dans la bonne porte du temps, puis clique de nouveau sur Correction.', 'error');
             }
+        }
+
+        function launchConfetti() {
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            const colors = ['#FFD35A', '#FFB020', '#22D3EE', '#A78BFA', '#F59E0B', '#22C55E', '#FFFFFF'];
+            for (let i = 0; i < 60; i++) {
+                const c = document.createElement('i');
+                c.style.left = (Math.random() * 100) + '%';
+                c.style.background = colors[i % colors.length];
+                c.style.animationDelay = (Math.random() * 0.6) + 's';
+                confettiEl.appendChild(c);
+            }
+            setTimeout(() => { confettiEl.innerHTML = ''; }, 2800);
         }
 
         function showOverlay(title, sub, btnLabel) {
@@ -1170,13 +1388,14 @@
             score = 0; errors = 0;
             hasCorrected = false;
             boardBuilt = false;
+            container.classList.remove('jcj-done');
             running = false; paused = true;
             elapsedMs = 0; lastShownSeconds = -1;
             hideMessage();
             updateHUD();
             updateCorrectionButton();
             updateTimerDisplay(true);
-            showOverlay('📖 Jeu de conjugaison', 'Glisse chaque étiquette dans le bon temps de conjugaison !', '▶ Démarrer');
+            showOverlay('Jeu de conjugaison', 'Glisse chaque billet dans la bonne porte du temps !', '▶ Démarrer');
         }
 
         function gameLoop(now) {

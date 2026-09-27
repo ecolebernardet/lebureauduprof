@@ -3407,6 +3407,97 @@ function _pdfTextRotateEnd() {
     _pdfRotateText = null;
 }
 
+// ── Redimensionnement d'un texte PDF par la poignée ⤡ (coin bas-droit) ───
+// Le coin haut-gauche visuel reste fixe ; la taille suit la projection du
+// curseur sur la diagonale du cadre (fonctionne aussi pour un texte pivoté).
+var _pdfResizeText = null;
+
+function _pdfTextMeasure(s, size, cw) {
+    const fontSize = Math.round(6 * Math.pow(1.12, size) * cw / 600);
+    const ctx = (_pdfTextMeasure._c || (_pdfTextMeasure._c = document.createElement('canvas'))).getContext('2d');
+    ctx.font = `${fontSize}px 'Segoe UI', sans-serif`;
+    const lines = (s.text || '').split('\n');
+    return {
+        w: Math.max(...lines.map(l => ctx.measureText(l).width)),
+        h: lines.length * fontSize * 1.3
+    };
+}
+
+window._pdfTextResizeStart = function(index, e) {
+    if (_pdfResizeText) return; // mousedown + pointerdown arrivent tous les deux
+    const api = _pdfAnnotWidget && _pdfAnnotWidget._pdfAnnotAPI;
+    if (!api || !api.getStroke || !api.resizeTextStroke) return;
+    const s = api.getStroke(index);
+    const canvas = api.getAnnotCanvas();
+    if (!s || s.tool !== 'text' || !canvas) return;
+
+    const cw = canvas.width, ch = canvas.height;
+    const rot = s.rotation || 0, cos = Math.cos(rot), sin = Math.sin(rot);
+    const R = (x, y) => ({ x: x * cos - y * sin, y: x * sin + y * cos });
+    const m0 = _pdfTextMeasure(s, s.size, cw);
+    const P0 = { x: s.nx * cw, y: s.ny * ch };
+    const c0 = { x: P0.x + m0.w / 2, y: P0.y + m0.h / 2 };
+    const a  = R(-m0.w / 2, -m0.h / 2);
+    const A  = { x: c0.x + a.x, y: c0.y + a.y };           // coin haut-gauche visuel (fixe)
+    const diag = Math.hypot(m0.w, m0.h) || 1;
+    const u  = R(m0.w / diag, m0.h / diag);                 // direction de la diagonale
+    const toCanvas = (ev) => {
+        const r = canvas.getBoundingClientRect();
+        return { x: (ev.clientX - r.left) * cw / r.width, y: (ev.clientY - r.top) * ch / r.height };
+    };
+    const M0 = toCanvas(e);
+    let proj0 = (M0.x - A.x) * u.x + (M0.y - A.y) * u.y;
+    if (proj0 < 10) proj0 = diag;
+
+    _pdfResizeText = { index, s, cw, ch, R, A, u, proj0, size0: s.size, toCanvas };
+    document.addEventListener('pointermove',   _pdfTextResizeMove);
+    document.addEventListener('pointerup',     _pdfTextResizeEnd);
+    document.addEventListener('pointercancel', _pdfTextResizeEnd);
+};
+
+function _pdfTextResizeMove(e) {
+    const st = _pdfResizeText;
+    if (!st) return;
+    e.preventDefault();
+    const api = _pdfAnnotWidget && _pdfAnnotWidget._pdfAnnotAPI;
+    if (!api) return;
+    const M = st.toCanvas(e);
+    const proj = (M.x - st.A.x) * st.u.x + (M.y - st.A.y) * st.u.y;
+    const k = Math.max(0.05, proj / st.proj0);
+    let size = st.size0 + Math.log(k) / Math.log(1.12);
+    // Bornes en px écran : mêmes que le réglage texte de la toolbar (8–120)
+    const rectW = api.getAnnotCanvas().getBoundingClientRect().width;
+    size = Math.max(_pdfTextPxToSize(8, rectW), Math.min(_pdfTextPxToSize(120, rectW), size));
+    size = Math.round(size * 100) / 100;
+
+    // Nouvelle origine pour garder le coin haut-gauche visuel au même endroit
+    const m1 = _pdfTextMeasure(st.s, size, st.cw);
+    const a1 = st.R(-m1.w / 2, -m1.h / 2);
+    const c1 = { x: st.A.x - a1.x, y: st.A.y - a1.y };
+    const P1 = { x: c1.x - m1.w / 2, y: c1.y - m1.h / 2 };
+    api.resizeTextStroke(st.index, size, P1.x / st.cw, P1.y / st.ch);
+    if (api.drawTextSelection) api.drawTextSelection(st.index);
+
+    // Répercuter la taille sur le réglage de la toolbar (sans déclencher la surveillance)
+    const px = _pdfTextSetPx(_pdfTextSizeToPx(size, rectW));
+    if (_pdfSelectedText && _pdfSelectedText.index === st.index) {
+        _pdfSelectedText.stroke.size = size;
+        _pdfSelectedText.lastPx = px;
+    }
+}
+
+function _pdfTextResizeEnd() {
+    const st = _pdfResizeText;
+    if (!st) return;
+    document.removeEventListener('pointermove',   _pdfTextResizeMove);
+    document.removeEventListener('pointerup',     _pdfTextResizeEnd);
+    document.removeEventListener('pointercancel', _pdfTextResizeEnd);
+    _pdfResizeText = null;
+    const api = _pdfAnnotWidget && _pdfAnnotWidget._pdfAnnotAPI;
+    if (api && api.saveTextTransform) api.saveTextTransform(st.index);
+    if (api && api.drawTextSelection) api.drawTextSelection(st.index);
+}
+
 function _pdfAnnotStartStroke(e) {
     const tool = _pdfAnnotEffectiveTool();
 
@@ -3426,7 +3517,12 @@ function _pdfAnnotStartStroke(e) {
                 // Texte déjà sélectionné + clic dessus → préparer drag ou édition
                 const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
                 const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
-                _pdfDragText = { index: found.index, stroke: found.stroke, startPos: pos, startClientX: clientX, startClientY: clientY, moved: false };
+                // Décalage entre le point cliqué et l'origine du texte (coin haut-gauche),
+                // pour que le texte suive le curseur depuis l'endroit saisi, sans saut.
+                const _cnv = api.getAnnotCanvas ? api.getAnnotCanvas() : null;
+                const grabDX = _cnv ? pos.x - found.stroke.nx * _cnv.width  : 0;
+                const grabDY = _cnv ? pos.y - found.stroke.ny * _cnv.height : 0;
+                _pdfDragText = { index: found.index, stroke: found.stroke, startPos: pos, startClientX: clientX, startClientY: clientY, moved: false, grabDX, grabDY };
                 _pdfAnnotPainting = true;
                 // Préparer le snapshot sans le texte (optimisation gros PDF)
                 if (api && api.startDragText) api.startDragText(found.index);
@@ -3554,7 +3650,9 @@ function _pdfAnnotContinueStroke(e) {
             const api = _pdfAnnotWidget && _pdfAnnotWidget._pdfAnnotAPI;
             if (api) {
                 const pos = _getPdfAnnotPos(e);
-                api.moveTextStroke(_pdfDragText.index, pos.x, pos.y);
+                api.moveTextStroke(_pdfDragText.index,
+                    pos.x - (_pdfDragText.grabDX || 0),
+                    pos.y - (_pdfDragText.grabDY || 0));
             }
         }
         return;
@@ -3731,6 +3829,29 @@ function _pdfAnnotEndStroke(e) {
 
 // ── Insertion / édition de texte inline ──────────────────────────────────
 
+// ── Taille du texte PDF pilotée par le réglage « − 28 + » au-dessus du bouton Texte ──
+// Le réglage est en pixels écran ; les strokes texte PDF utilisent une échelle
+// exponentielle relative à la largeur du canvas : px = 6 × 1.12^size × largeur / 600.
+// On convertit dans les deux sens (size peut être décimal, drawStroke le gère).
+function _pdfTextGetPx() {
+    const lbl = document.getElementById('text-size-label');
+    return parseInt(lbl && lbl.textContent) || window._textWidgetSize || 28;
+}
+function _pdfTextSetPx(px) {
+    px = Math.max(8, Math.min(120, Math.round(px)));
+    const lbl = document.getElementById('text-size-label');
+    if (lbl) lbl.textContent = px;
+    window._textWidgetSize = px;
+    return px;
+}
+function _pdfTextPxToSize(px, rectW) {
+    const s = Math.log(px * 600 / (6 * (rectW || 600))) / Math.log(1.12);
+    return Math.round(s * 100) / 100;
+}
+function _pdfTextSizeToPx(size, rectW) {
+    return 6 * Math.pow(1.12, size) * (rectW || 600) / 600;
+}
+
 function _pdfAnnotInsertText(e) {
     const api = _pdfAnnotWidget && _pdfAnnotWidget._pdfAnnotAPI;
     if (!api) return;
@@ -3739,9 +3860,10 @@ function _pdfAnnotInsertText(e) {
 
     const pos     = _getPdfAnnotPos(e);
     const color   = _pdfAnnotGetColor();
-    const size    = Math.max(_pdfAnnotGetSize(), 8); // taille min 8 pour le texte
     const rect       = canvas.getBoundingClientRect();
-    const fontSizePx = Math.round(6 * Math.pow(1.12, size) * rect.width / 600);
+    // Taille issue du réglage texte de la toolbar (px écran) → échelle PDF
+    const fontSizePx = _pdfTextGetPx();
+    const size       = _pdfTextPxToSize(fontSizePx, rect.width);
     // Convertir pos (coordonnées canvas) en coordonnées écran pour positionner l'éditeur
     const scaleX = rect.width  / canvas.width;
     const scaleY = rect.height / canvas.height;
@@ -3763,16 +3885,32 @@ function _pdfAnnotOpenEditorForStroke(e, found) {
     const { index, stroke } = found;
     const canvas     = api.getAnnotCanvas();
     const rect       = canvas.getBoundingClientRect();
-    const fontSizePx = Math.round(6 * Math.pow(1.12, stroke.size) * rect.width / 600);
+    const fontSizePx = _pdfTextSizeToPx(stroke.size, rect.width);
+    // Afficher la taille de ce texte dans le réglage de la toolbar
+    _pdfTextSetPx(fontSizePx);
+    // Coin haut-gauche exact du texte dessiné (textBaseline 'top'), en coordonnées écran
     const screenX    = rect.left + stroke.nx * rect.width;
     const screenY    = rect.top  + stroke.ny * rect.height;
+
+    // Masquer le texte sur le canvas pendant l'édition : l'éditeur prend sa place.
+    // Propriété non énumérable → jamais sauvegardée ni recopiée par updateTextStroke.
+    Object.defineProperty(stroke, '_editing', { value: true, configurable: true, enumerable: false, writable: true });
+    if (api.redrawAnnotations) api.redrawAnnotations();
+
     _showPdfInlineTextEditor({
         clientX: screenX, clientY: screenY,
         color: stroke.color, size: stroke.size, fontSizePx,
         initialText: stroke.text || '',
+        exactPosition: true,              // l'éditeur se cale sur le texte existant
+        rotation: stroke.rotation || 0,
         onValidate(newText, finalSize, finalColor) {
             if (!newText.trim()) return;
             api.updateTextStroke(index, newText, finalSize ?? stroke.size, finalColor ?? stroke.color);
+        },
+        onClose() {
+            // Réafficher le texte (validé, annulé ou vidé)
+            delete stroke._editing;
+            if (api.redrawAnnotations) api.redrawAnnotations();
         }
     });
 }
@@ -3802,31 +3940,34 @@ function _pdfAnnotSelectText(e) {
     // Synchroniser le color picker ET le slider de taille avec le stroke
     window._drawColor = found.stroke.color;
     if (typeof cpickSet === 'function') cpickSet('draw-color', found.stroke.color, true);
-    const drawSizeEl = document.getElementById('draw-size');
-    const drawSizeLabelEl = document.getElementById('draw-size-label');
-    if (drawSizeEl) { drawSizeEl.value = found.stroke.size; drawSizeEl.dispatchEvent(new Event('input')); }
-    if (drawSizeLabelEl) drawSizeLabelEl.textContent = found.stroke.size;
+    // Taille : réglage texte de la toolbar (px), et non plus l'épaisseur du crayon
+    const _selCanvas = api.getAnnotCanvas();
+    const _selRectW  = _selCanvas ? _selCanvas.getBoundingClientRect().width : 600;
+    const lastPx0    = _pdfTextSetPx(_pdfTextSizeToPx(found.stroke.size, _selRectW));
+    // Dernière taille connue (px) : partagée avec le redimensionnement ⤡ pour éviter un faux « changement »
+    _pdfSelectedText.lastPx = lastPx0;
 
     // Dessiner le cadre de sélection
     api.drawTextSelection(found.index);
 
-    // Surveiller les changements de couleur et de taille du picker
+    // Surveiller les changements de couleur (picker) et de taille (réglage texte)
     if (_pdfSelectColorInterval) clearInterval(_pdfSelectColorInterval);
     let lastPickerColor = found.stroke.color;
-    let lastPickerSize  = found.stroke.size;
     _pdfSelectColorInterval = setInterval(() => {
         if (!_pdfSelectedText) { clearInterval(_pdfSelectColorInterval); return; }
         const pickerColor = _pdfAnnotGetColor();
-        const pickerSize  = _pdfAnnotGetSize();
+        const px          = _pdfTextGetPx();
         let changed = false;
         if (pickerColor && pickerColor !== lastPickerColor) {
             lastPickerColor = pickerColor;
             _pdfSelectedText.stroke.color = pickerColor;
             changed = true;
         }
-        if (pickerSize && pickerSize !== lastPickerSize) {
-            lastPickerSize = pickerSize;
-            _pdfSelectedText.stroke.size = pickerSize;
+        if (px && px !== _pdfSelectedText.lastPx) {
+            _pdfSelectedText.lastPx = px;
+            const c = api.getAnnotCanvas();
+            const w = c ? c.getBoundingClientRect().width : 600;
+            _pdfSelectedText.stroke.size = _pdfTextPxToSize(px, w);
             changed = true;
         }
         if (changed) {
@@ -3854,47 +3995,37 @@ function _pdfAnnotRightClick(e) {
 }
 
 // Affiche un éditeur de texte inline positionné à (clientX, clientY)
-function _showPdfInlineTextEditor({ clientX, clientY, color, size, fontSizePx, initialText = '', onValidate }) {
-    // Fermer un éditeur déjà ouvert sans valider
+function _showPdfInlineTextEditor({ clientX, clientY, color, size, fontSizePx, initialText = '', onValidate, onClose, exactPosition = false, rotation = 0 }) {
+    // Fermer un éditeur déjà ouvert sans valider (en laissant son onClose réafficher son texte)
     const existing = document.getElementById('_pdf-inline-text-editor-wrap');
-    if (existing) existing.remove();
+    if (existing) { if (existing._pdfCancel) existing._pdfCancel(); else existing.remove(); }
 
-    // Taille courante (modifiable via +/-)
+    // Taille courante : currentSize = échelle PDF (stockée dans le stroke),
+    // currentFontPx = pixels écran (affichés et partagés avec le réglage texte de la toolbar)
     let currentSize = size;
-    let currentFontPx = fontSizePx;
+    let currentFontPx = Math.round(fontSizePx);
 
     // Wrapper positionné à l'endroit du clic
+    // Bordure 1.5px + padding 2px/5px de l'éditeur ; en CSS (line-height 1.3), le haut
+    // des caractères est ~0.15em sous le haut de la ligne, alors que le canvas dessine
+    // en textBaseline 'top'. En mode exactPosition, on compense pour superposer
+    // l'éditeur pixel près au texte existant.
+    const EDIT_OFF_X = 1.5 + 5;
+    const EDIT_OFF_Y = 1.5 + 2 + 0.15 * fontSizePx;
+    const wrapLeft = exactPosition ? clientX - EDIT_OFF_X : clientX;
+    const wrapTop  = exactPosition ? clientY - EDIT_OFF_Y : clientY - fontSizePx - 4; /* nouveau texte : calage historique */
     const wrap = document.createElement('div');
     wrap.id = '_pdf-inline-text-editor-wrap';
     wrap.style.cssText = `
         position: fixed;
-        left: ${clientX}px;
-        top: ${clientY - fontSizePx - 24}px;
+        left: ${wrapLeft}px;
+        top: ${wrapTop}px;
         z-index: 99999;
         display: flex;
         flex-direction: column;
         gap: 2px;
         filter: drop-shadow(0 2px 8px rgba(0,0,0,0.22));
     `;
-
-    // Bandeau taille
-    const toolbar = document.createElement('div');
-    toolbar.style.cssText = `
-        display: flex; align-items: center; gap: 4px;
-        background: rgba(40,40,40,0.92); border-radius: 5px;
-        padding: 2px 6px; width: fit-content;
-        user-select: none;
-    `;
-    const btnMinus = document.createElement('button');
-    btnMinus.textContent = '−';
-    btnMinus.style.cssText = 'background:transparent;border:none;color:#fff;font-size:14px;cursor:pointer;padding:0 3px;line-height:1;';
-    const sizeLabel = document.createElement('span');
-    sizeLabel.style.cssText = 'color:#fff;font-size:11px;min-width:22px;text-align:center;';
-    sizeLabel.textContent = currentSize;
-    const btnPlus = document.createElement('button');
-    btnPlus.textContent = '+';
-    btnPlus.style.cssText = 'background:transparent;border:none;color:#fff;font-size:14px;cursor:pointer;padding:0 3px;line-height:1;';
-    toolbar.append(btnMinus, sizeLabel, btnPlus);
 
     // Zone de texte
     const editor = document.createElement('div');
@@ -3917,20 +4048,36 @@ function _showPdfInlineTextEditor({ clientX, clientY, color, size, fontSizePx, i
         line-height: 1.3;
     `;
 
-    wrap.append(toolbar, editor);
+    wrap.append(editor);
 
-    // Mise à jour de la taille
-    function updateSize(delta) {
-        currentSize = Math.max(1, Math.min(40, currentSize + delta));
-        // Recalculer fontSizePx à partir de la même formule que drawStroke
-        const canvas = _pdfAnnotWidget && _pdfAnnotWidget._pdfAnnotAPI && _pdfAnnotWidget._pdfAnnotAPI.getAnnotCanvas();
-        const rect = canvas ? canvas.getBoundingClientRect() : { width: 600 };
-        currentFontPx = Math.round(6 * Math.pow(1.12, currentSize) * rect.width / 600);
-        editor.style.fontSize = currentFontPx + 'px';
-        sizeLabel.textContent = currentSize;
+    // Texte pivoté : faire pivoter l'éditeur autour du même centre que le canvas
+    // (centre du bloc de texte, mesuré avec la même police).
+    function applyRotation() {
+        if (!rotation) return;
+        const mctx = document.createElement('canvas').getContext('2d');
+        mctx.font = `${currentFontPx}px 'Segoe UI', sans-serif`;
+        const lines = (editor.innerText || initialText || ' ').split('\n');
+        const textW = Math.max(...lines.map(l => mctx.measureText(l).width));
+        const textH = lines.length * currentFontPx * 1.3;
+        const offY  = 1.5 + 2 + 0.15 * currentFontPx;
+        wrap.style.transformOrigin = `${EDIT_OFF_X + textW / 2}px ${offY + textH / 2}px`;
+        wrap.style.transform = `rotate(${rotation}rad)`;
     }
-    btnMinus.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); ev.preventDefault(); updateSize(-1); editor.focus(); });
-    btnPlus.addEventListener('pointerdown',  (ev) => { ev.stopPropagation(); ev.preventDefault(); updateSize(+1); editor.focus(); });
+
+    // Taille pilotée uniquement par le réglage texte de la toolbar (px écran → échelle PDF)
+    let lastPickerPx = _pdfTextGetPx(); // valeur du réglage toolbar à l'ouverture
+    function applyPx(px) {
+        currentFontPx = px;
+        const canvas = _pdfAnnotWidget && _pdfAnnotWidget._pdfAnnotAPI && _pdfAnnotWidget._pdfAnnotAPI.getAnnotCanvas();
+        const rectW = canvas ? canvas.getBoundingClientRect().width : 600;
+        currentSize = _pdfTextPxToSize(px, rectW);
+        editor.style.fontSize = px + 'px';
+        if (exactPosition) {
+            // Garder le haut du texte fixe quand la taille change (compensation 0.15em)
+            wrap.style.top = (clientY - (1.5 + 2 + 0.15 * px)) + 'px';
+        }
+        applyRotation();
+    }
 
     // Synchronisation couleur depuis le color picker (window._drawColor)
     let currentColor = color;
@@ -3944,6 +4091,13 @@ function _showPdfInlineTextEditor({ clientX, clientY, color, size, fontSizePx, i
             editor.style.borderColor = currentColor;
             editor.focus();
         }
+        // Synchronisation taille depuis le réglage texte de la toolbar (− 28 +)
+        const pickerPx = _pdfTextGetPx();
+        if (pickerPx && pickerPx !== lastPickerPx) {
+            lastPickerPx = pickerPx;
+            applyPx(pickerPx);
+            editor.focus();
+        }
     }, 100);
 
     let validated = false;
@@ -3955,6 +4109,7 @@ function _showPdfInlineTextEditor({ clientX, clientY, color, size, fontSizePx, i
         wrap.remove();
         document.removeEventListener('pointerdown', onOutsideClick, true);
         onValidate(text, currentSize, currentColor);
+        if (onClose) onClose();
     }
     function cancel() {
         if (validated) return;
@@ -3962,7 +4117,9 @@ function _showPdfInlineTextEditor({ clientX, clientY, color, size, fontSizePx, i
         clearInterval(colorInterval);
         wrap.remove();
         document.removeEventListener('pointerdown', onOutsideClick, true);
+        if (onClose) onClose();
     }
+    wrap._pdfCancel = cancel;
 
     editor.addEventListener('keydown', (ev) => {
         if (ev.key === 'Escape') { ev.preventDefault(); validate(); }
@@ -3978,6 +4135,9 @@ function _showPdfInlineTextEditor({ clientX, clientY, color, size, fontSizePx, i
         const cpick = document.getElementById('cpick-draw-color');
         const cpickPop = document.getElementById('cpick-pop-draw-color');
         if ((cpick && cpick.contains(ev.target)) || (cpickPop && cpickPop.contains(ev.target))) return;
+        // Ne pas fermer si on clique sur le réglage de taille du texte (− 28 +) de la toolbar
+        const sizeLbl = document.getElementById('text-size-label');
+        if (sizeLbl && sizeLbl.parentElement && sizeLbl.parentElement.contains(ev.target)) return;
         document.removeEventListener('pointerdown', onOutsideClick, true);
         ev.stopPropagation();
         ev.preventDefault();
@@ -3988,11 +4148,13 @@ function _showPdfInlineTextEditor({ clientX, clientY, color, size, fontSizePx, i
     }, 300);
 
     wrap.addEventListener('pointerdown', (ev) => {
-        if (ev.target !== btnMinus && ev.target !== btnPlus) ev.stopPropagation();
+        ev.stopPropagation();
     });
 
     document.body.appendChild(wrap);
     if (initialText) editor.innerText = initialText;
+    applyRotation();
+    if (rotation) editor.addEventListener('input', applyRotation);
 
     requestAnimationFrame(() => {
         editor.focus();

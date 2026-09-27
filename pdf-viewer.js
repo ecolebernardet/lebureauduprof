@@ -29,6 +29,25 @@ const PDFJS_CDN_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174
 // c'est le tout premier endroit où passent les événements, avant le board.
 // Widget PDF actif = visible ET (dernier clic dedans OU souris au-dessus OU focus dedans).
 // =========================================================================
+// =========================================================================
+// TOUCHE SUPPR / RETOUR ARRIÈRE SUR UN TEXTE D'ANNOTATION SÉLECTIONNÉ
+// -------------------------------------------------------------------------
+// Quand un texte d'annotation PDF est sélectionné (son bouton ✕ est affiché),
+// Suppr / Retour arrière supprime ce texte au lieu du widget PDF entier.
+// Écouteur en phase de CAPTURE sur window : il passe avant l'écouteur keydown
+// du widget (widgets.js) qui, sinon, supprimerait tout le widget.
+// =========================================================================
+window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    const delBtn = document.getElementById('_annot-delete-btn');
+    if (!delBtn || !delBtn.isConnected || delBtn.dataset.annotKind !== 'text') return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    delBtn.click();
+}, true);
+
 const _pdfPasteRouter = (() => {
     const entries = new Map();          // container → callback(blob image)
     let lastDownTarget = null;          // cible du dernier clic / toucher
@@ -687,19 +706,26 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 const del = opts._deleteAt;
                 const rot = opts._rotateAt;
 
-                // ✕ haut-droit : supprimer
-                _makeAnnotHandle('_annot-delete-btn', del.px, del.py,
-                    '#ff4757', 'Supprimer', '✕',
+                // ✕ haut-droit : supprimer (aussi déclenché par Suppr / Retour arrière, voir plus bas)
+                const _txtDelBtn = _makeAnnotHandle('_annot-delete-btn', del.px, del.py,
+                    '#ff4757', 'Supprimer (Suppr)', '✕',
                     null,
                     () => {
                         const layer2 = getLayer(currentPage);
+                        if (!layer2.strokes[index]) return;
                         if (!layer2.history) layer2.history = [];
                         layer2.history.push([...layer2.strokes]);
                         if (layer2.history.length > 30) layer2.history.shift();
                         layer2.strokes.splice(index, 1);
+                        // Oublier la sélection côté draw.js (sinon sa surveillance couleur/taille
+                        // viserait l'index d'un autre texte)
+                        if (typeof _pdfAnnotDeselect === 'function') _pdfAnnotDeselect();
                         redrawAnnotations(currentPage);
+                        try { _saveAnnotations(); } catch(e) {}
                     }
                 );
+                // Marqueur : ce ✕ appartient à un texte sélectionné → la touche Suppr le déclenche
+                _txtDelBtn.dataset.annotKind = 'text';
 
                 // ↻ bas-gauche : rotation
                 _makeAnnotHandle('_annot-rotate-btn', rot.px, rot.py,
@@ -711,6 +737,19 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                     },
                     null
                 );
+
+                // ⤡ bas-droit : redimensionner (change la taille du texte, logique dans draw.js)
+                if (opts._resizeAt) {
+                    _makeAnnotHandle('_annot-resize-btn', opts._resizeAt.px, opts._resizeAt.py,
+                        '#27ae60', 'Redimensionner le texte', '⤡',
+                        (e) => {
+                            if (typeof window._pdfTextResizeStart === 'function') {
+                                window._pdfTextResizeStart(index, e);
+                            }
+                        },
+                        null
+                    );
+                }
             }
 
             function drawStroke(ctx, stroke) {
@@ -785,6 +824,8 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 }
 
                 if (stroke.tool === 'text') {
+                    // Texte en cours d'édition (draw.js) : l'éditeur HTML le remplace à l'écran
+                    if (stroke._editing) return;
                     const pos = fromNorm(stroke.nx, stroke.ny);
                     ctx.save();
                     const fontSize = Math.round(6 * Math.pow(1.12, stroke.size) * canvasW / 600);
@@ -2348,9 +2389,9 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                             actx.fill();
                         });
                         actx.restore();
-                        // Boutons overlay : ✕ haut-droit, ↻ bas-gauche
+                        // Boutons overlay : ✕ haut-droit, ↻ bas-gauche, ⤡ bas-droit
                         // Calculer les coins réels après rotation pour positionner les boutons
-                        const corners = [[x+w, y], [x, y+h]];
+                        const corners = [[x+w, y], [x, y+h], [x+w, y+h]];
                         const rotatedCorners = corners.map(([bx, by]) => {
                             if (!rot) return [bx, by];
                             const dx = bx - cx, dy = by - cy;
@@ -2362,7 +2403,8 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                             w: 0, h: 0,
                             // On passe directement les positions des coins
                             _deleteAt:  { px: rotatedCorners[0][0], py: rotatedCorners[0][1] },
-                            _rotateAt:  { px: rotatedCorners[1][0], py: rotatedCorners[1][1] }
+                            _rotateAt:  { px: rotatedCorners[1][0], py: rotatedCorners[1][1] },
+                            _resizeAt:  { px: rotatedCorners[2][0], py: rotatedCorners[2][1] }
                         });
                     },
                     moveTextStroke(index, px, py) {
@@ -2403,7 +2445,25 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                         }
                     },
 
-                    // Sauvegarde dans l'historique après rotation texte
+                    // Lire un stroke de la page courante (utilisé par le redimensionnement texte de draw.js)
+                    getStroke(index) {
+                        return getLayer(currentPage).strokes[index] || null;
+                    },
+                    // Redimensionner un texte en temps réel : nouvelle taille + nouvelle origine
+                    // (l'origine bouge pour garder le coin haut-gauche visuel fixe, même pivoté)
+                    resizeTextStroke(index, size, nx, ny) {
+                        const layer = getLayer(currentPage);
+                        if (!layer.strokes[index] || layer.strokes[index].tool !== 'text') return;
+                        layer.strokes[index] = { ...layer.strokes[index], size, nx, ny };
+                        if (_annotSnapshot) {
+                            actx.putImageData(_annotSnapshot, 0, 0);
+                            drawStroke(actx, layer.strokes[index]);
+                        } else {
+                            redrawAnnotations(currentPage);
+                        }
+                    },
+
+                    // Sauvegarde dans l'historique après rotation / redimensionnement texte
                     saveTextTransform(index) {
                         const layer = getLayer(currentPage);
                         if (!layer.strokes[index]) return;

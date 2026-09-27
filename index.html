@@ -461,7 +461,7 @@
 			<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
 				<div style="display:flex;align-items:center;gap:3px;">
 					<button onmousedown="(function(btn){var iv;function step(){var l=document.getElementById('text-size-label');var v=Math.max(8,parseInt(l.textContent)-2);l.textContent=v;window._textWidgetSize=v;}step();iv=setInterval(step,120);btn._iv=iv;})(this)" onmouseup="clearInterval(this._iv)" onmouseleave="clearInterval(this._iv)" style="width:16px;height:16px;border-radius:4px;border:1px solid #555;background:#2a2a2e;color:#ccc;cursor:pointer;font-size:12px;line-height:1;padding:0;flex-shrink:0;">−</button>
-					<span id="text-size-label" style="font-size:11px;font-weight:700;min-width:24px;text-align:center;cursor:default;border-radius:3px;padding:1px 2px;">40</span>
+					<span id="text-size-label" style="font-size:11px;font-weight:700;min-width:24px;text-align:center;cursor:default;border-radius:3px;padding:1px 2px;">28</span>
 					<button onmousedown="(function(btn){var iv;function step(){var l=document.getElementById('text-size-label');var v=Math.min(120,parseInt(l.textContent)+2);l.textContent=v;window._textWidgetSize=v;}step();iv=setInterval(step,120);btn._iv=iv;})(this)" onmouseup="clearInterval(this._iv)" onmouseleave="clearInterval(this._iv)" style="width:16px;height:16px;border-radius:4px;border:1px solid #555;background:#2a2a2e;color:#ccc;cursor:pointer;font-size:12px;line-height:1;padding:0;flex-shrink:0;">+</button>
 				</div>
 				<button id="pdf-text-btn" onclick="if(typeof _pdfAnnotMode!=='undefined'&&_pdfAnnotMode){setPdfAnnotTool('text');}else{if(typeof toggleGlobalToolbar==='function')toggleGlobalToolbar();}" title="Ajouter un texte — cliquez puis cliquez sur le board" style="display:flex;background:#2a2a2e;color:#aaa;border:2px solid #444;width:64px;height:30px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;align-items:center;justify-content:center;padding:0;">Texte</button>
@@ -1072,6 +1072,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-sing-plur.js"></script>
 <script src="widget-jeu-plus-grand.js"></script>
 <script src="widget-jeu-phrase-desordre.js"></script>
+<script src="widget-jeu-tour-calcul.js"></script>
 <script src="widget-de.js"></script>
 <script src="widget-fractions.js"></script>
 <script src="widget-minuteur-chrono.js"></script>
@@ -1173,6 +1174,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-plus-grand.png" alt="Plus grand / plus petit" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Plus grand / plus petit</div>
                 <div class="act-card-desc">Taper le plus vite sur le plus grand nombre, seul ou à deux au TBI</div>
+            </div>
+            <div class="act-card" onclick="createWidget('jeu-tour-calcul');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-tour-calcul.png" alt="Tour de calcul" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Tour de calcul</div>
+                <div class="act-card-desc">Guider les blocs-calculs vers la colonne de leur résultat avant que la tour déborde</div>
             </div>
 		</div>
 		<div class="act-section-label">🎮 Jeux de français</div>

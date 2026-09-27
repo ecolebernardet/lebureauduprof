@@ -65,14 +65,14 @@ function openTextToolbar(widget) {
 let isTextPlacementMode = false;
 let _textIgnoreNextBoardClick = false;
 
-const _TEXT_MODE_DISABLED_BTNS = ['draw-free-btn','draw-highlight-btn','eraser-btn','draw-figures-btn','draw-select-btn','pdf-annot-mode-btn'];
+// Boutons qui, cliqués en mode texte, quittent d'abord ce mode puis activent leur outil
+const _TEXT_MODE_DISABLED_BTNS = ['draw-free-btn','draw-crayon-btn','draw-highlight-btn','eraser-btn','draw-figures-btn','geo-draw-btn','draw-select-btn','pdf-annot-mode-btn'];
 
 function _disableDrawBtns() {
     _TEXT_MODE_DISABLED_BTNS.forEach(id => {
         const b = document.getElementById(id);
         if (!b) return;
-        b.style.opacity = '0.3';
-        b.style.pointerEvents = 'none';
+        // Plus d'estompage : le bouton Texte coloré suffit à montrer l'outil actif
         b._textModeDisabled = true;
         // Intercepter le clic pour sortir du mode texte puis déclencher l'action
         b._textModeClickHandler = function(e) {
@@ -81,17 +81,38 @@ function _disableDrawBtns() {
             setTimeout(() => b.click(), 10);
         };
         b.addEventListener('click', b._textModeClickHandler, true);
-        // Rendre cliquable malgré pointerEvents:none via un overlay
-        b.style.pointerEvents = 'auto';
     });
+}
+
+// Éteint visuellement tous les boutons d'outils de la toolbar draw
+// (le bouton Texte, coloré, devient le seul actif)
+function _clearDrawBtnsActive() {
+    const off = (b) => {
+        if (!b) return;
+        ['background','border-color','color','box-shadow'].forEach(p => b.style.removeProperty(p));
+        b.style.borderColor = '#444';
+        b.style.background  = '#2a2a2e';
+        b.style.color       = '#aaa';
+        b.style.boxShadow   = 'none';
+        b.classList.remove('btn-mode-active');
+    };
+    ['draw-free-btn','draw-crayon-btn','draw-highlight-btn','eraser-btn',
+     'draw-figures-btn','draw-select-btn','geo-draw-btn'].forEach(id => off(document.getElementById(id)));
+    // Boutons du sous-menu figures (ligne, cercle, …) + couleur de leurs icônes
+    if (typeof FIGURE_MODES !== 'undefined') {
+        FIGURE_MODES.forEach(m => {
+            const btn = document.getElementById('draw-mode-' + m + '-btn');
+            if (!btn) return;
+            off(btn);
+            btn.querySelectorAll('svg *').forEach(el => el.style.removeProperty('stroke'));
+        });
+    }
 }
 
 function _enableDrawBtns() {
     _TEXT_MODE_DISABLED_BTNS.forEach(id => {
         const b = document.getElementById(id);
         if (!b) return;
-        b.style.opacity = '';
-        b.style.pointerEvents = '';
         b._textModeDisabled = false;
         if (b._textModeClickHandler) {
             b.removeEventListener('click', b._textModeClickHandler, true);
@@ -112,11 +133,14 @@ function toggleGlobalToolbar() {
         if (typeof stopShapeToolbar === 'function') stopShapeToolbar();
         // Appliquer curseur texte après clearDrawCursor
         setTimeout(() => { boardEl.style.setProperty('cursor', 'text', 'important'); }, 0);
-        // Désactiver les autres boutons
+        // Les autres boutons restent cliquables mais ne sont plus affichés comme actifs
         _disableDrawBtns();
+        _clearDrawBtnsActive();
         if (btn) { btn.style.setProperty('background', '#7ab8f5', 'important'); btn.style.setProperty('color', '#000', 'important'); btn.style.setProperty('border-color', '#7ab8f5', 'important'); }
     } else {
         closeGlobalToolbar();
+        // Sortie du mode texte par le bouton Texte : on revient en mode sélection
+        if (typeof _setBtnActive === 'function') _setBtnActive('draw-select-btn', true);
     }
 }
 

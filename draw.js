@@ -3835,7 +3835,7 @@ function _pdfAnnotEndStroke(e) {
 // On convertit dans les deux sens (size peut être décimal, drawStroke le gère).
 function _pdfTextGetPx() {
     const lbl = document.getElementById('text-size-label');
-    return parseInt(lbl && lbl.textContent) || window._textWidgetSize || 28;
+    return parseInt(lbl && lbl.textContent) || window._textWidgetSize || 40;
 }
 function _pdfTextSetPx(px) {
     px = Math.max(8, Math.min(120, Math.round(px)));

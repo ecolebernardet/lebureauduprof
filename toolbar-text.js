@@ -297,7 +297,7 @@ document.getElementById('board').addEventListener('click', function(e) {
         content.style.color = drawColor;
         // Appliquer la taille de texte sélectionnée
         const fontSize = window._textWidgetSize
-            || parseInt(document.getElementById('text-size-label')?.textContent) || 24;
+            || parseInt(document.getElementById('text-size-label')?.textContent) || 40;
         content.style.fontSize = fontSize + 'px';
     }
 

@@ -1087,6 +1087,7 @@ function setVisuelsMode(mode) {
 <script src="widget-equipes.js"></script>
 <script src="widget-structure-ecole.js"></script>
 <script src="widget-calcul.js"></script>
+<script src="widget-calcul-flash.js"></script>
 <script src="color-picker.js"></script>
 <script src="toolbar-text.js"></script>
 <script src="widget-devoirs.js"></script>
@@ -1348,6 +1349,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activites-calcul-mental6.png" alt="Calcul mental" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Calcul mental</div>
                 <div class="act-card-desc">S'entraîner au calcul mental</div>
+            </div>
+			<div class="act-card" onclick="createWidget('calcul-flash');toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-calculs-flash.jpeg" alt="Calculs flash" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Calcul flash</div>
+                <div class="act-card-desc">Faire défiler des calculs au rythme de la classe</div>
             </div>
             <div class="act-card" onclick="createCompteEstBonWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-compteestbon6.jpeg" alt="Le compte est bon" style="width:100%;height:100%;object-fit:contain;"></div>

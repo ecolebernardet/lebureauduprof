@@ -891,6 +891,14 @@ function spawnRegle(board, cx, cy) {
         user-select:none; touch-action:none;
     `;
     resizeHandle.textContent = '⟺';
+    // Exclure la poignée du drag de l'overlay (sinon, avec un stylet, le
+    // pointerdown remonte à l'overlay et déplace la règle pendant le resize)
+    resizeHandle.dataset.nodrag = 'true';
+    // Empêcher le pointerdown d'atteindre draw.js (sans preventDefault, pour
+    // que le stylet génère toujours le mousedown/touchstart du resize)
+    resizeHandle.addEventListener('pointerdown', function(e) {
+        e.stopPropagation();
+    });
 
     // ── Fonction de mise à jour globale du layout au resize ───────────────
     function applyResize(newCmW) {

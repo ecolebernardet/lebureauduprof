@@ -1077,6 +1077,7 @@ function setVisuelsMode(mode) {
 <script src="widget-fractions.js"></script>
 <script src="widget-minuteur-chrono.js"></script>
 <script src="widget-cache.js"></script>
+<script src="widget-loupe.js"></script>
 <script src="widget-sonometre.js"></script>
 <script src="widget-radar.js"></script>
 <script src="widget-geometrie.js"></script>
@@ -1751,6 +1752,16 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="tools-card-name">Écriture Seyes</div>
                 <div class="tools-card-desc">Taper un texte directement sur un lignage Seyes</div>
             </div>
+			<div class="tools-card" onclick="createCacheWidget();toggleToolsPanel()">
+                <div class="tools-card-ico"><img src="pics/outils-cache.jpeg" alt="Cache écran" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="tools-card-name">Cache-écran / Spot</div>
+                <div class="tools-card-desc">Dévoiler progressivement ou éclairer une zone</div>
+			</div>
+			<div class="tools-card" onclick="createLoupeWidget();toggleToolsPanel()">
+                <div class="tools-card-ico"><img src="pics/outils-loupe.jpeg" alt="Loupe" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="tools-card-name">Loupe</div>
+                <div class="tools-card-desc">Agrandir une zone de l'écran</div>
+			</div>
 			<div class="tools-card" onclick="createWidget('de');toggleToolsPanel()">
                 <div class="tools-card-ico"><img src="pics/outils-de.jpeg" alt="Lancer un dé" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="tools-card-name">Lancer un dé</div>
@@ -1765,11 +1776,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="tools-card-ico"><img src="pics/outils-page-garde.jpeg" alt="Page de garde" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="tools-card-name">Page de garde</div>
                 <div class="tools-card-desc">Créer une page de garde de cahier illustrée</div>
-			</div>
-			<div class="tools-card" onclick="createCacheWidget();toggleToolsPanel()">
-                <div class="tools-card-ico"><svg viewBox="0 0 120 90" style="width:100%;height:100%;" xmlns="http://www.w3.org/2000/svg" aria-label="Cache-écran et spot"><rect x="4" y="4" width="112" height="82" rx="8" fill="#f4f6fa" stroke="#c9d2e0" stroke-width="2"/><path fill-rule="evenodd" fill="#1F1F21" d="M60 6 H114 V84 H60 Z M88 45 m-16 0 a16 16 0 1 0 32 0 a16 16 0 1 0 -32 0"/><circle cx="88" cy="45" r="16" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.5"/><rect x="12" y="16" width="36" height="5" rx="2.5" fill="#9aa7bb"/><rect x="12" y="28" width="28" height="5" rx="2.5" fill="#9aa7bb"/><rect x="12" y="40" width="34" height="5" rx="2.5" fill="#9aa7bb"/><rect x="12" y="52" width="22" height="5" rx="2.5" fill="#9aa7bb"/><rect x="54" y="33" width="12" height="24" rx="6" fill="#4a90e2" stroke="#fff" stroke-width="2"/></svg></div>
-                <div class="tools-card-name">Cache-écran / Spot</div>
-                <div class="tools-card-desc">Dévoiler progressivement ou éclairer une zone</div>
 			</div>
 			<div class="tools-card" onclick="createWidget('outilsprofs');toggleToolsPanel()">
                 <div class="tools-card-ico"><img src="pics/outils-outilsprofs3.jpeg" alt="OutilsProfs" style="width:100%;height:100%;object-fit:contain;"></div>

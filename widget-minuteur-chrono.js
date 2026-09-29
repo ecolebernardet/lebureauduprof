@@ -599,7 +599,7 @@
         // ─────────────────────────────────────────────────────────────────────
         // ══ MINUTEUR VISUEL (type Time Timer) ══
         // Le disque coloré représente le temps restant ; il se réduit dans le
-        // sens des aiguilles d'une montre jusqu'à disparaître.
+        // sens inverse des aiguilles d'une montre jusqu'à disparaître.
         // Réglage : boutons de durée OU glisser directement sur le cadran.
         // ─────────────────────────────────────────────────────────────────────
         (function () {
@@ -626,12 +626,16 @@
             var MAX_SEC  = 120 * 60;
 
             // Cadrans disponibles (en minutes) : pas des graduations et des chiffres
+            // unit 's' : chiffres affichés en secondes (cadrans très courts)
             var SCALES = [
+                { max: 1,   minor: 2/60, label: 10/60, unit: 's' },
+                { max: 2,   minor: 5/60, label: 15/60, unit: 's' },
                 { max: 5,   minor: 0.25, label: 1  },
                 { max: 10,  minor: 0.5,  label: 1  },
                 { max: 15,  minor: 0.5,  label: 1  },
                 { max: 20,  minor: 1,    label: 2  },
                 { max: 30,  minor: 1,    label: 5  },
+                { max: 45,  minor: 1,    label: 5  },
                 { max: 60,  minor: 1,    label: 5  },
                 { max: 120, minor: 2,    label: 10 }
             ];
@@ -651,10 +655,10 @@
                 return SCALES[SCALES.length - 1];
             }
 
-            // Angle (radians, sens anti-horaire depuis midi) → coordonnées
+            // Angle (radians, sens horaire depuis midi) → coordonnées
             function pt(frac, r) {
                 var a = frac * Math.PI * 2;
-                return { x: -r * Math.sin(a), y: -r * Math.cos(a) };
+                return { x: r * Math.sin(a), y: -r * Math.cos(a) };
             }
 
             function drawTicks() {
@@ -681,7 +685,7 @@
                         t.setAttribute('font-weight', '700');
                         t.setAttribute('fill', '#666');
                         t.setAttribute('font-family', "'Segoe UI', system-ui, sans-serif");
-                        t.textContent = Math.round(v);
+                        t.textContent = scale.unit === 's' ? Math.round(v * 60) : Math.round(v);
                         ticksG.appendChild(t);
                     }
                 }
@@ -704,7 +708,7 @@
                 } else {
                     var e = pt(frac, R_WEDGE);
                     wedge.setAttribute('d', 'M0,0 L0,-' + R_WEDGE + ' A' + R_WEDGE + ',' + R_WEDGE
-                        + ' 0 ' + (frac > 0.5 ? 1 : 0) + ' 0 ' + e.x.toFixed(2) + ',' + e.y.toFixed(2) + ' Z');
+                        + ' 0 ' + (frac > 0.5 ? 1 : 0) + ' 1 ' + e.x.toFixed(2) + ',' + e.y.toFixed(2) + ' Z');
                 }
                 var hp = pt(frac, 70);
                 hand.setAttribute('x2', hp.x.toFixed(2)); hand.setAttribute('y2', hp.y.toFixed(2));
@@ -806,10 +810,10 @@
                 var r  = dial.getBoundingClientRect();
                 var dx = e.clientX - (r.left + r.width / 2);
                 var dy = e.clientY - (r.top + r.height / 2);
-                // angle anti-horaire depuis midi, entre 0 et 1
-                var frac = Math.atan2(-dx, -dy) / (Math.PI * 2);
+                // angle horaire depuis midi, entre 0 et 1
+                var frac = Math.atan2(dx, -dy) / (Math.PI * 2);
                 if (frac < 0) frac += 1;
-                var step = scale.max <= 10 ? 15 : (scale.max <= 30 ? 30 : 60); // pas en secondes
+                var step = scale.max <= 2 ? 5 : scale.max <= 10 ? 15 : (scale.max <= 30 ? 30 : 60); // pas en secondes
                 var sec  = Math.round(frac * scale.max * 60 / step) * step;
                 if (sec === 0 && frac > 0.5) sec = scale.max * 60; // tour complet
                 return sec;

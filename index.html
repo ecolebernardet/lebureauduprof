@@ -892,6 +892,7 @@ function setVisuelsMode(mode) {
     </div>
 </template>
 <!-- template-meteo → widgets-meteo.js -->
+<!-- template-ephemeride → widget-ephemeride.js -->
 <template id="template-pdf">
     <div class="editor-container" style="height:562px;width:1000px;">
         <button class="exit-fs-btn" onclick="document.exitFullscreen()">✖ Quitter Plein Écran</button>
@@ -1036,6 +1037,7 @@ function setVisuelsMode(mode) {
 <script src="widget-conjugaison.js"></script>
 <script src="widget-deficalme.js"></script>
 <script src="widget-calendrier.js"></script>
+<script src="widget-ephemeride.js"></script>
 <script src="widget-repro-quadrillage.js"></script>
 <script src="widget-symetrie-axiale.js"></script>
 <script src="widget-pixelart.js"></script>
@@ -1591,6 +1593,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="widgets-card-ico"><img src="pics/widget-meteo.jpeg" alt="Afficher la météo locale" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="widgets-card-name">Météo locale</div>
                 <div class="widgets-card-desc">Afficher la météo locale</div>
+            </div>
+            <div class="widgets-card" onclick="createWidget('ephemeride');toggleWidgetsPanel()">
+                <div class="widgets-card-ico"><img src="pics/widget-ephemeride.jpeg" alt="Éphéméride du jour" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="widgets-card-name">Éphéméride</div>
+                <div class="widgets-card-desc">Fête, soleil, lune et saison du jour</div>
             </div>
         </div>
         <div class="widgets-section-label">📋 Organisation & Annotation</div>

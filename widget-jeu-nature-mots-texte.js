@@ -284,6 +284,60 @@
             "Un|d jour|n , une|d princesse|n courageuse|a entra|v dans|i sa|d grotte|n . " +
             "Le|d dragon|n lui|p offrit|v une|d tarte|n aux|d pommes|n . " +
             "Depuis|i , ils|p partagent|v leurs|d desserts|n ." },
+        { id: 'poney', level: 'facile', title: 'Le poney de Zoé', src:
+            "Zoé|n a|v un|d petit|a poney|n blanc|a . " +
+            "Chaque|d matin|n , elle|p le|p brosse|v avec|i soin|n . " +
+            "Le|d poney|n mange|v des|d carottes|n et|i du|d foin|n . " +
+            "Ensuite|i , ils|p partent|v dans|i la|d grande|a prairie|n . " +
+            "Zoé|n rit|v quand|i il|p galope|v vite|i !" },
+        { id: 'pique-nique', level: 'facile', title: 'Le pique-nique', src:
+            "Dimanche|n , nous|p mangeons|v sous|i un|d grand|a arbre|n . " +
+            "Maman|n a|v préparé|v des|d sandwichs|n délicieux|a . " +
+            "Papa|n sort|v une|d nappe|n rouge|a de|i son|d sac|n . " +
+            "Des|d fourmis|n arrivent|v aussitôt|i sur|i la|d nappe|n ! " +
+            "Nous|p les|p chassons|v doucement|i ." },
+        { id: 'rentree', level: 'facile', title: 'La rentrée', src:
+            "Aujourd'hui|i , Léo|n entre|v dans|i une|d nouvelle|a école|n . " +
+            "Il|p porte|v un|d cartable|n bleu|a et|i une|d trousse|n verte|a . " +
+            "La|d maîtresse|n l'|p accueille|v avec|i un|d sourire|n . " +
+            "Léo|n rencontre|v deux|d camarades|n très|i gentils|a . " +
+            "Ils|p jouent|v ensemble|i dans|i la|d cour|n ." },
+        { id: 'pluie', level: 'facile', title: 'Un jour de pluie', src:
+            "Il|p pleut|v fort|i sur|i la|d ville|n grise|a . " +
+            "Les|d enfants|n restent|v dans|i la|d maison|n . " +
+            "Ils|p construisent|v une|d cabane|n avec|i des|d coussins|n . " +
+            "Leur|d chat|n curieux|a entre|v dans|i la|d cabane|n . " +
+            "Puis|i , il|p s'|p endort|v sur|i un|d coussin|n moelleux|a ." },
+        { id: 'cirque', level: 'facile', title: 'Au cirque', src:
+            "Le|d cirque|n arrive|v dans|i notre|d village|n . " +
+            "Un|d clown|n drôle|a jongle|v avec|i trois|d balles|n . " +
+            "Les|d acrobates|n sautent|v très|i haut|i . " +
+            "Un|d lion|n rugit|v , mais|i il|p reste|v calme|a . " +
+            "Nous|p applaudissons|v les|d artistes|n !" },
+        { id: 'boulanger', level: 'facile', title: 'Chez le boulanger', src:
+            "Ce|d matin|n , je|p vais|v chez|i le|d boulanger|n . " +
+            "Je|p demande|v une|d baguette|n et|i deux|d croissants|n . " +
+            "Le|d pain|n est|v encore|i chaud|a . " +
+            "Je|p paie|v avec|i une|d pièce|n dorée|a . " +
+            "Sur|i le|d chemin|n , je|p croque|v un|d croissant|n ." },
+        { id: 'hibou', level: 'facile', title: 'Le petit hibou', src:
+            "Dans|i la|d forêt|n , un|d petit|a hibou|n ne|i dort|v pas|i . " +
+            "Il|p regarde|v la|d lune|n ronde|a . " +
+            "Sa|d maman|n lui|p raconte|v une|d histoire|n . " +
+            "Le|d hibou|n ferme|v enfin|i ses|d grands|a yeux|n . " +
+            "Il|p rêve|v de|i voyages|n merveilleux|a ." },
+        { id: 'piscine', level: 'facile', title: 'À la piscine', src:
+            "Le|d mardi|n , ma|d classe|n va|v à|i la|d piscine|n . " +
+            "Nous|p mettons|v un|d bonnet|n et|i des|d lunettes|n . " +
+            "L'|d eau|n est|v froide|a , alors|i nous|p nageons|v vite|i . " +
+            "Mon|d amie|n Inès|n saute|v du|d plongeoir|n . " +
+            "Nous|p rentrons|v fatigués|a et|i contents|a ." },
+        { id: 'fusee', level: 'facile', title: 'La fusée en carton', src:
+            "Max|n fabrique|v une|d fusée|n avec|i une|d boîte|n . " +
+            "Il|p peint|v la|d fusée|n en|i argent|n . " +
+            "Sa|d sœur|n colle|v des|d étoiles|n jaunes|a . " +
+            "Ensuite|i , ils|p montent|v dans|i leur|d fusée|n magique|a . " +
+            "Ils|p partent|v vers|i une|d planète|n inconnue|a !" },
 
         // ── CM1 - CM2 ─────────────────────────────────────────────────────
         { id: 'tempete', level: 'confirme', title: 'La tempête', src:
@@ -322,6 +376,60 @@
             "Les|d écureuils|n cachent|v des|d noisettes|n sous|i les|d racines|n . " +
             "Nous|p ramassons|v des|d champignons|n , mais|i nous|p ne|i les|p mangeons|v pas|i . " +
             "Le|d soir|n , une|d chouette|n hulule|v tristement|i ." },
+        { id: 'volcan', level: 'confirme', title: 'Le réveil du volcan', src:
+            "Le|d vieux|a volcan|n dormait|v depuis|i des|d siècles|n . " +
+            "Un|d matin|n , une|d épaisse|a fumée|n noire|a sortit|v du|d cratère|n . " +
+            "Les|d habitants|n inquiets|a quittèrent|v rapidement|i leurs|d maisons|n . " +
+            "La|d lave|n brûlante|a coulait|v lentement|i vers|i la|d vallée|n . " +
+            "Heureusement|i , les|d secours|n les|p protégèrent|v ." },
+        { id: 'chateau', level: 'confirme', title: 'Le château mystérieux', src:
+            "Au|d sommet|n de|i la|d colline|n se|p dressait|v un|d château|n abandonné|a . " +
+            "Chaque|d nuit|n , une|d lumière|n étrange|a brillait|v derrière|i les|d fenêtres|n . " +
+            "Deux|d frères|n courageux|a décidèrent|v d'|i explorer|v les|d lieux|n . " +
+            "Ils|p poussèrent|v la|d lourde|a porte|n qui|p grinça|v . " +
+            "Un|d chat|n noir|a les|p observait|v silencieusement|i ." },
+        { id: 'potager', level: 'confirme', title: "Le potager de l'école", src:
+            "Les|d élèves|n ont|v créé|v un|d potager|n derrière|i l'|d école|n . " +
+            "Ils|p sèment|v des|d radis|n , des|d haricots|n et|i des|d courgettes|n . " +
+            "Chaque|d semaine|n , ils|p mesurent|v soigneusement|i leurs|d plantes|n . " +
+            "Les|d limaces|n affamées|a attaquent|v parfois|i les|d salades|n . " +
+            "Les|d enfants|n les|p ramassent|v et|i ils|p les|p déposent|v plus|i loin|i ." },
+        { id: 'pirate', level: 'confirme', title: 'Le trésor du pirate', src:
+            "Le|d capitaine|n Barbe-Rousse|n cachait|v son|d trésor|n sur|i une|d île|n déserte|a . " +
+            "Il|p avait|v dessiné|v une|d carte|n secrète|a . " +
+            "Un|d jeune|a mousse|n la|p découvrit|v dans|i un|d coffre|n . " +
+            "Il|p suivit|v prudemment|i les|d indications|n mystérieuses|a . " +
+            "Sous|i un|d palmier|n , il|p trouva|v des|d pièces|n d'|i or|n !" },
+        { id: 'concert', level: 'confirme', title: 'Le concert', src:
+            "Ce|d soir|n , l'|d orchestre|n de|i notre|d ville|n donne|v un|d concert|n . " +
+            "Les|d musiciens|n accordent|v nerveusement|i leurs|d instruments|n . " +
+            "Le|d chef|n lève|v sa|d baguette|n , et|i le|d silence|n s'|p installe|v . " +
+            "Soudain|i , une|d mélodie|n joyeuse|a remplit|v la|d salle|n . " +
+            "Les|d spectateurs|n émus|a applaudissent|v longuement|i ." },
+        { id: 'banquise', level: 'confirme', title: "L'expédition polaire", src:
+            "Les|d explorateurs|n avançaient|v péniblement|i sur|i la|d banquise|n . " +
+            "Un|d vent|n glacial|a leur|p piquait|v le|d visage|n . " +
+            "Le|d soir|n , ils|p montaient|v une|d tente|n solide|a . " +
+            "Leurs|d chiens|n fidèles|a dormaient|v contre|i eux|p . " +
+            "Ils|p rêvaient|v souvent|i d'|i un|d repas|n chaud|a ." },
+        { id: 'robot', level: 'confirme', title: 'Le robot de Nina', src:
+            "Nina|n a|v construit|v un|d robot|n étonnant|a . " +
+            "Il|p range|v sa|d chambre|n et|i il|p arrose|v les|d plantes|n . " +
+            "Hier|i , le|d robot|n a|v préparé|v un|d gâteau|n bizarre|a . " +
+            "Nina|n l'|p a|v goûté|v avec|i prudence|n . " +
+            "Elle|p lui|p apprendra|v bientôt|i une|d meilleure|a recette|n ." },
+        { id: 'baleine', level: 'confirme', title: 'La baleine bleue', src:
+            "Une|d immense|a baleine|n bleue|a nageait|v tranquillement|i dans|i l'|d océan|n . " +
+            "Soudain|i , elle|p sauta|v hors|i de|i l'|d eau|n . " +
+            "Les|d passagers|n du|d bateau|n poussèrent|v des|d cris|n admiratifs|a . " +
+            "La|d baleine|n replongea|v et|i elle|p disparut|v sous|i les|d vagues|n . " +
+            "Nous|p la|p cherchions|v encore|i ." },
+        { id: 'marathon', level: 'confirme', title: 'Le marathon', src:
+            "Dimanche|n , ma|d tante|n participait|v à|i un|d marathon|n difficile|a . " +
+            "Elle|p s'|p entraînait|v depuis|i plusieurs|d mois|n . " +
+            "Au|d départ|n , des|d milliers|n de|i coureurs|n attendaient|v le|d signal|n . " +
+            "Ma|d tante|n courait|v régulièrement|i et|i elle|p souriait|v . " +
+            "Elle|p franchit|v fièrement|i la|d ligne|n d'|i arrivée|n !" },
     ];
 
     function parseText(src) {

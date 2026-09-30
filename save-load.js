@@ -317,6 +317,11 @@ function buildBoardState() {
         if (w.dataset.type === 'pixelart' && typeof w._pxlGetData === 'function') {
             pixelartData = w._pxlGetData();
         }
+        // Données propres au widget Chasse aux mots (nature des mots dans un texte)
+        let jnmtData = null;
+        if (w.dataset.type === 'jeu-nature-mots-texte' && typeof w._jnmtGetData === 'function') {
+            jnmtData = w._jnmtGetData();
+        }
         widgets.push({
 			type: w.dataset.subtype === 'seyes' ? 'seyes' : w.dataset.subtype === 'droite-num' ? 'droite-num' : w.dataset.type, topPercent: tP, leftPercent: lP, widthPercent: wP, contentHPercent: hP,
 			html, content: html, iframeSrc: iframe?.src || null,
@@ -366,7 +371,8 @@ function buildBoardState() {
 			jmmData,
 			dnData,
 			nclData,
-			pixelartData
+			pixelartData,
+			jnmtData
 		});
     });
     const shapes = [];
@@ -804,6 +810,12 @@ function restoreBoardFromJSON(json) {
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }
+        } else if (w.type === 'jeu-nature-mots-texte') {
+            // Le hook de createWidget appelle initJeuNatureMotsTexteWidget de façon
+            // synchrone : on lui passe les données via window._jnmtNextPendingData.
+            window._jnmtNextPendingData = w.jnmtData || null;
+            widget = createWidget('jeu-nature-mots-texte', '100px', '100px', false);
+            window._jnmtNextPendingData = null;
         } else if (w.type === 'pixelart') {
             if (typeof createPixelArtWidget === 'function') {
                 widget = createPixelArtWidget(w.pixelartData || null);

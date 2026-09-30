@@ -1067,6 +1067,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-mot-le-plus-long.js"></script>
 <script src="widget-jeu-mot-alpha.js"></script>
 <script src="widget-jeu-caisse-marchand.js"></script>
+<script src="widget-mathmaster.js"></script>
 <script src="widget-jeu-homophones.js"></script>
 <script src="widget-jeu-pendu.js"></script>
 <script src="widget-jeu-tangram.js"></script>
@@ -1184,6 +1185,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-tour-calcul.png" alt="Tour de calcul" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Tour de calcul</div>
                 <div class="act-card-desc">Guider les blocs-calculs vers la colonne de leur résultat avant que la tour déborde</div>
+            </div>
+            <div class="act-card" onclick="createWidget('jeu-mathmaster');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-mathmaster.png" alt="MathMaster" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">MathMaster</div>
+                <div class="act-card-desc">Calcul mental chronométré : enchaîner les bonnes réponses et grimper les paliers</div>
             </div>
 		</div>
 		<div class="act-section-label">🎮 Jeux de français</div>

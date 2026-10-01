@@ -564,17 +564,47 @@
         }
     };
 
+    function shuffle(arr) {
+        for (var i = arr.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1)), t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+        }
+        return arr;
+    }
+
+    // Répartition équilibrée : chaque type reçoit le même nombre de calculs
+    // (le reste éventuel est attribué au hasard, un calcul de plus par type),
+    // puis l'ordre est mélangé en évitant autant que possible deux calculs
+    // du même type à la suite.
+    function balancedTypes(types, count) {
+        var n = types.length, base = Math.floor(count / n), rest = count % n;
+        var extra = shuffle(types.slice()).slice(0, rest);
+        var pool = [];
+        types.forEach(function (t) {
+            var k = base + (extra.indexOf(t) >= 0 ? 1 : 0);
+            for (var i = 0; i < k; i++) pool.push(t);
+        });
+        var best = shuffle(pool.slice()), bestRuns = Infinity;
+        for (var attempt = 0; attempt < 40 && n > 1; attempt++) {
+            var cand = shuffle(pool.slice()), runs = 0;
+            for (var i = 1; i < cand.length; i++) if (cand[i] === cand[i - 1]) runs++;
+            if (runs < bestRuns) { best = cand; bestRuns = runs; }
+            if (runs === 0) break;
+        }
+        return best;
+    }
+
     function generateSeries(s) {
         var list = [], used = {}, last = '';
+        var order = balancedTypes(s.types, s.count);
         for (var i = 0; i < s.count; i++) {
-            var item = null;
+            var type = order[i], item = null;
             for (var tries = 0; tries < 60; tries++) {
-                var it = GEN[pick(s.types)](s);
+                var it = GEN[type](s);
                 if (it.key === last) continue;
                 if (used[it.key] && tries < 50) continue;
                 item = it; break;
             }
-            if (!item) item = GEN[pick(s.types)](s);
+            if (!item) item = GEN[type](s);
             used[item.key] = true; last = item.key;
             list.push(item);
         }

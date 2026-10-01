@@ -84,8 +84,8 @@ function buildBoardState() {
         // Pour un PDF en plein écran board : utiliser les dimensions/position d'ORIGINE sauvegardées
         const _fullboard = c && c.classList.contains('wf-pdf-fullboard');
         // Pour le widget défi calme : largeur du .dc-container (pas de .editor-container)
-        if (w.dataset.type === 'deficalme') {
-            const dc = w.querySelector('.dc-container');
+        if (w.dataset.type === 'deficalme' || w.dataset.type === 'deficalme2') {
+            const dc = w.querySelector(w.dataset.type === 'deficalme2' ? '.dc2-container' : '.dc-container');
             wP = dc ? (dc.offsetWidth  / curW)  * 100 : 0;
             hP = 0; // hauteur auto (aspect-ratio)
             lP = (w.offsetLeft / curW)  * 100;
@@ -137,7 +137,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -164,6 +164,11 @@ function buildBoardState() {
         let motLongData = null;
         if (w.dataset.type === 'mot-long' && typeof w._mlGetData === 'function') {
             motLongData = w._mlGetData();
+        }
+        // Données propres au widget pause calme
+        let pauseCalmeData = null;
+        if (w.dataset.type === 'pause-calme' && typeof w._wpcGetData === 'function') {
+            pauseCalmeData = w._wpcGetData();
         }
         // Données propres au widget tableau de numération
         let tableauNumData = null;
@@ -356,6 +361,7 @@ function buildBoardState() {
 			conjData,
 			tableauNumData,
 			motLongData,
+			pauseCalmeData,
 			horlogeData,
 			sondageData,
 			clrData,
@@ -576,6 +582,13 @@ function restoreBoardFromJSON(json) {
                 const dc = widget.querySelector('.dc-container');
                 if (dc) dc.style.width = (w.widthPercent / 100) * curW + 'px';
             }
+        } else if (w.type === 'deficalme2') {
+            widget = createDeficalme2Widget();
+            // Restaurer la largeur proportionnellement à l'écran courant
+            if (w.widthPercent > 0) {
+                const dc2 = widget.querySelector('.dc2-container');
+                if (dc2) dc2.style.width = (w.widthPercent / 100) * curW + 'px';
+            }
         } else if (w.type === 'monnaie') {
             widget = createMonnaieWidget();
             // Restaurer les dimensions sauvegardées
@@ -586,6 +599,11 @@ function restoreBoardFromJSON(json) {
                 if (mz && w.monnaieData.itemsH)     mz.style.height  = w.monnaieData.itemsH     + 'px';
                 // Restaurer le niveau
                 if (w.monnaieData.level && widget._setLevel) widget._setLevel(w.monnaieData.level);
+            }
+        } else if (w.type === 'pause-calme') {
+            widget = createPauseCalmWidget();
+            if (w.pauseCalmeData && typeof widget._wpcSetData === 'function') {
+                widget._wpcSetData(w.pauseCalmeData);
             }
         } else if (w.type === 'mot-long') {
             widget = createMotLePlusLongWidget();

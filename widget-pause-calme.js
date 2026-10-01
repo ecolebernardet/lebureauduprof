@@ -124,10 +124,19 @@
         document.head.appendChild(ws);
     }
 
+    // Police arrondie (repli système si hors-ligne)
+    if (!document.getElementById('wpc-font')) {
+        const f = document.createElement('link');
+        f.id = 'wpc-font';
+        f.rel = 'stylesheet';
+        f.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+        document.head.appendChild(f);
+    }
+
     // CSS spécifique au widget pause-calme
-    if (!document.getElementById('wpc-style')) {
+    if (!document.getElementById('wpc-style-v2')) {
         const s = document.createElement('style');
-        s.id = 'wpc-style';
+        s.id = 'wpc-style-v2';
         s.textContent = `
         .widget[data-type="pause-calme"] {
             min-width: unset;
@@ -136,23 +145,40 @@
             box-shadow: none !important;
         }
 
-        /* ── Conteneur principal ── */
+        /* ── Palette « lac au crépuscule » ── */
         .wpc-container {
-            background: #1a1a2e;
-            border: 1.5px solid #2d2d4e;
-            border-radius: 16px;
+            --wpc-ink:     #EAF0FA;
+            --wpc-muted:   #9AABC8;
+            --wpc-line:    rgba(234,240,250,0.10);
+            --wpc-inhale:  #8EC5FF;
+            --wpc-hold:    #F2CF8B;
+            --wpc-exhale:  #8FE0C0;
+            --wpc-idle:    #A9B6D6;
+            --wpc-deep:    #13203A;
+            --wpc-phase:   var(--wpc-idle);
+
+            background:
+                radial-gradient(120% 70% at 50% 38%, rgba(142,197,255,0.10), transparent 70%),
+                linear-gradient(172deg, #1C2846 0%, #243557 55%, #2C4066 100%);
+            border: 1px solid rgba(234,240,250,0.08);
+            border-radius: 22px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+            font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+            color: var(--wpc-ink);
+            box-shadow: 0 22px 48px -18px rgba(6,12,28,0.65), inset 0 1px 0 rgba(255,255,255,0.05);
             position: relative;
             user-select: none;
             overflow: visible;
             width: 420px;
         }
+        .wpc-container[data-phase="inspire"] { --wpc-phase: var(--wpc-inhale); }
+        .wpc-container[data-phase="hold"]    { --wpc-phase: var(--wpc-hold); }
+        .wpc-container[data-phase="expire"],
+        .wpc-container[data-phase="done"]    { --wpc-phase: var(--wpc-exhale); }
 
-        /* ── État plein écran board ── */
+        /* ── Plein écran board ── */
         .wpc-container.wf-fullboard {
             position: fixed !important;
             inset: 0 !important;
@@ -163,263 +189,327 @@
             overflow: hidden !important;
             padding-left: 70px;
         }
+        .wpc-container.wf-fullboard .wpc-settings { border-radius: 0; }
 
-        /* ── Barre du haut : nom + aide + wf-btns (même structure que monnaie) ── */
+        /* ── En-tête ── */
         .wpc-header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 10px 12px 8px;
+            gap: 8px;
+            padding: 14px 16px 4px 18px;
             cursor: move;
-            user-select: none;
             flex-shrink: 0;
             position: relative;
-            border-radius: 16px 16px 0 0;
-            overflow: hidden;  /* clip interne au header uniquement */
+            z-index: 10;
         }
         .wpc-title {
-            font-size: 13px;
-            font-weight: 800;
-            color: #c8b4f8;
-            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--wpc-ink);
             pointer-events: none;
         }
+        .wpc-title svg { width: 18px; height: 18px; color: var(--wpc-inhale); }
 
-        /* ── Corps central : colonne centrée ── */
+        /* ── Corps ── */
         .wpc-body {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 10px 16px 10px 16px;
-            gap: 8px;
+            padding: 4px 20px 6px;
+            min-height: 0;
         }
-
         .wpc-session-title {
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: #a78bfa;
-            white-space: nowrap;
-            text-align: center;
-        }
-
-        .wpc-timer {
             font-weight: 700;
-            opacity: 0.45;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #e0d7ff;
+            color: var(--wpc-ink);
             white-space: nowrap;
             text-align: center;
+            line-height: 1.3;
+        }
+        .wpc-timer {
+            font-weight: 600;
+            color: var(--wpc-muted);
+            white-space: nowrap;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            margin-top: 2px;
         }
 
-        /* Le cercle avec padding pour absorber le scale(1.2) */
+        /* ── Le cercle de respiration ── */
         .wpc-circle-wrap {
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10%;
-        }
-
-        .wpc-circle {
-            border-radius: 50%;
-            background: radial-gradient(circle at 40% 35%, #a78bfa, #6d28d9);
-            opacity: 0.85;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.1s ease-in-out;
-            box-shadow: 0 0 32px -6px #8b5cf6, 0 0 60px -20px #7c3aed;
-            transform: scale(0.6);
+            margin: 10px 0 6px;
             /* width/height posés par JS */
         }
-
-        .wpc-circle-text {
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #fff;
-            pointer-events: none;
-            /* font-size posé par JS */
+        .wpc-ripple,
+        .wpc-circle {
+            position: absolute;
+            width: 78%;
+            height: 78%;
+            border-radius: 50%;
+            transform: scale(0.55);
+            will-change: transform;
         }
-
-        /* ── Contrôles (musique + bouton démarrer) ── */
-        .wpc-controls {
+        .wpc-ripple {
+            border: 1.5px solid var(--wpc-phase);
+            opacity: 0.28;
+            transition: border-color 1.2s ease;
+        }
+        .wpc-ripple.r2 { opacity: 0.14; }
+        .wpc-circle {
+            background-color: var(--wpc-phase);
+            background-image:
+                radial-gradient(circle at 34% 28%, rgba(255,255,255,0.65), rgba(255,255,255,0) 55%),
+                radial-gradient(circle at 70% 80%, rgba(19,32,58,0.18), rgba(19,32,58,0) 60%);
+            box-shadow: 0 0 70px -8px var(--wpc-phase), inset 0 -10px 30px rgba(19,32,58,0.12);
+            transition: transform 0.5s ease-out, background-color 1.2s ease, box-shadow 1.2s ease;
+        }
+        .wpc-center {
+            position: relative;
+            z-index: 2;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            pointer-events: none;
+            color: var(--wpc-deep);
+        }
+        .wpc-circle-text { font-weight: 700; line-height: 1.1; }
+        .wpc-phase-count {
+            font-weight: 600;
+            opacity: 0.65;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.1;
+            min-height: 1.1em;
         }
 
-        .wpc-btn-main {
-            border-radius: 999px;
-            border: none;
-            font-size: 11px;
-            font-weight: 900;
-            padding: 8px 24px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            background: linear-gradient(135deg, #7c3aed, #4f46e5);
-            color: #fff;
-            box-shadow: 0 4px 14px rgba(109, 40, 217, 0.45);
-            transition: transform .12s, filter .12s;
+        /* ── Contrôles ── */
+        .wpc-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px 18px;
+            padding: 6px 20px 16px;
+            flex-shrink: 0;
         }
-        .wpc-btn-main:hover { filter: brightness(1.12); }
+        .wpc-btn-main {
+            font-family: inherit;
+            border-radius: 999px;
+            border: 1.5px solid transparent;
+            font-size: 15px;
+            font-weight: 700;
+            padding: 10px 30px;
+            cursor: pointer;
+            background: var(--wpc-inhale);
+            color: var(--wpc-deep);
+            box-shadow: 0 8px 22px -8px rgba(142,197,255,0.7);
+            transition: transform .12s, filter .15s, background-color .2s, color .2s, box-shadow .2s;
+        }
+        .wpc-btn-main:hover  { filter: brightness(1.06); }
         .wpc-btn-main:active { transform: scale(0.96); }
+        .wpc-container.is-running .wpc-btn-main {
+            background: transparent;
+            color: var(--wpc-ink);
+            border-color: rgba(234,240,250,0.28);
+            box-shadow: none;
+        }
+        .wpc-container.is-running .wpc-btn-main:hover { background: rgba(234,240,250,0.06); }
 
         .wpc-music-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 9px;
             cursor: pointer;
-            user-select: none;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--wpc-muted);
         }
-        .wpc-music-label {
-            font-size: 9px;
-            font-weight: 800;
-            text-transform: uppercase;
-            color: #9ca3af;
-            letter-spacing: 0.08em;
-        }
+        .wpc-music-row em { font-style: normal; color: var(--wpc-ink); opacity: 0.85; }
+        .wpc-switch-input { position: absolute; opacity: 0; width: 0; height: 0; }
         .wpc-switch {
             position: relative;
-            display: inline-block;
-            width: 36px;
-            height: 18px;
+            width: 34px; height: 20px;
+            border-radius: 20px;
+            background: rgba(234,240,250,0.16);
+            transition: background .25s;
             flex-shrink: 0;
         }
-        .wpc-switch input { opacity: 0; width: 0; height: 0; }
-        .wpc-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(128,128,128,0.35);
-            transition: 0.3s;
-            border-radius: 18px;
-        }
-        .wpc-slider:before {
-            position: absolute;
+        .wpc-switch::before {
             content: "";
-            height: 12px; width: 12px;
-            left: 3px; bottom: 3px;
-            background: white;
-            transition: 0.3s;
+            position: absolute;
+            width: 14px; height: 14px;
+            left: 3px; top: 3px;
             border-radius: 50%;
+            background: #fff;
+            transition: transform .25s;
         }
-        .wpc-switch input:checked + .wpc-slider { background: #7c3aed; }
-        .wpc-switch input:checked + .wpc-slider:before { transform: translateX(18px); }
-        .wpc-switch input:disabled + .wpc-slider { opacity: 0.5; cursor: not-allowed; }
+        .wpc-switch-input:checked + .wpc-switch { background: var(--wpc-exhale); }
+        .wpc-switch-input:checked + .wpc-switch::before { transform: translateX(14px); }
+        .wpc-switch-input:focus-visible + .wpc-switch { outline: 2px solid var(--wpc-inhale); outline-offset: 2px; }
 
-        /* ── Panneau config ── */
+        /* ── Réglages ── */
         .wpc-settings {
-            background: rgba(255,255,255,0.04);
-            border-top: 1px solid rgba(255,255,255,0.08);
-            padding: 8px 14px 10px;
+            background: rgba(10,18,36,0.28);
+            border-top: 1px solid var(--wpc-line);
+            padding: 14px 18px 16px;
+            flex-shrink: 0;
+            transition: opacity 0.3s;
+            border-radius: 0 0 22px 22px;
+        }
+        .wpc-settings.disabled { opacity: 0.35; pointer-events: none; }
+        .wpc-settings-inner {
             display: flex;
             flex-direction: column;
-            gap: 7px;
-            flex-shrink: 0;
-            transition: opacity 0.3s, pointer-events 0.3s;
-            border-radius: 0 0 16px 16px;
+            gap: 14px;
+            max-width: 560px;
+            margin: 0 auto;
         }
-        .wpc-settings.disabled { opacity: 0.3; pointer-events: none; }
-        .wpc-label {
-            font-size: 9px;
-            font-weight: 800;
-            text-transform: uppercase;
-            color: #9ca3af;
-            letter-spacing: 0.08em;
-            display: block;
-            margin-bottom: 3px;
+        .wpc-modes {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
         }
-        .wpc-select {
-            background: rgba(255,255,255,0.07);
-            border: 1px solid rgba(255,255,255,0.12);
-            color: #e2d9f3;
-            padding: 5px 28px 5px 10px;
-            border-radius: 8px;
-            width: 100%;
-            font-weight: 700;
-            font-size: 11px;
-            appearance: none;
+        .wpc-mode {
+            font-family: inherit;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            padding: 9px 10px;
+            border-radius: 12px;
+            border: 1.5px solid var(--wpc-line);
+            background: rgba(234,240,250,0.03);
+            color: var(--wpc-ink);
+            cursor: pointer;
+            transition: border-color .2s, background-color .2s;
+        }
+        .wpc-mode:hover { background: rgba(234,240,250,0.07); }
+        .wpc-mode-name { font-size: 12.5px; font-weight: 700; line-height: 1.2; }
+        .wpc-mode-rhythm { font-size: 11px; font-weight: 600; color: var(--wpc-muted); font-variant-numeric: tabular-nums; }
+        .wpc-mode[aria-checked="true"] {
+            border-color: var(--wpc-inhale);
+            background: rgba(142,197,255,0.12);
+        }
+        .wpc-mode[aria-checked="true"] .wpc-mode-rhythm { color: var(--wpc-inhale); }
+
+        .wpc-duration-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--wpc-muted);
+            margin-bottom: 8px;
+        }
+        .wpc-duration-label { color: var(--wpc-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+        .wpc-range {
+            --fill: 50%;
             -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            margin: 0;
+            border-radius: 6px;
+            background: linear-gradient(to right, var(--wpc-inhale) var(--fill), rgba(234,240,250,0.14) var(--fill));
             cursor: pointer;
         }
-        .wpc-select:focus { outline: none; border-color: #7c3aed; }
-        .wpc-select-wrap { position: relative; }
-        .wpc-select-wrap::after {
-            content: '▼';
-            font-size: 8px;
-            position: absolute;
-            right: 10px; top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-            opacity: 0.5;
-            color: #e2d9f3;
-        }
-        .wpc-range { accent-color: #7c3aed; width: 100%; }
-        .wpc-duration-label { color: #c4b5fd; }
-
-        /* ── Bouton aide ── */
-        .wpc-help-btn {
-            width: 20px; height: 20px;
+        .wpc-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; height: 18px;
             border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(255,255,255,0.07);
-            color: #a78bfa;
-            font-size: 11px;
+            background: #fff;
+            border: 3px solid var(--wpc-inhale);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .wpc-range::-moz-range-thumb {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid var(--wpc-inhale);
+        }
+        .wpc-range:focus-visible { outline: 2px solid var(--wpc-inhale); outline-offset: 6px; }
+
+        .wpc-unit { font-weight: 600; }
+
+        .wpc-btn-main:focus-visible,
+        .wpc-mode:focus-visible,
+        .wpc-help-btn:focus-visible { outline: 2px solid var(--wpc-inhale); outline-offset: 2px; }
+
+        /* ── Aide ── */
+        .wpc-help-btn {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            border: 1px solid rgba(234,240,250,0.2);
+            background: transparent;
+            color: var(--wpc-muted);
+            font-family: inherit;
+            font-size: 12px;
             font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            transition: background .15s;
+            margin-right: 4px;
+            transition: background .15s, color .15s;
         }
-        .wpc-help-btn:hover { background: rgba(167,139,250,0.2); }
+        .wpc-help-btn:hover { background: rgba(234,240,250,0.08); color: var(--wpc-ink); }
 
-        /* ── Popup aide — positionnée sous le header ── */
         .wpc-help-popup {
             display: none;
             position: absolute;
-            top: 34px;
-            right: 10px;
-            background: #1e1b4b;
-            border: 1px solid #3730a3;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-            padding: 12px 14px;
-            width: 270px;
-            font-size: 11px;
-            color: #c4b5fd;
+            top: 42px;
+            right: 12px;
+            background: #1A2540;
+            border: 1px solid rgba(234,240,250,0.12);
+            border-radius: 14px;
+            box-shadow: 0 16px 36px -10px rgba(0,0,0,0.6);
+            padding: 14px 16px;
+            width: 280px;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--wpc-muted);
             z-index: 20;
             line-height: 1.5;
+            cursor: default;
         }
         .wpc-help-popup.show { display: block; }
-        .wpc-help-popup h4 { margin: 0 0 8px; font-size: 12px; font-weight: 800; color: #a78bfa; }
-        .wpc-help-section {
-            margin-bottom: 7px; padding-bottom: 7px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-        .wpc-help-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+        .wpc-help-popup h4 { margin: 0 0 10px; font-size: 14px; font-weight: 700; color: var(--wpc-ink); }
+        .wpc-help-guide { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 5px; }
+        .wpc-help-guide li { display: flex; align-items: center; gap: 8px; }
+        .wpc-help-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .wpc-help-guide b { color: var(--wpc-ink); font-weight: 700; }
+        .wpc-help-section { padding: 8px 0; border-top: 1px solid var(--wpc-line); }
+        .wpc-help-section b { color: var(--wpc-ink); font-weight: 700; display: block; }
+        .wpc-help-tip { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--wpc-line); font-size: 11.5px; }
 
-        /* ── Resize handle ── */
+        /* ── Poignée de redimensionnement ── */
         .wpc-resize-handle {
             position: absolute;
-            right: 0; bottom: 0;
-            width: 18px; height: 18px;
+            right: 4px; bottom: 4px;
+            width: 16px; height: 16px;
             cursor: se-resize;
-            background: linear-gradient(135deg, transparent 50%, #555 50%);
-            border-radius: 0 0 14px 0;
+            background:
+                radial-gradient(circle, rgba(234,240,250,0.45) 1.2px, transparent 1.6px) 0 0 / 5px 5px;
+            -webkit-mask: linear-gradient(135deg, transparent 50%, #000 50%);
+                    mask: linear-gradient(135deg, transparent 50%, #000 50%);
             opacity: 0;
             transition: opacity .2s;
             z-index: 5;
         }
         .wpc-container:hover .wpc-resize-handle { opacity: 1; }
 
-        .wpc-unit { text-transform: lowercase; }
+        @media (prefers-reduced-motion: reduce) {
+            .wpc-ripple { display: none; }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -427,9 +517,9 @@
 
 // ── Modes de respiration ──────────────────────────────────────────────────
 const WPC_MODES = {
-    coherence: { inspire: 5, bloqueIn: 0, expire: 5,  bloqueEx: 0, label: 'Cohérence Cardiaque' },
-    carre:     { inspire: 4, bloqueIn: 4, expire: 4,  bloqueEx: 4, label: 'Respiration Carrée'  },
-    urgence:   { inspire: 3, bloqueIn: 1, expire: 7,  bloqueEx: 0, label: 'Urgence Calme'       }
+    coherence: { inspire: 5, bloqueIn: 0, expire: 5,  bloqueEx: 0, label: 'Cohérence cardiaque', rhythm: '5 s / 5 s'      },
+    carre:     { inspire: 4, bloqueIn: 4, expire: 4,  bloqueEx: 4, label: 'Respiration carrée',  rhythm: '4 / 4 / 4 / 4'  },
+    urgence:   { inspire: 3, bloqueIn: 1, expire: 7,  bloqueEx: 0, label: 'Urgence calme',       rhythm: '3 s / 7 s'      }
 };
 
 // ── Créer le widget ───────────────────────────────────────────────────────
@@ -449,9 +539,6 @@ function createPauseCalmWidget() {
     widget.style.left = '100px';
     widget.style.top  = pos.top  + 'px';
 
-    // ── Structure du widget (même squelette que widget-monnaie) ──────────
-    // Les éléments drag-handle, widget-action-bar, widget-rotate-handle
-    // sont injectés par le framework du board via widget.innerHTML.
     widget.innerHTML = `
         <div class="drag-handle" title="Déplacer">✥</div>
         <div class="widget-rotate-handle" title="Faire pivoter">↻</div>
@@ -464,16 +551,23 @@ function createPauseCalmWidget() {
         <div class="widget-ctx-menu"></div>
     `;
 
-    // ── Contenu principal (construit en JS comme monnaie) ─────────────────
+    // ── Contenu principal ─────────────────────────────────────────────────
     const container = document.createElement('div');
     container.className = 'wpc-container';
+    container.dataset.phase = 'idle';
     container.style.width = '420px';
 
-    // ── Header interne : nom + wf-btns (bouton aide inséré avant en JS) ───
+    // ── En-tête ───────────────────────────────────────────────────────────
     const header = document.createElement('div');
     header.className = 'wpc-header';
     header.innerHTML = `
-        <span class="wpc-title">🧘 Pause Calme</span>
+        <span class="wpc-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <path d="M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>
+                <path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0" opacity=".55"/>
+            </svg>
+            Pause calme
+        </span>
         <div class="wf-btns" style="margin-left:auto;">
             <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
             <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran board"></button>
@@ -481,7 +575,6 @@ function createPauseCalmWidget() {
         </div>
     `;
 
-    // Bouton aide inséré avant les wf-btns (comme dans monnaie)
     const helpBtn = document.createElement('button');
     helpBtn.className = 'wpc-help-btn';
     helpBtn.title = 'Aide';
@@ -489,32 +582,19 @@ function createPauseCalmWidget() {
     const wfBtnsDiv = header.querySelector('.wf-btns');
     wfBtnsDiv.insertBefore(helpBtn, wfBtnsDiv.firstChild);
 
-    // Popup aide
     const helpPopup = document.createElement('div');
     helpPopup.className = 'wpc-help-popup';
     helpPopup.innerHTML = `
-        <h4>💡 Pause Calme</h4>
-        <div class="wpc-help-section">
-            <strong style="font-size:10px;text-transform:uppercase;opacity:0.7;">Suivre le guide :</strong><br>
-            <span style="font-size:10px;">
-                • <b>Cercle qui grossit</b> → Inspirez par le nez<br>
-                • <b>Cercle immobile</b> → Retenez doucement<br>
-                • <b>Cercle qui rétrécit</b> → Expirez lentement
-            </span>
-        </div>
-        <div class="wpc-help-section">
-            <b style="color:#a78bfa;">Cohérence Cardiaque</b><br>
-            <span style="font-size:10px;opacity:0.8;">5s inspire / 5s expire. Réduit le stress.</span>
-        </div>
-        <div class="wpc-help-section">
-            <b style="color:#a78bfa;">Respiration Carrée</b><br>
-            <span style="font-size:10px;opacity:0.8;">4-4-4-4. Concentration et calme immédiat.</span>
-        </div>
-        <div class="wpc-help-section">
-            <b style="color:#a78bfa;">Urgence Calme</b><br>
-            <span style="font-size:10px;opacity:0.8;">3s inspire / 7s expire. Forte émotion ou agitation.</span>
-        </div>
-        <div style="font-size:9px;opacity:0.6;margin-top:6px;font-style:italic;">Tenez-vous droit, décroisez les jambes, relâchez les épaules.</div>
+        <h4>Suivre le cercle</h4>
+        <ul class="wpc-help-guide">
+            <li><span class="wpc-help-dot" style="background:var(--wpc-inhale)"></span><span><b>Il grandit</b> : on inspire par le nez</span></li>
+            <li><span class="wpc-help-dot" style="background:var(--wpc-hold)"></span><span><b>Il s'arrête</b> : on retient doucement</span></li>
+            <li><span class="wpc-help-dot" style="background:var(--wpc-exhale)"></span><span><b>Il rétrécit</b> : on expire lentement</span></li>
+        </ul>
+        <div class="wpc-help-section"><b>Cohérence cardiaque</b>5 s pour inspirer, 5 s pour expirer. Fait baisser le stress.</div>
+        <div class="wpc-help-section"><b>Respiration carrée</b>4 temps de 4 s. Aide à se concentrer.</div>
+        <div class="wpc-help-section"><b>Urgence calme</b>3 s pour inspirer, 7 s pour expirer. Pour une forte émotion ou de l'agitation.</div>
+        <div class="wpc-help-tip">Dos droit, jambes décroisées, épaules relâchées.</div>
     `;
     header.appendChild(helpPopup);
     container.appendChild(header);
@@ -524,10 +604,14 @@ function createPauseCalmWidget() {
     body.className = 'wpc-body';
     body.innerHTML = `
         <div class="wpc-session-title" data-role="session-title">Prêt ?</div>
-        <div class="wpc-timer" data-role="timer">Durée : 0 <span class="wpc-unit">min</span></div>
-        <div class="wpc-circle-wrap">
-            <div class="wpc-circle" data-role="circle">
-                <span class="wpc-circle-text" data-role="circle-text">...</span>
+        <div class="wpc-timer" data-role="timer"></div>
+        <div class="wpc-circle-wrap" data-role="circle-wrap">
+            <div class="wpc-ripple r2" data-role="ripple2"></div>
+            <div class="wpc-ripple r1" data-role="ripple1"></div>
+            <div class="wpc-circle" data-role="circle"></div>
+            <div class="wpc-center" aria-live="polite">
+                <span class="wpc-circle-text" data-role="circle-text">Prêt ?</span>
+                <span class="wpc-phase-count" data-role="phase-count"></span>
             </div>
         </div>
     `;
@@ -537,35 +621,39 @@ function createPauseCalmWidget() {
     const controls = document.createElement('div');
     controls.className = 'wpc-controls';
     controls.innerHTML = `
-        <label class="wpc-music-row">
-            <span class="wpc-music-label">♪ Gnossienne n°1 – Satie</span>
-            <label class="wpc-switch">
-                <input type="checkbox" data-role="toggle-music" checked>
-                <span class="wpc-slider"></span>
-            </label>
+        <label class="wpc-music-row" title="Gnossienne n°1, Erik Satie">
+            <input type="checkbox" class="wpc-switch-input" data-role="toggle-music" checked>
+            <span class="wpc-switch"></span>
+            <span>Musique <em>Satie</em></span>
         </label>
         <button class="wpc-btn-main" data-role="btn-main">Commencer</button>
     `;
     container.appendChild(controls);
 
-    // ── Config ────────────────────────────────────────────────────────────
+    // ── Réglages ──────────────────────────────────────────────────────────
     const settings = document.createElement('div');
     settings.className = 'wpc-settings';
     settings.dataset.role = 'settings';
+    const modeButtons = Object.entries(WPC_MODES).map(([key, m]) => `
+        <button class="wpc-mode" role="radio" data-mode="${key}" aria-checked="false">
+            <span class="wpc-mode-name">${m.label}</span>
+            <span class="wpc-mode-rhythm">${m.rhythm}</span>
+        </button>`).join('');
     settings.innerHTML = `
-        <div>
-            <span class="wpc-label">Type de respiration</span>
-            <div class="wpc-select-wrap">
-                <select class="wpc-select" data-role="select-type">
-                    <option value="coherence">Cohérence cardiaque (5s/5s)</option>
-                    <option value="carre">Respiration Carrée (4-4-4-4)</option>
-                    <option value="urgence">Urgence Calme (Expiration longue)</option>
-                </select>
+        <div class="wpc-settings-inner">
+            <div class="wpc-modes" role="radiogroup" aria-label="Type de respiration">${modeButtons}</div>
+            <select data-role="select-type" hidden>
+                <option value="coherence">Cohérence cardiaque</option>
+                <option value="carre">Respiration carrée</option>
+                <option value="urgence">Urgence calme</option>
+            </select>
+            <div>
+                <div class="wpc-duration-head">
+                    <span>Durée</span>
+                    <span data-role="val-duree" class="wpc-duration-label"></span>
+                </div>
+                <input type="range" class="wpc-range" data-role="input-duree" min="0.5" max="5" step="0.5" value="2" aria-label="Durée de la séance">
             </div>
-        </div>
-        <div>
-            <span class="wpc-label">Durée : <span data-role="val-duree" class="wpc-duration-label">2 <span class="wpc-unit">min</span></span></span>
-            <input type="range" class="wpc-range" data-role="input-duree" min="0.5" max="5" step="0.5" value="2">
         </div>
     `;
     container.appendChild(settings);
@@ -578,37 +666,50 @@ function createPauseCalmWidget() {
     widget.appendChild(container);
 
     // ── Références DOM ────────────────────────────────────────────────────
+    const circleWrap   = container.querySelector('[data-role="circle-wrap"]');
     const circle       = container.querySelector('[data-role="circle"]');
+    const ripple1      = container.querySelector('[data-role="ripple1"]');
+    const ripple2      = container.querySelector('[data-role="ripple2"]');
     const circleText   = container.querySelector('[data-role="circle-text"]');
+    const phaseCount   = container.querySelector('[data-role="phase-count"]');
     const sessionTitle = container.querySelector('[data-role="session-title"]');
     const timerEl      = container.querySelector('[data-role="timer"]');
     const btnMain      = container.querySelector('[data-role="btn-main"]');
     const selectType   = container.querySelector('[data-role="select-type"]');
     const inputDuree   = container.querySelector('[data-role="input-duree"]');
     const valDuree     = container.querySelector('[data-role="val-duree"]');
-
     const toggleMusic  = container.querySelector('[data-role="toggle-music"]');
+    const modeBtns     = Array.from(container.querySelectorAll('.wpc-mode'));
 
     // ── Mise à l'échelle proportionnelle ──────────────────────────────────
-    // Le container a 70px de padding-left. La largeur utile = offsetWidth - 70px.
-    // Le cercle occupe ~60% de cette largeur utile, plafonné à 260px.
-    const PADDING_LEFT  = 70;
-    const CIRCLE_RATIO  = 0.80;
-    const MAX_CIRCLE    = 800;
+    // Le cercle suit la largeur utile ; en plein écran ou après un
+    // redimensionnement vertical, il est aussi limité par la hauteur.
+    const CIRCLE_RATIO = 0.82;
+    const MAX_CIRCLE   = 720;
+    const MIN_CIRCLE   = 120;
 
     function applyScale() {
-        const usable = Math.max(100, (container.offsetWidth || 420) - PADDING_LEFT);
-        const d = Math.min(Math.round(usable * CIRCLE_RATIO), MAX_CIRCLE);
-        circle.style.width  = d + 'px';
-        circle.style.height = d + 'px';
+        const cs = getComputedStyle(container);
+        const padL = parseFloat(cs.paddingLeft) || 0;
+        const usable = Math.max(160, (container.clientWidth || 420) - padL - 40);
+        let d = Math.min(Math.round(usable * CIRCLE_RATIO), MAX_CIRCLE);
 
-        // Texte dans le cercle
-        circleText.style.fontSize = Math.round(d * 0.13) + 'px';
+        const constrained = container.classList.contains('wf-fullboard') || !!container.style.height;
+        if (constrained) {
+            const fixed = header.offsetHeight + controls.offsetHeight + settings.offsetHeight
+                        + sessionTitle.offsetHeight + timerEl.offsetHeight + 40;
+            d = Math.min(d, container.clientHeight - fixed);
+        }
+        d = Math.max(MIN_CIRCLE, d);
 
-        // Textes session/timer proportionnels
-        const ratio = usable / 350;
-        sessionTitle.style.fontSize = Math.min(Math.round(12 * ratio), 15) + 'px';
-        timerEl.style.fontSize      = Math.min(Math.round(10 * ratio), 12) + 'px';
+        circleWrap.style.width  = d + 'px';
+        circleWrap.style.height = d + 'px';
+        circleText.style.fontSize = Math.round(d * 0.09) + 'px';
+        phaseCount.style.fontSize = Math.round(d * 0.065) + 'px';
+
+        const ratio = Math.min(usable / 360, 1.6);
+        sessionTitle.style.fontSize = Math.round(17 * ratio) + 'px';
+        timerEl.style.fontSize      = Math.round(13 * ratio) + 'px';
     }
 
     // ── Audio ─────────────────────────────────────────────────────────────
@@ -618,13 +719,10 @@ function createPauseCalmWidget() {
     audio.innerHTML = `<source src="sons/musique-satie-gnossienne1.mp3" type="audio/mpeg">`;
     widget.appendChild(audio);
 
-    // ── Observateur de redimensionnement ─────────────────────────────────
-    // Applique l'échelle à chaque changement de taille du container
     if (window.ResizeObserver) {
         const ro = new ResizeObserver(() => applyScale());
         ro.observe(container);
     }
-    // Applique immédiatement après insertion dans le DOM (via rAF)
     requestAnimationFrame(() => applyScale());
 
     function audioPlay() {
@@ -643,81 +741,150 @@ function createPauseCalmWidget() {
         const totalSeconds = Math.round(minutesDecimal * 60);
         const m = Math.floor(totalSeconds / 60);
         const s = totalSeconds % 60;
+        if (m === 0) return `${s} <span class="wpc-unit">s</span>`;
         return s === 0
             ? `${m} <span class="wpc-unit">min</span>`
-            : `${m} <span class="wpc-unit">min</span> ${s < 10 ? '0' + s : s} <span class="wpc-unit">s</span>`;
+            : `${m} <span class="wpc-unit">min</span> ${s < 10 ? '0' + s : s}`;
+    }
+    function formatClock(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s < 10 ? '0' + s : s}`;
     }
 
     function updateDurationDisplay() {
         valDuree.innerHTML = formatDuration(parseFloat(inputDuree.value));
+        const min = parseFloat(inputDuree.min), max = parseFloat(inputDuree.max);
+        inputDuree.style.setProperty('--fill', ((inputDuree.value - min) / (max - min) * 100) + '%');
+        if (!isRunning) timerEl.innerHTML = `Séance de ${formatDuration(parseFloat(inputDuree.value))}`;
     }
-    updateDurationDisplay();
-    inputDuree.addEventListener('input', updateDurationDisplay);
+
+    // ── Choix du mode ─────────────────────────────────────────────────────
+    function syncModes() {
+        modeBtns.forEach(b => b.setAttribute('aria-checked', b.dataset.mode === selectType.value ? 'true' : 'false'));
+        if (!isRunning && container.dataset.phase !== 'done') {
+            sessionTitle.textContent = WPC_MODES[selectType.value].label;
+        }
+    }
+    modeBtns.forEach(b => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectType.value = b.dataset.mode;
+        if (container.dataset.phase === 'done') resetVisual();
+        syncModes();
+        if (typeof saveBoard === 'function') saveBoard();
+    }));
 
     // ── Respiration ───────────────────────────────────────────────────────
     let isRunning     = false;
     let timerInterval = null;
+    let phaseTick     = null;
     let timeLeft      = 0;
+    let sessionId     = 0;
+
+    const SCALE_MIN = 0.55;
+    const SCALE_MAX = 1.0;
+
+    updateDurationDisplay();
+    inputDuree.addEventListener('input', updateDurationDisplay);
+    inputDuree.addEventListener('change', () => { if (typeof saveBoard === 'function') saveBoard(); });
+    syncModes();
 
     function wait(seconds) {
         return new Promise(resolve => setTimeout(resolve, seconds * 1000));
     }
 
-    async function runCycle(mode) {
-        if (!isRunning) return;
-        // INSPIRE
-        circleText.textContent = 'Inspire';
-        circle.style.transition = `transform ${mode.inspire}s ease-in-out`;
-        circle.style.transform  = 'scale(1.2)';
-        await wait(mode.inspire);
-        if (!isRunning) return;
-        // BLOQUE IN
-        if (mode.bloqueIn > 0) {
-            circleText.textContent = 'Bloque';
-            await wait(mode.bloqueIn);
+    // Les deux ondes s'écartent du cercle à l'inspiration et s'y replient à l'expiration
+    function setScale(scale, seconds, easing) {
+        const t = (seconds || 0) + 's ' + (easing || 'cubic-bezier(.45,0,.55,1)');
+        const k = (scale - SCALE_MIN) / (SCALE_MAX - SCALE_MIN);
+        circle.style.transition  = `transform ${t}, background-color 1.2s ease, box-shadow 1.2s ease`;
+        ripple1.style.transition = `transform ${t}, border-color 1.2s ease`;
+        ripple2.style.transition = `transform ${t}, border-color 1.2s ease`;
+        circle.style.transform  = `scale(${scale})`;
+        ripple1.style.transform = `scale(${scale * (1 + 0.10 * k)})`;
+        ripple2.style.transform = `scale(${scale * (1 + 0.20 * k)})`;
+    }
+
+    function setPhase(kind, label, seconds, scale) {
+        container.dataset.phase = kind;
+        circleText.textContent = label;
+        if (scale != null) setScale(scale, seconds);
+        clearInterval(phaseTick);
+        let n = seconds;
+        phaseCount.textContent = n;
+        phaseTick = setInterval(() => {
+            n--;
+            if (n > 0) phaseCount.textContent = n;
+            else clearInterval(phaseTick);
+        }, 1000);
+    }
+
+    async function runCycle(mode, id) {
+        const alive = () => isRunning && id === sessionId;
+        while (alive()) {
+            setPhase('inspire', 'Inspire', mode.inspire, SCALE_MAX);
+            await wait(mode.inspire);
+            if (!alive()) return;
+            if (mode.bloqueIn > 0) {
+                setPhase('hold', 'Retiens', mode.bloqueIn, null);
+                await wait(mode.bloqueIn);
+                if (!alive()) return;
+            }
+            setPhase('expire', 'Expire', mode.expire, SCALE_MIN);
+            await wait(mode.expire);
+            if (!alive()) return;
+            if (mode.bloqueEx > 0) {
+                setPhase('hold', 'Retiens', mode.bloqueEx, null);
+                await wait(mode.bloqueEx);
+            }
         }
-        if (!isRunning) return;
-        // EXPIRE
-        circleText.textContent = 'Expire';
-        circle.style.transition = `transform ${mode.expire}s ease-in-out`;
-        circle.style.transform  = 'scale(0.6)';
-        await wait(mode.expire);
-        if (!isRunning) return;
-        // BLOQUE EX
-        if (mode.bloqueEx > 0) {
-            circleText.textContent = 'Bloque';
-            await wait(mode.bloqueEx);
-        }
-        if (isRunning) runCycle(mode);
     }
 
     function startSession() {
         isRunning = true;
+        const id = ++sessionId;
         const mode = WPC_MODES[selectType.value];
-        timeLeft   = parseFloat(inputDuree.value) * 60;
+        timeLeft   = Math.round(parseFloat(inputDuree.value) * 60);
         audioPlay();
+        container.classList.add('is-running');
         sessionTitle.textContent = mode.label;
+        timerEl.textContent = formatClock(timeLeft);
         btnMain.textContent = 'Arrêter';
         settings.classList.add('disabled');
-        runCycle(mode);
+        runCycle(mode, id);
         timerInterval = setInterval(() => {
             timeLeft--;
-            timerEl.innerHTML = `Durée : ${formatDuration(timeLeft / 60)}`;
-            if (timeLeft <= 0) stopSession();
+            timerEl.textContent = formatClock(Math.max(0, timeLeft));
+            if (timeLeft <= 0) stopSession(true);
         }, 1000);
     }
 
-    function stopSession() {
+    function resetVisual() {
+        container.dataset.phase = 'idle';
+        circleText.textContent = 'Prêt ?';
+        sessionTitle.textContent = WPC_MODES[selectType.value].label;
+        updateDurationDisplay();
+    }
+
+    function stopSession(finished) {
+        sessionId++;
         isRunning = false;
         clearInterval(timerInterval);
+        clearInterval(phaseTick);
         audioStop();
+        container.classList.remove('is-running');
         btnMain.textContent = 'Commencer';
-        sessionTitle.textContent = 'Prêt ?';
-        circleText.textContent = '...';
         settings.classList.remove('disabled');
-        circle.style.transition = 'transform 0.5s ease-out';
-        circle.style.transform  = 'scale(0.6)';
-        timerEl.innerHTML = 'Durée : 0 <span class="wpc-unit">min</span>';
+        phaseCount.textContent = '';
+        setScale(SCALE_MIN, 0.8, 'ease-out');
+        if (finished === true) {
+            container.dataset.phase = 'done';
+            sessionTitle.textContent = 'Séance terminée';
+            circleText.textContent = 'Bravo';
+            timerEl.innerHTML = `Séance de ${formatDuration(parseFloat(inputDuree.value))}`;
+        } else {
+            resetVisual();
+        }
     }
 
     btnMain.addEventListener('click', (e) => {
@@ -732,6 +899,8 @@ function createPauseCalmWidget() {
     });
     document.addEventListener('click', () => helpPopup.classList.remove('show'));
     helpPopup.addEventListener('click', e => e.stopPropagation());
+    helpPopup.addEventListener('mousedown', e => e.stopPropagation());
+    helpPopup.addEventListener('pointerdown', e => e.stopPropagation());
 
     // ── Resize ────────────────────────────────────────────────────────────
     resizeHandle.addEventListener('mousedown', (e) => {
@@ -826,7 +995,7 @@ function createPauseCalmWidget() {
     };
     widget._wpcSetData = function(d) {
         if (!d) return;
-        if (d.mode && selectType.querySelector(`option[value="${d.mode}"]`)) selectType.value = d.mode;
+        if (d.mode && selectType.querySelector(`option[value="${d.mode}"]`)) { selectType.value = d.mode; syncModes(); }
         if (d.duree) { inputDuree.value = d.duree; updateDurationDisplay(); }
         if (d.musicOn !== undefined) toggleMusic.checked = d.musicOn;
         if (d.containerW) container.style.width  = d.containerW + 'px';
@@ -836,7 +1005,7 @@ function createPauseCalmWidget() {
 
     // ── Init widget dans le board ─────────────────────────────────────────
     widget.addEventListener('mousedown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+        if (e.target.closest('input, button, select, label')) return;
         if (typeof bringToFront  === 'function') bringToFront(widget);
         widget.focus();
         if (typeof positionActionBar === 'function') positionActionBar(widget);

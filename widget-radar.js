@@ -34,6 +34,16 @@
 
     /* ── Wrapper externe ── */
     .widget[data-type="radar"] .radar-outer {
+        --rd-ink:    #EAF0FA;
+        --rd-muted:  #9AABC8;
+        --rd-line:   rgba(234,240,250,0.13);
+        --rd-calm:   #8FE0C0;
+        --rd-warn:   #F2CF8B;
+        --rd-alert:  #FF8A7A;
+        --rd-accent: #8EC5FF;
+        --rd-deep:   #13203A;
+        --rd-level:  var(--rd-calm);
+
         position: relative;
         width:  340px;
         height: 420px;
@@ -43,39 +53,42 @@
         resize: none;
         box-sizing: border-box;
         border-radius: 24px;
-        background: #f5f7fa;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+        background:
+            radial-gradient(90% 60% at 50% 42%, rgba(142,197,255,0.10), transparent 70%),
+            linear-gradient(172deg, #1C2846 0%, #243557 55%, #2C4066 100%);
+        border: 1px solid rgba(234,240,250,0.08);
+        box-shadow: 0 22px 48px -18px rgba(6,12,28,0.65), inset 0 1px 0 rgba(255,255,255,0.05);
     }
+    .widget[data-type="radar"] .radar-outer[data-zone="warn"]  { --rd-level: var(--rd-warn); }
+    .widget[data-type="radar"] .radar-outer[data-zone="alert"] { --rd-level: var(--rd-alert); }
     .widget[data-type="radar"]:hover .radar-outer,
     .widget[data-type="radar"]:focus-within .radar-outer {
-        outline: 2px dashed rgba(74,144,226,0.45);
+        outline: 2px dashed rgba(142,197,255,0.40);
+        outline-offset: 2px;
     }
 
     /* Poignée de resize proportionnel */
     .radar-resize-handle {
         position: absolute;
-        bottom: 0; right: 0;
-        width: 18px; height: 18px;
+        bottom: 5px; right: 5px;
+        width: 16px; height: 16px;
         cursor: nwse-resize;
         z-index: 20;
         opacity: 0;
         transition: opacity 0.2s;
-        background-image: linear-gradient(135deg,
-            transparent 50%, #3b82f6 50%, #3b82f6 60%,
-            transparent 60%, transparent 70%,
-            #3b82f6 70%, #3b82f6 80%, transparent 80%);
-        border-bottom-right-radius: 24px;
+        background: radial-gradient(circle, rgba(234,240,250,0.45) 1.2px, transparent 1.6px) 0 0 / 5px 5px;
+        -webkit-mask: linear-gradient(135deg, transparent 50%, #000 50%);
+                mask: linear-gradient(135deg, transparent 50%, #000 50%);
     }
     .widget[data-type="radar"]:hover .radar-resize-handle,
-    .widget[data-type="radar"]:focus-within .radar-resize-handle {
-        opacity: 1;
-    }
+    .widget[data-type="radar"]:focus-within .radar-resize-handle { opacity: 1; }
 
     /* ── Contenu mis à l'échelle ── */
     .widget[data-type="radar"] .radar-scale-wrap {
         position: absolute;
         top: 0; left: 0;
         transform-origin: top left;
+        z-index: 3;
     }
 
     /* ── Widget intérieur (taille de référence 340×420) ── */
@@ -86,55 +99,77 @@
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        padding: 18px 16px 16px;
+        padding: 14px 18px 16px;
         box-sizing: border-box;
-        background: #f5f7fa;
-        border-radius: 24px;
-        color: #1a1a2e;
-        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        color: var(--rd-ink);
+        font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
         user-select: none;
-        gap: 0;
     }
 
-    /* ── Titre ── */
-    .radar-title {
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: rgba(0,0,0,0.35);
+    /* ── En-tête ── */
+    .radar-header {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         flex-shrink: 0;
     }
+    .radar-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--rd-ink);
+    }
+    .radar-title svg { width: 18px; height: 18px; color: var(--rd-accent); }
+
+    .radar-icon-btn {
+        width: 30px; height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--rd-muted);
+        cursor: pointer;
+        padding: 0;
+        transition: background .15s, color .15s, border-color .15s;
+    }
+    .radar-icon-btn svg { width: 17px; height: 17px; }
+    .radar-icon-btn:hover { background: rgba(234,240,250,0.08); color: var(--rd-ink); }
+    .radar-icon-btn:focus-visible { outline: 2px solid var(--rd-accent); outline-offset: 2px; }
+    .radar-toggle-controls.is-off { color: var(--rd-accent); border-color: rgba(142,197,255,0.35); }
 
     /* ── Zone radar ── */
     .radar-box-wrap {
         position: relative;
-        width: 220px;
-        height: 220px;
+        width: 210px;
+        height: 210px;
         flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
     }
-
     .radar-ring {
         position: absolute;
         border-radius: 50%;
-        border: 4px solid #3b82f6;
-        opacity: 0.12;
+        border: 1.5px solid var(--rd-line);
         top: 0; left: 0;
         width: 100%; height: 100%;
         box-sizing: border-box;
     }
+    .radar-ring.outer-ring { background: rgba(10,18,36,0.22); border-color: rgba(234,240,250,0.14); }
 
     .radar-threshold-ring {
         position: absolute;
         border-radius: 50%;
-        border: 2px dashed rgba(0,0,0,0.3);
+        border: 2px dashed rgba(255,138,122,0.75);
         top: 0; left: 0;
         width: 100%; height: 100%;
         box-sizing: border-box;
-        z-index: 5;
+        z-index: 12;
         pointer-events: none;
         transition: transform 0.2s ease-out;
     }
@@ -143,206 +178,184 @@
         position: absolute;
         width: 100%; height: 100%;
         border-radius: 50%;
-        background: #3b82f6;
-        box-shadow: 0 0 40px rgba(59,130,246,0.4);
+        background-color: var(--rd-level);
+        background-image:
+            radial-gradient(circle at 34% 28%, rgba(255,255,255,0.6), rgba(255,255,255,0) 55%),
+            radial-gradient(circle at 70% 80%, rgba(19,32,58,0.18), rgba(19,32,58,0) 60%);
+        box-shadow: 0 0 60px -6px var(--rd-level);
         z-index: 10;
         transform: scale(0);
-        transition: transform 0.1s ease-out, background-color 0.4s ease, box-shadow 0.4s ease;
+        transition: transform 0.1s ease-out, background-color 0.5s ease, box-shadow 0.5s ease;
     }
 
-    .radar-blob.is-alerting {
-        background: #ef4444 !important;
-        box-shadow: 0 0 50px rgba(239,68,68,0.4) !important;
-    }
-
-    /* ── Bouton démarrer (au centre du radar) ── */
+    /* ── Bouton central ── */
     .radar-btn-start {
         position: absolute;
         inset: 0; margin: auto;
         z-index: 50;
-        width: 80px; height: 80px;
+        width: 92px; height: 92px;
         border-radius: 50%;
-        font-size: 9px;
-        font-weight: 900;
-        line-height: 1.3;
-        text-transform: uppercase;
         cursor: pointer;
         border: none;
-        color: #fff;
-        background: #3b82f6;
-        transition: opacity 0.3s, transform 0.3s;
-        box-shadow: 0 6px 16px rgba(59,130,246,0.35);
-    }
-    .radar-btn-start.is-listening {
-        opacity: 0.15;
-        transform: scale(0.9);
-    }
-    .radar-btn-start.is-listening:hover {
-        opacity: 0.6;
-    }
-
-    /* ── Compteur alertes ── */
-    .radar-alerts-row {
+        font-family: inherit;
+        color: var(--rd-deep);
+        background: var(--rd-accent);
+        box-shadow: 0 10px 26px -8px rgba(142,197,255,0.75);
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        flex-shrink: 0;
+        gap: 3px;
+        padding: 0;
+        transition: background-color .3s, box-shadow .3s, transform .15s, color .3s;
     }
-    .radar-alert-label {
-        font-size: 9px;
-        font-weight: 900;
-        text-transform: uppercase;
-        opacity: 0.4;
-        letter-spacing: 1px;
-        color: #1a1a2e;
+    .radar-btn-start:active { transform: scale(0.95); }
+    .radar-btn-start:focus-visible { outline: 2px solid var(--rd-ink); outline-offset: 3px; }
+    .radar-btn-start svg { width: 22px; height: 22px; }
+    .radar-btn-text { font-size: 13px; font-weight: 700; }
+    .radar-btn-status,
+    .radar-btn-stop { display: none; font-size: 15px; font-weight: 700; }
+
+    .radar-btn-start.is-listening {
+        background: transparent;
+        box-shadow: none;
+        color: var(--rd-deep);
     }
-    .radar-alert-count {
-        font-size: 32px;
-        font-weight: 900;
-        color: #ef4444;
-        line-height: 1;
-        min-width: 36px;
-        text-align: center;
+    .radar-btn-start.is-listening svg,
+    .radar-btn-start.is-listening .radar-btn-text { display: none; }
+    .radar-btn-start.is-listening .radar-btn-status { display: block; }
+    .radar-btn-start.is-listening:hover { background: rgba(19,32,58,0.75); color: var(--rd-ink); }
+    .radar-btn-start.is-listening:hover .radar-btn-status { display: none; }
+    .radar-btn-start.is-listening:hover .radar-btn-stop { display: block; }
+
+    /* Le statut reste lisible même quand le blob est petit */
+    .radar-outer[data-zone] .radar-btn-start.is-listening:not(:hover) {
+        background: rgba(234,240,250,0.92);
+        width: 96px; height: 40px;
+        border-radius: 999px;
+        box-shadow: 0 6px 18px -8px rgba(0,0,0,0.5);
     }
 
-    /* ── Bouton son + reset ── */
-    .radar-alert-btns {
+    /* ── Alertes ── */
+    .radar-alerts-row {
+        width: 100%;
         display: flex;
         align-items: center;
-        gap: 6px;
+        justify-content: space-between;
+        flex-shrink: 0;
+        padding: 8px 4px 0;
+        border-top: 1px solid var(--rd-line);
     }
-    .radar-sound-btn {
-        background: none;
-        border: none;
-        color: rgba(0,0,0,0.4);
-        cursor: pointer;
-        padding: 4px;
-        border-radius: 6px;
-        font-size: 14px;
-        transition: color 0.2s;
+    .radar-alerts-main { display: flex; align-items: baseline; gap: 8px; }
+    .radar-alert-count {
+        font-size: 34px;
+        font-weight: 700;
+        color: var(--rd-alert);
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
     }
-    .radar-sound-btn:hover { color: rgba(0,0,0,0.8); }
-    .radar-sound-btn.muted { color: rgba(220,50,50,0.6); }
+    .radar-alert-label { font-size: 13px; font-weight: 600; color: var(--rd-muted); }
+    .radar-alert-btns { display: flex; align-items: center; gap: 4px; }
+    .radar-sound-btn.muted { color: var(--rd-alert); }
     .radar-reset-btn {
-        font-size: 9px;
-        font-weight: 900;
-        text-transform: uppercase;
-        color: rgba(0,0,0,0.3);
-        background: none;
-        border: none;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--rd-muted);
+        background: transparent;
+        border: 1px solid var(--rd-line);
+        border-radius: 999px;
+        padding: 5px 11px;
         cursor: pointer;
-        text-decoration: underline;
-        transition: color 0.2s;
+        transition: color .15s, border-color .15s;
     }
-    .radar-reset-btn:hover { color: rgba(0,0,0,0.6); }
+    .radar-reset-btn:hover { color: var(--rd-ink); border-color: rgba(234,240,250,0.3); }
+    .radar-reset-btn:focus-visible { outline: 2px solid var(--rd-accent); outline-offset: 2px; }
 
-    /* ── Contrôles (sliders) ── */
+    /* ── Réglages ── */
     .radar-controls {
         width: 100%;
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 9px;
         overflow: hidden;
         transition: max-height 0.3s ease, opacity 0.3s ease;
         max-height: 150px;
         opacity: 1;
     }
-    .radar-controls.hidden {
-        max-height: 0;
-        opacity: 0;
-        pointer-events: none;
-    }
+    .radar-controls.hidden { max-height: 0; opacity: 0; pointer-events: none; }
     .radar-slider-row {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 10px;
-        color: rgba(0,0,0,0.5);
+        gap: 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--rd-muted);
     }
-    .radar-slider-label {
-        width: 72px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-size: 9px;
-        flex-shrink: 0;
-    }
+    .radar-slider-label { width: 74px; flex-shrink: 0; }
     .radar-slider {
+        --fill: 50%;
+        --thumb: var(--rd-accent);
         flex: 1;
-        accent-color: #3b82f6;
-        height: 4px;
+        height: 6px;
+        margin: 0;
         cursor: pointer;
-        background: rgba(0,0,0,0.12);
-        border-radius: 4px;
+        border-radius: 6px;
         outline: none;
         -webkit-appearance: none;
         appearance: none;
+        background: linear-gradient(to right, var(--thumb) var(--fill), rgba(234,240,250,0.14) var(--fill));
     }
+    .radar-seuil-slider { --thumb: var(--rd-alert); }
     .radar-slider::-webkit-slider-thumb {
         -webkit-appearance: none;
-        width: 14px; height: 14px;
+        width: 16px; height: 16px;
         border-radius: 50%;
-        background: #3b82f6;
+        background: #fff;
+        border: 3px solid var(--thumb);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         cursor: pointer;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
     }
     .radar-slider::-moz-range-thumb {
-        width: 14px; height: 14px;
+        width: 10px; height: 10px;
         border-radius: 50%;
-        background: #3b82f6;
+        background: #fff;
+        border: 3px solid var(--thumb);
         cursor: pointer;
-        border: none;
     }
+    .radar-slider:focus-visible { outline: 2px solid var(--rd-accent); outline-offset: 5px; }
     .radar-slider-val {
-        width: 28px;
+        width: 34px;
         text-align: right;
-        font-size: 10px;
         font-weight: 700;
-        color: rgba(0,0,0,0.5);
+        color: var(--rd-ink);
+        font-variant-numeric: tabular-nums;
         flex-shrink: 0;
     }
 
-    /* ── Toggle contrôles ── */
-    .radar-toggle-controls {
-        position: absolute;
-        top: 8px; left: 10px;
-        background: rgba(0,0,0,0.06);
-        border: none;
-        border-radius: 6px;
-        color: rgba(0,0,0,0.35);
-        font-size: 11px;
-        padding: 3px 8px;
-        cursor: pointer;
-        transition: background 0.18s, color 0.18s;
-        z-index: 15;
-    }
-    .radar-toggle-controls:hover {
-        background: rgba(0,0,0,0.12);
-        color: rgba(0,0,0,0.8);
-    }
-
-    /* ── Alerte flash ── */
+    /* ── Alerte : halo rouge sur tout le widget ── */
     .radar-alert-flash {
         display: none;
         position: absolute;
         inset: 0;
         border-radius: 24px;
-        background: rgba(239,68,68,0.12);
+        background: radial-gradient(80% 70% at 50% 45%, rgba(255,138,122,0.0) 30%, rgba(255,138,122,0.28) 100%);
+        box-shadow: inset 0 0 0 2px rgba(255,138,122,0.55);
         pointer-events: none;
         z-index: 2;
-        animation: radar-flash 0.6s ease-in-out infinite alternate;
+        animation: radar-flash 0.7s ease-in-out infinite alternate;
     }
     .radar-alert-flash.active { display: block; }
-    @keyframes radar-flash {
-        from { opacity: 0.3; }
-        to   { opacity: 1; }
+    @keyframes radar-flash { from { opacity: 0.35; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+        .radar-alert-flash { animation: none; opacity: 0.8; }
     }
 
-    /* ── No mic ── */
+    /* ── Micro refusé ── */
     .radar-no-mic {
-        font-size: 10px;
-        color: rgba(200,50,50,0.9);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--rd-alert);
         text-align: center;
         padding: 2px 8px;
         display: none;
@@ -350,10 +363,19 @@
     }
     `;
 
+    // Police arrondie partagée avec la Pause calme (repli système si hors-ligne)
+    if (!document.getElementById('wpc-font')) {
+        var fl = document.createElement('link');
+        fl.id = 'wpc-font';
+        fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+        document.head.appendChild(fl);
+    }
+
     // ── Injection CSS ─────────────────────────────────────────────────────
-    if (!document.getElementById('radar-widget-style')) {
+    if (!document.getElementById('radar-widget-style-v2')) {
         var st = document.createElement('style');
-        st.id = 'radar-widget-style';
+        st.id = 'radar-widget-style-v2';
         st.textContent = STYLE;
         document.head.appendChild(st);
     }
@@ -364,51 +386,65 @@
 
             // ── Injection HTML ──
             var contentZone = widget.querySelector('.widget-content');
+            var ICON_SOUND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+            var ICON_MUTE  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6"/><path d="m21 9-5 6"/></svg>';
+            var ICON_SLIDERS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>';
+            var ICON_MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>';
+            var ICON_WAVES = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7"/><path d="M5.5 5.5a9 9 0 0 0 0 13M18.5 5.5a9 9 0 0 1 0 13" opacity=".55"/></svg>';
+
+            var contentZone = widget.querySelector('.widget-content');
             contentZone.innerHTML =
                 '<div class="radar-outer">'
               +   '<div class="radar-resize-handle"></div>'
               +   '<div class="radar-alert-flash"></div>'
-              +   '<button class="radar-toggle-controls" title="Afficher/masquer les contrôles">⚙️</button>'
               +   '<div class="radar-scale-wrap">'
               +     '<div class="radar-widget">'
-              +       '<div class="radar-title">📡 Radar de Bruit</div>'
+              +       '<div class="radar-header">'
+              +         '<div class="radar-title">' + ICON_WAVES + 'Radar de bruit</div>'
+              +         '<button class="radar-icon-btn radar-toggle-controls" title="Afficher ou masquer les réglages">' + ICON_SLIDERS + '</button>'
+              +       '</div>'
               +       '<div class="radar-box-wrap">'
+              +         '<div class="radar-ring outer-ring"></div>'
               +         '<div class="radar-ring" style="transform:scale(0.25)"></div>'
               +         '<div class="radar-ring" style="transform:scale(0.50)"></div>'
               +         '<div class="radar-ring" style="transform:scale(0.75)"></div>'
-              +         '<div class="radar-ring" style="transform:scale(1)"></div>'
               +         '<div class="radar-threshold-ring"></div>'
               +         '<div class="radar-blob"></div>'
-              +         '<button class="radar-btn-start"><span class="radar-btn-text">Lancer<br>l\'analyse</span></button>'
+              +         '<button class="radar-btn-start">'
+              +           ICON_MIC
+              +           '<span class="radar-btn-text">Écouter</span>'
+              +           '<span class="radar-btn-status" aria-live="polite">Calme</span>'
+              +           '<span class="radar-btn-stop">Arrêter</span>'
+              +         '</button>'
               +       '</div>'
               +       '<div class="radar-alerts-row">'
-              +         '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'
-              +           '<div class="radar-alert-label">Alertes</div>'
-              +           '<div class="radar-alert-count">0</div>'
+              +         '<div class="radar-alerts-main">'
+              +           '<span class="radar-alert-count">0</span>'
+              +           '<span class="radar-alert-label">alerte</span>'
               +         '</div>'
               +         '<div class="radar-alert-btns">'
-              +           '<button class="radar-sound-btn" title="Son on/off">🔊</button>'
-              +           '<button class="radar-reset-btn">Reset</button>'
+              +           '<button class="radar-icon-btn radar-sound-btn" title="Couper le bip">' + ICON_SOUND + '</button>'
+              +           '<button class="radar-reset-btn">Remettre à zéro</button>'
               +         '</div>'
               +       '</div>'
               +       '<div class="radar-controls">'
               +         '<div class="radar-slider-row">'
               +           '<span class="radar-slider-label">Sensibilité</span>'
-              +           '<input type="range" class="radar-slider radar-sens-slider" min="0.1" max="5" step="0.1" value="1.5">'
+              +           '<input type="range" class="radar-slider radar-sens-slider" min="0.1" max="5" step="0.1" value="1.5" aria-label="Sensibilité">'
               +           '<span class="radar-slider-val radar-sens-val">1.5</span>'
               +         '</div>'
               +         '<div class="radar-slider-row">'
               +           '<span class="radar-slider-label">Seuil</span>'
-              +           '<input type="range" class="radar-slider radar-seuil-slider" min="10" max="100" step="5" value="75">'
+              +           '<input type="range" class="radar-slider radar-seuil-slider" min="10" max="100" step="5" value="75" aria-label="Seuil d\'alerte">'
               +           '<span class="radar-slider-val radar-seuil-val">75%</span>'
               +         '</div>'
               +         '<div class="radar-slider-row">'
-              +           '<span class="radar-slider-label" title="Lisse les bruits courts (règle, éternuement…)">Lissage</span>'
-              +           '<input type="range" class="radar-slider radar-smooth-slider" min="0" max="10" step="1" value="4">'
+              +           '<span class="radar-slider-label" title="Ignore les bruits courts (règle qui tombe, éternuement…)">Lissage</span>'
+              +           '<input type="range" class="radar-slider radar-smooth-slider" min="0" max="10" step="1" value="4" aria-label="Lissage">'
               +           '<span class="radar-slider-val radar-smooth-val">4</span>'
               +         '</div>'
               +       '</div>'
-              +       '<div class="radar-no-mic">⚠️ Microphone refusé</div>'
+              +       '<div class="radar-no-mic">Le micro est bloqué. Autorisez-le dans le navigateur.</div>'
               +     '</div>'
               +   '</div>'
               + '</div>';
@@ -433,6 +469,31 @@
             var controlsEl     = widget.querySelector('.radar-controls');
             var smoothSlider   = widget.querySelector('.radar-smooth-slider');
             var smoothVal      = widget.querySelector('.radar-smooth-val');
+            var statusEl       = widget.querySelector('.radar-btn-status');
+            var alertLabel     = widget.querySelector('.radar-alert-label');
+
+            function setCount(n) {
+                alertCount.textContent = n;
+                alertLabel.textContent = n > 1 ? 'alertes' : 'alerte';
+            }
+
+            // Remplissage coloré des curseurs
+            function paintSlider(sl) {
+                var min = parseFloat(sl.min), max = parseFloat(sl.max);
+                sl.style.setProperty('--fill', ((parseFloat(sl.value) - min) / (max - min) * 100) + '%');
+            }
+            [sensSlider, seuilSlider, smoothSlider].forEach(paintSlider);
+
+            // Zones : calme (vert) → attention (doré) → trop fort (corail)
+            var ZONE_LABELS = { calm: 'Calme', warn: 'Attention', alert: 'Trop fort' };
+            function setZone(level) {
+                var r = threshold > 0 ? level / threshold : 0;
+                var z = r >= 1 ? 'alert' : (r >= 0.7 ? 'warn' : 'calm');
+                if (outer.dataset.zone !== z) {
+                    outer.dataset.zone = z;
+                    statusEl.textContent = ZONE_LABELS[z];
+                }
+            }
 
             // ── Dimensions de référence ──
             var REF_W = 340, REF_H = 420;
@@ -568,10 +629,11 @@
                     // Mode direct : comportement original
                     smoothedLevel += (raw - smoothedLevel) * 0.15;
                     blob.style.transform = 'scale(' + (smoothedLevel / 100) + ')';
+                    setZone(smoothedLevel);
                     if (smoothedLevel > threshold) {
                         blob.classList.add('is-alerting');
                         flashEl.classList.add('active');
-                        if (canTrigger) { alertsCount++; alertCount.textContent = alertsCount; playAlert(); canTrigger = false; }
+                        if (canTrigger) { alertsCount++; setCount(alertsCount); playAlert(); canTrigger = false; }
                     } else {
                         blob.classList.remove('is-alerting'); flashEl.classList.remove('active');
                         if (smoothedLevel < threshold - 5) canTrigger = true;
@@ -600,6 +662,7 @@
 
                 // 4. Blob = niveau ambiant uniquement (les pics courts n'y apparaissent pas)
                 blob.style.transform = 'scale(' + (smoothedLevel / 100) + ')';
+                setZone(smoothedLevel);
 
                 // 5. Alerte si le niveau ambiant depasse le seuil de facon soutenue
                 if (smoothedLevel > threshold) {
@@ -607,7 +670,7 @@
                     flashEl.classList.add('active');
                     sustainFrames++;
                     if (canTrigger && sustainFrames >= sustainRequired) {
-                        alertsCount++; alertCount.textContent = alertsCount; playAlert(); canTrigger = false;
+                        alertsCount++; setCount(alertsCount); playAlert(); canTrigger = false;
                     }
                 } else {
                     blob.classList.remove('is-alerting'); flashEl.classList.remove('active');
@@ -634,7 +697,7 @@
 
                         isListening = true;
                         btnStart.classList.add('is-listening');
-                        btnText.innerHTML = 'Arrêter';
+                        setZone(0);
                         noMicEl.style.display = 'none';
 
                         // Son de démarrage
@@ -660,7 +723,7 @@
                 blob.classList.remove('is-alerting');
                 flashEl.classList.remove('active');
                 btnStart.classList.remove('is-listening');
-                btnText.innerHTML = "Lancer<br>l'analyse";
+                delete outer.dataset.zone;
             }
 
             // ── Événements boutons ──
@@ -672,29 +735,33 @@
             soundBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 isMuted = !isMuted;
-                soundBtn.textContent = isMuted ? '🔇' : '🔊';
+                soundBtn.innerHTML = isMuted ? ICON_MUTE : ICON_SOUND;
+                soundBtn.title = isMuted ? 'Remettre le bip' : 'Couper le bip';
                 soundBtn.classList.toggle('muted', isMuted);
             });
 
             resetBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 alertsCount = 0;
-                alertCount.textContent = '0';
+                setCount(0);
                 canTrigger = true;
             });
 
             sensSlider.addEventListener('input', function () {
                 sensitivity = parseFloat(this.value);
                 sensVal.textContent = parseFloat(this.value).toFixed(1);
+                paintSlider(this);
             });
 
             seuilSlider.addEventListener('input', function () {
                 applyThreshold(this.value);
+                paintSlider(this);
             });
 
             smoothSlider.addEventListener('input', function () {
                 smoothingStrength = parseInt(this.value);
                 smoothVal.textContent = smoothingStrength;
+                paintSlider(this);
                 sampleBuffer = [];
                 sustainFrames = 0;
                 updateSmoothingParams();
@@ -706,9 +773,7 @@
                 e.stopPropagation();
                 controlsVisible = !controlsVisible;
                 controlsEl.classList.toggle('hidden', !controlsVisible);
-                toggleBtn.style.color = controlsVisible
-                    ? 'rgba(0,0,0,0.35)'
-                    : '#3b82f6';
+                toggleBtn.classList.toggle('is-off', !controlsVisible);
             });
 
             // ── Bloquer propagation uniquement sur éléments interactifs ──

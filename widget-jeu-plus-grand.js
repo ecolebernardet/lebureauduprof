@@ -2,11 +2,13 @@
 // JEU « PLUS GRAND / PLUS PETIT » — Le Bureau du Prof
 // Panneau « Jeux » › rubrique « Jeux de maths » — mode jeu élèves
 //
-// Deux nombres apparaissent : taper le plus vite possible sur le plus grand
-// (ou le plus petit, ou consigne mélangée).
+// Trois nombres apparaissent : taper le plus vite possible sur le plus grand
+// (ou le plus petit, ou consigne mélangée). Avec 3 réponses, cliquer au
+// hasard ne paie plus (1 chance sur 3).
 //   👤 Seul    : 20 questions chronométrées, points selon la rapidité, record.
 //   👥 À deux  : écran partagé pour le TBI (un joueur de chaque côté, multi-
 //               touch). Premier à 10 points ; une erreur bloque son côté.
+//               Pas de revanche proposée à la fin du duel.
 // Nombres : jusqu'à 20, 100, 1 000, grands nombres, décimaux, fractions, calculs.
 // 3 niveaux : facile (écart large), moyen (nombres proches), difficile (pièges).
 //
@@ -229,7 +231,7 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             gap: calc(18px * var(--jpg-s));
         }
-        .jpg-arena.duel { display: grid; grid-template-columns: 1fr calc(54px * var(--jpg-s)) 1fr; }
+        .jpg-arena.duel { display: grid; grid-template-columns: 1fr calc(54px * var(--jpg-s)) 1fr; height: calc(370px * var(--jpg-s)); }
 
         .jpg-order {
             color: #fff; font-weight: 900; font-size: calc(20px * var(--jpg-s));
@@ -243,15 +245,15 @@
         @keyframes jpg-pop { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
         .jpg-order.pop { animation: jpg-pop .3s ease-out; }
 
-        .jpg-pair { display: flex; align-items: center; justify-content: center; gap: calc(16px * var(--jpg-s)); }
+        .jpg-pair { display: flex; align-items: center; justify-content: center; gap: calc(14px * var(--jpg-s)); }
         .jpg-vs { color: rgba(255,255,255,0.7); font-family: 'Lilita One', sans-serif; font-size: calc(22px * var(--jpg-s)); }
         .jpg-num {
-            min-width: calc(210px * var(--jpg-s)); height: calc(130px * var(--jpg-s));
+            min-width: calc(180px * var(--jpg-s)); height: calc(120px * var(--jpg-s));
             padding: 0 calc(14px * var(--jpg-s));
             border: none; border-radius: calc(22px * var(--jpg-s));
             background: #fff; color: var(--encre);
             font-family: 'Lilita One', 'Nunito', sans-serif; font-weight: 400;
-            font-size: calc(50px * var(--jpg-s)); line-height: 1;
+            font-size: calc(44px * var(--jpg-s)); line-height: 1;
             box-shadow: 0 calc(8px * var(--jpg-s)) 0 #B9B2D6;
             cursor: pointer; touch-action: manipulation;
             display: flex; align-items: center; justify-content: center;
@@ -286,7 +288,7 @@
         .jpg-half {
             position: relative;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: calc(12px * var(--jpg-s));
+            gap: calc(8px * var(--jpg-s));
             padding: calc(10px * var(--jpg-s));
             transition: background .2s;
         }
@@ -300,8 +302,8 @@
             background: rgba(42,31,74,0.45); border-radius: inherit;
         }
         .jpg-half .jpg-order { font-size: calc(15px * var(--jpg-s)); padding: calc(4px * var(--jpg-s)) calc(12px * var(--jpg-s)); }
-        .jpg-half .jpg-pair { flex-direction: column; gap: calc(10px * var(--jpg-s)); width: 100%; }
-        .jpg-half .jpg-num { min-width: 0; width: 86%; height: calc(78px * var(--jpg-s)); font-size: calc(38px * var(--jpg-s)); }
+        .jpg-half .jpg-pair { flex-direction: column; gap: calc(9px * var(--jpg-s)); width: 100%; }
+        .jpg-half .jpg-num { min-width: 0; width: 86%; height: calc(62px * var(--jpg-s)); font-size: calc(32px * var(--jpg-s)); box-shadow: 0 calc(6px * var(--jpg-s)) 0 #B9B2D6; }
         .jpg-phead { display: flex; align-items: center; gap: calc(8px * var(--jpg-s)); }
         .jpg-pscore {
             font-family: 'Lilita One', sans-serif; font-size: calc(34px * var(--jpg-s)); color: #fff; line-height: 1;
@@ -525,6 +527,33 @@
                 return [a, b];
             } },
     };
+    // ── 3 nombres : la paire du générateur + un 3e nombre ─────────────────
+    // Facile : 3e nombre au hasard. Moyen / difficile : on garde un 3e nombre
+    // proche des deux autres pour que le choix reste exigeant.
+    function gen3(t, l) {
+        const g = TYPES[t].gen, p = g(l);
+        const distinct = (x) => p.every(q => Math.abs(q.v - x.v) > 1e-9);
+        const cands = [];
+        for (let i = 0; i < 30; i++) g(l).forEach(x => { if (distinct(x)) cands.push(x); });
+        // Fractions : le 3e nombre suit la même règle que la paire
+        // (facile = même dénominateur, moyen = même numérateur)
+        if (t === 'frac' && l < 3) {
+            const nd = p[0].t.split('/').map(Number);
+            const ok = cands.filter(x => { const xd = x.t.split('/').map(Number); return l === 1 ? xd[1] === nd[1] : xd[0] === nd[0]; });
+            if (ok.length) return p.concat([rnd(ok)]);
+            const F = (n, d) => ({ v: n / d, h: `<span class="jpg-frac"><span>${n}</span><span>${d}</span></span>`, t: `${n}/${d}` });
+            for (let i = 0; i < 40; i++) {
+                const x = l === 1 ? F(ri(1, nd[1] * 2 - 1), nd[1]) : F(nd[0], ri(nd[0] + 1, 12));
+                if (distinct(x)) return p.concat([x]);
+            }
+        }
+        if (!cands.length) return p;
+        if (l === 1) return p.concat([rnd(cands)]);
+        const lo = Math.min(p[0].v, p[1].v), hi = Math.max(p[0].v, p[1].v);
+        const dist = (x) => x.v < lo ? lo - x.v : x.v > hi ? x.v - hi : 0;
+        cands.sort((a, b) => dist(a) - dist(b));
+        return p.concat([rnd(cands.slice(0, 4))]);
+    }
     const JPG_LEVELS = {
         1: { time: 6000, label: 'écart large' },
         2: { time: 4500, label: 'nombres proches' },
@@ -642,10 +671,10 @@
 
             <div class="jpg-help">
                 <h4>⚖️ Comment jouer ?</h4>
-                <p>Deux nombres apparaissent : tape <b>le plus vite possible</b> sur le plus grand (ou le plus petit, selon la consigne affichée).</p>
+                <p>Trois nombres apparaissent : tape <b>le plus vite possible</b> sur le plus grand (ou le plus petit, selon la consigne affichée).</p>
                 <p>👤 <b>Seul</b> : 20 questions, chacune avec un temps limité. Plus tu es rapide, plus tu gagnes de points !</p>
                 <p>👥 <b>À deux</b> (au TBI) : un joueur de chaque côté de l'écran. Le premier qui tape le bon nombre marque le point. Si tu te trompes, ton côté est <b>bloqué 🔒</b> pour cette manche. Premier à ${DUEL_TARGET} points !</p>
-                <p>Clavier : seul ← / → · à deux : joueur bleu <b>A</b> / <b>Z</b>, joueur orange <b>O</b> / <b>P</b>.</p>
+                <p>Clavier : seul <b>1</b> / <b>2</b> / <b>3</b> (ou ← / ↓ / →) · à deux : joueur bleu <b>A</b> / <b>Z</b> / <b>E</b>, joueur orange <b>I</b> / <b>O</b> / <b>P</b>.</p>
                 <p style="margin:0">😊 <b>Facile</b> : nombres bien différents. 😐 <b>Moyen</b> : nombres proches. 😤 <b>Difficile</b> : pièges (3,5 et 3,25 ; 358 et 385…).</p>
             </div>
             <div class="jpg-confetti"></div>
@@ -734,8 +763,8 @@
                     <div class="jpg-order big">${orderHTML(orderMode === 'small' ? 'small' : 'big')}</div>
                     <div class="jpg-pair" data-side="S">
                         <button class="jpg-num hidden" data-k="0">?</button>
-                        <span class="jpg-vs">ou</span>
                         <button class="jpg-num hidden" data-k="1">?</button>
+                        <button class="jpg-num hidden" data-k="2">?</button>
                     </div>
                     <div class="jpg-timebar"><i></i></div>
                     <div class="jpg-ready"></div>
@@ -743,19 +772,22 @@
             } else {
                 const half = (side, keys) => `
                     <div class="jpg-half ${side}" data-side="${side}">
-                        <div class="jpg-phead"><div class="jpg-pscore">${pts[side]}</div></div>
-                        <input class="jpg-pname" value="${names[side]}" maxlength="16" title="Clique pour écrire le nom">
+                        <div class="jpg-phead">
+                            <input class="jpg-pname" value="${names[side]}" maxlength="16" title="Clique pour écrire le nom">
+                            <div class="jpg-pscore">${pts[side]}</div>
+                        </div>
                         <div class="jpg-order big">${orderHTMLshort(orderMode === 'small' ? 'small' : 'big')}</div>
                         <div class="jpg-pair" data-side="${side}">
                             <button class="jpg-num hidden" data-k="0">?</button>
                             <button class="jpg-num hidden" data-k="1">?</button>
+                            <button class="jpg-num hidden" data-k="2">?</button>
                         </div>
                         <div class="jpg-pkeys">${keys}</div>
                     </div>`;
                 arena.innerHTML = `
-                    ${half('L', 'clavier : A / Z')}
+                    ${half('L', 'clavier : A / Z / E')}
                     <div class="jpg-mid"><small>Manche</small><b data-role="dround">0</b><small>Premier à ${DUEL_TARGET}</small></div>
-                    ${half('R', 'clavier : O / P')}
+                    ${half('R', 'clavier : I / O / P')}
                     <div class="jpg-ready"></div>
                     <div class="jpg-overlay"><div class="jpg-card"></div></div>`;
                 arena.querySelectorAll('.jpg-pname').forEach(inp => {
@@ -780,14 +812,14 @@
         function showHidden() {
             arena.querySelectorAll('.jpg-num').forEach(b => { b.className = 'jpg-num hidden'; b.innerHTML = '?'; b.dataset.k = b.dataset.k; });
         }
-        // Affiche la paire (ordre mélangé indépendamment de chaque côté)
+        // Affiche les 3 nombres (ordre mélangé indépendamment de chaque côté)
         function showPair() {
             const sides = mode === 'solo' ? ['S'] : ['L', 'R'];
             sides.forEach(side => {
-                const flip = Math.random() < 0.5;
+                const perm = [0, 1, 2].sort(() => Math.random() - 0.5);
                 const bs = numBtns(side);
                 bs.forEach((b, i) => {
-                    const idx = flip ? 1 - i : i;
+                    const idx = perm[i];
                     b.dataset.k = idx;
                     b.innerHTML = pair[idx].h;
                     b.className = 'jpg-num appear';
@@ -798,13 +830,15 @@
                 o.innerHTML = mode === 'solo' ? orderHTML(order) : orderHTMLshort(order);
             });
         }
-        const correctIdx = () => (order === 'big') === (pair[0].v > pair[1].v) ? 0 : 1;
+        // Les nombres rangés selon la consigne : le premier est la bonne réponse
+        const ranked = () => pair.map((p, i) => i).sort((a, b) => order === 'big' ? pair[b].v - pair[a].v : pair[a].v - pair[b].v);
+        const correctIdx = () => ranked()[0];
         function explainTxt() {
-            const c = pair[correctIdx()], o = pair[1 - correctIdx()];
-            const sign = order === 'big' ? '&gt;' : '&lt;';
+            const r = ranked().map(i => pair[i]);
+            const sign = order === 'big' ? ' &gt; ' : ' &lt; ';
             const val = (p) => p.res !== undefined ? `${p.h} = <b>${fmtInt(p.res)}</b>` : `<b>${p.h}</b>`;
-            let t = `${val(c)} ${sign} ${val(o).replace(/<\/?b>/g, '')}`;
-            if (type === 'frac') t += ` (≈ ${fmtDec(c.v, 2)} et ${fmtDec(o.v, 2)})`;
+            let t = r.map((p, i) => i === 0 ? val(p) : val(p).replace(/<\/?b>/g, '')).join(sign);
+            if (type === 'frac') t += ` (≈ ${r.map(p => fmtDec(p.v, 2)).join(' ; ')})`;
             return t;
         }
 
@@ -812,7 +846,7 @@
         async function newRound() {
             const id = ++runId;
             state = 'wait';
-            pair = TYPES[type].gen(level);
+            pair = gen3(type, level);
             order = orderMode === 'mix' ? (Math.random() < 0.5 ? 'big' : 'small') : orderMode;
             locked = { L: false, R: false };
             arena.querySelectorAll('.jpg-half').forEach(h => h.classList.remove('lock', 'win'));
@@ -885,7 +919,7 @@
                 streak = 0;
                 bs.forEach(b => {
                     if (+b.dataset.k === ci) b.classList.add('hint');
-                    else if (k !== null) b.classList.add('ko');
+                    else if (k !== null && +b.dataset.k === k) b.classList.add('ko');
                 });
                 sfx('bad');
                 say(`${k === null ? '⏱ Trop tard !' : '❌ Oups !'} ${explainTxt()} <small>${TYPES[type].tip}</small>`, 'bad');
@@ -968,12 +1002,10 @@
                 <div class="jpg-medal">${side === 'L' ? '🔵' : '🟠'}🏆</div>
                 <h3>${esc(names[side])} gagne !</h3>
                 <p>${pts.L} – ${pts.R}</p>
-                <p class="jpg-sub">en ${duelRound} manche${duelRound > 1 ? 's' : ''}</p>
-                <button class="jpg-btn jpg-btn-go" data-act="again">🔄 Revanche !</button>`;
+                <p class="jpg-sub">en ${duelRound} manche${duelRound > 1 ? 's' : ''}</p>`;
             ov.classList.add('show');
             sfx('win'); party();
-            say(`🏆 Victoire de <b>${esc(names[side])}</b> ${pts.L} à ${pts.R} ! Une revanche ?`, 'good');
-            ov.querySelector('[data-act="again"]').addEventListener('click', (e) => { e.stopPropagation(); start(); });
+            say(`🏆 Victoire de <b>${esc(names[side])}</b> ${pts.L} à ${pts.R} ! Bravo !`, 'good');
             updateButtons();
         }
         function party() {
@@ -1023,7 +1055,7 @@
             updateStats(false);
             updateButtons();
             say(message || (mode === 'solo'
-                ? '⚖️ Clique sur <b>▶ Jouer</b> : deux nombres vont apparaître, tape vite sur le bon !'
+                ? '⚖️ Clique sur <b>▶ Jouer</b> : trois nombres vont apparaître, tape vite sur le bon !'
                 : '👥 Un joueur de chaque côté du tableau ! Écrivez vos noms puis cliquez sur <b>▶ Jouer</b>.'));
         }
         btn('start').addEventListener('click', start);
@@ -1053,16 +1085,19 @@
             if (!ae || !widget.contains(ae) || ae.tagName === 'SELECT' || ae.tagName === 'INPUT') return;
             if (e.ctrlKey || e.metaKey || e.altKey) return;
             const k = e.key.toLowerCase();
-            if ((k === 'enter' || k === ' ') && (state === 'idle' || state === 'over')) { e.preventDefault(); start(); return; }
+            if ((k === 'enter' || k === ' ') && (state === 'idle' || (state === 'over' && mode === 'solo'))) { e.preventDefault(); start(); return; }
             const pick = (side, i) => { const b = numBtns(side)[i]; if (b) { e.preventDefault(); answer(side, +b.dataset.k); } };
             if (mode === 'solo') {
-                if (k === 'arrowleft') pick('S', 0);
-                else if (k === 'arrowright') pick('S', 1);
+                if (k === 'arrowleft' || k === '1' || k === '&') pick('S', 0);
+                else if (k === 'arrowdown' || k === '2' || k === 'é') pick('S', 1);
+                else if (k === 'arrowright' || k === '3' || k === '"') pick('S', 2);
             } else {
-                if (k === 'a' || k === 'q') pick('L', 0);
-                else if (k === 'z' || k === 'w') pick('L', 1);
-                else if (k === 'o') pick('R', 0);
-                else if (k === 'p') pick('R', 1);
+                if (k === 'a') pick('L', 0);
+                else if (k === 'z') pick('L', 1);
+                else if (k === 'e') pick('L', 2);
+                else if (k === 'i') pick('R', 0);
+                else if (k === 'o') pick('R', 1);
+                else if (k === 'p') pick('R', 2);
             }
         };
         document.addEventListener('keydown', onKey);

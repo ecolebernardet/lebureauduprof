@@ -1,10 +1,102 @@
 // =========================================================================
 // WIDGET DÉFI CALME — Le Bureau du Prof
-// Révèle une image au silence (micro) — 5 modes : pixels, flou, zoom, mosaïque, spirale
+// Révèle une image au silence (micro) — 6 modes : pixels, flou, zoom, mosaïque, spirale, pinceau
 //
 // Dépendances : board, findFreePosition(), makeDraggable(),
 //   makeDraggableRotate(), bringToFront(), snapshotNow(), saveBoard()
 // =========================================================================
+
+// ── Mini-barre collapse (partagée avec les autres widgets) ─────────────────
+if (!window._wfMiniBarCollapse) {
+    window._wfMiniBarCollapse = function(widget, label, opts) {
+        const COLLAPSED_W = 300, COLLAPSED_H = 50, GAP = 10, MARGIN_TOP = 8;
+        const onExpand = opts && opts.onExpand;
+        widget.dataset.wfMiniSavedTop  = widget.style.top;
+        widget.dataset.wfMiniSavedLeft = widget.style.left;
+        widget.dataset.wfMiniSavedW    = widget.style.width  || '';
+        widget.dataset.wfMiniSavedH    = widget.style.height || '';
+        const others = Array.from(document.querySelectorAll('.widget')).filter(w => w !== widget && w.querySelector('.wf-mini-bar'));
+        const occupiedX = others.reduce((maxX, w) => Math.max(maxX, w.offsetLeft + COLLAPSED_W + GAP), MARGIN_TOP);
+        widget.style.top = MARGIN_TOP + 'px'; widget.style.left = occupiedX + 'px';
+        widget.style.width = COLLAPSED_W + 'px'; widget.style.height = COLLAPSED_H + 'px';
+        widget.style.zIndex = '9000'; widget.style.background = '#2a2a3e';
+        widget.style.borderRadius = '8px'; widget.style.border = 'none';
+        widget.style.display = 'block'; widget.style.overflow = 'hidden'; widget.style.padding = '0';
+        const wc = widget.querySelector('.widget-content');
+        if (wc) { wc.style.padding = '0'; wc.style.background = 'transparent'; wc.style.borderRadius = '0'; }
+        widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = 'none');
+        const miniBar = document.createElement('div');
+        miniBar.className = 'wf-mini-bar';
+        miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+        const labelEl = document.createElement('span');
+        labelEl.textContent = label;
+        labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
+        const expandBtn = document.createElement('button');
+        expandBtn.title = 'Déplier'; expandBtn.textContent = '▲';
+        expandBtn.style.cssText = 'flex-shrink:0;background:transparent;border:1px solid #555;color:#aaa;border-radius:4px;width:22px;height:22px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;position:relative;z-index:2;';
+        expandBtn.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
+        expandBtn.addEventListener('mousedown',   (e) => { e.stopPropagation(); });
+        expandBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); e.preventDefault();
+            widget.style.top = widget.dataset.wfMiniSavedTop || widget.style.top;
+            widget.style.left = widget.dataset.wfMiniSavedLeft || widget.style.left;
+            widget.style.width = widget.dataset.wfMiniSavedW || '';
+            widget.style.height = widget.dataset.wfMiniSavedH || '';
+            widget.style.zIndex = ''; widget.style.background = ''; widget.style.borderRadius = '';
+            widget.style.border = ''; widget.style.display = ''; widget.style.overflow = ''; widget.style.padding = '';
+            const wc2 = widget.querySelector('.widget-content');
+            if (wc2) { wc2.style.padding = ''; wc2.style.background = ''; wc2.style.borderRadius = ''; }
+            widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = '');
+            miniBar.remove();
+            const curW = window.innerWidth, curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
+            widget.dataset.leftPercent = (widget.offsetLeft / curW) * 100;
+            widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
+            if (onExpand) onExpand();
+            if (typeof saveBoard === 'function') saveBoard();
+        });
+        miniBar.appendChild(labelEl); miniBar.appendChild(expandBtn); widget.appendChild(miniBar);
+        miniBar.addEventListener('pointerdown', (e) => {
+            if (e.target === expandBtn || expandBtn.contains(e.target)) return;
+            e.stopPropagation(); e.preventDefault(); miniBar.setPointerCapture(e.pointerId);
+            const startX = e.clientX - widget.offsetLeft, startY = e.clientY - widget.offsetTop;
+            const onMove = (ev) => { widget.style.left = Math.max(0, ev.clientX - startX) + 'px'; widget.style.top = Math.max(0, ev.clientY - startY) + 'px'; };
+            const onUp = () => {
+                miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp);
+                const curW = window.innerWidth, curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
+                widget.dataset.leftPercent = (widget.offsetLeft / curW) * 100;
+                widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
+                if (typeof saveBoard === 'function') saveBoard();
+            };
+            miniBar.addEventListener('pointermove', onMove); miniBar.addEventListener('pointerup', onUp);
+        });
+        const curW = window.innerWidth, curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
+        widget.dataset.leftPercent = (widget.offsetLeft / curW) * 100;
+        widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
+        if (typeof saveBoard === 'function') saveBoard();
+    };
+}
+
+// ── Boutons fenêtre (CSS partagé) ──────────────────────────────────────────
+if (!document.getElementById('wf-btns-style')) {
+    const ws = document.createElement('style');
+    ws.id = 'wf-btns-style';
+    ws.textContent = `
+    .wf-btns { display:flex; gap:5px; align-items:center; flex-shrink:0; }
+    .wf-btn { width:13px; height:13px; border-radius:50%; border:none; cursor:pointer;
+        display:flex; align-items:center; justify-content:center; font-size:0;
+        transition:filter .15s, transform .1s; flex-shrink:0; position:relative; }
+    .wf-btn:hover { filter:brightness(0.82); transform:scale(1.15); }
+    .wf-btn:active { transform:scale(0.92); }
+    .wf-btn-min   { background:#febc2e; }
+    .wf-btn-max   { background:#28c840; }
+    .wf-btn-close { background:#ff5f57; }
+    .wf-btns:hover .wf-btn::after { font-size:8px; font-weight:900; color:rgba(0,0,0,0.5); line-height:1; }
+    .wf-btns:hover .wf-btn-min::after   { content:'−'; }
+    .wf-btns:hover .wf-btn-max::after   { content:'⤢'; font-size:7px; }
+    .wf-btns:hover .wf-btn-close::after { content:'×'; font-size:10px; }
+    `;
+    document.head.appendChild(ws);
+}
 
 // ── CSS ───────────────────────────────────────────────────────────────────
 (function () {
@@ -25,7 +117,7 @@
         }
         body.menu-light .dc-controls {
             background: #e2e6ea;
-            border-top: 1px solid rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(0,0,0,0.1);
         }
         body.menu-light .dc-label {
             opacity: 0.55;
@@ -72,7 +164,7 @@
 			border-radius: 5px;
             display: flex;
             flex-direction: column;
-            width: 600px;
+            width: 800px;
             overflow: hidden;
             box-shadow: 0 8px 32px rgba(0,0,0,0.5);
             font-family: 'Segoe UI', system-ui, sans-serif;
@@ -114,7 +206,7 @@
         .dc-pixel-block.dc-revealed { opacity: 0; }
 
         /* Mode mosaïque : image pixelisée qui s'affine */
-        .dc-mosaic-canvas {
+        .dc-mosaic-canvas, .dc-brush-canvas {
             position: absolute;
             inset: 0;
             width: 100%;
@@ -123,6 +215,15 @@
             z-index: 4;
             display: none;
             image-rendering: pixelated;
+        }
+        /* Pinceau : bords adoucis par un léger flou, canvas débordant pour
+           que le flou n'éclaircisse pas les bords de l'image */
+        .dc-brush-canvas.dc-brush-canvas {
+            inset: -8px;
+            width: calc(100% + 16px);
+            height: calc(100% + 16px);
+            filter: blur(3px);
+            image-rendering: auto;
         }
 
 
@@ -222,7 +323,7 @@
             flex-direction: column;
             gap: 7px;
             background: #1a1a1a;
-            border-top: 1px solid rgba(255,255,255,0.07);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
         }
 
         .dc-row {
@@ -465,6 +566,46 @@
             z-index: 20;
         }
         .dc-container:hover .dc-resize-handle { opacity: 1; }
+
+        /* En-tête (titre + boutons fenêtre) */
+        .dc-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .dc-title {
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0.03em;
+            margin-right: auto;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* Plein écran (fullboard) */
+        .dc-container.wf-fullboard {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            padding-left: 40px;
+            box-sizing: border-box;
+            background: #000 !important; /* même en thème clair */
+        }
+        /* En plein écran, masquer les poignées du tableau (déplacer, pivoter, menu…) */
+        .widget.dc-is-full > .drag-handle,
+        .widget.dc-is-full > .widget-rotate-handle,
+        .widget.dc-is-full > .widget-action-bar,
+        .widget.dc-is-full > .widget-ctx-menu {
+            display: none !important;
+        }
+        .dc-container.wf-fullboard .dc-image-zone {
+            align-self: center;
+            margin: auto 0;
+        }
+        .dc-container.wf-fullboard .dc-resize-handle { display: none; }
     `;
     document.head.appendChild(s);
 })();
@@ -480,8 +621,7 @@ const DC_CONFIG = {
     pixelDensityFactor: 0.4,
     // Courbe de révélation : [temps écoulé %, image révélée %]
     // (interpolation linéaire entre les points)
-    spiralRows: 24,   // finesse de la spirale (rangées de cases)
-    spiralTurns: 3,   // nombre de tours de la spirale
+    brushSize: 0.015, // rayon du pinceau (fraction de la largeur de l'image) — modes pinceau et spirale
     revealCurve: [[0, 0], [50, 30], [80, 55], [90, 70], [95, 80], [100, 100]],
     defaultImageUrl: 'https://picsum.photos/900/500?random=' + Math.floor(Math.random() * 1000)
 };
@@ -554,15 +694,31 @@ function createDeficalmeWidget() {
     const mosaicCanvas = document.createElement('canvas');
     mosaicCanvas.className = 'dc-mosaic-canvas';
     imageZone.appendChild(mosaicCanvas);
+
+    const brushCanvas = document.createElement('canvas');
+    brushCanvas.className = 'dc-brush-canvas';
+    imageZone.appendChild(brushCanvas);
     imageZone.appendChild(msgStart);
     imageZone.appendChild(micBarWrap);
     imageZone.appendChild(progBarWrap);
     imageZone.appendChild(percentBadge);
-    container.appendChild(imageZone);
 
-    // ── Panneau contrôles ─────────────────────────────────────────────────
+    // ── Panneau contrôles (au-dessus de l'image) ──────────────────────────
     const controls = document.createElement('div');
     controls.className = 'dc-controls';
+
+    // En-tête : titre + boutons réduire / plein écran / fermer
+    const header = document.createElement('div');
+    header.className = 'dc-header';
+    header.innerHTML = `
+        <span class="dc-title">🤫 Défi calme</span>
+        <div class="wf-btns">
+            <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
+            <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
+            <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+        </div>
+    `;
+    controls.appendChild(header);
 
     // Ligne 1 : Mode + Durée
     const row1 = document.createElement('div');
@@ -579,7 +735,8 @@ function createDeficalmeWidget() {
         { key: 'flou',   label: 'Flou'   },
         { key: 'zoom',   label: 'Zoom'   },
         { key: 'mosaique', label: 'Mosaïque' },
-        { key: 'spirale', label: 'Spirale' }
+        { key: 'spirale', label: 'Spirale' },
+        { key: 'pinceau', label: 'Pinceau' }
     ];
     const modeBtns = {};
     modes.forEach(m => {
@@ -750,6 +907,7 @@ function createDeficalmeWidget() {
     resizeHandle.className = 'dc-resize-handle';
 
     container.appendChild(controls);
+    container.appendChild(imageZone);
     container.appendChild(resizeHandle);
     widget.appendChild(container);
 
@@ -790,19 +948,16 @@ function createDeficalmeWidget() {
 
     // ── Grille pixels ─────────────────────────────────────────────────────
     function usesGrid() {
-        return currentMode === 'pixels' || currentMode === 'spirale';
+        return currentMode === 'pixels';
+    }
+    function usesBrush() {
+        return currentMode === 'pinceau' || currentMode === 'spirale';
     }
 
     function generateGrid() {
-        const isSpiral = currentMode === 'spirale';
-        let rows;
-        if (isSpiral) {
-            // Grille assez fine pour que la spirale soit bien dessinée
-            rows = DC_CONFIG.spiralRows;
-        } else {
-            const density = Math.max(4, Math.round(3 + (totalSeconds * DC_CONFIG.pixelDensityFactor)));
-            rows = Math.min(density, 40);
-        }
+        if (usesBrush()) { generateBrushPath(); return; }
+        const density = Math.max(4, Math.round(3 + (totalSeconds * DC_CONFIG.pixelDensityFactor)));
+        const rows = Math.min(density, 40);
         const cols = Math.round(rows * (16 / 9));
         pixelGrid.innerHTML = '';
         pixelGrid.style.gap = '0'; // pas d'espace : l'image ne doit pas transparaître entre les pièces
@@ -814,23 +969,6 @@ function createDeficalmeWidget() {
             p.className = 'dc-pixel-block';
             pixelGrid.appendChild(p);
             pixelsOrder.push(p);
-        }
-        if (isSpiral) {
-            // Ordre en spirale depuis le centre : rayon + angle
-            const cx = cols / 2, cy = rows / 2;
-            const rMax = Math.hypot(cx, cy);
-            const turns = DC_CONFIG.spiralTurns;
-            const key = pixelsOrder.map((p, i) => {
-                const dx = (i % cols) + 0.5 - cx;
-                const dy = Math.floor(i / cols) + 0.5 - cy;
-                const r = Math.hypot(dx, dy) / rMax;               // 0 → 1
-                const a = (Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI); // 0 → 1
-                // position le long de la spirale d'Archimède
-                return { p, k: Math.round(r * turns - a) + a };
-            });
-            key.sort((u, v) => u.k - v.k);
-            pixelsOrder = key.map(o => o.p);
-            return;
         }
         // Fisher-Yates
         for (let i = pixelsOrder.length - 1; i > 0; i--) {
@@ -876,6 +1014,162 @@ function createDeficalmeWidget() {
     }
     imgEl.addEventListener('load', () => { lastMosaicKey = ''; if (currentMode === 'mosaique') updateUI(); });
 
+    // ── Pinceau aléatoire ─────────────────────────────────────────────────
+    // Un trajet aléatoire est pré-calculé ; on mémorise la surface révélée
+    // à chaque pas, pour que la surface visible suive la courbe de révélation.
+    const BRUSH_H = 9 / 16;           // hauteur en unités de largeur
+    const BRUSH_GX = 128, BRUSH_GY = 72; // grille de suivi (fine pour les petits pinceaux)
+    let brushPts = [];                // {x, y, r}
+    let brushCov = [];                // surface révélée (0 → 1) après chaque pas
+    let brushDrawnIdx = -1;           // dernier pas dessiné
+    let brushSizeKey = '';
+
+    function generateBrushPath() {
+        const R = DC_CONFIG.brushSize;
+        const step = R * 0.35;
+        const covered = new Uint8Array(BRUSH_GX * BRUSH_GY);
+        const total = covered.length;
+        let count = 0;
+        const cell = 1 / BRUSH_GX;
+        function mark(x, y, r) {
+            let added = 0;
+            const c0 = Math.max(0, Math.floor((x - r) / cell)), c1 = Math.min(BRUSH_GX - 1, Math.floor((x + r) / cell));
+            const r0 = Math.max(0, Math.floor((y - r) / cell)), r1 = Math.min(BRUSH_GY - 1, Math.floor((y + r) / cell));
+            for (let gy = r0; gy <= r1; gy++) {
+                for (let gx = c0; gx <= c1; gx++) {
+                    const idx = gy * BRUSH_GX + gx;
+                    if (covered[idx]) continue;
+                    if (Math.hypot((gx + 0.5) * cell - x, (gy + 0.5) * cell - y) <= r) {
+                        covered[idx] = 1; count++; added++;
+                    }
+                }
+            }
+            return added;
+        }
+        function randomUncovered() {
+            for (let t = 0; t < 40; t++) {
+                const i = Math.floor(Math.random() * total);
+                if (!covered[i]) return i;
+            }
+            const free = [];
+            for (let i = 0; i < total; i++) if (!covered[i]) free.push(i);
+            return free.length ? free[Math.floor(Math.random() * free.length)] : -1;
+        }
+
+        if (currentMode === 'spirale') {
+            // Spirale d'Archimède de l'extérieur vers le centre, tracée avec l'épaisseur du pinceau.
+            // L'écart entre deux tours est un peu inférieur au diamètre du pinceau
+            // pour que les tours se chevauchent sans laisser de trous.
+            const cx = 0.5, cy = BRUSH_H / 2;
+            const gap = 2 * R * 0.85;
+            const b = gap / (2 * Math.PI);
+            const rMax = Math.hypot(cx, cy) + R;
+            const a0 = Math.random() * Math.PI * 2; // départ orienté au hasard
+            let theta = 0;
+            const pts = [];
+            while (true) {
+                const rad = b * theta;
+                if (rad > rMax) break;
+                pts.push({ x: cx + Math.cos(theta + a0) * rad, y: cy + Math.sin(theta + a0) * rad, r: R });
+                theta += step / Math.max(rad, step);
+            }
+            pts.reverse(); // on parcourt la spirale depuis le bord jusqu'au centre
+            brushPts = [];
+            brushCov = [];
+            pts.forEach(pt => {
+                const added = mark(pt.x, pt.y, pt.r);
+                // ignorer le début du tracé situé hors de l'image (coins)
+                if (!brushPts.length && added === 0) return;
+                brushPts.push(pt);
+                brushCov.push(count / total);
+            });
+            brushCov[brushCov.length - 1] = 1;
+            brushDrawnIdx = -1;
+            return;
+        }
+        const minX = R * 0.5, maxX = 1 - R * 0.5, minY = R * 0.5, maxY = BRUSH_H - R * 0.5;
+        let x = minX + Math.random() * (maxX - minX);
+        let y = minY + Math.random() * (maxY - minY);
+        let heading = Math.random() * Math.PI * 2;
+        let r = R;
+        let idle = 0, target = -1;
+        mark(x, y, r);
+        brushPts = [{ x, y, r }];
+        brushCov = [count / total];
+        let guard = 0;
+        while (count < total && guard++ < 40000) {
+            // Si le pinceau repasse trop longtemps sur du déjà révélé,
+            // il se dirige vers une zone encore cachée
+            if (target >= 0 && covered[target]) target = -1;
+            if (idle > 12 && target < 0) target = randomUncovered();
+            if (target >= 0) {
+                const tx = (target % BRUSH_GX + 0.5) * cell, ty = (Math.floor(target / BRUSH_GX) + 0.5) * cell;
+                let diff = Math.atan2(ty - y, tx - x) - heading;
+                diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+                heading += Math.max(-0.3, Math.min(0.3, diff));
+            } else {
+                heading += (Math.random() - 0.5) * 0.7;
+            }
+            x += Math.cos(heading) * step;
+            y += Math.sin(heading) * step;
+            // Rebond sur les bords
+            if (x < minX || x > maxX) { heading = Math.PI - heading; x = Math.max(minX, Math.min(maxX, x)); }
+            if (y < minY || y > maxY) { heading = -heading; y = Math.max(minY, Math.min(maxY, y)); }
+            // Épaisseur qui varie doucement, comme un vrai coup de pinceau
+            r = Math.max(R * 0.75, Math.min(R * 1.25, r + (Math.random() - 0.5) * R * 0.12));
+            if (mark(x, y, r) === 0) idle++; else idle = 0;
+            brushPts.push({ x, y, r });
+            brushCov.push(count / total);
+        }
+        brushDrawnIdx = -1;
+    }
+
+    function brushIndexFor(prog) {
+        const target = prog / 100;
+        let lo = 0, hi = brushCov.length - 1;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (brushCov[mid] >= target) hi = mid; else lo = mid + 1;
+        }
+        return lo;
+    }
+
+    function drawBrush(prog) {
+        const M = 8; // débordement du canvas (voir CSS)
+        const w = imageZone.clientWidth, h = imageZone.clientHeight;
+        if (!w || !h) return;
+        if (!brushPts.length) generateBrushPath();
+        if (prog >= 100) { brushCanvas.style.display = 'none'; brushDrawnIdx = -1; return; }
+        brushCanvas.style.display = 'block';
+        const idx = prog <= 0 ? 0 : brushIndexFor(prog);
+        const ctx = brushCanvas.getContext('2d');
+        const sizeKey = w + 'x' + h;
+        // Redessin complet si taille changée, recul de la progression ou thème changé
+        if (sizeKey !== brushSizeKey || idx < brushDrawnIdx || brushDrawnIdx < 0) {
+            brushSizeKey = sizeKey;
+            brushCanvas.width = w + 2 * M; brushCanvas.height = h + 2 * M;
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = document.body.classList.contains('menu-light') ? '#f0f2f5' : '#121212';
+            ctx.fillRect(0, 0, w + 2 * M, h + 2 * M);
+            brushDrawnIdx = 0;
+        }
+        if (idx <= brushDrawnIdx) return;
+        const sx = w, sy = h / BRUSH_H;
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#000';
+        for (let i = Math.max(1, brushDrawnIdx); i <= idx; i++) {
+            const a = brushPts[i - 1], b = brushPts[i];
+            ctx.lineWidth = b.r * 2 * w;
+            ctx.beginPath();
+            ctx.moveTo(M + a.x * sx, M + a.y * sy);
+            ctx.lineTo(M + b.x * sx, M + b.y * sy);
+            ctx.stroke();
+        }
+        brushDrawnIdx = idx;
+    }
+
     // ── Visualisation ─────────────────────────────────────────────────────
     function updateMicBar(vol) {
         micBarFill.style.width = Math.min(vol * DC_CONFIG.volumeMultiplier, 100) + '%';
@@ -906,10 +1200,13 @@ function createDeficalmeWidget() {
         imgEl.style.filter = 'none';
         imgEl.style.transform = 'scale(1)';
         if (currentMode !== 'mosaique') mosaicCanvas.style.display = 'none';
+        if (!usesBrush()) brushCanvas.style.display = 'none';
         if (usesGrid()) {
             revealPixels(prog);
         } else if (currentMode === 'mosaique') {
             drawMosaic(prog);
+        } else if (usesBrush()) {
+            drawBrush(prog);
         } else if (currentMode === 'flou') {
             imgEl.style.filter = `blur(${40 - prog * 0.4}px)`;
         } else if (currentMode === 'zoom') {
@@ -1036,6 +1333,7 @@ function createDeficalmeWidget() {
             apercuActive = false;
             pixelGrid.style.opacity = '1';
             mosaicCanvas.style.opacity = '1';
+            brushCanvas.style.opacity = '1';
             btnApercu.textContent = '👁';
             btnApercu.title = 'Aperçu';
             btnApercu.style.background = '#6366f1';
@@ -1058,7 +1356,7 @@ function createDeficalmeWidget() {
         modeBtns[mode].classList.add('active');
         pixelGrid.style.display = usesGrid() ? 'grid' : 'none';
         lastMosaicKey = '';
-        if (usesGrid()) generateGrid();
+        if (usesGrid() || usesBrush()) generateGrid();
         else { imgEl.style.filter = 'none'; imgEl.style.transform = 'scale(1)'; }
         updateUI();
     }
@@ -1067,7 +1365,7 @@ function createDeficalmeWidget() {
     function applyImage(url) {
         if (!url.trim()) return;
         imgEl.src = url.trim();
-        if (usesGrid()) generateGrid();
+        if (usesGrid() || usesBrush()) generateGrid();
     }
 
     // ── Resize ────────────────────────────────────────────────────────────
@@ -1111,12 +1409,14 @@ function createDeficalmeWidget() {
             imgEl.style.transform = 'scale(1)';
             pixelGrid.style.opacity = '0';
             mosaicCanvas.style.opacity = '0';
+            brushCanvas.style.opacity = '0';
             btnApercu.textContent = '🙈';
             btnApercu.title = 'Cacher l\'aperçu';
             btnApercu.style.background = '#ef4444';
         } else {
             pixelGrid.style.opacity = '1';
             mosaicCanvas.style.opacity = '1';
+            brushCanvas.style.opacity = '1';
             btnApercu.textContent = '👁';
             btnApercu.title = 'Aperçu';
             btnApercu.style.background = '#6366f1';
@@ -1172,6 +1472,57 @@ function createDeficalmeWidget() {
     floatBtn.textContent = '🔲 Contrôles';
     floatBtn.addEventListener('click', () => btnTransp.click());
     imageZone.appendChild(floatBtn);
+
+    // ── Boutons fenêtre ───────────────────────────────────────────────────
+    const wfMin   = header.querySelector('[data-role="wf-min"]');
+    const wfMax   = header.querySelector('[data-role="wf-max"]');
+    const wfClose = header.querySelector('[data-role="wf-close"]');
+    let _isMax = false;
+
+    // En plein écran, l'image garde son format 16/9 et occupe la place restante
+    function fitFullboard() {
+        if (!_isMax) { imageZone.style.width = ''; return; }
+        const cs = getComputedStyle(container);
+        const availW = container.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const availH = container.clientHeight - controls.offsetHeight;
+        imageZone.style.width = Math.max(100, Math.min(availW, availH * 16 / 9)) + 'px';
+        updateUI();
+    }
+
+    [wfMin, wfMax, wfClose].forEach(b => b.addEventListener('mousedown', (e) => e.stopPropagation()));
+
+    wfMin.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (_isMax) wfMax.click();
+        if (isPlaying) stopDefi();
+        window._wfMiniBarCollapse(widget, '🤫 Défi calme', { onExpand: updateUI });
+    });
+    wfMax.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _isMax = !_isMax;
+        container.classList.toggle('wf-fullboard', _isMax);
+        widget.classList.toggle('dc-is-full', _isMax);
+        wfMax.title = _isMax ? 'Quitter le plein écran' : 'Plein écran';
+        requestAnimationFrame(() => { fitFullboard(); updateUI(); });
+    });
+    wfClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isPlaying) stopDefi();
+        stopAudio();
+        if (typeof snapshotNow === 'function') snapshotNow();
+        widget.remove();
+        if (typeof saveBoard === 'function') saveBoard();
+    });
+    const onWinResize = () => {
+        if (!widget.isConnected) { window.removeEventListener('resize', onWinResize); return; }
+        if (_isMax) fitFullboard();
+    };
+    window.addEventListener('resize', onWinResize);
+    const onEscKey = (e) => {
+        if (!widget.isConnected) { document.removeEventListener('keydown', onEscKey); return; }
+        if (e.key === 'Escape' && _isMax) wfMax.click();
+    };
+    document.addEventListener('keydown', onEscKey);
 
     btnStart.addEventListener('click', () => {
         // Si aperçu actif, le couper avant de démarrer
@@ -1266,7 +1617,7 @@ function createDeficalmeWidget() {
         urlInput.value = file.name;
         imgEl.src = objectUrl;
         imgEl.crossOrigin = null;
-        if (usesGrid()) generateGrid();
+        if (usesGrid() || usesBrush()) generateGrid();
         resetDefi();
         importFileInput.value = '';
     });
@@ -1286,6 +1637,7 @@ function createDeficalmeWidget() {
     // et héritent automatiquement du bon style CSS à la recréation).
     const themeObserver = new MutationObserver(() => {
         if (usesGrid()) generateGrid();
+        else if (usesBrush()) { brushDrawnIdx = -1; updateUI(); }
     });
     themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 

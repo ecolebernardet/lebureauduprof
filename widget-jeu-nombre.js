@@ -2,8 +2,8 @@
 // WIDGET JEU DES NOMBRES — Le Bureau du Prof
 // L'élève doit écrire, en chiffres ou en lettres, un nombre proposé
 // aléatoirement (en cliquant sur des étiquettes), avant la fin du chrono.
-// Le professeur choisit les classes de grandeur autorisées (unités,
-// milliers, millions, milliards), le sens de l'exercice et le chrono.
+// Le professeur choisit le niveau de difficulté (5 niveaux, identiques à
+// ceux du widget Nombres chiffres/lettres), le sens de l'exercice et le chrono.
 //
 // Inspiré de :
 //   - widget-nombres-chiffres-lettres.js (moteur de conversion nombre <-> mots
@@ -200,22 +200,6 @@
         }
         .jn-params-panel.show { display: flex; }
         .jn-params-title { font-size: calc(11px * var(--jn-s)); font-weight: 700; color: #4c3fae; }
-        .jn-params-grid { display: flex; flex-wrap: wrap; gap: calc(6px * var(--jn-s)); }
-        .jn-class-check {
-            display: flex; align-items: center; gap: 4px;
-            padding: calc(4px * var(--jn-s)) calc(11px * var(--jn-s)); border-radius: 20px;
-            border: 1.5px solid transparent; background: #e0f0ff; color: #1565c0;
-            cursor: pointer; font-size: calc(11px * var(--jn-s)); font-weight: 700;
-            transition: all .15s; user-select: none; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .jn-class-check input[type=checkbox] { display: none; }
-        .jn-class-check.checked { border-color: currentColor; box-shadow: 0 3px 8px rgba(0,0,0,0.12); transform: scale(1.03); }
-        .jn-class-check:not(.checked) { opacity: 0.4; }
-        .jn-class-check:hover { opacity: 1; transform: scale(1.05); }
-        .jn-class-check.c-unites   { background: #dbeafe; color: #1d4ed8; }
-        .jn-class-check.c-mille    { background: #d1fae5; color: #065f46; }
-        .jn-class-check.c-million  { background: #ede9fe; color: #5b21b6; }
-        .jn-class-check.c-milliard { background: #ffedd5; color: #9a3412; }
         .jn-params-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .jn-params-row label { font-size: calc(11px * var(--jn-s)); font-weight: 700; color: #4c3fae; white-space: nowrap; }
         .jn-select {
@@ -346,6 +330,16 @@
             background: #fee2e2 !important; border-color: #dc3545 !important; color: #dc3545 !important;
             box-shadow: 0 0 0 calc(3px * var(--jn-s)) rgba(220,53,69,0.28);
             animation: jnWrongShake .4s ease;
+        }
+        .jn-answer-tile.jn-answer-tile-wrong.jn-no-anim { animation: none; }
+        .jn-answer-tile.jn-answer-slot-empty {
+            background: #ffffff; border: calc(2px * var(--jn-s)) dashed #f59e0b; color: transparent;
+            box-shadow: none; animation: jnSlotPulse 1.2s ease-in-out infinite;
+        }
+        .jn-answer-tile.jn-answer-slot-empty:hover { background: #fffbeb; border-color: #d97706; color: transparent; }
+        @keyframes jnSlotPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.0); }
+            50%      { box-shadow: 0 0 0 calc(3px * var(--jn-s)) rgba(245,158,11,0.35); }
         }
         @keyframes jnWrongShake {
             0%, 100% { transform: translateX(0); }
@@ -591,15 +585,63 @@
         return digitsStr.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F');
     }
 
-    // ── Classes de grandeur proposées ───────────────────────────────────────
-    const JN_CLASSES = [
-        { key: 'unites',   label: 'Unités',    range: [1, 999],               weight: 1 },
-        { key: 'mille',    label: 'Milliers',  range: [1000, 999999],         weight: 2 },
-        { key: 'million',  label: 'Millions',  range: [1000000, 999999999],   weight: 3 },
-        { key: 'milliard', label: 'Milliards', range: [1000000000, 999999999999], weight: 4 }
-    ];
+    // ── Niveaux de difficulté (identiques au widget Nombres chiffres/lettres) ─
+    const JN_LEVELS = {
+        1: [10, 100],
+        2: [100, 1000],
+        3: [1000, 99999],
+        4: [10000, 999999999],
+        5: [10000, 999999999999]
+    };
 
     function jnRandInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+    // Tire d'abord un nombre de chiffres au hasard, puis un nombre ayant ce nombre
+    // de chiffres (dans les bornes du niveau). Sans ça, aux niveaux 4 et 5, on
+    // obtiendrait presque toujours un nombre à 9 ou 12 chiffres.
+    // Chaque longueur est pondérée par la part de ses nombres réellement couverte
+    // par le niveau : ainsi la borne haute des niveaux 1 et 2 (100 et 1 000), seule
+    // de sa longueur, ne sort que rarement au lieu d'une fois sur deux.
+    function jnRandomForLevel(level, avoid) {
+        const [min, max] = JN_LEVELS[level] || JN_LEVELS[1];
+        const minLen = String(min).length, maxLen = String(max).length;
+        const buckets = [];
+        let total = 0;
+        for (let len = minLen; len <= maxLen; len++) {
+            const lo = Math.max(min, Math.pow(10, len - 1));
+            const hi = Math.min(max, Math.pow(10, len) - 1);
+            if (hi < lo) continue;
+            const w = (hi - lo + 1) / (9 * Math.pow(10, len - 1));
+            buckets.push({ lo, hi, w });
+            total += w;
+        }
+        let n, tries = 0;
+        do {
+            let r = Math.random() * total, b = buckets[buckets.length - 1];
+            for (const bk of buckets) { if (r < bk.w) { b = bk; break; } r -= bk.w; }
+            n = jnRandInt(b.lo, b.hi);
+            tries++;
+        } while (n === avoid && tries < 10);
+        return n;
+    }
+
+    // Points rapportés par une bonne réponse : plus le nombre est grand, plus il
+    // rapporte (unités 1, milliers 2, millions 3, milliards 4).
+    function jnPointsFor(n) {
+        if (n >= 1000000000) return 4;
+        if (n >= 1000000) return 3;
+        if (n >= 1000) return 2;
+        return 1;
+    }
+
+    // Compatibilité avec les anciennes sauvegardes (cases « classes » cochées).
+    function jnLevelFromOldClasses(classes) {
+        if (!Array.isArray(classes) || classes.length === 0) return 1;
+        if (classes.includes('milliard')) return 5;
+        if (classes.includes('million')) return 4;
+        if (classes.includes('mille')) return 3;
+        return 1;
+    }
 
     // Renvoie l'ensemble des indices de `student` qui font partie de la plus longue
     // sous-séquence commune avec `expected` (ordre respecté, mais pas forcément la
@@ -672,12 +714,15 @@
             </div>
 
             <div class="jn-params-panel">
-                <div class="jn-params-title">Classes de nombres à utiliser :</div>
-                <div class="jn-params-grid">
-                    <label class="jn-class-check c-unites checked"><input type="checkbox" data-class="unites" checked>Unités (1 à 999)</label>
-                    <label class="jn-class-check c-mille checked"><input type="checkbox" data-class="mille" checked>Milliers (1 000 à 999 999)</label>
-                    <label class="jn-class-check c-million"><input type="checkbox" data-class="million">Millions (1 000 000 à 999 999 999)</label>
-                    <label class="jn-class-check c-milliard"><input type="checkbox" data-class="milliard">Milliards (1 000 000 000 à 999 999 999 999)</label>
+                <div class="jn-params-row">
+                    <label>Niveau :</label>
+                    <select class="jn-select jn-level-select" title="Difficulté des nombres proposés">
+                        <option value="1">Niveau 1 (10 à 100)</option>
+                        <option value="2">Niveau 2 (100 à 1 000)</option>
+                        <option value="3">Niveau 3 (1 000 à 99 999)</option>
+                        <option value="4">Niveau 4 (10 000 à 999 999 999)</option>
+                        <option value="5">Niveau 5 (10 000 à 999 999 999 999)</option>
+                    </select>
                 </div>
                 <div class="jn-params-row">
                     <label>Sens :</label>
@@ -754,7 +799,8 @@
                 <h4>💡 Comment ça marche ?</h4>
                 Un nombre s'affiche (en chiffres ou en lettres). Clique sur les étiquettes pour l'écrire dans l'autre écriture, avant la fin du chrono si celui-ci est activé.<br><br>
                 ✓ <b>Valider</b> vérifie la réponse. Une bonne réponse rapporte des points (plus le nombre est grand, plus elle en rapporte). Une erreur ou un temps écoulé coûte une vie.<br><br>
-                ⚙️ Choisis dans les paramètres les classes de nombres (unités, milliers, millions, milliards), le sens de l'exercice, le chrono et le nombre de vies.
+                ❌ En cas d'erreur, les étiquettes fausses sont entourées en rouge. En écriture en chiffres, un clic sur un chiffre faux l'efface sans décaler les autres : la case vide (pointillés orange) attend le bon chiffre. S'il manque des chiffres, le jeu le précise.<br><br>
+                ⚙️ Choisis dans les paramètres le niveau (de 1 à 5), le sens de l'exercice, le chrono et le nombre de vies. Un changement de niveau s'applique dès le nombre suivant.
             </div>
         `;
 
@@ -774,7 +820,7 @@
         const resetBtn         = container.querySelector('.jn-btn-reset');
         const paramsBtn      = container.querySelector('.jn-params-btn');
         const paramsPanel    = container.querySelector('.jn-params-panel');
-        const classChecks    = container.querySelectorAll('.jn-class-check');
+        const levelSelect    = container.querySelector('.jn-level-select');
         const modeSelect      = container.querySelector('.jn-mode-select');
         const timerSelect      = container.querySelector('.jn-timer-select');
         const livesSelect      = container.querySelector('.jn-lives-select');
@@ -810,6 +856,7 @@
         let targetDigits = null;           // réponse attendue en mode l2c (chiffres)
         let studentTiles = [];
         let insertCursor = null;           // position où insérer la prochaine étiquette (null = à la fin)
+        const wrongSet = new Set();        // indices des étiquettes signalées fausses (cadre rouge)
         let solutionShown = false;         // true tant que la solution est affichée, en attente du clic sur Continuer
         let timerDuration = 30;            // secondes, 0 = pas de chrono
         let timerRemaining = 0;
@@ -824,22 +871,16 @@
             container.style.setProperty('--jn-s', sc.toFixed(4));
         }
 
-        // ── Paramètres : classes cochées ────────────────────────────────────
-        function getCheckedClasses() {
-            return JN_CLASSES.filter(c => {
-                const cb = container.querySelector('.jn-class-check input[data-class="' + c.key + '"]');
-                return cb && cb.checked;
-            });
+        // ── Paramètres : niveau ─────────────────────────────────────────────
+        function getLevel() {
+            const lv = parseInt(levelSelect.value, 10);
+            return JN_LEVELS[lv] ? lv : 1;
         }
-        classChecks.forEach(label => {
-            const cb = label.querySelector('input');
-            label.addEventListener('pointerdown', (e) => e.stopPropagation());
-            label.addEventListener('click', (e) => {
-                e.stopPropagation();
-                cb.checked = !cb.checked;
-                label.classList.toggle('checked', cb.checked);
-                if (typeof saveBoard === 'function') saveBoard();
-            });
+        levelSelect.addEventListener('pointerdown', (e) => e.stopPropagation());
+        levelSelect.addEventListener('mousedown', (e) => e.stopPropagation());
+        levelSelect.addEventListener('change', (e) => {
+            e.stopPropagation();
+            if (typeof saveBoard === 'function') saveBoard();
         });
         paramsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -891,6 +932,7 @@
             tilesWrap.classList.add('jn-success-active');
         }
         function clearWrongTiles() {
+            wrongSet.clear();
             answerZone.querySelectorAll('.jn-answer-tile-wrong').forEach(el => el.classList.remove('jn-answer-tile-wrong'));
         }
         function highlightWrongTiles() {
@@ -898,13 +940,28 @@
             const matched = jnLCSMatchedIndices(studentTiles, expected);
             const tileEls = answerZone.querySelectorAll('.jn-answer-tile');
             tileEls.forEach((el, i) => {
-                if (!matched.has(i)) el.classList.add('jn-answer-tile-wrong');
+                if (!matched.has(i)) {
+                    el.classList.add('jn-answer-tile-wrong');
+                    wrongSet.add(i);
+                }
             });
         }
 
         // ── Insertion d'une étiquette : comble en priorité le trou laissé par une
         // étiquette retirée (insertCursor), sinon l'ajoute à la fin comme avant ──
         function insertStudentTile(val) {
+            // Lettres → Chiffres : s'il reste une case vidée (chiffre faux effacé),
+            // le chiffre cliqué vient la remplir sans décaler les autres.
+            const emptyIdx = (insertCursor !== null && studentTiles[insertCursor] === '')
+                ? insertCursor : studentTiles.indexOf('');
+            if (emptyIdx !== -1) {
+                studentTiles[emptyIdx] = val;
+                wrongSet.delete(emptyIdx);
+                const next = studentTiles.indexOf('');
+                insertCursor = next !== -1 ? next : null;
+                return;
+            }
+            wrongSet.clear();
             if (insertCursor !== null && insertCursor >= 0 && insertCursor <= studentTiles.length) {
                 studentTiles.splice(insertCursor, 0, val);
                 insertCursor = null; // une étiquette comble le trou, on repasse en mode "ajout à la fin"
@@ -992,14 +1049,34 @@
                 }
                 const el = document.createElement('div');
                 el.className = 'jn-answer-tile' + (currentMode === 'l2c' ? ' digit-tile' : '');
-                el.textContent = val;
-                el.title = 'Cliquer pour retirer';
-                if (animate) { el.classList.add('jn-anim-in'); el.style.animationDelay = (idx * 90) + 'ms'; }
+                const isEmptySlot = val === '';
+                el.textContent = isEmptySlot ? '0' : val; // '0' invisible : garde la taille de la case
+                if (isEmptySlot) {
+                    el.classList.add('jn-answer-slot-empty');
+                    el.title = 'Clique sur un chiffre pour remplir cette case (ou ici pour la supprimer)';
+                } else if (wrongSet.has(idx)) {
+                    el.classList.add('jn-answer-tile-wrong', 'jn-no-anim');
+                    el.title = currentMode === 'l2c' ? 'Cliquer pour effacer ce chiffre' : 'Cliquer pour retirer';
+                } else {
+                    el.title = 'Cliquer pour retirer';
+                }
+                if (animate && !isEmptySlot) { el.classList.add('jn-anim-in'); el.style.animationDelay = (idx * 90) + 'ms'; }
                 el.addEventListener('pointerdown', (e) => {
                     e.stopPropagation(); e.preventDefault();
                     if (!running || solutionShown) return;
-                    studentTiles.splice(idx, 1);
-                    insertCursor = idx;
+                    // On vérifie au moment du clic (le cadre rouge est ajouté après le rendu, lors de la validation)
+                    const wrongNow = wrongSet.has(idx) || el.classList.contains('jn-answer-tile-wrong');
+                    if (currentMode === 'l2c' && wrongNow && !isEmptySlot) {
+                        // Chiffre faux : on efface seulement le chiffre, la case reste en place
+                        studentTiles[idx] = '';
+                        wrongSet.delete(idx);
+                        insertCursor = idx;
+                    } else {
+                        // Retrait classique (ou suppression d'une case vide) : décale la suite
+                        studentTiles.splice(idx, 1);
+                        wrongSet.clear();
+                        insertCursor = idx;
+                    }
                     renderAnswer();
                     if (typeof saveBoard === 'function') saveBoard();
                 });
@@ -1085,11 +1162,6 @@
             if (v === 'mixte') return Math.random() < 0.5 ? 'c2l' : 'l2c';
             return v;
         }
-        function pickClass() {
-            const checked = getCheckedClasses();
-            if (checked.length === 0) return null;
-            return checked[jnRandInt(0, checked.length - 1)];
-        }
         function newRound() {
             clearWrongTiles();
             hideSuccessOverlay();
@@ -1101,20 +1173,13 @@
             solutionBtn.disabled = false;
             continueBtn.classList.add('hidden');
 
-            const cls = pickClass();
-            if (!cls) {
-                showOverlay('⚠️ Aucune classe sélectionnée', 'Coche au moins une classe de nombres dans les paramètres (⚙️, en haut à droite), puis réessaie.', '🔄 Réessayer');
-                running = false;
-                overlayBtn.onclick = () => startGame();
-                return;
-            }
-
-            currentNumber = jnRandInt(cls.range[0], cls.range[1]);
+            currentNumber = jnRandomForLevel(getLevel(), currentNumber);
             currentMode = pickMode();
             targetDigits = String(currentNumber);
             targetTokens = jnNumberToTokens(currentNumber);
             studentTiles = [];
             insertCursor = null;
+            wrongSet.clear();
 
             if (currentMode === 'c2l') {
                 promptBadge.textContent = '🔢➜🔤 Écris ce nombre en lettres';
@@ -1155,15 +1220,14 @@
             if (currentMode === 'c2l') {
                 ok = studentTiles.join('-') === (targetTokens || []).join('-');
             } else {
-                ok = studentTiles.join('') === targetDigits;
+                ok = !studentTiles.includes('') && studentTiles.join('') === targetDigits;
             }
             resultText.classList.remove('exact', 'faux');
             hideSuccessOverlay();
             clearWrongTiles();
 
             if (ok) {
-                const cls = JN_CLASSES.find(c => currentNumber >= c.range[0] && currentNumber <= c.range[1]) || JN_CLASSES[0];
-                score += cls.weight;
+                score += jnPointsFor(currentNumber);
                 streak += 1;
                 updateHUD();
                 resultText.textContent = '';
@@ -1174,7 +1238,13 @@
                 highlightWrongTiles();
                 const gameOver = loseLife();
                 if (!gameOver) {
-                    resultText.textContent = '❌ Ce n\'est pas encore ça — il te reste ' + livesLeftLabel() + ' vie(s).';
+                    // Lettres → Chiffres : on précise s'il manque des chiffres
+                    const missing = currentMode === 'l2c' && targetDigits ? targetDigits.length - studentTiles.length : 0;
+                    let msg;
+                    if (missing === 1) msg = '❌ Il manque un chiffre. Vérifie chaque classe.';
+                    else if (missing > 1) msg = '❌ Il manque ' + missing + ' chiffres. Vérifie chaque classe.';
+                    else msg = '❌ Ce n\'est pas encore ça.';
+                    resultText.textContent = msg + ' Il te reste ' + livesLeftLabel() + ' vie(s).';
                     resultText.classList.add('faux', 'show');
                 }
             }
@@ -1218,6 +1288,7 @@
             if (!running || solutionShown) return;
             studentTiles = [];
             insertCursor = null;
+            wrongSet.clear();
             renderAnswer();
             resultText.classList.remove('show', 'exact', 'faux');
             hideSuccessOverlay();
@@ -1331,6 +1402,7 @@
             score = 0; streak = 0; lives = maxLives = parseInt(livesSelect.value, 10) || 3;
             studentTiles = [];
             insertCursor = null;
+            wrongSet.clear();
             solutionShown = false;
             validateBtn.disabled = false;
             clearBtn.disabled = false;
@@ -1357,8 +1429,7 @@
         // ── Init ─────────────────────────────────────────────────────────────
         function _onWidgetDown(e) {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' ||
-                e.target.classList.contains('jn-tile') || e.target.classList.contains('jn-answer-tile') ||
-                e.target.classList.contains('jn-class-check')) {
+                e.target.classList.contains('jn-tile') || e.target.classList.contains('jn-answer-tile')) {
                 e.stopPropagation();
                 return;
             }
@@ -1380,13 +1451,10 @@
                 if (savedData.timerDuration !== undefined) { timerSelect.value = String(savedData.timerDuration); timerDuration = savedData.timerDuration; }
                 if (savedData.mode) modeSelect.value = savedData.mode;
                 if (savedData.livesSetting) { livesSelect.value = String(savedData.livesSetting); maxLives = savedData.livesSetting; }
-                if (Array.isArray(savedData.classes)) {
-                    classChecks.forEach(label => {
-                        const cb = label.querySelector('input');
-                        const key = cb.dataset.class;
-                        cb.checked = savedData.classes.includes(key);
-                        label.classList.toggle('checked', cb.checked);
-                    });
+                if (savedData.level && JN_LEVELS[savedData.level]) {
+                    levelSelect.value = String(savedData.level);
+                } else if (Array.isArray(savedData.classes)) {
+                    levelSelect.value = String(jnLevelFromOldClasses(savedData.classes));
                 }
                 if (savedData.fullboard) { _isMax = true; container.classList.add('wf-fullboard'); }
                 else {
@@ -1411,7 +1479,7 @@
                 mode: modeSelect.value,
                 timerDuration: parseInt(timerSelect.value, 10) || 0,
                 livesSetting: parseInt(livesSelect.value, 10) || 3,
-                classes: Array.from(classChecks).filter(l => l.querySelector('input').checked).map(l => l.querySelector('input').dataset.class),
+                level: getLevel(),
                 containerW: container.classList.contains('wf-fullboard') ? null : container.offsetWidth,
                 containerH: container.classList.contains('wf-fullboard') ? null : container.offsetHeight,
                 fullboard: container.classList.contains('wf-fullboard')

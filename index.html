@@ -1179,6 +1179,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">La caisse du marchand</div>
                 <div class="act-card-desc">Rendre la monnaie au client avec les pièces et les billets</div>
             </div>
+			<div class="act-card" onclick="createWidget('jeu-tour-calcul');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-tour-calcul.png" alt="Tour de calcul" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Tour de calcul</div>
+                <div class="act-card-desc">Guider les blocs-calculs vers la colonne de leur résultat avant que la tour déborde</div>
+            </div>
             <div class="act-card" onclick="createWidget('jeu-plus-grand');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-plus-grand.png" alt="Plus grand / plus petit" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Plus grand / plus petit</div>
@@ -1188,11 +1193,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-battle-calculs.png" alt="Battle de calculs" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle de calculs</div>
                 <div class="act-card-desc">Duel de calcul mental à deux au TBI : trouver la bonne réponse parmi 3 avant l'adversaire</div>
-            </div>
-            <div class="act-card" onclick="createWidget('jeu-tour-calcul');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-tour-calcul.png" alt="Tour de calcul" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Tour de calcul</div>
-                <div class="act-card-desc">Guider les blocs-calculs vers la colonne de leur résultat avant que la tour déborde</div>
             </div>
             <div class="act-card" onclick="createWidget('jeu-mathmaster');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-mathmaster.png" alt="MathMaster" style="width:100%;height:100%;object-fit:contain;"></div>

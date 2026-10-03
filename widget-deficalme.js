@@ -1196,6 +1196,7 @@ function createDeficalmeWidget() {
     let paint = null;                     // données précalculées pour l'image courante
     let paintKey = '';
     let paintLastStep = -1;
+    let apercuActive = false;             // image affichée en clair (bouton « Cacher l'image »)
 
     function paintClamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
     function paintSmooth(a, b, v) { const t = paintClamp((v - a) / (b - a)); return t * t * (3 - 2 * t); }
@@ -1763,6 +1764,7 @@ function createDeficalmeWidget() {
             imgEl.style.transform = `scale(${10 - prog * 0.09})`;
             imgEl.style.filter = `blur(${Math.max(0, 5 - prog * 0.05)}px)`;
         }
+        if (apercuActive) { imgEl.style.filter = 'none'; imgEl.style.transform = 'scale(1)'; }
     }
 
     function updateUI() {
@@ -1885,9 +1887,7 @@ function createDeficalmeWidget() {
             mosaicCanvas.style.opacity = '1';
             brushCanvas.style.opacity = '1';
             paintCanvas.style.opacity = '1';
-            btnApercu.textContent = '👁';
-            btnApercu.title = 'Aperçu';
-            btnApercu.style.background = '#6366f1';
+            setApercuButton();
         }
         btnStart.disabled = false;
         updateUI();
@@ -1952,7 +1952,24 @@ function createDeficalmeWidget() {
 
     // ── Event listeners ───────────────────────────────────────────────────
     // ── Aperçu ────────────────────────────────────────────────────────────
-    let apercuActive = false;
+    // Bouton : « 👁 » (aperçu) quand l'image est cachée,
+    // « 🙈 Cacher l'image » quand elle est visible
+    function setApercuButton() {
+        if (apercuActive) {
+            btnApercu.textContent = '🙈 Cacher l\'image';
+            btnApercu.title = 'Cacher l\'image';
+            btnApercu.style.background = '#ef4444';
+        } else {
+            btnApercu.textContent = '👁';
+            btnApercu.title = 'Aperçu';
+            btnApercu.style.background = '#6366f1';
+        }
+    }
+    // Toute nouvelle image (🎲, 📁 ou URL) reste visible jusqu'au clic
+    // sur « Cacher l'image » (ou sur Démarrer)
+    function showNewImage() {
+        if (!apercuActive) toggleApercu();
+    }
     function toggleApercu() {
         apercuActive = !apercuActive;
         if (apercuActive) {
@@ -1963,17 +1980,13 @@ function createDeficalmeWidget() {
             mosaicCanvas.style.opacity = '0';
             brushCanvas.style.opacity = '0';
             paintCanvas.style.opacity = '0';
-            btnApercu.textContent = '🙈';
-            btnApercu.title = 'Cacher l\'aperçu';
-            btnApercu.style.background = '#ef4444';
+            setApercuButton();
         } else {
             pixelGrid.style.opacity = '1';
             mosaicCanvas.style.opacity = '1';
             brushCanvas.style.opacity = '1';
             paintCanvas.style.opacity = '1';
-            btnApercu.textContent = '👁';
-            btnApercu.title = 'Aperçu';
-            btnApercu.style.background = '#6366f1';
+            setApercuButton();
             updateUI(); // remet le bon état visuel
         }
     }
@@ -2151,13 +2164,18 @@ function createDeficalmeWidget() {
     urlInput.addEventListener('mousedown', (e) => e.stopPropagation());
     urlInput.addEventListener('keydown', (e) => {
         e.stopPropagation();
-        if (e.key === 'Enter') applyImage(urlInput.value);
+        if (e.key === 'Enter' && urlInput.value.trim()) {
+            applyImage(urlInput.value);
+            resetDefi();
+            showNewImage();
+        }
     });
     randBtn.addEventListener('click', () => {
         const url = 'https://picsum.photos/900/500?random=' + Math.floor(Math.random() * 9999);
         urlInput.value = url;
         applyImage(url);
         resetDefi();
+        showNewImage();
     });
 
     btnImport.addEventListener('click', (e) => {
@@ -2173,6 +2191,7 @@ function createDeficalmeWidget() {
         imgEl.crossOrigin = null;
         if (usesGrid() || usesBrush()) generateGrid();
         resetDefi();
+        showNewImage();
         importFileInput.value = '';
     });
 

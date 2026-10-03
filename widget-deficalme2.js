@@ -1460,7 +1460,7 @@ function createDeficalme2Widget() {
             const res = await fetch(url);
             if (!res.ok) throw new Error(res.status);
             const text = await res.text();
-            if (loadSvgText(text, url)) resetDefi();
+            if (loadSvgText(text, url)) { resetDefi(); setApercu(true); }
         } catch (e) {
             alert('Impossible de charger ce dessin. Vérifiez que l\'adresse mène à un fichier .svg accessible, ou importez-le avec 📁.');
         }
@@ -1694,7 +1694,7 @@ function createDeficalme2Widget() {
     function setApercu(on) {
         apercuActive = on;
         btnApercu.textContent = on ? '🙈' : '👁';
-        btnApercu.title = on ? 'Cacher l\'aperçu' : 'Aperçu';
+        btnApercu.title = on ? 'Cacher le dessin' : 'Aperçu';
         btnApercu.style.background = on ? '#ef4444' : '#6366f1';
         msgStart.style.visibility = on ? 'hidden' : '';
         updateUI();
@@ -1864,6 +1864,8 @@ function createDeficalme2Widget() {
         }
         loadBuiltin(next);
         resetDefi();
+        // Le nouveau dessin reste visible jusqu'au clic sur « Cacher le dessin »
+        setApercu(true);
     });
     btnImport.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1874,7 +1876,7 @@ function createDeficalme2Widget() {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
-            if (loadSvgText(String(reader.result), file.name)) resetDefi();
+            if (loadSvgText(String(reader.result), file.name)) { resetDefi(); setApercu(true); }
         };
         reader.readAsText(file);
         importFileInput.value = '';

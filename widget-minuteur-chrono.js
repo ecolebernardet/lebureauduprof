@@ -228,8 +228,37 @@
     if (!document.getElementById('mc-widget-style')) {
         const s = document.createElement('style');
         s.id = 'mc-widget-style';
-        s.textContent = STYLE;
+        s.textContent = STYLE + `
+    /* ── En-tête avec boutons fenêtre (hors mise à l'échelle) ── */
+    .widget[data-type="minuteur"] .mc-header {
+        position: absolute; top: 0; left: 0; right: 0;
+        height: 24px; padding: 0 8px;
+        display: flex; align-items: center; justify-content: flex-end;
+        box-sizing: border-box; z-index: 3;
+    }`;
         document.head.appendChild(s);
+    }
+
+    // Injecter le CSS des boutons wf si pas déjà fait (partagé avec les autres widgets)
+    if (!document.getElementById('wf-btns-style')) {
+        const ws = document.createElement('style');
+        ws.id = 'wf-btns-style';
+        ws.textContent = `
+    .wf-btns { display:flex; gap:5px; align-items:center; flex-shrink:0; }
+    .wf-btn { width:13px; height:13px; border-radius:50%; border:none; cursor:pointer;
+        display:flex; align-items:center; justify-content:center; font-size:0;
+        transition:filter .15s, transform .1s; flex-shrink:0; position:relative; }
+    .wf-btn:hover { filter:brightness(0.82); transform:scale(1.15); }
+    .wf-btn:active { transform:scale(0.92); }
+    .wf-btn-min   { background:#febc2e; }
+    .wf-btn-max   { background:#28c840; }
+    .wf-btn-close { background:#ff5f57; }
+    .wf-btns:hover .wf-btn::after { font-size:8px; font-weight:900; color:rgba(0,0,0,0.5); line-height:1; }
+    .wf-btns:hover .wf-btn-min::after   { content:'−'; }
+    .wf-btns:hover .wf-btn-max::after   { content:'⤢'; font-size:7px; }
+    .wf-btns:hover .wf-btn-close::after { content:'×'; font-size:10px; }
+        `;
+        document.head.appendChild(ws);
     }
 
     // ── Template ─────────────────────────────────────────────────────────
@@ -374,6 +403,25 @@
         const outer     = widget.querySelector('.mc-outer');
         const scaleWrap = widget.querySelector('.mc-scale-wrap');
 
+        // ── En-tête avec boutons fenêtre (créé s'il n'existe pas encore) ────
+        if (!outer.querySelector('.mc-header')) {
+            const header = document.createElement('div');
+            header.className = 'mc-header';
+            header.innerHTML = `
+                <div class="wf-btns">
+                    <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
+                    <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
+                    <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+                </div>`;
+            outer.insertBefore(header, outer.firstChild);
+        }
+        const HEADER_H = 24;
+
+        // Nettoyer un éventuel état "réduit" resté d'une sauvegarde précédente
+        widget.querySelectorAll('.mc-mini-bar').forEach(el => el.remove());
+        widget.dataset.collapsed = '0';
+        outer.style.display = '';
+
         // Dimensions de référence (taille native du template)
         const REF_W = 320;
         const REF_H = 260;
@@ -381,13 +429,13 @@
         // ── Scaling : adapte le contenu à la taille du container ─────────────
         function applyScale() {
             const ow = outer.offsetWidth  || REF_W;
-            const oh = outer.offsetHeight || REF_H;
+            const oh = Math.max(1, (outer.offsetHeight || (REF_H + HEADER_H)) - HEADER_H);
             const s  = Math.min(ow / REF_W, oh / REF_H);
             scaleWrap.style.width     = REF_W + 'px';
             scaleWrap.style.height    = REF_H + 'px';
             scaleWrap.style.transform = 'scale(' + s + ')';
             scaleWrap.style.left      = ((ow - REF_W * s) / 2) + 'px';
-            scaleWrap.style.top       = ((oh - REF_H * s) / 2) + 'px';
+            scaleWrap.style.top       = (HEADER_H + (oh - REF_H * s) / 2) + 'px';
         }
 
         applyScale();
@@ -427,6 +475,187 @@
         outer.addEventListener('mouseleave', function() {
             outer.style.cursor = '';
         });
+
+        // ── Boutons fenêtre wf-btns ──────────────────────────────────────────
+        const wfMin   = outer.querySelector('[data-role="wf-min"]');
+        const wfMax   = outer.querySelector('[data-role="wf-max"]');
+        const wfClose = outer.querySelector('[data-role="wf-close"]');
+        const HANDLES = '.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle';
+        const COLLAPSED_W = 300, COLLAPSED_H = 50, GAP = 10, MARGIN_TOP = 8;
+        let _isMax = false;
+        let _outerStyleBeforeMax = '';
+
+        [wfMin, wfMax, wfClose].forEach(b => {
+            if (!b) return;
+            b.addEventListener('pointerdown', e => e.stopPropagation());
+            b.addEventListener('mousedown',   e => e.stopPropagation());
+            b.addEventListener('touchstart',  e => e.stopPropagation(), { passive: true });
+        });
+
+        function updatePercents() {
+            const curW  = window.innerWidth;
+            const curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
+            widget.dataset.leftPercent = (widget.offsetLeft / curW)  * 100;
+            widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
+        }
+
+        // Apparence "réduite" : mini-barre à la position (left, top)
+        function showCollapsedLook(left, top) {
+            outer.style.display = 'none';
+            widget.querySelectorAll(HANDLES).forEach(el => el.style.display = 'none');
+            widget.style.left         = left + 'px';
+            widget.style.top          = top  + 'px';
+            widget.style.width        = COLLAPSED_W + 'px';
+            widget.style.height       = COLLAPSED_H + 'px';
+            widget.style.overflow     = 'hidden';
+            widget.style.background   = '#2a2a3e';
+            widget.style.borderRadius = '8px';
+            widget.style.border       = 'none';
+            widget.style.padding      = '0';
+            const wc = widget.querySelector('.widget-content');
+            if (wc) { wc.style.padding = '0'; wc.style.background = 'transparent'; wc.style.borderRadius = '0'; }
+            const mb = widget.querySelector('.mc-mini-bar');
+            if (mb) mb.style.display = 'flex';
+        }
+
+        // Apparence "dépliée" : styles d'origine restaurés
+        function showExpandedLook() {
+            widget.style.cssText = widget._mcSavedStyle || '';
+            const wc = widget.querySelector('.widget-content');
+            if (wc) wc.style.cssText = widget._mcSavedWcStyle || '';
+            outer.style.display = '';
+            widget.querySelectorAll(HANDLES).forEach(el => el.style.display = '');
+            const mb = widget.querySelector('.mc-mini-bar');
+            if (mb) mb.style.display = 'none';
+        }
+
+        function mcExitMax() {
+            if (!_isMax) return;
+            _isMax = false;
+            outer.style.cssText = _outerStyleBeforeMax;
+            applyScale();
+        }
+
+        function mcCollapse() {
+            if (widget.dataset.collapsed === '1') return;
+            mcExitMax();
+
+            // Mémoriser l'état d'origine
+            const wc = widget.querySelector('.widget-content');
+            widget._mcSavedStyle   = widget.style.cssText;
+            widget._mcSavedWcStyle = wc ? wc.style.cssText : '';
+            widget.dataset.mcLeftSaved = widget.offsetLeft;
+            widget.dataset.mcTopSaved  = widget.offsetTop;
+
+            // Placer la mini-barre en haut, à droite des autres widgets réduits
+            const others = Array.from(document.querySelectorAll('.widget')).filter(w =>
+                w !== widget && w.dataset.collapsed === '1'
+            );
+            const occupiedX = others.reduce((maxX, w) => Math.max(maxX, w.offsetLeft + COLLAPSED_W + GAP), MARGIN_TOP);
+
+            // Créer la mini-barre
+            const miniBar = document.createElement('div');
+            miniBar.className = 'mc-mini-bar';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+
+            const labelEl = document.createElement('span');
+            labelEl.textContent = '⏱️ Minuteur & Chrono';
+            labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
+
+            const expandBtn = document.createElement('button');
+            expandBtn.title = 'Déplier';
+            expandBtn.textContent = '▲';
+            expandBtn.style.cssText = 'flex-shrink:0;background:transparent;border:1px solid #555;color:#aaa;border-radius:4px;width:22px;height:22px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;z-index:2;position:relative;';
+            expandBtn.addEventListener('pointerdown', e => e.stopPropagation());
+            expandBtn.addEventListener('mousedown',   e => e.stopPropagation());
+            expandBtn.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); mcExpand(); });
+
+            miniBar.appendChild(labelEl);
+            miniBar.appendChild(expandBtn);
+            widget.appendChild(miniBar);
+
+            // Mini-barre déplaçable
+            miniBar.addEventListener('pointerdown', (e) => {
+                if (e.target === expandBtn || expandBtn.contains(e.target)) return;
+                e.stopPropagation(); e.preventDefault();
+                miniBar.setPointerCapture(e.pointerId);
+                const startX = e.clientX - widget.offsetLeft;
+                const startY = e.clientY - widget.offsetTop;
+                const onMove = ev => { widget.style.left = Math.max(0, ev.clientX - startX) + 'px'; widget.style.top = Math.max(0, ev.clientY - startY) + 'px'; };
+                const onUp   = () => {
+                    miniBar.removeEventListener('pointermove', onMove);
+                    miniBar.removeEventListener('pointerup',   onUp);
+                    updatePercents();
+                    if (typeof saveBoard === 'function') saveBoard();
+                };
+                miniBar.addEventListener('pointermove', onMove);
+                miniBar.addEventListener('pointerup',   onUp);
+            });
+            miniBar.addEventListener('mousedown', e => e.stopPropagation());
+
+            showCollapsedLook(occupiedX, MARGIN_TOP);
+            widget.dataset.collapsed = '1';
+            updatePercents();
+            if (typeof saveBoard === 'function') saveBoard();
+        }
+
+        function mcExpand() {
+            if (widget.dataset.collapsed !== '1') return;
+            const savedLeft = parseFloat(widget.dataset.mcLeftSaved);
+            const savedTop  = parseFloat(widget.dataset.mcTopSaved);
+            widget.querySelectorAll('.mc-mini-bar').forEach(el => el.remove());
+            showExpandedLook();
+            if (!isNaN(savedLeft)) widget.style.left = savedLeft + 'px';
+            if (!isNaN(savedTop))  widget.style.top  = savedTop  + 'px';
+            widget.dataset.collapsed = '0';
+            applyScale();
+            updatePercents();
+            if (typeof saveBoard === 'function') saveBoard();
+        }
+
+        // Utilisé par la sauvegarde : un widget réduit est enregistré déplié
+        widget._mcTempExpand = function () {
+            const l = widget.offsetLeft, t = widget.offsetTop;
+            showExpandedLook();
+            const savedLeft = parseFloat(widget.dataset.mcLeftSaved);
+            const savedTop  = parseFloat(widget.dataset.mcTopSaved);
+            if (!isNaN(savedLeft)) widget.style.left = savedLeft + 'px';
+            if (!isNaN(savedTop))  widget.style.top  = savedTop  + 'px';
+            updatePercents();
+            return function restore() { showCollapsedLook(l, t); updatePercents(); };
+        };
+
+        if (wfMin) {
+            wfMin.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); mcCollapse(); });
+        }
+        if (wfMax) {
+            wfMax.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!_isMax) {
+                    _isMax = true;
+                    _outerStyleBeforeMax = outer.style.cssText;
+                    outer.style.position     = 'fixed';
+                    outer.style.inset        = '0';
+                    outer.style.width        = '100%';
+                    outer.style.height       = '100%';
+                    outer.style.zIndex       = '9999';
+                    outer.style.borderRadius = '0';
+                    outer.style.background   = '#fff';
+                    outer.style.resize       = 'none';
+                    applyScale();
+                } else {
+                    mcExitMax();
+                }
+            });
+        }
+        if (wfClose) {
+            wfClose.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (typeof snapshotNow === 'function') snapshotNow();
+                widget.remove();
+                if (typeof saveBoard === 'function') saveBoard();
+            });
+        }
 
         // ── Onglets ──────────────────────────────────────────────────────────
         const tabs   = widget.querySelectorAll('.mc-tab');
@@ -1020,6 +1249,34 @@
             obs.observe(document.body, { childList: true, subtree: true });
         })();
     };
+
+    // =========================================================================
+    // HOOK buildBoardState — un minuteur réduit est sauvegardé à sa taille
+    // et à sa position d'origine (il se rouvrira déplié au rechargement)
+    // =========================================================================
+    (function patchBuildBoardStateMinuteur() {
+        function doPatch() {
+            const _origBuild = window.buildBoardState;
+            if (typeof _origBuild !== 'function' || _origBuild._mcPatched) return;
+            const patched = function () {
+                const restores = [];
+                document.querySelectorAll('.widget[data-type="minuteur"]').forEach(w => {
+                    if (w.dataset.collapsed === '1' && typeof w._mcTempExpand === 'function') {
+                        restores.push(w._mcTempExpand());
+                    }
+                });
+                try {
+                    return _origBuild.apply(this, arguments);
+                } finally {
+                    restores.forEach(fn => fn());
+                }
+            };
+            patched._mcPatched = true;
+            window.buildBoardState = patched;
+        }
+        if (typeof window.buildBoardState === 'function') doPatch();
+        else document.addEventListener('DOMContentLoaded', doPatch);
+    })();
 
     // =========================================================================
     // HOOK dans createWidget

@@ -14,6 +14,10 @@
 // max de chaque terme), tables, compléments à 10 / 100, doubles, moitiés,
 // secondes par calcul, nombre de calculs, lecture à voix haute.
 //
+// Liste d'élèves (bouton 📂) : fichier .txt « prénom;nom », tirage au sort
+// de 2 élèves par duel (chacun passe une fois par tour), scores affichés
+// à côté du nom de chaque élève. Liste et scores gardés en localStorage.
+//
 // Ouverture : createWidget('battle-calculs')
 // 📌 Intégration dans index.html :
 //   1. <script src="widget-jeu-battle-calculs.js"></script> (après widgets.js)
@@ -27,6 +31,7 @@
 
     var TYPE = 'battle-calculs';
     var SETTINGS_KEY = 'battle-calculs-settings';
+    var CLASS_KEY = 'battle-calculs-classe';
 
     // ── Mini-barre collapse (partagée avec les autres widgets) ─────────────
     if (!window._wfMiniBarCollapse) {
@@ -234,6 +239,9 @@
             font-family: 'Lilita One', 'Nunito', sans-serif; font-size: calc(16px * var(--bc-s));
             display: flex; align-items: center; justify-content: center;
         }
+        .bc-small.bc-mode { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: calc(13px * var(--bc-s)); padding: 0 calc(14px * var(--bc-s)); }
+        .bc-hide { display: none !important; }
+        [data-modebox] { display: flex; }
         .bc-small.bc-all { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: calc(11px * var(--bc-s)); }
         .bc-small.on { background: var(--or); border-color: var(--or); color: var(--encre); }
         .bc-sub { display: none; }
@@ -438,6 +446,138 @@
         .bc-msg.bad  { border-left-color: var(--rouge); background: #FFEDEF; }
         .bc-msg b { font-weight: 900; }
 
+        /* ── Pause ── */
+        .bc-pause {
+            position: absolute; inset: 0; z-index: 8;
+            display: none; align-items: center; justify-content: center;
+            background: rgba(42,31,74,0.92); cursor: pointer;
+            border-radius: inherit;
+        }
+        .bc-pause.show { display: flex; animation: bc-pop .25s ease-out; }
+        .bc-pause-card {
+            text-align: center; color: #fff;
+            font-family: 'Lilita One', sans-serif; font-weight: 400;
+            font-size: calc(54px * var(--bc-s)); line-height: 1.05;
+            text-shadow: 0 calc(4px * var(--bc-s)) 0 rgba(0,0,0,0.35);
+        }
+        .bc-pause-card small {
+            display: block; margin-top: calc(8px * var(--bc-s));
+            font-family: 'Nunito', sans-serif; font-weight: 800;
+            font-size: calc(15px * var(--bc-s)); opacity: 0.8; text-shadow: none;
+        }
+        .bc-btn[hidden] { display: none; }
+        .bc-btn-pause.on { background: var(--or); box-shadow: 0 calc(5px * var(--bc-s)) 0 #B3840B; }
+
+        /* ── Panneau élèves ── */
+        .bc-class {
+            display: none; position: absolute; top: 50px; right: 14px; width: 400px; z-index: 31;
+            max-height: calc(100% - 70px); box-sizing: border-box;
+            flex-direction: column; gap: 8px;
+            background: #fff; border-radius: 14px; padding: 12px 14px;
+            box-shadow: 0 6px 0 #B9B2D6, 0 10px 30px rgba(0,0,0,0.3);
+            font-size: 13px; line-height: 1.35; font-weight: 700; color: var(--encre);
+        }
+        .bc-class.show { display: flex; }
+        .bc-class-head { display: flex; align-items: baseline; gap: 8px; }
+        .bc-class-head h4 { margin: 0; font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: 18px; }
+        .bc-class-count { margin-left: auto; font-size: 12px; color: #6A5E8E; font-weight: 800; }
+        .bc-class-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+        .bc-class-tools button {
+            font-family: inherit; font-weight: 900; font-size: 12px; cursor: pointer;
+            border: none; border-radius: 10px; padding: 6px 9px;
+            background: #EFEAFB; color: var(--encre);
+        }
+        .bc-class-tools button:hover { background: #E1D8F8; }
+        .bc-class-tools button:disabled { opacity: 0.4; cursor: default; }
+        .bc-class-tools button.go { background: var(--or); }
+        .bc-class-list { overflow-y: auto; min-height: 40px; max-height: 340px; display: flex; flex-direction: column; gap: 3px; padding-right: 2px; }
+        .bc-class-empty { text-align: center; color: #6A5E8E; padding: 14px 6px; }
+        .bc-st {
+            display: flex; align-items: center; gap: 8px; cursor: pointer;
+            padding: 4px 8px; border-radius: 9px; background: #F7F4FE;
+        }
+        .bc-st:hover { background: #EFEAFB; }
+        .bc-st-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .bc-st-state { font-size: 11px; color: #6A5E8E; font-weight: 800; white-space: nowrap; }
+        .bc-st.played .bc-st-name::before { content: '✔ '; color: var(--vert); }
+        .bc-st.absent { opacity: 0.45; }
+        .bc-st.absent .bc-st-name { text-decoration: line-through; }
+        .bc-st.cur-L { box-shadow: inset 4px 0 0 #1F6FB5; background: #E3F1FF; }
+        .bc-st.cur-R { box-shadow: inset 4px 0 0 #E0620F; background: #FFEBDD; }
+        .bc-st-scores { display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; }
+        .bc-sc {
+            min-width: 22px; padding: 1px 6px; border-radius: 999px; text-align: center;
+            font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: 14px; color: #fff;
+            background: #8C82AE;
+        }
+        .bc-sc.win { background: var(--vert); }
+        .bc-sc.lose { background: var(--rouge); }
+        .bc-sc.tie { background: #E0A800; }
+        .bc-class-hint { margin: 0; font-size: 11px; color: #6A5E8E; font-weight: 700; }
+        .bc-icon-btn.on { background: var(--or); color: var(--encre); }
+
+        /* ── Liste des élèves sur les côtés (plein écran) ── */
+        .bc-side {
+            display: none; position: absolute; top: 14px; bottom: 14px; z-index: 2;
+            flex-direction: column; gap: 4px; box-sizing: border-box;
+            padding: 10px 8px; border-radius: 16px;
+            background: rgba(255,255,255,0.06); color: #fff; overflow: hidden;
+        }
+        .bc-container.bc-has-sides .bc-side { display: flex; }
+        .bc-side-title {
+            font-family: 'Lilita One', sans-serif; font-weight: 400; color: var(--or);
+            text-align: center; line-height: 1.1; margin-bottom: 2px;
+        }
+        .bc-side-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 3px; justify-content: flex-start; }
+        .bc-side .bc-st {
+            background: rgba(255,255,255,0.10); color: #fff; padding: 0.22em 0.5em;
+            border-radius: 0.6em; font-weight: 800; gap: 0.4em; flex-shrink: 0;
+        }
+        .bc-side .bc-st:hover { background: rgba(255,255,255,0.18); }
+        .bc-side .bc-st-state { color: rgba(255,255,255,0.75); font-size: 0.75em; }
+        .bc-side .bc-st.cur-L { background: #1F6FB5; box-shadow: inset 0.3em 0 0 #7CC4FF; }
+        .bc-side .bc-st.cur-R { background: #C4540F; box-shadow: inset 0.3em 0 0 #FFC08A; }
+        .bc-side .bc-sc { font-size: 0.95em; min-width: 1.4em; padding: 0 0.35em; }
+        .bc-side .bc-st.played .bc-st-name::before { color: #7CFFB2; }
+
+        /* ── Tirage au sort ── */
+        .bc-draw {
+            background:
+                radial-gradient(circle, rgba(255,255,255,0.06) calc(1.5px * var(--bc-s)), transparent calc(2px * var(--bc-s))) 0 0 / calc(24px * var(--bc-s)) calc(24px * var(--bc-s)),
+                linear-gradient(160deg, #3D2C8D 0%, #5B3FB0 60%, #7A55C9 100%);
+            min-height: calc(390px * var(--bc-s)); box-sizing: border-box;
+            padding: calc(16px * var(--bc-s));
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: calc(16px * var(--bc-s)); color: #fff;
+        }
+        .bc-draw-title {
+            font-family: 'Lilita One', sans-serif; font-size: calc(30px * var(--bc-s)); color: var(--or);
+            text-shadow: 0 calc(3px * var(--bc-s)) 0 #B3470F;
+        }
+        .bc-draw-row { display: flex; align-items: center; gap: calc(14px * var(--bc-s)); width: 100%; justify-content: center; }
+        .bc-draw-card {
+            flex: 1; max-width: calc(290px * var(--bc-s));
+            border-radius: calc(20px * var(--bc-s));
+            padding: calc(14px * var(--bc-s)) calc(10px * var(--bc-s));
+            text-align: center; box-shadow: 0 calc(6px * var(--bc-s)) 0 rgba(0,0,0,0.3);
+        }
+        .bc-draw-card.L { background: linear-gradient(160deg, #1F6FB5, #3BA7FF); }
+        .bc-draw-card.R { background: linear-gradient(200deg, #B3470F, #FF7A1A); }
+        .bc-draw-card small { display: block; font-weight: 900; font-size: calc(12px * var(--bc-s)); opacity: 0.85; text-transform: uppercase; letter-spacing: 1px; }
+        .bc-draw-card b {
+            display: block; font-family: 'Lilita One', sans-serif; font-weight: 400;
+            font-size: calc(34px * var(--bc-s)); line-height: 1.1; margin-top: calc(4px * var(--bc-s));
+            min-height: 1.1em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            text-shadow: 0 calc(3px * var(--bc-s)) 0 rgba(0,0,0,0.25);
+        }
+        .bc-draw-card b.rolling { opacity: 0.75; }
+        .bc-draw-card b.done { animation: bc-pop .35s ease-out; }
+        .bc-draw-vs { font-family: 'Lilita One', sans-serif; font-size: calc(36px * var(--bc-s)); color: var(--or); text-shadow: 0 calc(3px * var(--bc-s)) 0 #B3470F; }
+        .bc-draw-info { font-weight: 800; font-size: calc(13px * var(--bc-s)); color: rgba(255,255,255,0.85); text-align: center; min-height: 1.3em; }
+        .bc-card .bc-rec { font-size: calc(12px * var(--bc-s)); color: #1C8A4F; font-weight: 900; margin: 0 0 calc(6px * var(--bc-s)); }
+        .bc-card .bc-final span { display: inline-block; vertical-align: top; }
+        .bc-final small { display: block; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: calc(12px * var(--bc-s)); }
+
         /* ── Fin de partie ── */
         .bc-overlay {
             position: absolute; inset: 0; z-index: 10;
@@ -501,7 +641,7 @@
     // RÉGLAGES MÉMORISÉS (même logique que le Calcul flash)
     // =========================================================================
     var ALL_TABLES = [2, 3, 4, 5, 6, 7, 8, 9, 10];
-    var DEFAULTS = { addMin: 1, addMax: 20, types: ['tables'], tables: ALL_TABLES.slice(), limit: 20, speed: 10, count: 10, voice: false };
+    var DEFAULTS = { addMin: 1, addMax: 20, types: ['tables'], tables: ALL_TABLES.slice(), limit: 20, speed: 10, count: 10, mode: 'count', goal: 5, voice: false };
     function loadSettings() {
         try {
             var s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
@@ -515,6 +655,39 @@
         return JSON.parse(JSON.stringify(DEFAULTS));
     }
     function saveSettings(s) { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch (e) {} }
+
+    // =========================================================================
+    // LISTE D'ÉLÈVES (fichier .txt « prénom;nom »)
+    // Classe : { students: [{ id, prenom, nom, absent, scores: [{ pts, opp, adv }] }],
+    //            played: [id…] (élèves déjà tirés dans le tour en cours) }
+    // =========================================================================
+    function loadClass() {
+        try {
+            var c = JSON.parse(localStorage.getItem(CLASS_KEY) || 'null');
+            if (c && Array.isArray(c.students)) {
+                c.played = Array.isArray(c.played) ? c.played : [];
+                c.students.forEach(function (st) { if (!Array.isArray(st.scores)) st.scores = []; });
+                return c;
+            }
+        } catch (e) {}
+        return { students: [], played: [] };
+    }
+    function saveClass(c) { try { localStorage.setItem(CLASS_KEY, JSON.stringify(c)); } catch (e) {} }
+    function parseClassList(text) {
+        var out = [];
+        text.replace(/^\uFEFF/, '').split(/\r\n|\r|\n/).forEach(function (line, i) {
+            line = line.trim();
+            if (!line) return;
+            var parts = line.split(/[;\t,]/).map(function (x) { return x.trim().replace(/^"|"$/g, ''); });
+            var prenom = parts[0] || '', nom = parts.slice(1).join(' ').trim();
+            if (!prenom && !nom) return;
+            // Ligne d'en-tête éventuelle (« prénom;nom »)
+            if (i === 0 && /^pr[ée]nom$/i.test(prenom) && (!nom || /^nom$/i.test(nom))) return;
+            out.push({ id: 'e' + Date.now().toString(36) + '_' + out.length, prenom: prenom, nom: nom, absent: false, scores: [] });
+        });
+        return out;
+    }
+    function fullName(st) { return (st.prenom + ' ' + st.nom).trim(); }
 
     // =========================================================================
     // GÉNÉRATEURS DE CALCULS (repris du Calcul flash)
@@ -735,6 +908,7 @@
                 <span class="bc-title">⚔️ Battle de calculs</span>
                 <div class="wf-btns">
                     <button class="bc-icon-btn" data-role="sound" title="Couper le son">🔊</button>
+                    <button class="bc-icon-btn" data-role="class" title="Élèves : charger une liste .txt et tirer au sort">📂</button>
                     <button class="bc-icon-btn" data-role="help" title="Comment jouer ?">?</button>
                     <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
                     <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
@@ -752,6 +926,7 @@
             <div class="bc-actions">
                 <button class="bc-btn bc-btn-go" data-act="start">▶ Lancer le duel</button>
                 <button class="bc-btn" data-act="setup">⚙️ Réglages</button>
+                <button class="bc-btn bc-btn-pause" data-act="pause" hidden>⏸ Pause</button>
                 <button class="bc-btn" data-act="stop">⏹ Arrêter</button>
             </div>
           </div>
@@ -761,8 +936,23 @@
                 <p>Deux élèves au tableau, <b>un de chaque côté</b>. Un calcul apparaît en grand au milieu.</p>
                 <p>Chaque joueur a <b>3 réponses possibles</b> de son côté (pas dans le même ordre que l'adversaire). Le premier qui touche la bonne réponse marque <b>1 point</b>.</p>
                 <p>Une erreur <b>bloque ton côté 🔒</b> pour ce calcul : inutile de cliquer au hasard ! Si personne ne trouve à temps, la réponse est montrée.</p>
-                <p>À la fin de la série, celui qui a le plus de points gagne.</p>
+                <p>Selon les réglages : celui qui a le plus de points à la fin de la série gagne, ou bien le <b>premier à atteindre</b> le nombre de points choisi.</p>
+                <p>📂 Chargez une liste d'élèves (.txt, une ligne <b>prénom;nom</b>) : deux élèves sont tirés au sort pour chaque duel et leurs scores s'affichent à côté de leur nom.</p>
                 <p style="margin:0">Clavier : joueur bleu <b>A</b> / <b>Z</b> / <b>E</b>, joueur orange <b>I</b> / <b>O</b> / <b>P</b>.</p>
+            </div>
+            <div class="bc-side bc-side-L"><div class="bc-side-title">📂 Élèves</div><div class="bc-side-list"></div></div>
+            <div class="bc-side bc-side-R"><div class="bc-side-title">📂 Élèves</div><div class="bc-side-list"></div></div>
+            <div class="bc-class">
+                <div class="bc-class-head"><h4>📂 Élèves</h4><span class="bc-class-count"></span></div>
+                <div class="bc-class-tools">
+                    <button data-cl="load" title="Fichier .txt : une ligne par élève, prénom;nom">📂 Charger une liste .txt</button>
+                    <button data-cl="draw" class="go">🎲 Tirer au sort</button>
+                    <button data-cl="reset" title="Effacer les scores et recommencer le tour">♻️ Scores à zéro</button>
+                    <button data-cl="clear" title="Retirer la liste d'élèves">🗑</button>
+                </div>
+                <div class="bc-class-list"></div>
+                <p class="bc-class-hint">Fichier .txt : une ligne par élève, <b>prénom;nom</b>. Touchez un élève pour le marquer absent / présent. ✔ = a déjà joué dans ce tour.</p>
+                <input type="file" class="bc-class-file" accept=".txt,.csv,text/plain" hidden>
             </div>
             <div class="bc-confetti"></div>
             <div class="bc-rh bc-rh-nw" data-dir="nw"></div>
@@ -786,24 +976,65 @@
         const helpBtn  = $('[data-role="help"]');
         const helpBox  = $('.bc-help');
         const confetti = $('.bc-confetti');
+        const classBtn   = $('[data-role="class"]');
+        const classBox   = $('.bc-class');
+        const classList  = $('.bc-class-list');
+        const classFile  = $('.bc-class-file');
+        const sideL = $('.bc-side-L'), sideR = $('.bc-side-R');
+        const clBtn = (a) => classBox.querySelector(`[data-cl="${a}"]`);
         const btn = (a) => container.querySelector(`[data-act="${a}"]`);
 
         // ── État ───────────────────────────────────────────────────────────
         let S = loadSettings();
-        let state = 'setup';         // setup | wait | go | result | over
+        let state = 'setup';         // setup | draw | wait | go | result | over
         let runId = 0;
         let series = [], idx = 0, t0 = 0;
         let pts = { L: 0, R: 0 }, locked = { L: false, R: false };
         let names = { L: 'Joueur bleu', R: 'Joueur orange' };
+        let CL = loadClass();
+        let pair = null;              // { L: id, R: id } : élèves tirés au sort
+        let rolling = false;          // animation de tirage en cours
         let soundOn = true;
+        // Pause : une horloge qui s'arrête quand le jeu est en pause
+        let paused = false, pauseStart = 0, pausedTotal = 0;
+        const clock = () => performance.now() - pausedTotal - (paused ? performance.now() - pauseStart : 0);
+        // Attente qui ne s'écoule pas pendant la pause
+        const pwait = (ms) => new Promise(res => {
+            const end = clock() + ms;
+            const tick = () => {
+                const left = end - clock();
+                if (left <= 0) res();
+                else setTimeout(tick, paused ? 100 : Math.min(left, 100));
+            };
+            tick();
+        });
         const sfx = (name) => { if (soundOn && SFX[name]) SFX[name](); };
 
         // ── Échelle proportionnelle ────────────────────────────────────────
         const BASE_W = 760;
         function applyScale() {
-            const w = container.clientWidth || BASE_W;
+            const full = container.classList.contains('wf-fullboard');
+            // Plein écran + liste chargée : la liste des élèves s'affiche à gauche et à droite
+            const sides = full && CL.students.length > 0;
+            container.classList.toggle('bc-has-sides', sides);
+            let reserve = 0;
+            if (sides) {
+                const cw = container.clientWidth;
+                const sideW = Math.round(Math.max(150, Math.min(280, cw * 0.17)));
+                const gap = 14;
+                sideL.style.left = (40 + gap) + 'px'; sideL.style.width = sideW + 'px';
+                sideR.style.right = gap + 'px';      sideR.style.width = sideW + 'px';
+                container.style.setProperty('padding-left', (40 + sideW + 2 * gap) + 'px', 'important');
+                container.style.setProperty('padding-right', (sideW + 2 * gap) + 'px', 'important');
+                reserve = 2 * sideW + 3 * gap + 26;
+                renderSides();
+            } else {
+                container.style.removeProperty('padding-left');
+                container.style.removeProperty('padding-right');
+            }
+            const w = (container.clientWidth - reserve) || BASE_W;
             let sc = w / BASE_W;
-            if (container.classList.contains('wf-fullboard')) {
+            if (full) {
                 container.style.setProperty('--bc-s', '1');
                 const natH = inner.offsetHeight + 26;
                 const availH = container.clientHeight;
@@ -870,9 +1101,15 @@
                     </div>
                 </div>
 
+                <div class="bc-label">Qui gagne le duel ?</div>
+                <div class="bc-chips">
+                    <button class="bc-small bc-mode" data-mode="count" title="Le duel s'arrête après un nombre fixe de calculs">🔢 Le plus de points en N calculs</button>
+                    <button class="bc-small bc-mode" data-mode="goal" title="Le duel s'arrête dès qu'un joueur atteint le nombre de points">🏁 Le premier à N points</button>
+                </div>
                 <div class="bc-params" style="margin-top:calc(6px * var(--bc-s))">
                     ${spinner('Secondes<br>par calcul', 'speed', 3, 60)}
-                    ${spinner('Nombre<br>de calculs', 'count', 3, 40)}
+                    <div data-modebox="count">${spinner('Nombre<br>de calculs', 'count', 3, 40)}</div>
+                    <div data-modebox="goal">${spinner('Points pour<br>gagner', 'goal', 1, 30)}</div>
                 </div>
                 <div class="bc-chips" style="margin-top:calc(4px * var(--bc-s))">
                     <button class="bc-toggle" data-opt="voice"><span class="bc-dot"></span>🔊 Lire les calculs à voix haute</button>
@@ -893,6 +1130,8 @@
                 setupEl.querySelector('[data-sub="tables"]').classList.toggle('visible', S.types.indexOf('tables') >= 0);
                 setupEl.querySelector('[data-sub="limit"]').classList.toggle('visible', S.types.indexOf('doubles') >= 0 || S.types.indexOf('moities') >= 0);
                 setupEl.querySelectorAll('[data-key]').forEach(inp => { inp.value = S[inp.dataset.key]; });
+                setupEl.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === S.mode));
+                setupEl.querySelectorAll('[data-modebox]').forEach(el => el.classList.toggle('bc-hide', el.dataset.modebox !== S.mode));
                 setupEl.querySelector('.bc-warn').textContent = '';
             };
 
@@ -909,6 +1148,9 @@
                     S.tables.sort((x, y) => x - y);
                 }
                 sync(); saveSettings(S);
+            }));
+            setupEl.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
+                S.mode = b.dataset.mode; sync(); saveSettings(S);
             }));
             setupEl.querySelectorAll('[data-limit]').forEach(b => b.addEventListener('click', () => {
                 S.limit = +b.dataset.limit; sync(); saveSettings(S);
@@ -958,7 +1200,242 @@
             if ((S.types.indexOf('add') >= 0 || S.types.indexOf('sub') >= 0) && S.addMin === 0 && S.addMax === 0) {
                 warn('Indiquez un nombre maximum pour les additions et soustractions.'); return false;
             }
+            if (S.mode !== 'goal') S.mode = 'count';
             saveSettings(S);
+            return true;
+        }
+
+        // =====================================================================
+        // ÉLÈVES : liste, tirage au sort, scores
+        // =====================================================================
+        const hasClass = () => CL.students.filter(st => !st.absent).length >= 2;
+        const stById = (id) => CL.students.find(st => st.id === id);
+        // Nom court pour le duel : « Prénom N. » (ou prénom seul)
+        function shortName(st) {
+            if (!st) return '';
+            const n = st.nom ? ' ' + st.nom.charAt(0).toUpperCase() + '.' : '';
+            return (st.prenom || st.nom) + n;
+        }
+        function renderClass() {
+            const present = CL.students.filter(st => !st.absent);
+            const played = present.filter(st => CL.played.indexOf(st.id) >= 0).length;
+            $('.bc-class-count').textContent = CL.students.length
+                ? `${present.length} présent${present.length > 1 ? 's' : ''} · ${played} ont joué`
+                : '';
+            classBtn.classList.toggle('on', CL.students.length > 0);
+            const playing = state === 'wait' || state === 'go' || state === 'result';
+            clBtn('draw').disabled = !hasClass() || playing || rolling;
+            clBtn('reset').disabled = !CL.students.length;
+            clBtn('clear').disabled = !CL.students.length;
+            const wantSides = container.classList.contains('wf-fullboard') && CL.students.length > 0;
+            if (wantSides !== container.classList.contains('bc-has-sides')) requestAnimationFrame(applyScale);
+            if (!CL.students.length) {
+                classList.innerHTML = '<div class="bc-class-empty">Aucune liste chargée.<br>Cliquez sur <b>📂 Charger une liste .txt</b>.</div>';
+                return;
+            }
+            classList.innerHTML = CL.students.map(st => {
+                const cls = ['bc-st'];
+                if (CL.played.indexOf(st.id) >= 0) cls.push('played');
+                if (st.absent) cls.push('absent');
+                if (pair && pair.L === st.id) cls.push('cur-L');
+                if (pair && pair.R === st.id) cls.push('cur-R');
+                const sc = st.scores.map(r => {
+                    const k = r.pts > r.opp ? 'win' : r.pts < r.opp ? 'lose' : 'tie';
+                    return `<span class="bc-sc ${k}" title="${esc(r.pts + ' – ' + r.opp + ' contre ' + r.adv)}">${r.pts}</span>`;
+                }).join('');
+                const stateTxt = st.absent ? 'absent' : (pair && (pair.L === st.id || pair.R === st.id)) ? 'au tableau' : '';
+                return `<div class="${cls.join(' ')}" data-id="${st.id}">
+                    <span class="bc-st-name">${esc(fullName(st))}</span>
+                    ${stateTxt ? `<span class="bc-st-state">${stateTxt}</span>` : ''}
+                    <span class="bc-st-scores">${sc}</span>
+                </div>`;
+            }).join('');
+            renderSides();
+        }
+        // Colonnes latérales (plein écran) : 1re moitié à gauche, 2e moitié à droite
+        function renderSides() {
+            if (!container.classList.contains('bc-has-sides')) return;
+            const rows = classList.querySelectorAll('.bc-st');
+            const half = Math.ceil(rows.length / 2);
+            const lists = [sideL.querySelector('.bc-side-list'), sideR.querySelector('.bc-side-list')];
+            lists.forEach(l => { l.innerHTML = ''; });
+            rows.forEach((r, i) => lists[i < half ? 0 : 1].appendChild(r.cloneNode(true)));
+            layoutSides();
+        }
+        // Taille du texte adaptée au nombre d'élèves et à la hauteur disponible
+        function layoutSides() {
+            const n = Math.ceil(CL.students.length / 2) || 1;
+            const h = sideL.clientHeight || (container.clientHeight - 28);
+            const rowH = (h - 20 - 30) / n - 3;
+            const fs = Math.max(10, Math.min(20, rowH * 0.52));
+            [sideL, sideR].forEach(sd => {
+                sd.querySelector('.bc-side-list').style.fontSize = fs + 'px';
+                sd.querySelector('.bc-side-title').style.fontSize = Math.max(14, Math.min(22, fs * 1.15)) + 'px';
+            });
+        }
+        [sideL, sideR].forEach(sd => {
+            sd.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const row = e.target.closest('.bc-st');
+                if (row) toggleAbsent(row.dataset.id);
+            });
+        });
+        classList.addEventListener('click', (e) => {
+            const row = e.target.closest('.bc-st');
+            if (row) toggleAbsent(row.dataset.id);
+        });
+        function toggleAbsent(id) {
+            const st = stById(id);
+            if (!st) return;
+            const playing = state === 'wait' || state === 'go' || state === 'result';
+            if (pair && (pair.L === st.id || pair.R === st.id) && (playing || rolling)) return;
+            st.absent = !st.absent;
+            if (st.absent && pair && (pair.L === st.id || pair.R === st.id)) {
+                pair = null;
+                if (state === 'draw') showDraw(true);
+            }
+            saveClass(CL); renderClass();
+        }
+
+        // Lecture du fichier (UTF-8, ou Windows-1252 pour les exports Excel)
+        function readText(file, enc) {
+            return new Promise((res, rej) => {
+                const r = new FileReader();
+                r.onload = () => res(r.result);
+                r.onerror = () => rej(r.error);
+                r.readAsText(file, enc);
+            });
+        }
+        classFile.addEventListener('change', async () => {
+            const f = classFile.files && classFile.files[0];
+            classFile.value = '';
+            if (!f) return;
+            let txt = '';
+            try {
+                txt = await readText(f, 'utf-8');
+                if (txt.indexOf('\uFFFD') >= 0) txt = await readText(f, 'windows-1252');
+            } catch (e) { say('⚠️ Impossible de lire ce fichier.', 'bad'); return; }
+            const list = parseClassList(txt);
+            if (list.length < 2) { say('⚠️ Il faut au moins 2 élèves dans le fichier (une ligne par élève : <b>prénom;nom</b>).', 'bad'); return; }
+            const hasScores = CL.students.some(st => st.scores.length);
+            if (hasScores && !confirm('Remplacer la liste actuelle ? Les scores enregistrés seront effacés.')) return;
+            CL = { students: list, played: [] };
+            pair = null;
+            saveClass(CL);
+            renderClass();
+            classBox.classList.add('show');
+            say(`✅ <b>${list.length} élèves</b> chargés ! Cliquez sur <b>🎲 Tirer au sort</b> ou <b>▶ Lancer le duel</b>.`, 'good');
+            if (state === 'draw') showDraw(true);
+        });
+
+        // Choix de 2 élèves : d'abord ceux qui n'ont pas encore joué dans le tour
+        function pickPair() {
+            const present = CL.students.filter(st => !st.absent);
+            let notice = '';
+            let pool = present.filter(st => CL.played.indexOf(st.id) < 0);
+            if (pool.length === 0) {
+                CL.played = [];
+                pool = present.slice();
+                notice = '🔁 Tout le monde a joué : nouveau tour !';
+            }
+            shuffle(pool);
+            let a = pool[0], b = pool[1];
+            if (!b) {
+                // Un seul élève n'a pas encore joué : son adversaire est repêché parmi les autres
+                const others = shuffle(present.filter(st => st.id !== a.id));
+                b = others[0];
+                notice = `Dernier élève du tour : <b>${esc(shortName(b))}</b> est repêché pour l'affronter.`;
+            }
+            if (Math.random() < 0.5) { const t = a; a = b; b = t; }
+            return { pair: { L: a.id, R: b.id }, notice };
+        }
+        function applyPairNames() {
+            if (!pair) return;
+            names.L = shortName(stById(pair.L)) || 'Joueur bleu';
+            names.R = shortName(stById(pair.R)) || 'Joueur orange';
+        }
+
+        // Écran de tirage au sort
+        function showDraw(roll) {
+            if (!hasClass()) { showSetup(); return; }
+            runId++;
+            stopSpeech();
+            resetPause();
+            state = 'draw';
+            arena.innerHTML = `
+              <div class="bc-draw">
+                <div class="bc-draw-title">🎲 Tirage au sort</div>
+                <div class="bc-draw-row">
+                    <div class="bc-draw-card L"><small>Joueur bleu</small><b data-side="L">?</b></div>
+                    <div class="bc-draw-vs">VS</div>
+                    <div class="bc-draw-card R"><small>Joueur orange</small><b data-side="R">?</b></div>
+                </div>
+                <div class="bc-draw-info"></div>
+                <div class="bc-actions">
+                    <button class="bc-btn" data-dr="again">🎲 Nouveau tirage</button>
+                </div>
+              </div>`;
+            arena.querySelector('[data-dr="again"]').addEventListener('click', () => { if (!rolling) { pair = null; showDraw(true); } });
+            updateButtons();
+            requestAnimationFrame(applyScale);
+            if (roll || !pair || !stById(pair.L) || !stById(pair.R)) rollDraw();
+            else finishDraw('');
+        }
+        function rollDraw() {
+            const id = runId;
+            const res = pickPair();
+            const present = CL.students.filter(st => !st.absent);
+            const elL = arena.querySelector('.bc-draw-card b[data-side="L"]');
+            const elR = arena.querySelector('.bc-draw-card b[data-side="R"]');
+            rolling = true;
+            pair = null;
+            updateButtons(); renderClass();
+            say('🎲 Tirage au sort en cours…');
+            let n = 0;
+            const total = 14;
+            const step = () => {
+                if (id !== runId) return;
+                if (n < total) {
+                    [elL, elR].forEach(el => { el.classList.add('rolling'); el.textContent = shortName(pick(present)); });
+                    if (n % 2 === 0) sfx('tick');
+                    n++;
+                    setTimeout(step, 50 + n * n);   // ralentit progressivement
+                    return;
+                }
+                pair = res.pair;
+                rolling = false;
+                finishDraw(res.notice);
+            };
+            step();
+        }
+        function finishDraw(notice) {
+            applyPairNames();
+            const stL = stById(pair.L), stR = stById(pair.R);
+            arena.querySelectorAll('.bc-draw-card b').forEach(el => {
+                el.classList.remove('rolling', 'done'); void el.offsetWidth; el.classList.add('done');
+                el.textContent = el.dataset.side === 'L' ? shortName(stL) : shortName(stR);
+                el.title = fullName(el.dataset.side === 'L' ? stL : stR);
+            });
+            const present = CL.students.filter(st => !st.absent);
+            const played = present.filter(st => CL.played.indexOf(st.id) >= 0).length;
+            const info = arena.querySelector('.bc-draw-info');
+            if (info) info.innerHTML = (notice ? notice + '<br>' : '') + `Déjà passés dans ce tour : ${played} / ${present.length}`;
+            sfx('pointL');
+            if (S.voice) speak(`${stL.prenom} contre ${stR.prenom}`);
+            say(`🎲 <b>${esc(fullName(stL))}</b> 🔵 contre 🟠 <b>${esc(fullName(stR))}</b> ! Venez au tableau, puis <b>▶ Lancer le duel</b>.`, 'good');
+            updateButtons(); renderClass();
+        }
+        // Enregistre le résultat du duel pour les deux élèves tirés au sort
+        function recordDuel() {
+            if (!pair) return false;
+            const stL = stById(pair.L), stR = stById(pair.R);
+            if (!stL || !stR) { pair = null; return false; }
+            stL.scores.push({ pts: pts.L, opp: pts.R, adv: fullName(stR) });
+            stR.scores.push({ pts: pts.R, opp: pts.L, adv: fullName(stL) });
+            [stL.id, stR.id].forEach(id => { if (CL.played.indexOf(id) < 0) CL.played.push(id); });
+            pair = null;
+            saveClass(CL);
+            renderClass();
             return true;
         }
 
@@ -987,17 +1464,22 @@
                 </div>
                 <div class="bc-field">
                     ${half('L')}
-                    <div class="bc-mid"><small>Calcul</small><b data-role="round">0<small>/ ${series.length}</small></b><small>Duel</small></div>
+                    <div class="bc-mid"><small>Calcul</small><b data-role="round">${roundLabel(0)}</b><small>Duel</small></div>
                     ${half('R')}
                 </div>
               </div>
               <div class="bc-ready"></div>
+              <div class="bc-pause"><div class="bc-pause-card">⏸<br>Pause<small>Touchez ici ou sur ▶ Reprendre pour continuer</small></div></div>
               <div class="bc-overlay"><div class="bc-card"></div></div>`;
 
             arena.querySelectorAll('.bc-pname').forEach(inp => {
                 const side = inp.closest('.bc-half').dataset.side;
                 inp.addEventListener('input', () => { names[side] = inp.value.trim() || (side === 'L' ? 'Joueur bleu' : 'Joueur orange'); });
                 ['pointerdown', 'mousedown', 'keydown'].forEach(ev => inp.addEventListener(ev, (e) => e.stopPropagation()));
+            });
+            arena.querySelector('.bc-pause').addEventListener('pointerdown', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                if (paused) togglePause();
             });
             // pointerdown : réactif et compatible multi-touch au TBI
             arena.querySelectorAll('.bc-choice').forEach(b => {
@@ -1052,9 +1534,9 @@
             c.className = 'bc-calc wait'; c.textContent = '?'; c.style.fontSize = '';
             const tb = arena.querySelector('.bc-timebar');
             tb.classList.remove('low'); tb.firstElementChild.style.width = '100%';
-            arena.querySelector('[data-role="round"]').innerHTML = `${idx + 1}<small>/ ${series.length}</small>`;
+            arena.querySelector('[data-role="round"]').innerHTML = roundLabel(idx + 1);
             // Petite attente aléatoire : impossible d'anticiper
-            await wait(600 + Math.random() * 700);
+            await pwait(600 + Math.random() * 700);
             if (id !== runId) return;
             c.className = 'bc-calc appear';
             c.innerHTML = calcHTML(it, false);
@@ -1071,7 +1553,7 @@
             sfx('go');
             if (S.voice) speak(it.say);
             state = 'go';
-            t0 = performance.now();
+            t0 = clock();
             runTimer(id);
         }
         function runTimer(id) {
@@ -1079,7 +1561,7 @@
             const tb = arena.querySelector('.bc-timebar');
             const step = () => {
                 if (id !== runId || state !== 'go' || !widget.isConnected) return;
-                const k = Math.max(0, 1 - (performance.now() - t0) / limit);
+                const k = Math.max(0, 1 - (clock() - t0) / limit);
                 tb.firstElementChild.style.width = (k * 100) + '%';
                 tb.classList.toggle('low', k < 0.3);
                 if (k <= 0) { timeUp(id); return; }
@@ -1092,18 +1574,28 @@
             revealAnswer();
             sfx('miss');
             say(`⏱ Temps écoulé ! Personne ne marque. La réponse était <b>${fmtInt(series[idx].ans)}</b>.`);
-            await wait(1800);
+            await pwait(1800);
             if (id === runId) nextRound();
+        }
+        const goalMode = () => S.mode === 'goal';
+        function roundLabel(n) {
+            return goalMode() ? `${n}<small>1er à ${S.goal}</small>` : `${n}<small>/ ${series.length}</small>`;
         }
         function nextRound() {
             idx++;
+            if (goalMode()) {
+                // Série « sans fin » : on ajoute des calculs tant que personne n'a gagné
+                if (idx >= series.length) series = series.concat(generateSeries(Object.assign({}, S, { count: 10 })));
+                newRound();
+                return;
+            }
             if (idx >= series.length) duelEnd();
             else newRound();
         }
 
         // ── Réponses ───────────────────────────────────────────────────────
         async function answer(side, b) {
-            if (state !== 'go' || locked[side] || b.dataset.v === undefined) return;
+            if (paused || state !== 'go' || locked[side] || b.dataset.v === undefined) return;
             const id = runId;
             const it = series[idx];
             const other = side === 'L' ? 'R' : 'L';
@@ -1119,10 +1611,13 @@
                 sc.classList.remove('bump'); void sc.offsetWidth; sc.classList.add('bump');
                 revealAnswer();
                 sfx(side === 'L' ? 'pointL' : 'pointR');
-                const s = ((performance.now() - t0) / 1000).toFixed(1).replace('.', ',');
-                say(`${side === 'L' ? '🔵' : '🟠'} Point pour <b>${esc(names[side])}</b> en ${s} s ! ${calcHTML(it, true).replace(/<[^>]+>/g, '')}`, 'good');
-                await wait(1400);
-                if (id === runId) nextRound();
+                const s = ((clock() - t0) / 1000).toFixed(1).replace('.', ',');
+                const balle = goalMode() && pts[side] === S.goal - 1 ? ' ⚡ Balle de match !' : '';
+                say(`${side === 'L' ? '🔵' : '🟠'} Point pour <b>${esc(names[side])}</b> en ${s} s ! ${calcHTML(it, true).replace(/<[^>]+>/g, '')}${balle}`, 'good');
+                await pwait(1400);
+                if (id !== runId) return;
+                if (goalMode() && pts[side] >= S.goal) duelEnd();
+                else nextRound();
             } else {
                 locked[side] = true;
                 b.classList.add('ko');
@@ -1133,7 +1628,7 @@
                     state = 'result';
                     revealAnswer();
                     say(`😅 Les deux joueurs se sont trompés ! La réponse était <b>${fmtInt(it.ans)}</b>.`, 'bad');
-                    await wait(1900);
+                    await pwait(1900);
                     if (id === runId) nextRound();
                 }
             }
@@ -1141,34 +1636,40 @@
 
         // ── Fin de duel ────────────────────────────────────────────────────
         function duelEnd() {
+            resetPause();
             state = 'over';
             runId++;
             stopSpeech();
             const ov = overlay();
             const tie = pts.L === pts.R;
             const w = pts.L > pts.R ? 'L' : 'R';
-            const nb = series.length;
+            const nb = goalMode() ? idx + 1 : series.length;
+            const recorded = recordDuel();
+            const nextBtns = `
+                <div class="bc-actions">
+                    ${hasClass() ? '<button class="bc-btn bc-btn-go" data-act="next">🎲 Duel suivant</button>' : ''}
+                    <button class="bc-btn" data-act="tosetup">⚙️ Réglages</button>
+                </div>`;
+            const recTxt = recorded ? '<p class="bc-rec">✔ Scores ajoutés dans la liste 📂</p>' : '';
             ov.querySelector('.bc-card').innerHTML = tie ? `
                 <div class="bc-medal">🤝</div>
                 <h3>Égalité parfaite !</h3>
-                <div class="bc-final"><span class="L">${pts.L}</span> – <span class="R">${pts.R}</span></div>
+                <div class="bc-final"><span class="L">${pts.L}<small>${esc(names.L)}</small></span> – <span class="R">${pts.R}<small>${esc(names.R)}</small></span></div>
                 <p class="bc-sub">${esc(names.L)} et ${esc(names.R)} sont à égalité sur ${nb} calculs.</p>
-                <div class="bc-actions">
-                    <button class="bc-btn" data-act="tosetup">⚙️ Réglages</button>
-                </div>` : `
+                ${recTxt}${nextBtns}` : `
                 <div class="bc-medal">${w === 'L' ? '🔵' : '🟠'}🏆</div>
                 <h3>${esc(names[w])} gagne !</h3>
-                <div class="bc-final"><span class="L">${pts.L}</span> – <span class="R">${pts.R}</span></div>
+                <div class="bc-final"><span class="L">${pts.L}<small>${esc(names.L)}</small></span> – <span class="R">${pts.R}<small>${esc(names.R)}</small></span></div>
                 <p class="bc-sub">sur ${nb} calculs</p>
-                <div class="bc-actions">
-                    <button class="bc-btn" data-act="tosetup">⚙️ Réglages</button>
-                </div>`;
+                ${recTxt}${nextBtns}`;
             ov.classList.add('show');
             sfx('win'); party();
             say(tie
                 ? `🤝 Égalité ${pts.L} à ${pts.R} ! Bravo à tous les deux.`
                 : `🏆 Victoire de <b>${esc(names[w])}</b> ${pts.L} à ${pts.R} ! Bravo !`, 'good');
             ov.querySelector('[data-act="tosetup"]').addEventListener('click', (e) => { e.stopPropagation(); showSetup(); });
+            const nx = ov.querySelector('[data-act="next"]');
+            if (nx) nx.addEventListener('click', (e) => { e.stopPropagation(); showDraw(true); });
             updateButtons();
         }
         function party() {
@@ -1189,30 +1690,71 @@
             btn('start').textContent = playing ? '🔄 Recommencer' : '▶ Lancer le duel';
             btn('stop').disabled = !playing;
             btn('setup').disabled = state === 'setup';
+            // Pendant le duel : « Pause » à la place de « Réglages »
+            btn('setup').hidden = playing;
+            const pb = btn('pause');
+            pb.hidden = !playing;
+            pb.textContent = paused ? '▶ Reprendre' : '⏸ Pause';
+            pb.title = paused ? 'Reprendre le duel' : 'Mettre le duel en pause';
+            pb.classList.toggle('on', paused);
+            btn('start').disabled = rolling;
+            renderClass();
+        }
+        function resetPause() {
+            paused = false; pauseStart = 0; pausedTotal = 0;
+            rolling = false;
+            const p = arena.querySelector('.bc-pause');
+            if (p) p.classList.remove('show');
+        }
+        function togglePause() {
+            const playing = state === 'wait' || state === 'go' || state === 'result';
+            if (!playing) return;
+            const p = arena.querySelector('.bc-pause');
+            if (!paused) {
+                paused = true; pauseStart = performance.now();
+                stopSpeech();
+                if (p) p.classList.add('show');
+                say('⏸ Duel en pause. Cliquez sur <b>▶ Reprendre</b> pour continuer.');
+            } else {
+                pausedTotal += performance.now() - pauseStart;
+                paused = false;
+                if (p) p.classList.remove('show');
+                say(`▶ C'est reparti ! (${esc(names.L)} ${pts.L} – ${pts.R} ${esc(names.R)})`);
+                if (state === 'go' && S.voice && series[idx]) speak(series[idx].say);
+            }
+            updateButtons();
+            container.focus({ preventScroll: true });
         }
         async function start() {
+            if (rolling) return;
             if (state === 'setup' && !validateSettings()) return;
+            // Classe chargée : on passe d'abord par l'écran de tirage au sort
+            if (hasClass() && (state === 'setup' || state === 'over' || !pair)) {
+                if (state !== 'draw' || !pair) { showDraw(!pair); return; }
+            }
+            if (pair) applyPairNames();
             container.focus({ preventScroll: true });
             runId++;
             stopSpeech();
-            series = generateSeries(S);
+            series = generateSeries(goalMode() ? Object.assign({}, S, { count: Math.max(10, S.goal * 2) }) : S);
             idx = 0;
             pts = { L: 0, R: 0 };
+            paused = false; pauseStart = 0; pausedTotal = 0;
             buildDuel();
             applyScale();
             state = 'wait';
             updateButtons();
             const r = readyEl();
             const id = runId;
-            say(`⚡ ${series.length} calculs, ${S.speed} s chacun. Une erreur bloque ton côté : réfléchis avant de toucher !`);
+            say(`⚡ ${goalMode() ? `Le premier à ${S.goal} point${S.goal > 1 ? 's' : ''} gagne !` : `${series.length} calculs.`} ${S.speed} s par calcul. Une erreur bloque ton côté : réfléchis avant de toucher !`);
             for (const t of ['3', '2', '1']) {
                 r.textContent = t; r.classList.remove('show'); void r.offsetWidth; r.classList.add('show');
                 sfx('tick');
-                await wait(600);
+                await pwait(600);
                 if (id !== runId) return;
             }
             r.textContent = 'Battle !'; r.classList.remove('show'); void r.offsetWidth; r.classList.add('show');
-            await wait(500);
+            await pwait(500);
             if (id !== runId) return;
             r.classList.remove('show');
             newRound();
@@ -1220,14 +1762,18 @@
         function showSetup(message) {
             runId++;
             stopSpeech();
+            resetPause();
             state = 'setup';
             buildSetup();
             updateButtons();
             requestAnimationFrame(applyScale);
-            say(message || '⚔️ Choisissez les calculs, puis cliquez sur <b>▶ Lancer le duel</b>. Un élève de chaque côté du tableau !');
+            say(message || (hasClass()
+                ? `⚔️ Choisissez les calculs, puis cliquez sur <b>▶ Lancer le duel</b> : deux élèves de la liste 📂 seront tirés au sort.`
+                : '⚔️ Choisissez les calculs, puis cliquez sur <b>▶ Lancer le duel</b>. Un élève de chaque côté du tableau ! (📂 pour charger une liste d\'élèves)'));
         }
         btn('start').addEventListener('click', start);
         btn('setup').addEventListener('click', () => showSetup());
+        btn('pause').addEventListener('click', (e) => { e.stopPropagation(); togglePause(); });
         btn('stop').addEventListener('click', () => {
             if (state !== 'wait' && state !== 'go' && state !== 'result') return;
             showSetup(`⏹ Duel arrêté (${esc(names.L)} ${pts.L} – ${pts.R} ${esc(names.R)}).`);
@@ -1240,7 +1786,8 @@
             if (!ae || !widget.contains(ae) || ae.tagName === 'INPUT' || ae.tagName === 'SELECT') return;
             if (e.ctrlKey || e.metaKey || e.altKey) return;
             const k = e.key.toLowerCase();
-            if ((k === 'enter' || k === ' ') && state === 'setup') { e.preventDefault(); start(); return; }
+            if ((k === 'enter' || k === ' ') && (state === 'setup' || state === 'draw')) { e.preventDefault(); start(); return; }
+            if ((k === ' ' || k === 'escape') && (state === 'wait' || state === 'go' || state === 'result')) { e.preventDefault(); togglePause(); return; }
             ['L', 'R'].forEach(side => {
                 const i = KEYS[side].indexOf(k);
                 if (i >= 0) { const b = choiceBtns(side)[i]; if (b) { e.preventDefault(); answer(side, b); } }
@@ -1254,10 +1801,42 @@
             soundBtn.textContent = soundOn ? '🔊' : '🔇';
             soundBtn.title = soundOn ? 'Couper le son' : 'Activer le son';
         });
-        helpBtn.addEventListener('click', (e) => { e.stopPropagation(); helpBox.classList.toggle('show'); });
+        helpBtn.addEventListener('click', (e) => { e.stopPropagation(); helpBox.classList.toggle('show'); classBox.classList.remove('show'); });
+        classBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            helpBox.classList.remove('show');
+            if (!CL.students.length) { classFile.click(); return; }
+            renderClass();
+            classBox.classList.toggle('show');
+        });
+        classBox.addEventListener('click', (e) => e.stopPropagation());
+        clBtn('load').addEventListener('click', () => classFile.click());
+        clBtn('draw').addEventListener('click', () => {
+            if (state === 'setup' && !validateSettings()) return;
+            classBox.classList.remove('show');
+            pair = null;
+            showDraw(true);
+        });
+        clBtn('reset').addEventListener('click', () => {
+            if (!confirm('Effacer tous les scores et recommencer le tour de tirage ?')) return;
+            CL.students.forEach(st => { st.scores = []; });
+            CL.played = [];
+            saveClass(CL); renderClass();
+            say('♻️ Scores remis à zéro : tout le monde peut de nouveau être tiré au sort.');
+        });
+        clBtn('clear').addEventListener('click', () => {
+            if (!confirm('Retirer la liste d\'élèves et leurs scores ?')) return;
+            CL = { students: [], played: [] };
+            pair = null;
+            names = { L: 'Joueur bleu', R: 'Joueur orange' };
+            saveClass(CL); renderClass();
+            if (state === 'draw') showSetup();
+            say('🗑 Liste d\'élèves retirée.');
+        });
         const closeHelp = () => {
             if (!widget.isConnected) { document.removeEventListener('click', closeHelp); return; }
             helpBox.classList.remove('show');
+            classBox.classList.remove('show');
         };
         document.addEventListener('click', closeHelp);
 
@@ -1267,7 +1846,7 @@
         wfMin.addEventListener('click', (e) => {
             e.stopPropagation();
             if (_isMax) wfMax.click();
-            if (state === 'wait' || state === 'go' || state === 'result') showSetup('⏹ Duel arrêté.');
+            if (state === 'wait' || state === 'go' || state === 'result' || state === 'draw') showSetup('⏹ Duel arrêté.');
             window._wfMiniBarCollapse(widget, '⚔️ Battle de calculs', { onExpand: applyScale });
         });
         wfMax.addEventListener('click', (e) => {
@@ -1338,7 +1917,7 @@
 
         // ── Init ───────────────────────────────────────────────────────────
         function _onWidgetDown(e) {
-            if (e.target.closest && e.target.closest('button, select, input, .bc-arena, .bc-rh, .bc-help')) {
+            if (e.target.closest && e.target.closest('button, select, input, .bc-arena, .bc-rh, .bc-help, .bc-class, .bc-side')) {
                 e.stopPropagation();
                 if (!e.target.closest('select, input')) container.focus({ preventScroll: true });
                 return;

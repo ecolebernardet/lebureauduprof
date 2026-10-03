@@ -1,6 +1,6 @@
 // =========================================================================
 // WIDGET DÉFI CALME — Le Bureau du Prof
-// Révèle une image au silence (micro) — 6 modes : pixels, flou, zoom, mosaïque, spirale, pinceau
+// Révèle une image au silence (micro) — 7 modes : pixels, flou, zoom, mosaïque, spirale, pinceau, peinture
 //
 // Dépendances : board, findFreePosition(), makeDraggable(),
 //   makeDraggableRotate(), bringToFront(), snapshotNow(), saveBoard()
@@ -224,6 +224,11 @@ if (!document.getElementById('wf-btns-style')) {
             height: calc(100% + 16px);
             filter: blur(3px);
             image-rendering: auto;
+        }
+        /* Peinture : esquisse au crayon puis couleur, rendu lissé */
+        .dc-mosaic-canvas.dc-paint-canvas {
+            image-rendering: auto;
+            z-index: 4;
         }
 
 
@@ -698,6 +703,10 @@ function createDeficalmeWidget() {
     const brushCanvas = document.createElement('canvas');
     brushCanvas.className = 'dc-brush-canvas';
     imageZone.appendChild(brushCanvas);
+
+    const paintCanvas = document.createElement('canvas');
+    paintCanvas.className = 'dc-mosaic-canvas dc-paint-canvas';
+    imageZone.appendChild(paintCanvas);
     imageZone.appendChild(msgStart);
     imageZone.appendChild(micBarWrap);
     imageZone.appendChild(progBarWrap);
@@ -736,7 +745,8 @@ function createDeficalmeWidget() {
         { key: 'zoom',   label: 'Zoom'   },
         { key: 'mosaique', label: 'Mosaïque' },
         { key: 'spirale', label: 'Spirale' },
-        { key: 'pinceau', label: 'Pinceau' }
+        { key: 'pinceau', label: 'Pinceau' },
+        { key: 'peinture', label: 'Peinture' }
     ];
     const modeBtns = {};
     modes.forEach(m => {
@@ -1170,6 +1180,542 @@ function createDeficalmeWidget() {
         brushDrawnIdx = idx;
     }
 
+    // ── Peinture : esquisse au crayon, puis couleur ───────────────────────
+    // 0 → 80 % du temps : un crayon dessine les traits de la photo un par un,
+    //   comme un dessinateur : d'abord les grands contours (en passant d'un
+    //   élément à son voisin), puis les traits plus fins (tracés plus vite),
+    //   puis quelques hachures dans les ombres.
+    // 80 → 100 % : la couleur est posée couleur par couleur (bleus, violets,
+    //   rouges, orangés, jaunes, verts, puis les tons neutres). Chaque zone est
+    //   remplie au pinceau à partir d'un point, jusqu'aux bords qui la limitent.
+    const PAINT_SKETCH_END = 80;          // % du temps où finit l'esquisse
+    const PAINT_PAPER = [244, 239, 228];  // couleur du papier
+    const PAINT_GRAPHITE = [48, 48, 58];  // couleur du crayon
+    const PAINT_COLOR_END = 0.94;         // part de la phase couleur pour tout peindre (le reste : les traits s'effacent)
+    const PAINT_FILL_FADE = 0.012;        // adoucit le bord de la peinture qui avance
+    let paint = null;                     // données précalculées pour l'image courante
+    let paintKey = '';
+    let paintLastStep = -1;
+
+    function paintClamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+    function paintSmooth(a, b, v) { const t = paintClamp((v - a) / (b - a)); return t * t * (3 - 2 * t); }
+
+    // Bruit doux (grille aléatoire interpolée)
+    function paintLowNoise(W, H, gx, gy) {
+        const grid = new Float32Array((gx + 1) * (gy + 1));
+        for (let i = 0; i < grid.length; i++) grid[i] = Math.random();
+        const out = new Float32Array(W * H);
+        for (let y = 0; y < H; y++) {
+            const fy = y / H * gy, iy = Math.floor(fy), ty = fy - iy;
+            for (let x = 0; x < W; x++) {
+                const fx = x / W * gx, ix = Math.floor(fx), tx = fx - ix;
+                const a = grid[iy * (gx + 1) + ix], b = grid[iy * (gx + 1) + ix + 1];
+                const c = grid[(iy + 1) * (gx + 1) + ix], d = grid[(iy + 1) * (gx + 1) + ix + 1];
+                const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+                out[y * W + x] = (a + (b - a) * sx) * (1 - sy) + (c + (d - c) * sx) * sy;
+            }
+        }
+        return out;
+    }
+
+    // Flou boîte séparable (atténue le bruit avant l'analyse)
+    function paintBlur(src, W, H, r) {
+        const tmp = new Float32Array(W * H), out = new Float32Array(W * H);
+        const n = 2 * r + 1;
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+                let sum = 0;
+                for (let k = -r; k <= r; k++) sum += src[y * W + Math.min(W - 1, Math.max(0, x + k))];
+                tmp[y * W + x] = sum / n;
+            }
+        }
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+                let sum = 0;
+                for (let k = -r; k <= r; k++) sum += tmp[Math.min(H - 1, Math.max(0, y + k)) * W + x];
+                out[y * W + x] = sum / n;
+            }
+        }
+        return out;
+    }
+
+    function paintMix(a) {
+        const c = PAINT_PAPER.map((p, k) => Math.round(p * (1 - a) + PAINT_GRAPHITE[k] * a));
+        return `rgb(${c[0]},${c[1]},${c[2]})`;
+    }
+
+    // Ordre de passage des couleurs : bleus, violets, rouges, orangés, jaunes,
+    // verts, cyans, puis les tons neutres (des plus clairs aux plus foncés)
+    function paintHueKey(r, g, b) {
+        const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, dl = mx - mn;
+        const sat = dl === 0 ? 0 : dl / (1 - Math.abs(2 * l - 1));
+        if (sat < 0.2 || dl < 0.08 || l < 0.12 || l > 0.92) return 1000 + (1 - l);
+        let hue;
+        if (mx === r) hue = ((g - b) / dl) % 6; else if (mx === g) hue = (b - r) / dl + 2; else hue = (r - g) / dl + 4;
+        hue *= 60; if (hue < 0) hue += 360;
+        return (hue - 200 + 360) % 360;
+    }
+
+    function buildPaintData(w, h) {
+        const W = Math.max(2, Math.min(800, Math.round(w)));
+        const H = Math.max(2, Math.round(W * h / w));
+        // Recadrage "cover" identique à l'image affichée
+        const iw = imgEl.naturalWidth, ih = imgEl.naturalHeight;
+        const scale = Math.max(W / iw, H / ih);
+        const sw = W / scale, sh = H / scale;
+        const sx = (iw - sw) / 2, sy = (ih - sh) / 2;
+        const color = document.createElement('canvas');
+        color.width = W; color.height = H;
+        const cctx = color.getContext('2d', { willReadFrequently: true });
+        cctx.drawImage(imgEl, sx, sy, sw, sh, 0, 0, W, H);
+        let px;
+        try { px = cctx.getImageData(0, 0, W, H).data; }
+        catch (e) { return { W, H, tainted: true }; } // image protégée (CORS) : rendu de secours
+
+        const N = W * H;
+        const br = Math.max(1, Math.round(W / 400));
+        const ch = [0, 1, 2].map(c => {
+            const a = new Float32Array(N);
+            for (let i = 0; i < N; i++) a[i] = px[i * 4 + c] / 255;
+            return paintBlur(a, W, H, br);
+        });
+        const lum = new Float32Array(N);
+        for (let i = 0; i < N; i++) lum[i] = 0.299 * ch[0][i] + 0.587 * ch[1][i] + 0.114 * ch[2][i];
+
+        // ── 1. Contours fins : gradient de couleur + amincissement ─────────
+        const mag = new Float32Array(N), dirA = new Uint8Array(N);
+        for (let y = 1; y < H - 1; y++) {
+            for (let x = 1; x < W - 1; x++) {
+                const i = y * W + x;
+                let best = 0, bgx = 0, bgy = 0;
+                for (let c = 0; c < 3; c++) {
+                    const a = ch[c];
+                    const gx = -a[i - W - 1] - 2 * a[i - 1] - a[i + W - 1] + a[i - W + 1] + 2 * a[i + 1] + a[i + W + 1];
+                    const gy = -a[i - W - 1] - 2 * a[i - W] - a[i - W + 1] + a[i + W - 1] + 2 * a[i + W] + a[i + W + 1];
+                    const m = gx * gx + gy * gy;
+                    if (m > best) { best = m; bgx = gx; bgy = gy; }
+                }
+                mag[i] = Math.sqrt(best);
+                let ang = Math.atan2(bgy, bgx) * 180 / Math.PI; if (ang < 0) ang += 180;
+                dirA[i] = ang < 22.5 || ang >= 157.5 ? 0 : ang < 67.5 ? 1 : ang < 112.5 ? 2 : 3;
+            }
+        }
+        const DOFF = [1, W + 1, W, W - 1];
+        const nms = new Float32Array(N);
+        let maxN = 0, cntN = 0;
+        for (let y = 1; y < H - 1; y++) {
+            for (let x = 1; x < W - 1; x++) {
+                const i = y * W + x, m = mag[i];
+                if (m < 0.05) continue;
+                const o = DOFF[dirA[i]];
+                if (m >= mag[i + o] && m > mag[i - o]) { nms[i] = m; if (m > maxN) maxN = m; cntN++; }
+            }
+        }
+        const HB = 512, hist = new Uint32Array(HB);
+        for (let i = 0; i < N; i++) if (nms[i] > 0) hist[Math.min(HB - 1, Math.floor(nms[i] / maxN * HB))]++;
+        let acc = 0, hiBin = HB - 1;
+        for (let b = 0; b < HB; b++) { acc += hist[b]; if (acc >= cntN * 0.7) { hiBin = b; break; } }
+        const hiT = Math.max(0.15, (hiBin + 1) / HB * maxN);
+        const loT = Math.max(0.07, hiT * 0.4);
+        // Hystérésis : on garde les contours forts et les faibles qui les prolongent
+        const edge = new Uint8Array(N);
+        const NB8 = [1, -1, W, -W, W + 1, W - 1, -W + 1, -W - 1];
+        const stack = [];
+        for (let i = 0; i < N; i++) if (nms[i] >= hiT) { edge[i] = 1; stack.push(i); }
+        while (stack.length) {
+            const i = stack.pop();
+            for (let k = 0; k < 8; k++) { const j = i + NB8[k]; if (!edge[j] && nms[j] >= loT) { edge[j] = 1; stack.push(j); } }
+        }
+
+        // ── 2. Contours → traits (suivre chaque ligne pixel par pixel) ─────
+        const NBX = [1, 1, 0, -1, -1, -1, 0, 1], NBY = [0, 1, 1, 1, 0, -1, -1, -1];
+        const used = new Uint8Array(N);
+        function follow(i0) {
+            const path = [];
+            let i = i0, pdx = 0, pdy = 0;
+            for (;;) {
+                const x = i % W, y = (i / W) | 0;
+                let bj = -1, bs = -9, bdx = 0, bdy = 0;
+                for (let k = 0; k < 8; k++) {
+                    const nx = x + NBX[k], ny = y + NBY[k];
+                    if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+                    const j = ny * W + nx;
+                    if (!edge[j] || used[j]) continue;
+                    const len = Math.hypot(NBX[k], NBY[k]);
+                    const sc = (pdx || pdy) ? (NBX[k] * pdx + NBY[k] * pdy) / len : 1 / len;
+                    if (sc > bs) { bs = sc; bj = j; bdx = NBX[k] / len; bdy = NBY[k] / len; }
+                }
+                if (bj < 0) break;
+                used[bj] = 1; path.push(bj);
+                pdx = pdx * 0.5 + bdx; pdy = pdy * 0.5 + bdy;
+                const n = Math.hypot(pdx, pdy) || 1; pdx /= n; pdy /= n;
+                i = bj;
+            }
+            return path;
+        }
+        function toPts(path) {
+            const n = path.length, xs = new Float32Array(n), ys = new Float32Array(n);
+            for (let k = 0; k < n; k++) {
+                let ax = 0, ay = 0, c = 0;
+                for (let q = -2; q <= 2; q++) {
+                    const m = k + q; if (m < 0 || m >= n) continue;
+                    ax += path[m] % W + 0.5; ay += ((path[m] / W) | 0) + 0.5; c++;
+                }
+                xs[k] = ax / c; ys[k] = ay / c;
+            }
+            return { xs, ys };
+        }
+        const lines = [];
+        for (let i = 0; i < N; i++) {
+            if (!edge[i] || used[i]) continue;
+            used[i] = 1;
+            const a = follow(i), b = follow(i);
+            const path = b.reverse(); path.push(i); for (const j of a) path.push(j);
+            if (path.length < 6) continue;
+            let sum = 0; for (const j of path) sum += nms[j];
+            const s = paintClamp(sum / path.length / (hiT * 2.2));
+            const pts = toPts(path);
+            lines.push({ xs: pts.xs, ys: pts.ys, s, imp: s * Math.sqrt(path.length) });
+        }
+        // Trois niveaux : grands contours, contours moyens, traits fins
+        lines.sort((a, b) => b.imp - a.imp);
+        const TIERS = [
+            { from: 0,    to: 0.25, perPt: 1,    lift: 6 },
+            { from: 0.25, to: 0.6,  perPt: 0.55, lift: 3 },
+            { from: 0.6,  to: 1,    perPt: 0.25, lift: 1 }
+        ];
+        const ordered = [];
+        let penX = Math.random() * W, penY = Math.random() * H * 0.5;
+        TIERS.forEach(t => {
+            const rem = lines.slice(Math.floor(t.from * lines.length), Math.floor(t.to * lines.length));
+            // Le crayon va toujours vers l'élément le plus proche : élément après élément
+            while (rem.length) {
+                let bi = 0, bd = Infinity, brev = false;
+                for (let k = 0; k < rem.length; k++) {
+                    const L = rem[k], n = L.xs.length - 1;
+                    const d0 = (L.xs[0] - penX) ** 2 + (L.ys[0] - penY) ** 2;
+                    const d1 = (L.xs[n] - penX) ** 2 + (L.ys[n] - penY) ** 2;
+                    if (d0 < bd) { bd = d0; bi = k; brev = false; }
+                    if (d1 < bd) { bd = d1; bi = k; brev = true; }
+                }
+                const L = rem[bi]; rem[bi] = rem[rem.length - 1]; rem.pop();
+                if (brev) { L.xs.reverse(); L.ys.reverse(); }
+                L.perPt = t.perPt; L.lift = t.lift;
+                L.width = 0.9 + 1.3 * L.s;
+                L.col = paintMix(0.55 + 0.45 * L.s);
+                ordered.push(L);
+                penX = L.xs[L.xs.length - 1]; penY = L.ys[L.ys.length - 1];
+            }
+        });
+
+        // ── 3. Hachures dans les ombres (à la fin, zone par zone) ──────────
+        const hatches = [];
+        const SP = Math.max(4, Math.round(W / 150));
+        const CELL = Math.max(40, Math.round(W / 10));
+        function hatchFamily(sign, thr) {
+            // sign = 1 : lignes « / » ; sign = -1 : lignes « \ »
+            const cMin = sign > 0 ? 0 : -(H - 1), cMax = sign > 0 ? W + H - 2 : W - 1;
+            for (let c = cMin; c <= cMax; c += SP) {
+                let run = [];
+                const flush = () => {
+                    if (run.length >= 8) {
+                        for (let st = 0; st < run.length; st += 40) {
+                            const part = run.slice(st, st + 40);
+                            if (part.length < 6) continue;
+                            let sl = 0; for (const q of part) sl += lum[q];
+                            const dark = paintClamp((thr - sl / part.length) / thr);
+                            const xs = new Float32Array(part.length), ys = new Float32Array(part.length);
+                            part.forEach((q, k) => { xs[k] = q % W + 0.5; ys[k] = ((q / W) | 0) + 0.5; });
+                            const cx = xs[0], cy = ys[0];
+                            const row = Math.floor(cy / CELL), col = Math.floor(cx / CELL);
+                            hatches.push({ xs, ys, s: 0, perPt: 0.1, lift: 0.3, width: 0.8,
+                                col: paintMix(0.25 + 0.4 * dark),
+                                key: row * 10000 + (row % 2 ? (999 - col) : col) * 10 + Math.random() });
+                        }
+                    }
+                    run = [];
+                };
+                for (let x = 0; x < W; x++) {
+                    const y = sign > 0 ? c - x : x - c;
+                    if (y < 0 || y >= H) { flush(); continue; }
+                    const q = y * W + x;
+                    if (lum[q] < thr && !edge[q]) run.push(q); else flush();
+                }
+                flush();
+            }
+        }
+        hatchFamily(1, 0.38);
+        hatchFamily(-1, 0.2);
+        hatches.sort((a, b) => a.key - b.key);
+
+        // ── 4. Calendrier du crayon ────────────────────────────────────────
+        // Les hachures ne prennent que la fin de l'esquisse (~15 % du temps)
+        let tLines = 0, hatchPts = 0;
+        ordered.forEach(L => { tLines += L.lift + L.xs.length * L.perPt; });
+        hatches.forEach(L => { hatchPts += L.xs.length; });
+        if (hatchPts) {
+            const hp = tLines * 0.18 / hatchPts;
+            hatches.forEach(L => { L.perPt = hp; L.lift = 0; });
+        }
+        const strokes = ordered.concat(hatches);
+        const S = strokes.length;
+        let P = 0; strokes.forEach(L => { P += L.xs.length; });
+        const ptX = new Float32Array(P), ptY = new Float32Array(P), ptTime = new Float32Array(P);
+        const strokeStart = new Int32Array(S + 1), strokeW = new Float32Array(S), strokeCol = [];
+        let t = 0, idx = 0;
+        strokes.forEach((L, k) => {
+            strokeStart[k] = idx; strokeW[k] = L.width; strokeCol.push(L.col);
+            t += L.lift;
+            for (let q = 0; q < L.xs.length; q++) { t += L.perPt; ptX[idx] = L.xs[q]; ptY[idx] = L.ys[q]; ptTime[idx] = t; idx++; }
+        });
+        strokeStart[S] = P;
+        const tTot = t || 1;
+        for (let k = 0; k < P; k++) ptTime[k] /= tTot;
+
+        // Papier (avec grain)
+        const paper = document.createElement('canvas');
+        paper.width = W; paper.height = H;
+        const pimg = new ImageData(W, H);
+        for (let i = 0; i < N; i++) {
+            const g = (Math.random() - 0.5) * 10;
+            pimg.data[i * 4] = PAINT_PAPER[0] + g; pimg.data[i * 4 + 1] = PAINT_PAPER[1] + g;
+            pimg.data[i * 4 + 2] = PAINT_PAPER[2] + g; pimg.data[i * 4 + 3] = 255;
+        }
+        paper.getContext('2d').putImageData(pimg, 0, 0);
+        const sketch = document.createElement('canvas');
+        sketch.width = W; sketch.height = H;
+        sketch.getContext('2d').drawImage(paper, 0, 0);
+
+        const data = { W, H, N, px, P, S, ptX, ptY, ptTime, strokeStart, strokeW, strokeCol, paper, sketch, drawnPt: 0 };
+        // Esquisse complète (sert de fond à la phase couleur)
+        const full = document.createElement('canvas');
+        full.width = W; full.height = H;
+        const fctx = full.getContext('2d');
+        fctx.drawImage(paper, 0, 0);
+        paintDrawPts(fctx, data, 0, P);
+        data.sketchData = fctx.getImageData(0, 0, W, H).data;
+
+        // ── 5. Couleurs : regrouper l'image en grandes zones de couleur ────
+        const K = 8;
+        const stride = Math.max(1, Math.floor(Math.sqrt(N / 6000)));
+        const samples = [];
+        for (let y = 0; y < H; y += stride) for (let x = 0; x < W; x += stride) samples.push(y * W + x);
+        const cen = new Float32Array(K * 3);
+        const dist2 = (i, k) => {
+            const dr = ch[0][i] - cen[k * 3], dg = ch[1][i] - cen[k * 3 + 1], db = ch[2][i] - cen[k * 3 + 2];
+            return dr * dr * 0.3 + dg * dg * 0.59 + db * db * 0.11;
+        };
+        { // initialisation k-means++
+            const f = samples[Math.floor(Math.random() * samples.length)];
+            for (let c = 0; c < 3; c++) cen[c] = ch[c][f];
+            const dmin = new Float32Array(samples.length).fill(Infinity);
+            for (let k = 1; k < K; k++) {
+                let tot = 0;
+                for (let s = 0; s < samples.length; s++) { const dd = dist2(samples[s], k - 1); if (dd < dmin[s]) dmin[s] = dd; tot += dmin[s]; }
+                let r = Math.random() * tot, pick = samples[samples.length - 1];
+                for (let s = 0; s < samples.length; s++) { r -= dmin[s]; if (r <= 0) { pick = samples[s]; break; } }
+                for (let c = 0; c < 3; c++) cen[k * 3 + c] = ch[c][pick];
+            }
+        }
+        const nearest = i => { let bk = 0, bd = Infinity; for (let k = 0; k < K; k++) { const dd = dist2(i, k); if (dd < bd) { bd = dd; bk = k; } } return bk; };
+        for (let it = 0; it < 10; it++) {
+            const sum = new Float64Array(K * 4);
+            for (const i of samples) { const k = nearest(i); sum[k * 4] += ch[0][i]; sum[k * 4 + 1] += ch[1][i]; sum[k * 4 + 2] += ch[2][i]; sum[k * 4 + 3]++; }
+            for (let k = 0; k < K; k++) if (sum[k * 4 + 3]) for (let c = 0; c < 3; c++) cen[k * 3 + c] = sum[k * 4 + c] / sum[k * 4 + 3];
+        }
+        let lab = new Uint8Array(N);
+        for (let i = 0; i < N; i++) lab[i] = nearest(i);
+        // Filtre majoritaire : évite les mouchetures
+        for (let pass = 0; pass < 2; pass++) {
+            const out = new Uint8Array(lab), cnt = new Uint8Array(K);
+            for (let y = 1; y < H - 1; y++) {
+                for (let x = 1; x < W - 1; x++) {
+                    cnt.fill(0);
+                    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) cnt[lab[(y + dy) * W + x + dx]]++;
+                    let bk = lab[y * W + x], bc = 0;
+                    for (let k = 0; k < K; k++) if (cnt[k] > bc) { bc = cnt[k]; bk = k; }
+                    out[y * W + x] = bk;
+                }
+            }
+            lab = out;
+        }
+        // Zones connexes de même couleur
+        const reg = new Int32Array(N).fill(-1);
+        const queue = new Int32Array(N);
+        const regions = [];
+        for (let i = 0; i < N; i++) {
+            if (reg[i] >= 0) continue;
+            const id = regions.length, L = lab[i];
+            let qh = 0, qt = 0; queue[qt++] = i; reg[i] = id;
+            let cx = 0, cy = 0;
+            while (qh < qt) {
+                const q = queue[qh++], x = q % W, y = (q / W) | 0;
+                cx += x; cy += y;
+                if (x > 0 && reg[q - 1] < 0 && lab[q - 1] === L) { reg[q - 1] = id; queue[qt++] = q - 1; }
+                if (x < W - 1 && reg[q + 1] < 0 && lab[q + 1] === L) { reg[q + 1] = id; queue[qt++] = q + 1; }
+                if (y > 0 && reg[q - W] < 0 && lab[q - W] === L) { reg[q - W] = id; queue[qt++] = q - W; }
+                if (y < H - 1 && reg[q + W] < 0 && lab[q + W] === L) { reg[q + W] = id; queue[qt++] = q + W; }
+            }
+            regions.push({ id, label: L, pix: queue.slice(0, qt), cx: cx / qt, cy: cy / qt });
+        }
+        // Ordre des couleurs et temps accordé à chacune (selon sa surface)
+        const area = new Float64Array(K);
+        for (let i = 0; i < N; i++) area[lab[i]]++;
+        const colOrder = [];
+        for (let k = 0; k < K; k++) if (area[k] > 0) colOrder.push(k);
+        colOrder.sort((a, b) => paintHueKey(cen[a * 3], cen[a * 3 + 1], cen[a * 3 + 2]) - paintHueKey(cen[b * 3], cen[b * 3 + 1], cen[b * 3 + 2]));
+        let wTot = 0; colOrder.forEach(k => { wTot += Math.pow(area[k], 0.8); });
+        const span = PAINT_COLOR_END - PAINT_FILL_FADE;
+        const tC = new Float32Array(N);
+        const brushN = paintLowNoise(W, H, Math.max(2, Math.round(W / 30)), Math.max(2, Math.round(H / 30)));
+        const dist = new Float32Array(N);
+        let tc = 0;
+        let penRX = W / 2, penRY = H / 2;
+        colOrder.forEach(k => {
+            const cSpan = Math.pow(area[k], 0.8) / wTot * span;
+            const regs = regions.filter(r => r.label === k);
+            const bigMin = N * 0.001;
+            // Grandes zones d'abord (en passant à la plus proche), puis les petites
+            const big = regs.filter(r => r.pix.length >= bigMin), small = regs.filter(r => r.pix.length < bigMin);
+            const seq = [];
+            while (big.length) {
+                let bi = 0, bd = Infinity;
+                big.forEach((r, j) => { const dd = (r.cx - penRX) ** 2 + (r.cy - penRY) ** 2; if (dd < bd) { bd = dd; bi = j; } });
+                const r = big[bi]; big[bi] = big[big.length - 1]; big.pop();
+                seq.push(r); penRX = r.cx; penRY = r.cy;
+            }
+            const band = Math.max(20, H / 12);
+            small.sort((a, b) => {
+                const ra = Math.floor(a.cy / band), rb = Math.floor(b.cy / band);
+                return ra !== rb ? ra - rb : (ra % 2 ? b.cx - a.cx : a.cx - b.cx);
+            });
+            seq.push(...small);
+            const cArea = area[k];
+            seq.forEach(r => {
+                const n = r.pix.length, rSpan = cSpan * n / cArea;
+                if (n < 3) { for (const q of r.pix) tC[q] = tc + rSpan; tc += rSpan; return; }
+                // Le pinceau part d'un point de la zone et s'étale jusqu'à ses bords
+                const seed = r.pix[Math.floor(Math.random() * n)];
+                for (const q of r.pix) dist[q] = -1;
+                let qh = 0, qt = 0; queue[qt++] = seed; dist[seed] = 0;
+                while (qh < qt) {
+                    const q = queue[qh++], x = q % W, y = (q / W) | 0, dq = dist[q] + 1;
+                    if (x > 0 && reg[q - 1] === r.id && dist[q - 1] < 0) { dist[q - 1] = dq; queue[qt++] = q - 1; }
+                    if (x < W - 1 && reg[q + 1] === r.id && dist[q + 1] < 0) { dist[q + 1] = dq; queue[qt++] = q + 1; }
+                    if (y > 0 && reg[q - W] === r.id && dist[q - W] < 0) { dist[q - W] = dq; queue[qt++] = q - W; }
+                    if (y < H - 1 && reg[q + W] === r.id && dist[q + W] < 0) { dist[q + W] = dq; queue[qt++] = q + W; }
+                }
+                // Coups de pinceau : bord irrégulier et traces allongées
+                // (distance à vol d'oiseau, plus le détour imposé par la forme de la zone :
+                //  la peinture s'étale en rond et contourne les obstacles)
+                const ang = Math.random() * Math.PI, ca = Math.cos(ang), sa = Math.sin(ang);
+                const sxs = seed % W, sys = (seed / W) | 0;
+                const keys = new Float32Array(n), order = new Uint32Array(n);
+                for (let j = 0; j < n; j++) {
+                    const q = r.pix[j], x = q % W, y = (q / W) | 0;
+                    const dx = Math.abs(x - sxs), dy = Math.abs(y - sys);
+                    const geo = Math.hypot(dx, dy) + Math.max(0, dist[q] - dx - dy);
+                    keys[j] = geo + 18 * brushN[q] + 4 * Math.sin((x * ca + y * sa) / 2.2) + 3 * Math.random();
+                    order[j] = j;
+                }
+                order.sort((a, b) => keys[a] - keys[b]);
+                for (let j = 0; j < n; j++) tC[r.pix[order[j]]] = tc + (j + 1) / n * rSpan;
+                tc += rSpan;
+            });
+        });
+        data.tC = tC;
+        data.outImg = new ImageData(W, H);
+        return data;
+    }
+
+    // Dessine les points de crayon [from, to) sur ctx, trait par trait
+    function paintDrawPts(ctx, d, from, to) {
+        if (to <= from) return;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        let lo = 0, hi = d.S - 1; // trait contenant le point « from »
+        while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (d.strokeStart[mid] <= from) lo = mid; else hi = mid - 1; }
+        for (let k = lo; k < d.S && d.strokeStart[k] < to; k++) {
+            const a = d.strokeStart[k], b = d.strokeStart[k + 1];
+            const st = Math.max(a, from - 1), en = Math.min(b, to);
+            if (en - st < 2) continue;
+            ctx.strokeStyle = d.strokeCol[k];
+            ctx.lineWidth = d.strokeW[k];
+            ctx.beginPath();
+            ctx.moveTo(d.ptX[st], d.ptY[st]);
+            for (let q = st + 1; q < en; q++) ctx.lineTo(d.ptX[q], d.ptY[q]);
+            ctx.stroke();
+        }
+    }
+
+    // Esquisse à l'avancement s (0 → 1) : le crayon reprend là où il s'était arrêté
+    function paintSketchTo(d, s) {
+        let lo = 0, hi = d.P;
+        while (lo < hi) { const mid = (lo + hi) >> 1; if (d.ptTime[mid] <= s) lo = mid + 1; else hi = mid; }
+        const target = lo;
+        const ctx = d.sketch.getContext('2d');
+        if (target < d.drawnPt) { ctx.drawImage(d.paper, 0, 0); d.drawnPt = 0; } // retour en arrière : on redessine
+        paintDrawPts(ctx, d, d.drawnPt, target);
+        d.drawnPt = target;
+    }
+
+    // Couleur à l'avancement p (0 → 1) de la phase couleur
+    function paintColorTo(d, p) {
+        const out = d.outImg.data, sk = d.sketchData, col = d.px, tC = d.tC;
+        const lf = paintSmooth(PAINT_COLOR_END, 1, p); // effacement final des traits
+        for (let i = 0, o = 0; i < d.N; i++, o += 4) {
+            let a = (p - tC[i]) / PAINT_FILL_FADE;
+            if (a <= 0) { out[o] = sk[o]; out[o + 1] = sk[o + 1]; out[o + 2] = sk[o + 2]; out[o + 3] = 255; continue; }
+            if (a > 1) a = 1;
+            for (let c = 0; c < 3; c++) {
+                const s = sk[o + c], m = s * col[o + c] / 255;   // la peinture se mêle au crayon
+                const f = m + (col[o + c] - m) * lf;
+                out[o + c] = s + (f - s) * a;
+            }
+            out[o + 3] = 255;
+        }
+    }
+
+    function drawPaint(rawProg) {
+        const w = imageZone.clientWidth, h = imageZone.clientHeight;
+        if (!w || !h || !imgEl.complete || !imgEl.naturalWidth) return;
+        if (rawProg >= 100) { paintCanvas.style.display = 'none'; paintLastStep = -1; return; }
+        const key = imgEl.src + '|' + w + 'x' + h;
+        if (key !== paintKey) {
+            paintKey = key;
+            paint = buildPaintData(w, h);
+            paintLastStep = -1;
+            if (!paint.tainted) { paintCanvas.width = paint.W; paintCanvas.height = paint.H; }
+        }
+        const t = Math.max(0, rawProg);
+        if (paint.tainted) {
+            // Image non lisible (CORS) : esquisse simulée en noir et blanc
+            paintCanvas.style.display = 'none';
+            if (t < PAINT_SKETCH_END) {
+                const s = t / PAINT_SKETCH_END;
+                imgEl.style.filter = `grayscale(1) contrast(${3 - s * 1.5}) brightness(${2.2 - s * 1.1}) blur(${(1 - s) * 6}px)`;
+            } else {
+                imgEl.style.filter = `grayscale(${1 - (t - PAINT_SKETCH_END) / (100 - PAINT_SKETCH_END)})`;
+            }
+            return;
+        }
+        paintCanvas.style.display = 'block';
+        const step = Math.round(t * 5); // un nouveau rendu tous les 0,2 %
+        if (step === paintLastStep) return;
+        paintLastStep = step;
+        const tq = step / 5;
+        const ctx = paintCanvas.getContext('2d');
+        const d = paint;
+        if (tq < PAINT_SKETCH_END) {
+            paintSketchTo(d, tq / PAINT_SKETCH_END);
+            ctx.drawImage(d.sketch, 0, 0);
+            return;
+        }
+        paintColorTo(d, (tq - PAINT_SKETCH_END) / (100 - PAINT_SKETCH_END));
+        ctx.putImageData(d.outImg, 0, 0);
+    }
+    imgEl.addEventListener('load', () => { paintKey = ''; if (currentMode === 'peinture') updateUI(); });
+
     // ── Visualisation ─────────────────────────────────────────────────────
     function updateMicBar(vol) {
         micBarFill.style.width = Math.min(vol * DC_CONFIG.volumeMultiplier, 100) + '%';
@@ -1201,7 +1747,11 @@ function createDeficalmeWidget() {
         imgEl.style.transform = 'scale(1)';
         if (currentMode !== 'mosaique') mosaicCanvas.style.display = 'none';
         if (!usesBrush()) brushCanvas.style.display = 'none';
-        if (usesGrid()) {
+        if (currentMode !== 'peinture') paintCanvas.style.display = 'none';
+        if (currentMode === 'peinture') {
+            // La peinture suit le temps réel : esquisse sur 80 %, couleur sur les 20 % restants
+            drawPaint(rawProg);
+        } else if (usesGrid()) {
             revealPixels(prog);
         } else if (currentMode === 'mosaique') {
             drawMosaic(prog);
@@ -1334,6 +1884,7 @@ function createDeficalmeWidget() {
             pixelGrid.style.opacity = '1';
             mosaicCanvas.style.opacity = '1';
             brushCanvas.style.opacity = '1';
+            paintCanvas.style.opacity = '1';
             btnApercu.textContent = '👁';
             btnApercu.title = 'Aperçu';
             btnApercu.style.background = '#6366f1';
@@ -1356,6 +1907,7 @@ function createDeficalmeWidget() {
         modeBtns[mode].classList.add('active');
         pixelGrid.style.display = usesGrid() ? 'grid' : 'none';
         lastMosaicKey = '';
+        paintLastStep = -1;
         if (usesGrid() || usesBrush()) generateGrid();
         else { imgEl.style.filter = 'none'; imgEl.style.transform = 'scale(1)'; }
         updateUI();
@@ -1410,6 +1962,7 @@ function createDeficalmeWidget() {
             pixelGrid.style.opacity = '0';
             mosaicCanvas.style.opacity = '0';
             brushCanvas.style.opacity = '0';
+            paintCanvas.style.opacity = '0';
             btnApercu.textContent = '🙈';
             btnApercu.title = 'Cacher l\'aperçu';
             btnApercu.style.background = '#ef4444';
@@ -1417,6 +1970,7 @@ function createDeficalmeWidget() {
             pixelGrid.style.opacity = '1';
             mosaicCanvas.style.opacity = '1';
             brushCanvas.style.opacity = '1';
+            paintCanvas.style.opacity = '1';
             btnApercu.textContent = '👁';
             btnApercu.title = 'Aperçu';
             btnApercu.style.background = '#6366f1';

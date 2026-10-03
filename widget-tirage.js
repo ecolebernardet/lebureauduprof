@@ -27,8 +27,8 @@
     /* ── Wrapper externe ── */
     .widget[data-type="tirage"] .tirage-outer {
         position: relative;
-        width: 600px;
-        height: 700px;
+        width: 800px;
+        height: 600px;
         min-width: 280px;
         min-height: 200px;
         overflow: hidden;
@@ -534,8 +534,8 @@
         let _isMax = false;
 
         function tirageCollapse() {
-            const savedW = outer.offsetWidth  || parseFloat(widget.dataset.tirageW) || 600;
-            const savedH = outer.offsetHeight || parseFloat(widget.dataset.tirageH) || 700;
+            const savedW = outer.offsetWidth  || parseFloat(widget.dataset.tirageW) || 800;
+            const savedH = outer.offsetHeight || parseFloat(widget.dataset.tirageH) || 600;
             widget.dataset.tirageW = savedW;
             widget.dataset.tirageH = savedH;
 
@@ -618,8 +618,8 @@
         }
 
         function tirageExpand() {
-            const savedW    = parseFloat(widget.dataset.tirageW)    || 600;
-            const savedH    = parseFloat(widget.dataset.tirageH)    || 700;
+            const savedW    = parseFloat(widget.dataset.tirageW)    || 800;
+            const savedH    = parseFloat(widget.dataset.tirageH)    || 600;
             const savedLeft = parseFloat(widget.dataset.tirageSavedLeft);
             const savedTop  = parseFloat(widget.dataset.tirageSavedTop);
 

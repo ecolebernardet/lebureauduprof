@@ -1,6 +1,6 @@
 // =========================================================================
 // WIDGET DÉFI CALME — Le Bureau du Prof
-// Révèle une image au silence (micro) — 3 modes : pixels, flou, zoom
+// Révèle une image au silence (micro) — 5 modes : pixels, flou, zoom, mosaïque, spirale
 //
 // Dépendances : board, findFreePosition(), makeDraggable(),
 //   makeDraggableRotate(), bringToFront(), snapshotNow(), saveBoard()
@@ -111,6 +111,20 @@
             background: #121212;
             transition: opacity 0.2s ease;
         }
+        .dc-pixel-block.dc-revealed { opacity: 0; }
+
+        /* Mode mosaïque : image pixelisée qui s'affine */
+        .dc-mosaic-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 4;
+            display: none;
+            image-rendering: pixelated;
+        }
+
 
         .dc-msg-start {
             position: absolute;
@@ -237,6 +251,7 @@
         /* Mode selector */
         .dc-mode-wrap {
             display: flex;
+            flex-wrap: wrap;
             background: rgba(255,255,255,0.06);
             border-radius: 8px;
             padding: 3px;
@@ -293,6 +308,20 @@
             user-select: none;
         }
         .dc-time-btn:active { transform: scale(0.88); }
+
+        /* Colonne de réglages à droite (durée / tolérance) */
+        .dc-settings-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            margin-left: auto;
+        }
+        .dc-settings-col .dc-group { gap: 6px; }
+        .dc-settings-col .dc-label { min-width: 52px; text-align: right; }
+        .dc-time-pill.dc-compact { padding: 2px 6px; gap: 4px; }
+        .dc-time-pill.dc-compact .dc-time-val { font-size: 11px; min-width: 34px; }
+        .dc-time-pill.dc-compact .dc-time-btn { width: 17px; height: 17px; font-size: 11px; }
 
         /* Sensibilité */
         .dc-slider {
@@ -449,6 +478,11 @@ const DC_CONFIG = {
     minTimeSeconds: 5,
     maxTimeSeconds: 3600,
     pixelDensityFactor: 0.4,
+    // Courbe de révélation : [temps écoulé %, image révélée %]
+    // (interpolation linéaire entre les points)
+    spiralRows: 24,   // finesse de la spirale (rangées de cases)
+    spiralTurns: 3,   // nombre de tours de la spirale
+    revealCurve: [[0, 0], [50, 30], [80, 55], [90, 70], [95, 80], [100, 100]],
     defaultImageUrl: 'https://picsum.photos/900/500?random=' + Math.floor(Math.random() * 1000)
 };
 
@@ -516,6 +550,10 @@ function createDeficalmeWidget() {
 
     imageZone.appendChild(imgEl);
     imageZone.appendChild(pixelGrid);
+
+    const mosaicCanvas = document.createElement('canvas');
+    mosaicCanvas.className = 'dc-mosaic-canvas';
+    imageZone.appendChild(mosaicCanvas);
     imageZone.appendChild(msgStart);
     imageZone.appendChild(micBarWrap);
     imageZone.appendChild(progBarWrap);
@@ -539,7 +577,9 @@ function createDeficalmeWidget() {
     const modes = [
         { key: 'pixels', label: 'Pixels' },
         { key: 'flou',   label: 'Flou'   },
-        { key: 'zoom',   label: 'Zoom'   }
+        { key: 'zoom',   label: 'Zoom'   },
+        { key: 'mosaique', label: 'Mosaïque' },
+        { key: 'spirale', label: 'Spirale' }
     ];
     const modeBtns = {};
     modes.forEach(m => {
@@ -609,21 +649,26 @@ function createDeficalmeWidget() {
 
     const groupSens = document.createElement('div');
     groupSens.className = 'dc-group';
-    groupSens.style.flex = '1';
-    groupSens.style.justifyContent = 'center';
+    groupSens.style.justifyContent = 'flex-end';
     groupSens.appendChild(sensLabel);
     groupSens.appendChild(sensPill);
 
     const groupDur = document.createElement('div');
     groupDur.className = 'dc-group';
-    groupDur.style.flex = '1';
     groupDur.style.justifyContent = 'flex-end';
     groupDur.appendChild(durLabel);
     groupDur.appendChild(timePill);
 
+    // Durée et tolérance empilées à droite
+    const groupRight = document.createElement('div');
+    groupRight.className = 'dc-settings-col';
+    groupRight.appendChild(groupDur);
+    groupRight.appendChild(groupSens);
+    timePill.classList.add('dc-compact');
+    sensPill.classList.add('dc-compact');
+
     row1.appendChild(groupMode);
-    row1.appendChild(groupSens);
-    row1.appendChild(groupDur);
+    row1.appendChild(groupRight);
 
     // Ligne 3 : Image URL
     const row3 = document.createElement('div');
@@ -744,11 +789,23 @@ function createDeficalmeWidget() {
     }
 
     // ── Grille pixels ─────────────────────────────────────────────────────
+    function usesGrid() {
+        return currentMode === 'pixels' || currentMode === 'spirale';
+    }
+
     function generateGrid() {
-        const density = Math.max(4, Math.round(3 + (totalSeconds * DC_CONFIG.pixelDensityFactor)));
-        const rows = Math.min(density, 40);
+        const isSpiral = currentMode === 'spirale';
+        let rows;
+        if (isSpiral) {
+            // Grille assez fine pour que la spirale soit bien dessinée
+            rows = DC_CONFIG.spiralRows;
+        } else {
+            const density = Math.max(4, Math.round(3 + (totalSeconds * DC_CONFIG.pixelDensityFactor)));
+            rows = Math.min(density, 40);
+        }
         const cols = Math.round(rows * (16 / 9));
         pixelGrid.innerHTML = '';
+        pixelGrid.style.gap = '0'; // pas d'espace : l'image ne doit pas transparaître entre les pièces
         pixelGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
         pixelGrid.style.gridTemplateRows    = `repeat(${rows}, 1fr)`;
         pixelsOrder = [];
@@ -757,6 +814,23 @@ function createDeficalmeWidget() {
             p.className = 'dc-pixel-block';
             pixelGrid.appendChild(p);
             pixelsOrder.push(p);
+        }
+        if (isSpiral) {
+            // Ordre en spirale depuis le centre : rayon + angle
+            const cx = cols / 2, cy = rows / 2;
+            const rMax = Math.hypot(cx, cy);
+            const turns = DC_CONFIG.spiralTurns;
+            const key = pixelsOrder.map((p, i) => {
+                const dx = (i % cols) + 0.5 - cx;
+                const dy = Math.floor(i / cols) + 0.5 - cy;
+                const r = Math.hypot(dx, dy) / rMax;               // 0 → 1
+                const a = (Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI); // 0 → 1
+                // position le long de la spirale d'Archimède
+                return { p, k: Math.round(r * turns - a) + a };
+            });
+            key.sort((u, v) => u.k - v.k);
+            pixelsOrder = key.map(o => o.p);
+            return;
         }
         // Fisher-Yates
         for (let i = pixelsOrder.length - 1; i > 0; i--) {
@@ -767,8 +841,40 @@ function createDeficalmeWidget() {
 
     function revealPixels(prog) {
         const n = Math.floor((prog / 100) * pixelsOrder.length);
-        pixelsOrder.forEach((p, i) => { p.style.opacity = i < n ? '0' : '1'; });
+        pixelsOrder.forEach((p, i) => { p.classList.toggle('dc-revealed', i < n); });
     }
+
+
+    // ── Mosaïque (pixelisation) ───────────────────────────────────────────
+    const mosaicSmall = document.createElement('canvas');
+    let lastMosaicKey = '';
+    function drawMosaic(prog) {
+        const w = imageZone.clientWidth, h = imageZone.clientHeight;
+        if (!w || !h || !imgEl.complete || !imgEl.naturalWidth) return;
+        if (prog >= 100) { mosaicCanvas.style.display = 'none'; lastMosaicKey = ''; return; }
+        mosaicCanvas.style.display = 'block';
+        // Nombre de blocs en largeur : de 4 (très gros) jusqu'à la largeur réelle
+        const minCols = 4, maxCols = w;
+        const cols = Math.max(minCols, Math.round(minCols * Math.pow(maxCols / minCols, prog / 100)));
+        const rows = Math.max(1, Math.round(cols * h / w));
+        const key = cols + 'x' + rows + '@' + w + 'x' + h + '|' + imgEl.src;
+        if (key === lastMosaicKey) return;
+        lastMosaicKey = key;
+        // Recadrage "cover" identique à l'image affichée
+        const iw = imgEl.naturalWidth, ih = imgEl.naturalHeight;
+        const scale = Math.max(w / iw, h / ih);
+        const sw = w / scale, sh = h / scale;
+        const sx = (iw - sw) / 2, sy = (ih - sh) / 2;
+        mosaicSmall.width = cols; mosaicSmall.height = rows;
+        const sctx = mosaicSmall.getContext('2d');
+        sctx.imageSmoothingEnabled = true;
+        sctx.drawImage(imgEl, sx, sy, sw, sh, 0, 0, cols, rows);
+        mosaicCanvas.width = w; mosaicCanvas.height = h;
+        const ctx = mosaicCanvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(mosaicSmall, 0, 0, cols, rows, 0, 0, w, h);
+    }
+    imgEl.addEventListener('load', () => { lastMosaicKey = ''; if (currentMode === 'mosaique') updateUI(); });
 
     // ── Visualisation ─────────────────────────────────────────────────────
     function updateMicBar(vol) {
@@ -784,11 +890,26 @@ function createDeficalmeWidget() {
         progBarFill.style.height = pStr;
     }
 
-    function updateImage(prog) {
+    // Convertit la progression linéaire (temps) en progression visuelle exponentielle
+    function easeReveal(prog) {
+        const pts = DC_CONFIG.revealCurve;
+        const t = Math.min(100, Math.max(0, prog));
+        for (let i = 1; i < pts.length; i++) {
+            const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+            if (t <= x1) return y0 + (y1 - y0) * (t - x0) / (x1 - x0);
+        }
+        return 100;
+    }
+
+    function updateImage(rawProg) {
+        const prog = easeReveal(rawProg);
         imgEl.style.filter = 'none';
         imgEl.style.transform = 'scale(1)';
-        if (currentMode === 'pixels') {
+        if (currentMode !== 'mosaique') mosaicCanvas.style.display = 'none';
+        if (usesGrid()) {
             revealPixels(prog);
+        } else if (currentMode === 'mosaique') {
+            drawMosaic(prog);
         } else if (currentMode === 'flou') {
             imgEl.style.filter = `blur(${40 - prog * 0.4}px)`;
         } else if (currentMode === 'zoom') {
@@ -914,6 +1035,7 @@ function createDeficalmeWidget() {
         if (apercuActive) {
             apercuActive = false;
             pixelGrid.style.opacity = '1';
+            mosaicCanvas.style.opacity = '1';
             btnApercu.textContent = '👁';
             btnApercu.title = 'Aperçu';
             btnApercu.style.background = '#6366f1';
@@ -934,8 +1056,9 @@ function createDeficalmeWidget() {
         currentMode = mode;
         Object.values(modeBtns).forEach(b => b.classList.remove('active'));
         modeBtns[mode].classList.add('active');
-        pixelGrid.style.display = mode === 'pixels' ? 'grid' : 'none';
-        if (mode === 'pixels') generateGrid();
+        pixelGrid.style.display = usesGrid() ? 'grid' : 'none';
+        lastMosaicKey = '';
+        if (usesGrid()) generateGrid();
         else { imgEl.style.filter = 'none'; imgEl.style.transform = 'scale(1)'; }
         updateUI();
     }
@@ -944,7 +1067,7 @@ function createDeficalmeWidget() {
     function applyImage(url) {
         if (!url.trim()) return;
         imgEl.src = url.trim();
-        if (currentMode === 'pixels') generateGrid();
+        if (usesGrid()) generateGrid();
     }
 
     // ── Resize ────────────────────────────────────────────────────────────
@@ -987,11 +1110,13 @@ function createDeficalmeWidget() {
             imgEl.style.filter = 'none';
             imgEl.style.transform = 'scale(1)';
             pixelGrid.style.opacity = '0';
+            mosaicCanvas.style.opacity = '0';
             btnApercu.textContent = '🙈';
             btnApercu.title = 'Cacher l\'aperçu';
             btnApercu.style.background = '#ef4444';
         } else {
             pixelGrid.style.opacity = '1';
+            mosaicCanvas.style.opacity = '1';
             btnApercu.textContent = '👁';
             btnApercu.title = 'Aperçu';
             btnApercu.style.background = '#6366f1';
@@ -1141,7 +1266,7 @@ function createDeficalmeWidget() {
         urlInput.value = file.name;
         imgEl.src = objectUrl;
         imgEl.crossOrigin = null;
-        if (currentMode === 'pixels') generateGrid();
+        if (usesGrid()) generateGrid();
         resetDefi();
         importFileInput.value = '';
     });
@@ -1160,7 +1285,7 @@ function createDeficalmeWidget() {
     // régénérer la grille pixels quand le thème bascule (les blocs sont créés en JS
     // et héritent automatiquement du bon style CSS à la recréation).
     const themeObserver = new MutationObserver(() => {
-        if (currentMode === 'pixels') generateGrid();
+        if (usesGrid()) generateGrid();
     });
     themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 

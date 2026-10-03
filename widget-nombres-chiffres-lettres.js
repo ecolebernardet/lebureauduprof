@@ -189,8 +189,21 @@
         }
         .ncl-btn:hover { background: #e0e0e0; }
         .ncl-btn:active { transform: scale(0.96); }
-        .ncl-btn-new { background: #4a90e2; color: white; border: none; margin-left: auto; }
+        .ncl-btn-new { background: #4a90e2; color: white; border: none; }
         .ncl-btn-new:hover { background: #357abd; }
+        .ncl-random-group {
+            display: flex; gap: calc(6px * var(--ncl-s)); align-items: center; margin-left: auto;
+        }
+        .ncl-level-select {
+            padding: calc(2px * var(--ncl-s)) calc(6px * var(--ncl-s));
+            border-radius: calc(8px * var(--ncl-s)); border: 1px solid #c4b5fd;
+            background: #f5f3ff; color: #5b21b6;
+            font-size: calc(8px * var(--ncl-s)); font-weight: 700; cursor: pointer;
+            font-family: 'Segoe UI', system-ui, sans-serif; outline: none;
+        }
+        .ncl-level-select:focus { border-color: #7c3aed; }
+        .ncl-btn-random { background: #7c3aed; color: white; border: none; }
+        .ncl-btn-random:hover { background: #6d28d9; }
         .ncl-btn-validate { background: #16a34a; color: white; border: none; }
         .ncl-btn-validate:hover { background: #128a3e; }
         .ncl-btn-solution { background: #f0f0f0; color: #333; }
@@ -288,6 +301,16 @@
             color: #dc3545 !important;
             box-shadow: 0 0 0 calc(3px * var(--ncl-s)) rgba(220,53,69,0.28);
             animation: nclWrongShake .4s ease;
+        }
+        .ncl-answer-tile.ncl-answer-tile-wrong.ncl-no-anim { animation: none; }
+        .ncl-answer-tile.ncl-answer-slot-empty {
+            background: #ffffff; border: calc(2px * var(--ncl-s)) dashed #f59e0b; color: transparent;
+            animation: nclSlotPulse 1.2s ease-in-out infinite;
+        }
+        .ncl-answer-tile.ncl-answer-slot-empty:hover { background: #fffbeb; border-color: #d97706; }
+        @keyframes nclSlotPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.0); }
+            50%      { box-shadow: 0 0 0 calc(3px * var(--ncl-s)) rgba(245,158,11,0.35); }
         }
         @keyframes nclWrongShake {
             0%, 100% { transform: translateX(0); }
@@ -669,7 +692,17 @@
                     <button class="ncl-mode-btn" data-mode="l2c">🔤➜🔢 Lettres → Chiffres</button>
                 </div>
                 <button class="ncl-btn ncl-btn-clear">🗑 Effacer réponse</button>
-                <button class="ncl-btn ncl-btn-new">🔄 Nouveau</button>
+                <div class="ncl-random-group">
+                    <select class="ncl-level-select" title="Difficulté du nombre au hasard">
+                        <option value="1">Niveau 1 (10 à 100)</option>
+                        <option value="2">Niveau 2 (100 à 1 000)</option>
+                        <option value="3">Niveau 3 (1 000 à 99 999)</option>
+                        <option value="4">Niveau 4 (10 000 à 999 999 999)</option>
+                        <option value="5">Niveau 5 (10 000 à 999 999 999 999)</option>
+                    </select>
+                    <button class="ncl-btn ncl-btn-random" title="Afficher un nombre au hasard">🎲 Au hasard</button>
+                    <button class="ncl-btn ncl-btn-new">🔄 Nouveau</button>
+                </div>
             </div>
 
             <div class="ncl-target-zone">
@@ -733,6 +766,8 @@
         const modeBtns     = container.querySelectorAll('.ncl-mode-btn');
         const clearBtn      = container.querySelector('.ncl-btn-clear');
         const newBtn         = container.querySelector('.ncl-btn-new');
+        const randomBtn      = container.querySelector('.ncl-btn-random');
+        const levelSelect    = container.querySelector('.ncl-level-select');
         const inputEl       = container.querySelector('.ncl-target-input');
         const consigneEl    = container.querySelector('.ncl-consigne');
         const paletteZone   = container.querySelector('.ncl-palette-zone');
@@ -754,6 +789,7 @@
             tilesWrap.classList.add('ncl-success-active');
         }
         function clearWrongTiles() {
+            wrongSet.clear();
             answerZone.querySelectorAll('.ncl-answer-tile-wrong').forEach(el => el.classList.remove('ncl-answer-tile-wrong'));
         }
         // Surligne, parmi les étiquettes déposées, celles qui ne correspondent pas
@@ -766,6 +802,7 @@
             tileEls.forEach((el, i) => {
                 if (!matched.has(i)) {
                     el.classList.add('ncl-answer-tile-wrong');
+                    wrongSet.add(i);
                 }
             });
         }
@@ -776,6 +813,7 @@
         let targetDigits = null;          // chaîne de chiffres attendue (mode l2c)
         let studentTiles = [];            // étiquettes placées par l'élève (dans l'ordre)
         let insertCursor = null;          // position où insérer la prochaine étiquette (null = à la fin)
+        const wrongSet = new Set();       // indices des étiquettes signalées fausses (cadre rouge)
         let targetTooLong = false;        // true si le nombre tapé dépasse 12 chiffres
 
         // ── Scale proportionnel ───────────────────────────────────────────
@@ -840,6 +878,20 @@
         }
 
         function addTileToAnswer(value) {
+            // Lettres → Chiffres : s'il reste une case vidée (chiffre faux retiré),
+            // le chiffre cliqué vient la remplir sans décaler les autres.
+            const emptyIdx = (insertCursor !== null && studentTiles[insertCursor] === '')
+                ? insertCursor : studentTiles.indexOf('');
+            if (emptyIdx !== -1) {
+                studentTiles[emptyIdx] = value;
+                wrongSet.delete(emptyIdx);
+                const next = studentTiles.indexOf('');
+                insertCursor = next !== -1 ? next : null;
+                renderAnswer();
+                if (typeof saveBoard === 'function') saveBoard();
+                return;
+            }
+            wrongSet.clear();
             if (insertCursor !== null && insertCursor >= 0 && insertCursor <= studentTiles.length) {
                 studentTiles.splice(insertCursor, 0, value);
                 insertCursor = null; // une étiquette comble le trou, on repasse en mode "ajout à la fin"
@@ -870,13 +922,34 @@
                 }
                 const el = document.createElement('div');
                 el.className = 'ncl-answer-tile' + (currentMode === 'l2c' ? ' digit-tile' : '');
-                el.textContent = val;
-                el.title = 'Cliquer pour retirer';
+                const isEmptySlot = val === '';
+                el.textContent = isEmptySlot ? '0' : val; // '0' invisible : garde la taille de la case
+                const isWrong = wrongSet.has(idx);
+                if (isEmptySlot) {
+                    el.classList.add('ncl-answer-slot-empty');
+                    el.title = 'Clique sur un chiffre pour remplir cette case (ou ici pour la supprimer)';
+                } else if (isWrong) {
+                    el.classList.add('ncl-answer-tile-wrong', 'ncl-no-anim');
+                    el.title = currentMode === 'l2c' ? 'Cliquer pour effacer ce chiffre' : 'Cliquer pour retirer';
+                } else {
+                    el.title = 'Cliquer pour retirer';
+                }
                 if (animate) { el.classList.add('ncl-anim-in'); el.style.animationDelay = (idx * 90) + 'ms'; }
                 el.addEventListener('pointerdown', (e) => {
                     e.stopPropagation(); e.preventDefault();
-                    studentTiles.splice(idx, 1);
-                    insertCursor = idx;
+                    // On vérifie au moment du clic (le cadre rouge est ajouté après le rendu, lors de la validation)
+                    const wrongNow = wrongSet.has(idx) || el.classList.contains('ncl-answer-tile-wrong');
+                    if (currentMode === 'l2c' && wrongNow && !isEmptySlot) {
+                        // Chiffre faux : on vide seulement la case, sans décaler les autres
+                        studentTiles[idx] = '';
+                        wrongSet.delete(idx);
+                        insertCursor = idx;
+                    } else {
+                        // Retrait classique (ou suppression d'une case vide) : décale la suite
+                        studentTiles.splice(idx, 1);
+                        wrongSet.clear();
+                        insertCursor = idx;
+                    }
                     renderAnswer();
                     if (typeof saveBoard === 'function') saveBoard();
                 });
@@ -943,6 +1016,7 @@
             currentMode = mode;
             studentTiles = [];
             insertCursor = null;
+            wrongSet.clear();
             inputEl.value = '';
             targetTokens = null; targetDigits = null;
             modeBtns.forEach(b => b.classList.toggle('active-c2l', mode === 'c2l' && b.dataset.mode === 'c2l'));
@@ -981,6 +1055,7 @@
             e.stopPropagation();
             studentTiles = [];
             insertCursor = null;
+            wrongSet.clear();
             renderAnswer();
             resultText.classList.remove('show', 'exact', 'faux');
             hideSuccessOverlay();
@@ -992,6 +1067,7 @@
             inputEl.value = '';
             studentTiles = [];
             insertCursor = null;
+            wrongSet.clear();
             targetTokens = null; targetDigits = null;
             renderAnswer();
             updateTarget();
@@ -1001,13 +1077,66 @@
             if (typeof saveBoard === 'function') saveBoard();
         });
 
+        // ── Nombre au hasard selon le niveau ────────────────────────────────
+        const NCL_LEVELS = {
+            1: [10, 100],
+            2: [100, 1000],
+            3: [1000, 99999],
+            4: [10000, 999999999],
+            5: [10000, 999999999999]
+        };
+        let lastRandom = null;
+        function nclRandInt(min, max) {
+            return min + Math.floor(Math.random() * (max - min + 1));
+        }
+        // Tire d'abord un nombre de chiffres au hasard, puis un nombre ayant ce nombre
+        // de chiffres (dans les bornes du niveau). Sans ça, aux niveaux 4 et 5, on
+        // obtiendrait presque toujours un nombre à 9 ou 12 chiffres.
+        function nclRandomForLevel(level) {
+            const [min, max] = NCL_LEVELS[level] || NCL_LEVELS[1];
+            const minLen = String(min).length, maxLen = String(max).length;
+            let n, tries = 0;
+            do {
+                const len = nclRandInt(minLen, maxLen);
+                const lo = Math.max(min, Math.pow(10, len - 1));
+                const hi = Math.min(max, Math.pow(10, len) - 1);
+                n = nclRandInt(lo, hi);
+                tries++;
+            } while (n === lastRandom && tries < 10);
+            lastRandom = n;
+            return n;
+        }
+
+        levelSelect.addEventListener('pointerdown', (e) => e.stopPropagation());
+        levelSelect.addEventListener('mousedown', (e) => e.stopPropagation());
+        levelSelect.addEventListener('change', (e) => {
+            e.stopPropagation();
+            if (typeof saveBoard === 'function') saveBoard();
+        });
+
+        randomBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const n = nclRandomForLevel(parseInt(levelSelect.value, 10));
+            // Chiffres → Lettres : nombre affiché en chiffres (espaces entre les classes)
+            // Lettres → Chiffres : nombre affiché en lettres (traits d'union)
+            inputEl.value = currentMode === 'c2l'
+                ? n.toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')
+                : nclNumberToTokens(n).join('-');
+            studentTiles = [];
+            insertCursor = null;
+            wrongSet.clear();
+            renderAnswer();
+            updateTarget();
+            if (typeof saveBoard === 'function') saveBoard();
+        });
+
         validateBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let ok = false;
             if (currentMode === 'c2l') {
                 ok = targetTokens !== null && studentTiles.join('-') === targetTokens.join('-');
             } else {
-                ok = targetDigits !== null && studentTiles.join('') === targetDigits;
+                ok = targetDigits !== null && !studentTiles.includes('') && studentTiles.join('') === targetDigits;
             }
             resultText.classList.remove('exact', 'faux');
             hideSuccessOverlay();
@@ -1024,7 +1153,15 @@
                 resultText.textContent = '';
                 showSuccessOverlay();
             } else {
-                resultText.textContent = '❌ Ce n\'est pas encore ça, réessaie.';
+                // Lettres → Chiffres : on précise s'il manque des chiffres
+                const missing = currentMode === 'l2c' && targetDigits ? targetDigits.length - studentTiles.length : 0;
+                if (missing === 1) {
+                    resultText.textContent = '❌ Il manque un chiffre. Vérifie chaque classe.';
+                } else if (missing > 1) {
+                    resultText.textContent = '❌ Il manque ' + missing + ' chiffres. Vérifie chaque classe.';
+                } else {
+                    resultText.textContent = '❌ Ce n\'est pas encore ça, réessaie.';
+                }
                 resultText.classList.add('faux');
                 resultText.classList.add('show');
                 highlightWrongTiles();
@@ -1050,6 +1187,7 @@
             }
             studentTiles = solutionTiles;
             insertCursor = null;
+            wrongSet.clear();
             renderAnswer(true);
             resultText.textContent = '💡 Voici la solution !';
             resultText.classList.add('show');
@@ -1155,7 +1293,7 @@
 
         // ── Init ───────────────────────────────────────────────────────────
         function _onWidgetDown(e) {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' ||
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' ||
                 e.target.classList.contains('ncl-tile') ||
                 e.target.classList.contains('ncl-answer-tile') ||
                 e.target.classList.contains('ncl-mode-btn')) {
@@ -1190,11 +1328,13 @@
                     inputEl.placeholder = 'Tape un nombre en lettres, ex : cent vingt-trois';
                     if (consigneEl) consigneEl.textContent = 'Clique sur les étiquettes-chiffres pour former ce nombre.';
                 }
+                if (savedData.level && NCL_LEVELS[savedData.level]) levelSelect.value = String(savedData.level);
                 renderPalette();
                 inputEl.value = savedData.profValue || '';
                 updateTarget();
                 studentTiles = Array.isArray(savedData.studentTiles) ? savedData.studentTiles.slice() : [];
                 insertCursor = null;
+                wrongSet.clear();
                 renderAnswer();
                 if (savedData.fullboard) {
                     _isMax = true;
@@ -1221,6 +1361,7 @@
         widget._nclGetData = function () {
             return {
                 mode: currentMode,
+                level: parseInt(levelSelect.value, 10) || 1,
                 profValue: inputEl.value || '',
                 studentTiles: studentTiles.slice(),
                 containerW: container.classList.contains('wf-fullboard') ? null : container.offsetWidth,

@@ -27,8 +27,8 @@
     /* ── Wrapper externe ── */
     .widget[data-type="equipes"] .equipes-outer {
         position: relative;
-        width: 620px;
-        height: 720px;
+        width: 800px;
+        height: 600px;
         min-width: 300px;
         min-height: 220px;
         overflow: hidden;
@@ -639,8 +639,8 @@
         let _isMax = false;
 
         function equipesCollapse() {
-            const savedW = outer.offsetWidth  || parseFloat(widget.dataset.equipesW) || 620;
-            const savedH = outer.offsetHeight || parseFloat(widget.dataset.equipesH) || 720;
+            const savedW = outer.offsetWidth  || parseFloat(widget.dataset.equipesW) || 800;
+            const savedH = outer.offsetHeight || parseFloat(widget.dataset.equipesH) || 600;
             widget.dataset.equipesW = savedW;
             widget.dataset.equipesH = savedH;
 
@@ -722,8 +722,8 @@
         }
 
         function equipesExpand() {
-            const savedW    = parseFloat(widget.dataset.equipesW)        || 620;
-            const savedH    = parseFloat(widget.dataset.equipesH)        || 720;
+            const savedW    = parseFloat(widget.dataset.equipesW)        || 800;
+            const savedH    = parseFloat(widget.dataset.equipesH)        || 600;
             const savedLeft = parseFloat(widget.dataset.equipesLeftSaved);
             const savedTop  = parseFloat(widget.dataset.equipesTopSaved);
 

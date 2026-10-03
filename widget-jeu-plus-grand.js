@@ -7,8 +7,13 @@
 // hasard ne paie plus (1 chance sur 3).
 //   👤 Seul    : 20 questions chronométrées, points selon la rapidité, record.
 //   👥 À deux  : écran partagé pour le TBI (un joueur de chaque côté, multi-
-//               touch). Premier à 10 points ; une erreur bloque son côté.
-//               Pas de revanche proposée à la fin du duel.
+//               touch). Une erreur bloque son côté. Victoire au choix :
+//               premier à N points, ou le plus de points en N manches.
+//               Bouton ⏸ Pause pendant le duel.
+//               Liste de classe (bouton 📂, fichier .txt « prénom;nom ») :
+//               tirage au sort de 2 élèves par duel (chacun passe une fois
+//               par tour), scores affichés à côté du nom de chaque élève,
+//               liste visible à gauche et à droite en plein écran.
 // Nombres : jusqu'à 20, 100, 1 000, grands nombres, décimaux, fractions, calculs.
 // 3 niveaux : facile (écart large), moyen (nombres proches), difficile (pièges).
 //
@@ -409,6 +414,145 @@
         .jpg-bigstars span.on:nth-child(3) { animation-delay: .4s; }
         .jpg-medal { font-size: calc(56px * var(--jpg-s)); line-height: 1; animation: jpg-pop .5s ease-out; }
 
+        /* ── Réglages du duel ── */
+        .jpg-duelset { display: none; align-items: center; gap: calc(6px * var(--jpg-s)); }
+        .jpg-container.duel .jpg-duelset { display: inline-flex; }
+        .jpg-step {
+            display: inline-flex; align-items: center; background: #fff; border-radius: 999px; overflow: hidden;
+            box-shadow: 0 calc(3px * var(--jpg-s)) 0 #B9B2D6;
+        }
+        .jpg-step button {
+            border: none; background: transparent; color: #5B3FB0; cursor: pointer;
+            font-family: inherit; font-weight: 900; font-size: calc(15px * var(--jpg-s));
+            width: calc(26px * var(--jpg-s)); height: calc(26px * var(--jpg-s));
+        }
+        .jpg-step button:hover { background: #EFEAFB; }
+        .jpg-step span {
+            min-width: calc(26px * var(--jpg-s)); text-align: center; color: var(--encre);
+            font-family: 'Lilita One', sans-serif; font-size: calc(16px * var(--jpg-s));
+        }
+        .jpg-endlbl { color: #fff; font-weight: 800; font-size: calc(13px * var(--jpg-s)); }
+        .jpg-container:not(.duel) [data-role="class"] { display: none; }
+        .jpg-icon-btn.on { background: var(--or); color: var(--encre); }
+        .jpg-btn[hidden] { display: none; }
+        .jpg-btn-pause.on { background: var(--or); box-shadow: 0 calc(5px * var(--jpg-s)) 0 #B3840B; }
+
+        /* ── Pause ── */
+        .jpg-pause {
+            position: absolute; inset: 0; z-index: 8;
+            display: none; align-items: center; justify-content: center;
+            background: #2A1F4A; cursor: pointer; border-radius: inherit;
+        }
+        .jpg-pause.show { display: flex; animation: jpg-pop .25s ease-out; }
+        .jpg-pause-card {
+            text-align: center; color: #fff; font-family: 'Lilita One', sans-serif; font-weight: 400;
+            font-size: calc(54px * var(--jpg-s)); line-height: 1.05;
+            text-shadow: 0 calc(4px * var(--jpg-s)) 0 rgba(0,0,0,0.35);
+        }
+        .jpg-pause-card small {
+            display: block; margin-top: calc(8px * var(--jpg-s));
+            font-family: 'Nunito', sans-serif; font-weight: 800;
+            font-size: calc(15px * var(--jpg-s)); opacity: 0.8; text-shadow: none;
+        }
+
+        /* ── Fin du duel ── */
+        .jpg-final { font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: calc(36px * var(--jpg-s)); margin: calc(2px * var(--jpg-s)) 0; }
+        .jpg-final > span { display: inline-block; vertical-align: top; }
+        .jpg-final .L { color: #1F6FB5; } .jpg-final .R { color: #E0620F; }
+        .jpg-final small { display: block; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: calc(12px * var(--jpg-s)); }
+        .jpg-card .jpg-rec { font-size: calc(12px * var(--jpg-s)); color: #1C8A4F; font-weight: 900; margin: 0 0 calc(6px * var(--jpg-s)); }
+        .jpg-card .jpg-actions { margin-top: calc(4px * var(--jpg-s)); }
+
+        /* ── Panneau élèves ── */
+        .jpg-class {
+            display: none; position: absolute; top: 50px; right: 14px; width: 400px; z-index: 31;
+            max-height: calc(100% - 70px); box-sizing: border-box;
+            flex-direction: column; gap: 8px;
+            background: #fff; border-radius: 14px; padding: 12px 14px;
+            box-shadow: 0 6px 0 #B9B2D6, 0 10px 30px rgba(0,0,0,0.3);
+            font-size: 13px; line-height: 1.35; font-weight: 700; color: var(--encre);
+        }
+        .jpg-class.show { display: flex; }
+        .jpg-class-head { display: flex; align-items: baseline; gap: 8px; }
+        .jpg-class-head h4 { margin: 0; font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: 18px; }
+        .jpg-class-count { margin-left: auto; font-size: 12px; color: #6A5E8E; font-weight: 800; }
+        .jpg-class-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+        .jpg-class-tools button {
+            font-family: inherit; font-weight: 900; font-size: 12px; cursor: pointer;
+            border: none; border-radius: 10px; padding: 6px 9px; background: #EFEAFB; color: var(--encre);
+        }
+        .jpg-class-tools button:hover { background: #E1D8F8; }
+        .jpg-class-tools button:disabled { opacity: 0.4; cursor: default; }
+        .jpg-class-tools button.go { background: var(--or); }
+        .jpg-class-list { overflow-y: auto; min-height: 40px; max-height: 340px; display: flex; flex-direction: column; gap: 3px; padding-right: 2px; }
+        .jpg-class-empty { text-align: center; color: #6A5E8E; padding: 14px 6px; }
+        .jpg-st { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 8px; border-radius: 9px; background: #F7F4FE; }
+        .jpg-st:hover { background: #EFEAFB; }
+        .jpg-st-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .jpg-st-state { font-size: 11px; color: #6A5E8E; font-weight: 800; white-space: nowrap; }
+        .jpg-st.played .jpg-st-name::before { content: '✔ '; color: var(--vert); }
+        .jpg-st.absent { opacity: 0.45; }
+        .jpg-st.absent .jpg-st-name { text-decoration: line-through; }
+        .jpg-st.cur-L { box-shadow: inset 4px 0 0 #1F6FB5; background: #E3F1FF; }
+        .jpg-st.cur-R { box-shadow: inset 4px 0 0 #E0620F; background: #FFEBDD; }
+        .jpg-st-scores { display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; }
+        .jpg-sc {
+            min-width: 22px; padding: 1px 6px; border-radius: 999px; text-align: center;
+            font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: 14px; color: #fff; background: #8C82AE;
+        }
+        .jpg-sc.win { background: var(--vert); }
+        .jpg-sc.lose { background: var(--rouge); }
+        .jpg-sc.tie { background: #E0A800; }
+        .jpg-class-hint { margin: 0; font-size: 11px; color: #6A5E8E; font-weight: 700; }
+
+        /* ── Liste des élèves sur les côtés (plein écran) ── */
+        .jpg-side {
+            display: none; position: absolute; top: 14px; bottom: 14px; z-index: 2;
+            flex-direction: column; gap: 4px; box-sizing: border-box;
+            padding: 10px 8px; border-radius: 16px;
+            background: rgba(255,255,255,0.06); color: #fff; overflow: hidden;
+        }
+        .jpg-container.jpg-has-sides .jpg-side { display: flex; }
+        .jpg-side-title { font-family: 'Lilita One', sans-serif; font-weight: 400; color: var(--or); text-align: center; line-height: 1.1; margin-bottom: 2px; }
+        .jpg-side-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 3px; }
+        .jpg-side .jpg-st { background: rgba(255,255,255,0.10); color: #fff; padding: 0.22em 0.5em; border-radius: 0.6em; font-weight: 800; gap: 0.4em; flex-shrink: 0; }
+        .jpg-side .jpg-st:hover { background: rgba(255,255,255,0.18); }
+        .jpg-side .jpg-st-state { color: rgba(255,255,255,0.75); font-size: 0.75em; }
+        .jpg-side .jpg-st.cur-L { background: #1F6FB5; box-shadow: inset 0.3em 0 0 #7CC4FF; }
+        .jpg-side .jpg-st.cur-R { background: #C4540F; box-shadow: inset 0.3em 0 0 #FFC08A; }
+        .jpg-side .jpg-sc { font-size: 0.95em; min-width: 1.4em; padding: 0 0.35em; }
+        .jpg-side .jpg-st.played .jpg-st-name::before { color: #7CFFB2; }
+
+        /* ── Tirage au sort ── */
+        .jpg-arena.draw {
+            height: calc(370px * var(--jpg-s));
+            background:
+                radial-gradient(circle, rgba(255,255,255,0.06) calc(1.5px * var(--jpg-s)), transparent calc(2px * var(--jpg-s))) 0 0 / calc(24px * var(--jpg-s)) calc(24px * var(--jpg-s)),
+                linear-gradient(160deg, #3D2C8D 0%, #5B3FB0 60%, #7A55C9 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: calc(16px * var(--jpg-s)); color: #fff; padding: calc(16px * var(--jpg-s)); box-sizing: border-box;
+        }
+        .jpg-draw-title { font-family: 'Lilita One', sans-serif; font-size: calc(30px * var(--jpg-s)); color: var(--or); text-shadow: 0 calc(3px * var(--jpg-s)) 0 #B3470F; }
+        .jpg-draw-row { display: flex; align-items: center; gap: calc(14px * var(--jpg-s)); width: 100%; justify-content: center; }
+        .jpg-draw-card {
+            flex: 1; max-width: calc(270px * var(--jpg-s)); min-width: 0;
+            border-radius: calc(20px * var(--jpg-s)); padding: calc(14px * var(--jpg-s)) calc(10px * var(--jpg-s));
+            text-align: center; box-shadow: 0 calc(6px * var(--jpg-s)) 0 rgba(0,0,0,0.3);
+        }
+        .jpg-draw-card.L { background: linear-gradient(160deg, #1F6FB5, #3BA7FF); }
+        .jpg-draw-card.R { background: linear-gradient(200deg, #B3470F, #FF7A1A); }
+        .jpg-draw-card small { display: block; font-weight: 900; font-size: calc(12px * var(--jpg-s)); opacity: 0.85; text-transform: uppercase; letter-spacing: 1px; }
+        .jpg-draw-card b {
+            display: block; font-family: 'Lilita One', sans-serif; font-weight: 400;
+            font-size: calc(32px * var(--jpg-s)); line-height: 1.1; margin-top: calc(4px * var(--jpg-s));
+            min-height: 1.1em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            text-shadow: 0 calc(3px * var(--jpg-s)) 0 rgba(0,0,0,0.25);
+        }
+        .jpg-draw-card b.rolling { opacity: 0.75; }
+        .jpg-draw-card b.done { animation: jpg-pop .35s ease-out; }
+        .jpg-draw-vs { font-family: 'Lilita One', sans-serif; font-size: calc(34px * var(--jpg-s)); color: var(--or); text-shadow: 0 calc(3px * var(--jpg-s)) 0 #B3470F; }
+        .jpg-draw-info { font-weight: 800; font-size: calc(13px * var(--jpg-s)); color: rgba(255,255,255,0.85); text-align: center; min-height: 1.3em; }
+
         /* ── Aide ── */
         .jpg-help {
             display: none; position: absolute; top: 50px; right: 14px; width: 350px; z-index: 30;
@@ -560,7 +704,47 @@
         3: { time: 3500, label: 'pièges' },
     };
     const SOLO_ROUNDS = 20;
-    const DUEL_TARGET = 10;
+    const DUEL_KEY = 'jeu-plus-grand-duel';       // fin du duel (points / manches)
+    const CLASS_KEY = 'jeu-plus-grand-classe';    // liste d'élèves + scores
+    const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+    function loadDuel() {
+        const d = { end: 'goal', goal: 10, count: 10 };
+        try { Object.assign(d, JSON.parse(localStorage.getItem(DUEL_KEY) || '{}')); } catch (e) {}
+        if (d.end !== 'count') d.end = 'goal';
+        d.goal = Math.max(1, Math.min(30, d.goal | 0 || 10));
+        d.count = Math.max(3, Math.min(40, d.count | 0 || 10));
+        return d;
+    }
+    function saveDuel(d) { try { localStorage.setItem(DUEL_KEY, JSON.stringify(d)); } catch (e) {} }
+
+    // Liste d'élèves (fichier .txt « prénom;nom »)
+    // { students: [{ id, prenom, nom, absent, scores: [{ pts, opp, adv }] }], played: [id…] }
+    function loadClass() {
+        try {
+            const c = JSON.parse(localStorage.getItem(CLASS_KEY) || 'null');
+            if (c && Array.isArray(c.students)) {
+                c.played = Array.isArray(c.played) ? c.played : [];
+                c.students.forEach(st => { if (!Array.isArray(st.scores)) st.scores = []; });
+                return c;
+            }
+        } catch (e) {}
+        return { students: [], played: [] };
+    }
+    function saveClass(c) { try { localStorage.setItem(CLASS_KEY, JSON.stringify(c)); } catch (e) {} }
+    function parseClassList(text) {
+        const out = [];
+        text.replace(/^\uFEFF/, '').split(/\r\n|\r|\n/).forEach((line, i) => {
+            line = line.trim();
+            if (!line) return;
+            const parts = line.split(/[;\t,]/).map(x => x.trim().replace(/^"|"$/g, ''));
+            const prenom = parts[0] || '', nom = parts.slice(1).join(' ').trim();
+            if (!prenom && !nom) return;
+            if (i === 0 && /^pr[ée]nom$/i.test(prenom) && (!nom || /^nom$/i.test(nom))) return;   // en-tête
+            out.push({ id: 'e' + Date.now().toString(36) + '_' + out.length, prenom, nom, absent: false, scores: [] });
+        });
+        return out;
+    }
+    const fullName = (st) => (st.prenom + ' ' + st.nom).trim();
     const RECORD_KEY = 'jeu-plus-grand-records';
     const CONFETTI_COLORS = ['#FF4F5E', '#FFC933', '#2FBF71', '#3BA7FF', '#9B6BFF', '#FF7A1A'];
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
@@ -633,6 +817,7 @@
                 </div>
                 <div class="wf-btns">
                     <button class="jpg-icon-btn" data-role="sound" title="Couper le son">🔊</button>
+                    <button class="jpg-icon-btn" data-role="class" title="Élèves : charger une liste .txt et tirer au sort">📂</button>
                     <button class="jpg-icon-btn" data-role="help" title="Comment jouer ?">?</button>
                     <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
                     <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
@@ -654,6 +839,16 @@
                     <option value="small">⬇️ Le plus petit</option>
                     <option value="mix">🔀 Mélangé</option>
                 </select>
+                <div class="jpg-duelset" title="Qui gagne le duel ?">
+                    <div class="jpg-seg">
+                        <button data-end="goal" title="Le premier qui atteint ce nombre de points gagne">🏁 Premier à</button>
+                        <button data-end="count" title="Le plus de points après ce nombre de manches">🔢 En</button>
+                    </div>
+                    <div class="jpg-step">
+                        <button data-step="-1" title="Moins">−</button><span data-role="endn">10</span><button data-step="1" title="Plus">+</button>
+                    </div>
+                    <span class="jpg-endlbl" data-role="endlbl">points</span>
+                </div>
             </div>
 
             <div class="jpg-arena"></div>
@@ -665,6 +860,7 @@
 
             <div class="jpg-actions">
                 <button class="jpg-btn jpg-btn-go" data-act="start">▶ Jouer</button>
+                <button class="jpg-btn jpg-btn-pause" data-act="pause" hidden>⏸ Pause</button>
                 <button class="jpg-btn" data-act="stop">⏹ Arrêter</button>
             </div>
           </div>
@@ -673,9 +869,24 @@
                 <h4>⚖️ Comment jouer ?</h4>
                 <p>Trois nombres apparaissent : tape <b>le plus vite possible</b> sur le plus grand (ou le plus petit, selon la consigne affichée).</p>
                 <p>👤 <b>Seul</b> : 20 questions, chacune avec un temps limité. Plus tu es rapide, plus tu gagnes de points !</p>
-                <p>👥 <b>À deux</b> (au TBI) : un joueur de chaque côté de l'écran. Le premier qui tape le bon nombre marque le point. Si tu te trompes, ton côté est <b>bloqué 🔒</b> pour cette manche. Premier à ${DUEL_TARGET} points !</p>
+                <p>👥 <b>À deux</b> (au TBI) : un joueur de chaque côté de l'écran. Le premier qui tape le bon nombre marque le point. Si tu te trompes, ton côté est <b>bloqué 🔒</b> pour cette manche. Victoire : <b>premier à N points</b> ou <b>le plus de points en N manches</b> (au choix). ⏸ Pause possible pendant le duel.</p>
+                <p>📂 À deux, chargez une liste d'élèves (.txt, une ligne <b>prénom;nom</b>) : deux élèves sont tirés au sort pour chaque duel et leurs scores s'affichent à côté de leur nom.</p>
                 <p>Clavier : seul <b>1</b> / <b>2</b> / <b>3</b> (ou ← / ↓ / →) · à deux : joueur bleu <b>A</b> / <b>Z</b> / <b>E</b>, joueur orange <b>I</b> / <b>O</b> / <b>P</b>.</p>
                 <p style="margin:0">😊 <b>Facile</b> : nombres bien différents. 😐 <b>Moyen</b> : nombres proches. 😤 <b>Difficile</b> : pièges (3,5 et 3,25 ; 358 et 385…).</p>
+            </div>
+            <div class="jpg-side jpg-side-L"><div class="jpg-side-title">📂 Élèves</div><div class="jpg-side-list"></div></div>
+            <div class="jpg-side jpg-side-R"><div class="jpg-side-title">📂 Élèves</div><div class="jpg-side-list"></div></div>
+            <div class="jpg-class">
+                <div class="jpg-class-head"><h4>📂 Élèves</h4><span class="jpg-class-count"></span></div>
+                <div class="jpg-class-tools">
+                    <button data-cl="load" title="Fichier .txt : une ligne par élève, prénom;nom">📂 Charger une liste .txt</button>
+                    <button data-cl="draw" class="go">🎲 Tirer au sort</button>
+                    <button data-cl="reset" title="Effacer les scores et recommencer le tour">♻️ Scores à zéro</button>
+                    <button data-cl="clear" title="Retirer la liste d'élèves">🗑</button>
+                </div>
+                <div class="jpg-class-list"></div>
+                <p class="jpg-class-hint">Fichier .txt : une ligne par élève, <b>prénom;nom</b>. Touchez un élève pour le marquer absent / présent. ✔ = a déjà joué dans ce tour.</p>
+                <input type="file" class="jpg-class-file" accept=".txt,.csv,text/plain" hidden>
             </div>
             <div class="jpg-confetti"></div>
             <div class="jpg-rh jpg-rh-nw" data-dir="nw"></div>
@@ -705,12 +916,20 @@
         const typeSel  = $('[data-role="type"]');
         const orderSel = $('[data-role="order"]');
         const lvlBtns  = container.querySelectorAll('.jpg-lvl');
-        const modeBtns = container.querySelectorAll('.jpg-seg button');
+        const modeBtns = container.querySelectorAll('.jpg-seg button[data-mode]');
         const btn = (a) => container.querySelector(`[data-act="${a}"]`);
+        const classBtn  = $('[data-role="class"]');
+        const classBox  = $('.jpg-class');
+        const classList = $('.jpg-class-list');
+        const classFile = $('.jpg-class-file');
+        const clBtn = (a) => classBox.querySelector(`[data-cl="${a}"]`);
+        const sideL = $('.jpg-side-L'), sideR = $('.jpg-side-R');
+        const endBtns = container.querySelectorAll('[data-end]');
+        const endN = $('[data-role="endn"]'), endLbl = $('[data-role="endlbl"]');
 
         // ── État ───────────────────────────────────────────────────────────
         let mode = 'solo', level = 1, type = 'n20', orderMode = 'big';
-        let state = 'idle';          // idle | wait | go | result | over
+        let state = 'idle';          // idle | draw | wait | go | result | over
         let runId = 0;
         let pair = null, order = 'big', t0 = 0;
         // Solo
@@ -718,6 +937,23 @@
         // Duel
         let pts = { L: 0, R: 0 }, locked = { L: false, R: false }, names = { L: 'Joueur bleu', R: 'Joueur orange' }, duelRound = 0;
         let soundOn = true;
+        let DS = loadDuel();          // fin du duel : { end: 'goal' | 'count', goal, count }
+        let CL = loadClass();         // liste d'élèves
+        let duo = null;               // { L: id, R: id } : élèves tirés au sort
+        let rolling = false;          // animation de tirage en cours
+        // Pause : une horloge qui s'arrête quand le jeu est en pause
+        let paused = false, pauseStart = 0, pausedTotal = 0;
+        const clock = () => performance.now() - pausedTotal - (paused ? performance.now() - pauseStart : 0);
+        const pwait = (ms) => new Promise(res => {
+            const end = clock() + ms;
+            const tick = () => {
+                const left = end - clock();
+                if (left <= 0) res();
+                else setTimeout(tick, paused ? 100 : Math.min(left, 100));
+            };
+            tick();
+        });
+        const playing = () => state === 'wait' || state === 'go' || state === 'result';
         let records = {};
         try { records = JSON.parse(localStorage.getItem(RECORD_KEY) || '{}'); } catch (e) { records = {}; }
         const recKey = () => `${type}-${level}-${orderMode}`;
@@ -726,9 +962,28 @@
         // ── Échelle proportionnelle ────────────────────────────────────────
         const BASE_W = 700;
         function applyScale() {
-            const w = container.clientWidth || BASE_W;
+            const full = container.classList.contains('wf-fullboard');
+            // Plein écran + duel + liste chargée : les élèves s'affichent à gauche et à droite
+            const sides = full && mode === 'duel' && CL.students.length > 0;
+            container.classList.toggle('jpg-has-sides', sides);
+            let reserve = 0;
+            if (sides) {
+                const cw = container.clientWidth;
+                const sideW = Math.round(Math.max(150, Math.min(280, cw * 0.17)));
+                const gap = 14;
+                sideL.style.left = (40 + gap) + 'px'; sideL.style.width = sideW + 'px';
+                sideR.style.right = gap + 'px';      sideR.style.width = sideW + 'px';
+                container.style.setProperty('padding-left', (40 + sideW + 2 * gap) + 'px', 'important');
+                container.style.setProperty('padding-right', (sideW + 2 * gap) + 'px', 'important');
+                reserve = 2 * sideW + 3 * gap + 26;
+                renderSides();
+            } else {
+                container.style.removeProperty('padding-left');
+                container.style.removeProperty('padding-right');
+            }
+            const w = (container.clientWidth - reserve) || BASE_W;
             let sc = w / BASE_W;
-            if (container.classList.contains('wf-fullboard')) {
+            if (full) {
                 container.style.setProperty('--jpg-s', '1');
                 const natH = inner.offsetHeight + 26;
                 const availH = container.clientHeight;
@@ -773,7 +1028,7 @@
                 const half = (side, keys) => `
                     <div class="jpg-half ${side}" data-side="${side}">
                         <div class="jpg-phead">
-                            <input class="jpg-pname" value="${names[side]}" maxlength="16" title="Clique pour écrire le nom">
+                            <input class="jpg-pname" value="${esc(names[side])}" maxlength="16" title="Clique pour écrire le nom">
                             <div class="jpg-pscore">${pts[side]}</div>
                         </div>
                         <div class="jpg-order big">${orderHTMLshort(orderMode === 'small' ? 'small' : 'big')}</div>
@@ -786,10 +1041,15 @@
                     </div>`;
                 arena.innerHTML = `
                     ${half('L', 'clavier : A / Z / E')}
-                    <div class="jpg-mid"><small>Manche</small><b data-role="dround">0</b><small>Premier à ${DUEL_TARGET}</small></div>
+                    <div class="jpg-mid"><small>Manche</small><b data-role="dround">0</b><small data-role="endtxt">${endTxt()}</small></div>
                     ${half('R', 'clavier : I / O / P')}
                     <div class="jpg-ready"></div>
+                    <div class="jpg-pause"><div class="jpg-pause-card">⏸<br>Pause<small>Touchez ici ou sur ▶ Reprendre pour continuer</small></div></div>
                     <div class="jpg-overlay"><div class="jpg-card"></div></div>`;
+                arena.querySelector('.jpg-pause').addEventListener('pointerdown', (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    if (paused) togglePause();
+                });
                 arena.querySelectorAll('.jpg-pname').forEach(inp => {
                     const side = inp.closest('.jpg-half').dataset.side;
                     inp.addEventListener('input', () => { names[side] = inp.value.trim() || (side === 'L' ? 'Joueur bleu' : 'Joueur orange'); });
@@ -856,16 +1116,16 @@
             const r = readyEl();
             if (mode === 'duel') {
                 duelRound++;
-                const dr = arena.querySelector('[data-role="dround"]'); if (dr) dr.textContent = duelRound;
+                const dr = arena.querySelector('[data-role="dround"]'); if (dr) dr.textContent = DS.end === 'count' ? `${duelRound}/${DS.count}` : duelRound;
             }
             // Petite attente aléatoire : impossible d'anticiper
-            await wait(mode === 'duel' ? 700 + Math.random() * 900 : 350 + Math.random() * 450);
+            await pwait(mode === 'duel' ? 700 + Math.random() * 900 : 350 + Math.random() * 450);
             if (id !== runId) return;
             r.classList.remove('show');
             showPair();
             sfx('go');
             state = 'go';
-            t0 = performance.now();
+            t0 = clock();
             if (mode === 'solo') runTimer(id);
             else duelTimeout(id);
         }
@@ -874,7 +1134,7 @@
             const tb = arena.querySelector('.jpg-timebar');
             const step = () => {
                 if (id !== runId || state !== 'go' || !widget.isConnected) return;
-                const el = performance.now() - t0;
+                const el = clock() - t0;
                 const k = Math.max(0, 1 - el / limit);
                 tb.firstElementChild.style.width = (k * 100) + '%';
                 tb.classList.toggle('low', k < 0.3);
@@ -884,18 +1144,18 @@
             requestAnimationFrame(step);
         }
         async function duelTimeout(id) {
-            await wait(JPG_LEVELS[level].time + 3000);
+            await pwait(JPG_LEVELS[level].time + 3000);
             if (id !== runId || state !== 'go') return;
             state = 'result';
             numBtns('L')[0] && [...numBtns('L'), ...numBtns('R')].forEach(b => { if (+b.dataset.k === correctIdx()) b.classList.add('hint'); });
             say(`⏱ Personne n'a répondu à temps ! ${explainTxt()}`);
-            await wait(1600);
-            if (id === runId) newRound();
+            await pwait(1600);
+            duelNext(id);
         }
 
         // ── Réponses ───────────────────────────────────────────────────────
         function answer(side, k) {
-            if (state !== 'go') return;
+            if (state !== 'go' || paused) return;
             if (mode === 'solo') { if (side === 'S') soloResult(k); return; }
             if (locked[side]) return;
             duelAnswer(side, k);
@@ -903,7 +1163,7 @@
         async function soloResult(k) {
             const id = runId;
             state = 'result';
-            const ms = performance.now() - t0;
+            const ms = clock() - t0;
             const ci = correctIdx();
             const bs = numBtns('S');
             round++;
@@ -946,12 +1206,11 @@
                 sc.textContent = pts[side];
                 sc.classList.remove('bump'); void sc.offsetWidth; sc.classList.add('bump');
                 sfx(side === 'L' ? 'pointL' : 'pointR');
-                const ms = ((performance.now() - t0) / 1000).toFixed(2).replace('.', ',');
-                say(`${side === 'L' ? '🔵' : '🟠'} Point pour <b>${esc(names[side])}</b> en ${ms} s ! ${explainTxt()}`, 'good');
-                await wait(1300);
-                if (id !== runId) return;
-                if (pts[side] >= DUEL_TARGET) duelEnd(side);
-                else newRound();
+                const ms = ((clock() - t0) / 1000).toFixed(2).replace('.', ',');
+                const balle = DS.end === 'goal' && pts[side] === DS.goal - 1 ? ' ⚡ Balle de match !' : '';
+                say(`${side === 'L' ? '🔵' : '🟠'} Point pour <b>${esc(names[side])}</b> en ${ms} s ! ${explainTxt()}${balle}`, 'good');
+                await pwait(1300);
+                duelNext(id);
             } else {
                 locked[side] = true;
                 bs.forEach(b => { if (+b.dataset.k === k) b.classList.add('ko'); });
@@ -962,8 +1221,8 @@
                     state = 'result';
                     [...numBtns('L'), ...numBtns('R')].forEach(b => { if (+b.dataset.k === ci) b.classList.add('hint'); });
                     say(`😅 Les deux joueurs se sont trompés ! ${explainTxt()}`, 'bad');
-                    await wait(1800);
-                    if (id === runId) newRound();
+                    await pwait(1800);
+                    duelNext(id);
                 }
             }
         }
@@ -995,17 +1254,36 @@
             ov.querySelector('[data-act="again"]').addEventListener('click', (e) => { e.stopPropagation(); start(); });
             updateButtons();
         }
-        function duelEnd(side) {
+        // Après chaque manche : fin du duel ou manche suivante
+        function duelNext(id) {
+            if (id !== runId) return;
+            if (DS.end === 'goal' && (pts.L >= DS.goal || pts.R >= DS.goal)) duelEnd();
+            else if (DS.end === 'count' && duelRound >= DS.count) duelEnd();
+            else newRound();
+        }
+        function duelEnd() {
+            resetPause();
             state = 'over';
+            runId++;
             const ov = overlay();
+            const tie = pts.L === pts.R;
+            const side = pts.L > pts.R ? 'L' : 'R';
+            const recorded = recordDuel();
+            const finalHTML = `<div class="jpg-final"><span class="L">${pts.L}<small>${esc(names.L)}</small></span> – <span class="R">${pts.R}<small>${esc(names.R)}</small></span></div>`;
             ov.querySelector('.jpg-card').innerHTML = `
-                <div class="jpg-medal">${side === 'L' ? '🔵' : '🟠'}🏆</div>
-                <h3>${esc(names[side])} gagne !</h3>
-                <p>${pts.L} – ${pts.R}</p>
-                <p class="jpg-sub">en ${duelRound} manche${duelRound > 1 ? 's' : ''}</p>`;
+                <div class="jpg-medal">${tie ? '🤝' : (side === 'L' ? '🔵' : '🟠') + '🏆'}</div>
+                <h3>${tie ? 'Égalité parfaite !' : esc(names[side]) + ' gagne !'}</h3>
+                ${finalHTML}
+                <p class="jpg-sub">en ${duelRound} manche${duelRound > 1 ? 's' : ''}</p>
+                ${recorded ? '<p class="jpg-rec">✔ Scores ajoutés dans la liste 📂</p>' : ''}
+                ${hasClass() ? '<div class="jpg-actions"><button class="jpg-btn jpg-btn-go" data-act="next">🎲 Duel suivant</button></div>' : ''}`;
             ov.classList.add('show');
             sfx('win'); party();
-            say(`🏆 Victoire de <b>${esc(names[side])}</b> ${pts.L} à ${pts.R} ! Bravo !`, 'good');
+            say(tie
+                ? `🤝 Égalité ${pts.L} à ${pts.R} ! Bravo à tous les deux.`
+                : `🏆 Victoire de <b>${esc(names[side])}</b> ${pts.L} à ${pts.R} ! Bravo !`, 'good');
+            const nx = ov.querySelector('[data-act="next"]');
+            if (nx) nx.addEventListener('click', (e) => { e.stopPropagation(); showDraw(true); });
             updateButtons();
         }
         function party() {
@@ -1020,14 +1298,298 @@
             setTimeout(() => { confetti.innerHTML = ''; }, 2500);
         }
 
+        // ── Fin du duel : premier à N points / N manches ──────────────────
+        const endTxt = () => DS.end === 'goal' ? `Premier à ${DS.goal}` : `En ${DS.count} manches`;
+        function syncDuelSet() {
+            endBtns.forEach(b => b.classList.toggle('active', b.dataset.end === DS.end));
+            endN.textContent = DS.end === 'goal' ? DS.goal : DS.count;
+            const n = DS.end === 'goal' ? DS.goal : DS.count;
+            endLbl.textContent = DS.end === 'goal' ? (n > 1 ? 'points' : 'point') : 'manches';
+            const et = arena.querySelector('[data-role="endtxt"]');
+            if (et) et.textContent = endTxt();
+        }
+        function duelSetChanged() {
+            saveDuel(DS); syncDuelSet();
+            if (playing()) reset('⚙️ Réglage modifié : le duel est arrêté. Cliquez sur <b>▶ Jouer</b> pour relancer.');
+        }
+        endBtns.forEach(b => b.addEventListener('click', () => { DS.end = b.dataset.end; duelSetChanged(); }));
+        container.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => {
+            const d = +b.dataset.step;
+            if (DS.end === 'goal') DS.goal = Math.max(1, Math.min(30, DS.goal + d));
+            else DS.count = Math.max(3, Math.min(40, DS.count + d));
+            duelSetChanged();
+        }));
+        syncDuelSet();
+
+        // ── Pause (duel) ───────────────────────────────────────────────────
+        function resetPause() {
+            paused = false; pauseStart = 0; pausedTotal = 0;
+            rolling = false;
+            const p = arena.querySelector('.jpg-pause');
+            if (p) p.classList.remove('show');
+        }
+        function togglePause() {
+            if (mode !== 'duel' || !playing()) return;
+            const p = arena.querySelector('.jpg-pause');
+            if (!paused) {
+                paused = true; pauseStart = performance.now();
+                if (p) p.classList.add('show');
+                say('⏸ Duel en pause. Cliquez sur <b>▶ Reprendre</b> pour continuer.');
+            } else {
+                pausedTotal += performance.now() - pauseStart;
+                paused = false;
+                if (p) p.classList.remove('show');
+                say(`▶ C'est reparti ! (${esc(names.L)} ${pts.L} – ${pts.R} ${esc(names.R)})`);
+            }
+            updateButtons();
+            container.focus({ preventScroll: true });
+        }
+        btn('pause').addEventListener('click', (e) => { e.stopPropagation(); togglePause(); });
+
+        // ── Élèves : liste, tirage au sort, scores ────────────────────────
+        const hasClass = () => mode === 'duel' && CL.students.filter(st => !st.absent).length >= 2;
+        const stById = (id) => CL.students.find(st => st.id === id);
+        function shortName(st) {
+            if (!st) return '';
+            const n = st.nom ? ' ' + st.nom.charAt(0).toUpperCase() + '.' : '';
+            return (st.prenom || st.nom) + n;
+        }
+        function renderClass() {
+            const present = CL.students.filter(st => !st.absent);
+            const played = present.filter(st => CL.played.indexOf(st.id) >= 0).length;
+            $('.jpg-class-count').textContent = CL.students.length
+                ? `${present.length} présent${present.length > 1 ? 's' : ''} · ${played} ont joué` : '';
+            classBtn.classList.toggle('on', CL.students.length > 0);
+            clBtn('draw').disabled = !hasClass() || playing() || rolling;
+            clBtn('reset').disabled = !CL.students.length;
+            clBtn('clear').disabled = !CL.students.length;
+            const wantSides = container.classList.contains('wf-fullboard') && mode === 'duel' && CL.students.length > 0;
+            if (wantSides !== container.classList.contains('jpg-has-sides')) requestAnimationFrame(applyScale);
+            if (!CL.students.length) {
+                classList.innerHTML = '<div class="jpg-class-empty">Aucune liste chargée.<br>Cliquez sur <b>📂 Charger une liste .txt</b>.</div>';
+                return;
+            }
+            classList.innerHTML = CL.students.map(st => {
+                const cls = ['jpg-st'];
+                if (CL.played.indexOf(st.id) >= 0) cls.push('played');
+                if (st.absent) cls.push('absent');
+                if (duo && duo.L === st.id) cls.push('cur-L');
+                if (duo && duo.R === st.id) cls.push('cur-R');
+                const sc = st.scores.map(r => {
+                    const k = r.pts > r.opp ? 'win' : r.pts < r.opp ? 'lose' : 'tie';
+                    return `<span class="jpg-sc ${k}" title="${esc(r.pts + ' – ' + r.opp + ' contre ' + r.adv)}">${r.pts}</span>`;
+                }).join('');
+                const stateTxt = st.absent ? 'absent' : (duo && (duo.L === st.id || duo.R === st.id)) ? 'au tableau' : '';
+                return `<div class="${cls.join(' ')}" data-id="${st.id}">
+                    <span class="jpg-st-name">${esc(fullName(st))}</span>
+                    ${stateTxt ? `<span class="jpg-st-state">${stateTxt}</span>` : ''}
+                    <span class="jpg-st-scores">${sc}</span>
+                </div>`;
+            }).join('');
+            renderSides();
+        }
+        // Colonnes latérales (plein écran) : 1re moitié à gauche, 2e moitié à droite
+        function renderSides() {
+            if (!container.classList.contains('jpg-has-sides')) return;
+            const rows = classList.querySelectorAll('.jpg-st');
+            const half = Math.ceil(rows.length / 2);
+            const lists = [sideL.querySelector('.jpg-side-list'), sideR.querySelector('.jpg-side-list')];
+            lists.forEach(l => { l.innerHTML = ''; });
+            rows.forEach((r, i) => lists[i < half ? 0 : 1].appendChild(r.cloneNode(true)));
+            const n = half || 1;
+            const h = sideL.clientHeight || (container.clientHeight - 28);
+            const fs = Math.max(10, Math.min(20, ((h - 50) / n - 3) * 0.52));
+            [sideL, sideR].forEach(sd => {
+                sd.querySelector('.jpg-side-list').style.fontSize = fs + 'px';
+                sd.querySelector('.jpg-side-title').style.fontSize = Math.max(14, Math.min(22, fs * 1.15)) + 'px';
+            });
+        }
+        function toggleAbsent(id) {
+            const st = stById(id);
+            if (!st) return;
+            if (duo && (duo.L === st.id || duo.R === st.id) && (playing() || rolling)) return;
+            st.absent = !st.absent;
+            if (st.absent && duo && (duo.L === st.id || duo.R === st.id)) {
+                duo = null;
+                if (state === 'draw') showDraw(true);
+            }
+            saveClass(CL); renderClass();
+        }
+        classList.addEventListener('click', (e) => { const r = e.target.closest('.jpg-st'); if (r) toggleAbsent(r.dataset.id); });
+        [sideL, sideR].forEach(sd => sd.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const r = e.target.closest('.jpg-st'); if (r) toggleAbsent(r.dataset.id);
+        }));
+
+        // Lecture du fichier (UTF-8, ou Windows-1252 pour les exports Excel)
+        const readText = (file, enc) => new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result); r.onerror = () => rej(r.error);
+            r.readAsText(file, enc);
+        });
+        classFile.addEventListener('change', async () => {
+            const f = classFile.files && classFile.files[0];
+            classFile.value = '';
+            if (!f) return;
+            let txt = '';
+            try {
+                txt = await readText(f, 'utf-8');
+                if (txt.indexOf('\uFFFD') >= 0) txt = await readText(f, 'windows-1252');
+            } catch (e) { say('⚠️ Impossible de lire ce fichier.', 'bad'); return; }
+            const list = parseClassList(txt);
+            if (list.length < 2) { say('⚠️ Il faut au moins 2 élèves dans le fichier (une ligne par élève : <b>prénom;nom</b>).', 'bad'); return; }
+            if (CL.students.some(st => st.scores.length) && !confirm('Remplacer la liste actuelle ? Les scores enregistrés seront effacés.')) return;
+            CL = { students: list, played: [] };
+            duo = null;
+            saveClass(CL); renderClass();
+            classBox.classList.add('show');
+            say(`✅ <b>${list.length} élèves</b> chargés ! Cliquez sur <b>🎲 Tirer au sort</b> ou <b>▶ Jouer</b>.`, 'good');
+            if (state === 'draw') showDraw(true);
+        });
+
+        // Choix de 2 élèves : d'abord ceux qui n'ont pas encore joué dans le tour
+        function pickDuo() {
+            const present = CL.students.filter(st => !st.absent);
+            let notice = '';
+            let pool = present.filter(st => CL.played.indexOf(st.id) < 0);
+            if (pool.length === 0) { CL.played = []; pool = present.slice(); notice = '🔁 Tout le monde a joué : nouveau tour !'; }
+            shuffle(pool);
+            let a = pool[0], b = pool[1];
+            if (!b) {
+                b = shuffle(present.filter(st => st.id !== a.id))[0];
+                notice = `Dernier élève du tour : <b>${esc(shortName(b))}</b> est repêché pour l'affronter.`;
+            }
+            if (Math.random() < 0.5) [a, b] = [b, a];
+            return { duo: { L: a.id, R: b.id }, notice };
+        }
+        function applyDuoNames() {
+            if (!duo) return;
+            names.L = shortName(stById(duo.L)) || 'Joueur bleu';
+            names.R = shortName(stById(duo.R)) || 'Joueur orange';
+        }
+        function showDraw(roll) {
+            if (!hasClass()) { reset(); return; }
+            runId++;
+            resetPause();
+            state = 'draw';
+            arena.className = 'jpg-arena draw';
+            arena.innerHTML = `
+                <div class="jpg-draw-title">🎲 Tirage au sort</div>
+                <div class="jpg-draw-row">
+                    <div class="jpg-draw-card L"><small>Joueur bleu</small><b data-side="L">?</b></div>
+                    <div class="jpg-draw-vs">VS</div>
+                    <div class="jpg-draw-card R"><small>Joueur orange</small><b data-side="R">?</b></div>
+                </div>
+                <div class="jpg-draw-info"></div>
+                <div class="jpg-actions"><button class="jpg-btn" data-dr="again">🎲 Nouveau tirage</button></div>`;
+            arena.querySelector('[data-dr="again"]').addEventListener('click', () => { if (!rolling) { duo = null; showDraw(true); } });
+            updateButtons();
+            requestAnimationFrame(applyScale);
+            if (roll || !duo || !stById(duo.L) || !stById(duo.R)) rollDraw();
+            else finishDraw('');
+        }
+        function rollDraw() {
+            const id = runId;
+            const res = pickDuo();
+            const present = CL.students.filter(st => !st.absent);
+            const els = [...arena.querySelectorAll('.jpg-draw-card b')];
+            rolling = true; duo = null;
+            updateButtons();
+            say('🎲 Tirage au sort en cours…');
+            let n = 0;
+            const total = 14;
+            const step = () => {
+                if (id !== runId) return;
+                if (n < total) {
+                    els.forEach(el => { el.classList.add('rolling'); el.textContent = shortName(rnd(present)); });
+                    if (n % 2 === 0) sfx('tick');
+                    n++;
+                    setTimeout(step, 50 + n * n);     // ralentit progressivement
+                    return;
+                }
+                duo = res.duo; rolling = false;
+                finishDraw(res.notice);
+            };
+            step();
+        }
+        function finishDraw(notice) {
+            applyDuoNames();
+            const stL = stById(duo.L), stR = stById(duo.R);
+            arena.querySelectorAll('.jpg-draw-card b').forEach(el => {
+                const st = el.dataset.side === 'L' ? stL : stR;
+                el.classList.remove('rolling', 'done'); void el.offsetWidth; el.classList.add('done');
+                el.textContent = shortName(st); el.title = fullName(st);
+            });
+            const present = CL.students.filter(st => !st.absent);
+            const played = present.filter(st => CL.played.indexOf(st.id) >= 0).length;
+            const info = arena.querySelector('.jpg-draw-info');
+            if (info) info.innerHTML = (notice ? notice + '<br>' : '') + `Déjà passés dans ce tour : ${played} / ${present.length}`;
+            sfx('pointL');
+            say(`🎲 <b>${esc(fullName(stL))}</b> 🔵 contre 🟠 <b>${esc(fullName(stR))}</b> ! Venez au tableau, puis <b>▶ Jouer</b>.`, 'good');
+            updateButtons();
+        }
+        function recordDuel() {
+            if (!duo) return false;
+            const stL = stById(duo.L), stR = stById(duo.R);
+            if (!stL || !stR) { duo = null; return false; }
+            stL.scores.push({ pts: pts.L, opp: pts.R, adv: fullName(stR) });
+            stR.scores.push({ pts: pts.R, opp: pts.L, adv: fullName(stL) });
+            [stL.id, stR.id].forEach(id => { if (CL.played.indexOf(id) < 0) CL.played.push(id); });
+            duo = null;
+            saveClass(CL); renderClass();
+            return true;
+        }
+
+        // Boutons du panneau
+        classBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            helpBox.classList.remove('show');
+            if (!CL.students.length) { classFile.click(); return; }
+            renderClass();
+            classBox.classList.toggle('show');
+        });
+        classBox.addEventListener('click', (e) => e.stopPropagation());
+        clBtn('load').addEventListener('click', () => classFile.click());
+        clBtn('draw').addEventListener('click', () => { classBox.classList.remove('show'); duo = null; showDraw(true); });
+        clBtn('reset').addEventListener('click', () => {
+            if (!confirm('Effacer tous les scores et recommencer le tour de tirage ?')) return;
+            CL.students.forEach(st => { st.scores = []; });
+            CL.played = [];
+            saveClass(CL); renderClass();
+            say('♻️ Scores remis à zéro : tout le monde peut de nouveau être tiré au sort.');
+        });
+        clBtn('clear').addEventListener('click', () => {
+            if (!confirm('Retirer la liste d\'élèves et leurs scores ?')) return;
+            CL = { students: [], played: [] };
+            duo = null;
+            names = { L: 'Joueur bleu', R: 'Joueur orange' };
+            saveClass(CL); renderClass();
+            if (state === 'draw') reset();
+            say('🗑 Liste d\'élèves retirée.');
+        });
+
         // ── Démarrer / arrêter ─────────────────────────────────────────────
         function updateButtons() {
-            btn('start').textContent = state === 'idle' || state === 'over' ? '▶ Jouer' : '🔄 Recommencer';
-            btn('stop').disabled = state === 'idle' || state === 'over';
+            btn('start').textContent = playing() ? '🔄 Recommencer' : '▶ Jouer';
+            btn('start').disabled = rolling;
+            btn('stop').disabled = !playing();
+            const pb = btn('pause');
+            pb.hidden = !(mode === 'duel' && playing());
+            pb.textContent = paused ? '▶ Reprendre' : '⏸ Pause';
+            pb.title = paused ? 'Reprendre le duel' : 'Mettre le duel en pause';
+            pb.classList.toggle('on', paused);
+            renderClass();
         }
         async function start() {
+            if (rolling) return;
+            // Duel avec une liste d'élèves : on passe d'abord par le tirage au sort
+            if (hasClass() && (state === 'idle' || state === 'over' || !duo)) {
+                if (state !== 'draw' || !duo) { showDraw(!duo); return; }
+            }
+            if (mode === 'duel') applyDuoNames();
             container.focus({ preventScroll: true });
             runId++;
+            resetPause();
             round = 0; good = 0; score = 0; streak = 0; times = [];
             pts = { L: 0, R: 0 }; duelRound = 0;
             buildArena();
@@ -1039,24 +1601,30 @@
             for (const t of ['3', '2', '1']) {
                 r.textContent = t; r.classList.remove('show'); void r.offsetWidth; r.classList.add('show');
                 sfx('tick');
-                await wait(550);
+                await pwait(550);
                 if (id !== runId) return;
             }
             r.textContent = 'Partez !'; r.classList.remove('show'); void r.offsetWidth; r.classList.add('show');
-            say(mode === 'solo' ? `⚡ ${SOLO_ROUNDS} questions : sois rapide et précis !` : `⚡ Premier à ${DUEL_TARGET} points ! Attention : une erreur bloque ton côté pour la manche.`);
-            await wait(400);
+            say(mode === 'solo' ? `⚡ ${SOLO_ROUNDS} questions : sois rapide et précis !`
+                : `⚡ ${DS.end === 'goal' ? `Premier à ${DS.goal} point${DS.goal > 1 ? 's' : ''} !` : `${DS.count} manches : le plus de points gagne !`} Attention : une erreur bloque ton côté pour la manche.`);
+            await pwait(400);
             if (id !== runId) return;
             newRound();
         }
         function reset(message) {
             runId++;
+            resetPause();
             state = 'idle';
+            if (mode !== 'duel') classBox.classList.remove('show');
             buildArena();
             updateStats(false);
             updateButtons();
             say(message || (mode === 'solo'
                 ? '⚖️ Clique sur <b>▶ Jouer</b> : trois nombres vont apparaître, tape vite sur le bon !'
-                : '👥 Un joueur de chaque côté du tableau ! Écrivez vos noms puis cliquez sur <b>▶ Jouer</b>.'));
+                : hasClass()
+                    ? '👥 Cliquez sur <b>▶ Jouer</b> : deux élèves de la liste 📂 seront tirés au sort.'
+                    : '👥 Un joueur de chaque côté du tableau ! Écrivez vos noms puis cliquez sur <b>▶ Jouer</b>. (📂 pour charger une liste d\'élèves)'));
+            requestAnimationFrame(applyScale);
         }
         btn('start').addEventListener('click', start);
         btn('stop').addEventListener('click', () => reset('⏹ Partie arrêtée.'));
@@ -1085,7 +1653,8 @@
             if (!ae || !widget.contains(ae) || ae.tagName === 'SELECT' || ae.tagName === 'INPUT') return;
             if (e.ctrlKey || e.metaKey || e.altKey) return;
             const k = e.key.toLowerCase();
-            if ((k === 'enter' || k === ' ') && (state === 'idle' || (state === 'over' && mode === 'solo'))) { e.preventDefault(); start(); return; }
+            if ((k === 'enter' || k === ' ') && (state === 'idle' || state === 'draw' || (state === 'over' && mode === 'solo'))) { e.preventDefault(); start(); return; }
+            if ((k === ' ' || k === 'escape') && mode === 'duel' && playing()) { e.preventDefault(); togglePause(); return; }
             const pick = (side, i) => { const b = numBtns(side)[i]; if (b) { e.preventDefault(); answer(side, +b.dataset.k); } };
             if (mode === 'solo') {
                 if (k === 'arrowleft' || k === '1' || k === '&') pick('S', 0);
@@ -1108,10 +1677,11 @@
             soundBtn.textContent = soundOn ? '🔊' : '🔇';
             soundBtn.title = soundOn ? 'Couper le son' : 'Activer le son';
         });
-        helpBtn.addEventListener('click', (e) => { e.stopPropagation(); helpBox.classList.toggle('show'); });
+        helpBtn.addEventListener('click', (e) => { e.stopPropagation(); helpBox.classList.toggle('show'); classBox.classList.remove('show'); });
         const closeHelp = () => {
             if (!widget.isConnected) { document.removeEventListener('click', closeHelp); return; }
             helpBox.classList.remove('show');
+            classBox.classList.remove('show');
         };
         document.addEventListener('click', closeHelp);
 
@@ -1122,6 +1692,7 @@
             e.stopPropagation();
             if (_isMax) wfMax.click();
             if (state !== 'idle' && state !== 'over') reset('⏹ Partie arrêtée.');
+            classBox.classList.remove('show');
             window._wfMiniBarCollapse(widget, '⚖️ Plus grand / plus petit', { onExpand: applyScale });
         });
         wfMax.addEventListener('click', (e) => {
@@ -1191,7 +1762,7 @@
 
         // ── Init ───────────────────────────────────────────────────────────
         function _onWidgetDown(e) {
-            if (e.target.closest && e.target.closest('button, select, input, .jpg-arena, .jpg-rh, .jpg-help')) {
+            if (e.target.closest && e.target.closest('button, select, input, .jpg-arena, .jpg-rh, .jpg-help, .jpg-class, .jpg-side')) {
                 e.stopPropagation();
                 if (!e.target.closest('select, input')) container.focus({ preventScroll: true });
                 return;

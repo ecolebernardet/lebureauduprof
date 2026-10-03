@@ -344,11 +344,15 @@
     .cf-card.revealed { background: #ecfdf5; border-color: #6ee7b7; }
     .cf-card-num {
         position: absolute; top: 4px; left: 7px;
-        font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 900; color: #5c6bc0;
+        font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900; color: #5c6bc0;
     }
     .cf-card .cf-q { border-width: 2px; border-radius: 6px; }
-    .cf-card-ans { color: #047954; display: none; }
-    .cf-card.revealed .cf-card-ans { display: inline; }
+    .cf-card-ans {
+        color: #047954; display: none;
+        border: 1.5px solid #047954; border-radius: 6px;
+        padding: 0 0.2em; line-height: 1.15;
+    }
+    .cf-card.revealed .cf-card-ans { display: inline-block; }
     .cf-card.revealed .cf-q { display: none; }
 
     /* ── Poignée resize ── */
@@ -492,7 +496,7 @@
 
       <!-- ══ CORRECTION ══ -->
       <div class="cf-zone" data-role="correction">
-        <div class="cf-corr-hint">Touchez un calcul pour révéler sa réponse.</div>
+        <div class="cf-corr-hint">Touchez un calcul pour masquer ou révéler sa réponse.</div>
         <div class="cf-grid" data-role="grid"></div>
         <div class="cf-actions">
           <button class="cf-action cf-b-grey"   data-role="c-setup"><span>⚙️</span> Réglages</button>
@@ -926,9 +930,9 @@
                 const withAns = it.html.indexOf('cf-q') >= 0
                     ? it.html.replace(Q, '<span class="cf-card-ans">' + it.ans + '</span>' + Q)
                     : it.html + ' = ' + Q + '<span class="cf-card-ans">' + it.ans + '</span>';
-                return '<div class="cf-card" data-i="' + i + '"><span class="cf-card-num">' + (i + 1) + '</span>' + withAns + '</div>';
+                return '<div class="cf-card revealed" data-i="' + i + '"><span class="cf-card-num">' + (i + 1) + '</span>' + withAns + '</div>';
             }).join('');
-            btnReveal.innerHTML = '<span>👁</span> Tout révéler';
+            btnReveal.innerHTML = '<span>🙈</span> Tout masquer';
             showZone('correction');
             layoutGrid();
         }

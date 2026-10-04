@@ -1026,6 +1026,7 @@ function setVisuelsMode(mode) {
 <script src="widget-monnaie.js"></script>
 <script src="widget-mot-le-plus-long.js"></script>
 <script src="widget-frise-historique.js"></script>
+<script src="widget-geo-france.js"></script>
 <script src="widget-pause-calme.js"></script>
 <script src="widget-conversion.js"></script>
 <script src="widget-seyes.js"></script>
@@ -1503,6 +1504,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activites-frise-historique.jpeg" alt="Frise historique" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='📜'"></div>
                 <div class="act-card-name">Frise historique</div>
                 <div class="act-card-desc">Les 5 grandes périodes de l'histoire, de la Préhistoire à nos jours</div>
+            </div>
+            <div class="act-card" onclick="createGeoFranceWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-geo-france.jpeg" alt="Géographie de la France" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🗺'"></div>
+                <div class="act-card-name">Géographie de la France</div>
+                <div class="act-card-desc">Carte interactive : villes, fleuves, montagnes et pays frontaliers</div>
             </div>
         </div>
     </div>

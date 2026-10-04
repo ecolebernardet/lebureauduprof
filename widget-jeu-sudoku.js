@@ -116,6 +116,28 @@
         document.head.appendChild(ws);
     }
 
+    // ── Police ronde et ludique (Fredoka, repli sur polices système) ──────
+    if (!document.getElementById('jsk-font-fredoka')) {
+        const lf = document.createElement('link');
+        lf.id = 'jsk-font-fredoka';
+        lf.rel = 'stylesheet';
+        lf.href = 'https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap';
+        document.head.appendChild(lf);
+    }
+
+    // ── Couleurs des chiffres (une couleur "bonbon" par chiffre) ──────────
+    const JSK_COLORS = [
+        { bg: '#ff5a5f', dark: '#c4363b', text: '#e8383e' }, // 1
+        { bg: '#ff9f1c', dark: '#c26a00', text: '#e07f00' }, // 2
+        { bg: '#ffc928', dark: '#c99300', text: '#d39a00' }, // 3
+        { bg: '#3ecf8e', dark: '#1f8a5b', text: '#1fa56b' }, // 4
+        { bg: '#22b8e6', dark: '#0f7fa3', text: '#0f95c0' }, // 5
+        { bg: '#4f7cff', dark: '#2b4fc4', text: '#3561f0' }, // 6
+        { bg: '#a259ff', dark: '#6f2fc7', text: '#8a3df0' }, // 7
+        { bg: '#ff5fb0', dark: '#c42f7d', text: '#e63d97' }, // 8
+        { bg: '#14b8a6', dark: '#0b7c70', text: '#0e9a8a' }  // 9
+    ];
+
     // ── CSS spécifique au widget ──────────────────────────────────────────
     if (!document.getElementById('widget-jeu-sudoku-style')) {
         const s = document.createElement('style');
@@ -129,18 +151,29 @@
             box-shadow: none !important;
         }
 
-        /* ── Conteneur principal ── */
+        /* ── Conteneur principal : une "console" violette pleine de pois ── */
         .jsk-container {
-            background: #ffffff;
-            border: 1.5px solid #d1d5db;
-            border-radius: 16px;
-            padding: 14px 16px 12px;
+            --jsk-ink: #2a1f5c;
+            --jsk-violet: #6c4ee0;
+            --jsk-violet-dark: #4a32b0;
+            --jsk-frame: #3b2a8f;
+            --jsk-sun: #ffd23f;
+            --jsk-sun-dark: #e0a800;
+            background-color: var(--jsk-violet);
+            background-image:
+                radial-gradient(rgba(255,255,255,0.13) 2px, transparent 2.5px),
+                radial-gradient(rgba(255,255,255,0.07) 2px, transparent 2.5px);
+            background-size: 26px 26px, 26px 26px;
+            background-position: 0 0, 13px 13px;
+            border: 4px solid var(--jsk-frame);
+            border-radius: 28px;
+            padding: 14px 18px 16px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+            font-family: 'Fredoka', 'Baloo 2', 'Nunito', 'Comic Sans MS', system-ui, sans-serif;
+            box-shadow: 0 8px 0 var(--jsk-frame), 0 14px 30px rgba(40,20,110,0.35);
             position: relative;
             user-select: none;
             overflow: hidden;
@@ -157,6 +190,8 @@
             height: 100% !important;
             z-index: 9999 !important;
             border-radius: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
             padding-left: 52px !important;
         }
 
@@ -180,43 +215,61 @@
             flex-shrink: 0;
         }
         .jsk-title {
-            font-size: 13px;
-            font-weight: 800;
-            color: #374151;
-            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 1px;
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1;
             pointer-events: none;
             white-space: nowrap;
         }
+        .jsk-title span {
+            display: inline-block;
+            color: #fff;
+            text-shadow: 0 3px 0 var(--jsk-frame);
+            -webkit-text-stroke: 1px var(--jsk-frame);
+        }
+        .jsk-title span:nth-child(1) { color: #ff5a5f; transform: rotate(-8deg); }
+        .jsk-title span:nth-child(2) { color: #ff9f1c; transform: translateY(2px) rotate(5deg); }
+        .jsk-title span:nth-child(3) { color: #ffd23f; transform: rotate(-4deg); }
+        .jsk-title span:nth-child(4) { color: #3ecf8e; transform: translateY(-2px) rotate(6deg); }
+        .jsk-title span:nth-child(5) { color: #22b8e6; transform: rotate(-6deg); }
+        .jsk-title span:nth-child(6) { color: #ff5fb0; transform: translateY(2px) rotate(4deg); }
 
         /* ── Boutons paramètres / aide ── */
         .jsk-params-btn, .jsk-help-btn {
-            width: 22px; height: 22px; border-radius: 50%;
-            border: 1px solid #bbb; background: #f5f5f5;
-            color: #666; font-size: 12px; font-weight: 700;
+            width: 26px; height: 26px; border-radius: 50%;
+            border: 2px solid var(--jsk-frame); background: var(--jsk-sun);
+            color: var(--jsk-ink); font-size: 14px; font-weight: 700;
+            font-family: inherit;
             cursor: pointer; display: flex; align-items: center;
             justify-content: center; flex-shrink: 0;
-            transition: background .15s;
+            box-shadow: 0 3px 0 var(--jsk-frame);
+            transition: transform .1s, box-shadow .1s;
+            margin-right: 4px;
         }
-        .jsk-params-btn:hover, .jsk-help-btn:hover { background: #e0e0e0; color: #333; }
-        .jsk-params-btn.active { background: #4a90e2; color: white; border-color: #357abd; }
+        .jsk-params-btn:hover, .jsk-help-btn:hover { transform: translateY(-1px) rotate(-8deg); }
+        .jsk-params-btn:active, .jsk-help-btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--jsk-frame); }
+        .jsk-params-btn.active { background: #fff; }
 
         /* ── Popup aide ── */
         .jsk-help-popup {
             display: none; position: absolute;
-            top: 42px; right: 10px;
-            background: #fff; border: 1px solid #ddd;
-            border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-            padding: 12px 14px; width: 320px;
-            font-size: 11px; color: #444; z-index: 20; line-height: 1.6;
+            top: 52px; right: 14px;
+            background: #fff; border: 3px solid var(--jsk-frame);
+            border-radius: 18px; box-shadow: 0 6px 0 var(--jsk-frame);
+            padding: 14px 16px; width: 320px;
+            font-size: 12px; color: var(--jsk-ink); z-index: 20; line-height: 1.6;
         }
-        .jsk-help-popup.show { display: block; }
-        .jsk-help-popup h4 { margin: 0 0 8px; font-size: 12px; color: #374151; }
+        .jsk-help-popup.show { display: block; animation: jsk-pop-in .22s ease-out; }
+        .jsk-help-popup h4 { margin: 0 0 8px; font-size: 15px; color: var(--jsk-violet); }
 
         /* ── Panneau paramètres ── */
         .jsk-params-panel {
-            background: #f8f9fa;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
+            background: rgba(255,255,255,0.16);
+            border: 2px dashed rgba(255,255,255,0.45);
+            border-radius: 18px;
             padding: 10px 14px;
             display: none;
             flex-direction: column;
@@ -227,51 +280,77 @@
         .jsk-params-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             flex-wrap: wrap;
         }
         .jsk-params-row label {
-            font-size: 11px; font-weight: 600; color: #374151; white-space: nowrap;
+            font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap;
         }
         .jsk-size-group {
-            display: flex; gap: 3px; background: #e9ecef; padding: 3px; border-radius: 8px;
+            display: flex; gap: 4px; background: var(--jsk-violet-dark); padding: 4px; border-radius: 999px;
         }
         .jsk-size-btn {
-            padding: 5px 10px; border: none; border-radius: 6px;
-            background: transparent; color: #374151; font-size: 11px; font-weight: 700;
-            cursor: pointer; transition: background .15s, color .15s;
+            padding: 5px 12px; border: none; border-radius: 999px;
+            background: transparent; color: #e4dcff; font-size: 13px; font-weight: 700;
+            font-family: inherit;
+            cursor: pointer; transition: background .15s, color .15s, transform .1s;
         }
-        .jsk-size-btn.active { background: #4a90e2; color: white; }
+        .jsk-size-btn:hover { color: #fff; }
+        .jsk-size-btn.active { background: var(--jsk-sun); color: var(--jsk-ink); transform: scale(1.05); }
         .jsk-difficulty {
-            flex: 1; min-width: 90px; accent-color: #4a90e2; cursor: pointer;
+            flex: 1; min-width: 90px; accent-color: var(--jsk-sun); cursor: pointer; height: 8px;
         }
         .jsk-holes-count {
-            background: #4a90e2; color: white; font-size: 10px; font-weight: 800;
-            padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+            background: #fff; color: var(--jsk-violet); font-size: 12px; font-weight: 700;
+            padding: 4px 10px; border-radius: 999px; white-space: nowrap;
         }
         .jsk-btn-generate {
-            padding: 6px 14px; border-radius: 8px; border: none;
-            background: #4a90e2; color: white; font-size: 11px; font-weight: 800;
-            cursor: pointer; transition: background .15s, transform .1s;
+            padding: 7px 16px; border-radius: 999px; border: 2px solid var(--jsk-frame);
+            background: var(--jsk-sun); color: var(--jsk-ink); font-size: 13px; font-weight: 700;
+            font-family: inherit;
+            cursor: pointer; box-shadow: 0 4px 0 var(--jsk-frame);
+            transition: transform .1s, box-shadow .1s;
         }
-        .jsk-btn-generate:hover { background: #357abd; }
-        .jsk-btn-generate:active { transform: scale(0.96); }
+        .jsk-btn-generate:hover { transform: translateY(-1px); }
+        .jsk-btn-generate:active { transform: translateY(4px); box-shadow: 0 0 0 var(--jsk-frame); }
 
-        /* ── HUD ── */
+        /* ── HUD + barre de progression ── */
+        .jsk-hud-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
         .jsk-hud {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
-            font-weight: 700;
-            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
             flex-shrink: 0;
-            padding: 0 2px;
             text-align: center;
-            min-height: 16px;
+            min-height: 18px;
+            white-space: nowrap;
         }
-        .jsk-hud.jsk-status-ok  { color: #2e7d32; }
-        .jsk-hud.jsk-status-bad { color: #c53030; }
+        .jsk-hud.jsk-status-ok  { color: #b9ffd9; }
+        .jsk-hud.jsk-status-bad { color: #ffd0d0; }
+        .jsk-progress {
+            flex: 1;
+            height: 14px;
+            min-width: 60px;
+            background: var(--jsk-violet-dark);
+            border-radius: 999px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 0 rgba(0,0,0,0.2);
+        }
+        .jsk-progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 999px;
+            background: repeating-linear-gradient(-45deg, #3ecf8e 0 10px, #5ee0a6 10px 20px);
+            transition: width .35s cubic-bezier(.34,1.56,.64,1);
+        }
 
         /* ── Zone de jeu ── */
         .jsk-board-zone {
@@ -279,11 +358,12 @@
             min-height: 140px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            border-radius: 12px;
-            background: linear-gradient(180deg, #eef4ff 0%, #f7fbff 100%);
-            border: 1.5px solid #d9e6f7;
-            padding: 10px;
+            gap: 12px;
+            border-radius: 22px;
+            background: #fff;
+            border: 3px solid var(--jsk-frame);
+            box-shadow: 0 5px 0 var(--jsk-frame);
+            padding: 12px;
             box-sizing: border-box;
             position: relative;
             touch-action: none;
@@ -298,10 +378,11 @@
         .jsk-grid-wrap {
             width: 320px;
             height: 320px;
-            background: #000000;
-            border: 2.5px solid #000000;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            background: var(--jsk-frame);
+            border: 5px solid var(--jsk-frame);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 6px 0 #2a1d6b;
         }
         .jsk-grid {
             display: grid;
@@ -311,82 +392,100 @@
         }
         .jsk-cell {
             background: #ffffff;
-            border: 0.5px solid rgba(0,0,0,0.15);
+            border: 1px solid #ddd5fb;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: var(--jsk-fs, 18px);
-            font-weight: 900;
-            color: #111827;
+            font-weight: 700;
+            color: var(--jsk-ink);
             box-sizing: border-box;
-            transition: background-color .15s;
+            transition: background-color .15s, box-shadow .15s;
         }
+        .jsk-cell.jsk-block-alt { background: #f1ecff; }
         .jsk-cell.cell-fixed {
-            color: #111827;
-            opacity: 0.78;
+            color: var(--jsk-ink);
         }
         .jsk-cell.cell-input {
             cursor: pointer;
-            color: #1a4971;
             touch-action: none;
         }
+        .jsk-cell.cell-input.filled {
+            color: var(--jsk-num, var(--jsk-violet));
+            text-shadow: 0 2px 0 rgba(42,31,92,0.12);
+        }
         .jsk-cell.cell-input.jsk-drop-hover {
-            background: #dbeafe;
+            background: #fff6c2;
+            box-shadow: inset 0 0 0 3px var(--jsk-sun);
+        }
+        .jsk-cell.cell-input.jsk-pop {
+            animation: jsk-pop-cell .32s cubic-bezier(.34,1.56,.64,1);
         }
         .jsk-cell.cell-input.jsk-correct {
-            color: #22c55e !important;
+            background: #dcfce7 !important;
+            box-shadow: inset 0 0 0 3px #3ecf8e;
         }
         .jsk-cell.cell-input.jsk-incorrect {
-            color: #ef4444 !important;
-            background: #fef2f2;
+            background: #ffe1e1 !important;
+            box-shadow: inset 0 0 0 3px #ff5a5f;
+            animation: jsk-shake .4s ease-in-out;
         }
         .jsk-cell.cell-input.jsk-revealed {
-            color: #994231 !important;
-            background: #fff7ec;
+            color: #c2410c !important;
+            background: #fff1dc !important;
             cursor: default;
         }
 
-        /* ── Bandeau étiquettes chiffres ── */
+        /* ── Bandeau étiquettes chiffres : bonbons colorés ── */
         .jsk-tray {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             flex-wrap: wrap;
             flex-shrink: 0;
-            padding: 6px 4px 2px;
+            padding: 6px 4px 8px;
         }
         .jsk-tile {
-            width: 40px; height: 40px;
-            border-radius: 9px;
-            background: #ffffff;
-            border: 2px solid #4a90e2;
-            color: #2c5282;
-            font-size: 18px;
-            font-weight: 900;
+            --tile: #6c4ee0;
+            --tile-dark: #4a32b0;
+            width: 46px; height: 46px;
+            border-radius: 14px;
+            background: var(--tile);
+            border: 3px solid var(--tile-dark);
+            color: #fff;
+            font-size: 24px;
+            font-weight: 700;
+            text-shadow: 0 2px 0 var(--tile-dark);
             display: flex; align-items: center; justify-content: center;
             cursor: grab;
             touch-action: none;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.12);
-            transition: transform .1s, box-shadow .1s;
+            box-shadow: 0 5px 0 var(--tile-dark), inset 0 4px 0 rgba(255,255,255,0.3);
+            transition: transform .15s cubic-bezier(.34,1.56,.64,1), box-shadow .1s;
             flex-shrink: 0;
         }
-        .jsk-tile:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.18); }
-        .jsk-tile:active { cursor: grabbing; }
+        .jsk-tile:nth-child(odd)  { transform: rotate(-4deg); }
+        .jsk-tile:nth-child(even) { transform: rotate(3deg); }
+        .jsk-tile:hover { transform: translateY(-5px) rotate(0deg) scale(1.08); }
+        .jsk-tile:active { cursor: grabbing; transform: translateY(4px); box-shadow: 0 1px 0 var(--tile-dark); }
         .jsk-drag-ghost {
+            --tile: #6c4ee0;
+            --tile-dark: #4a32b0;
             position: fixed;
-            width: 44px; height: 44px;
-            border-radius: 10px;
-            background: #4a90e2;
+            width: 54px; height: 54px;
+            border-radius: 16px;
+            background: var(--tile);
+            border: 3px solid var(--tile-dark);
             color: white;
-            font-size: 20px;
-            font-weight: 900;
+            font-family: 'Fredoka', 'Baloo 2', 'Nunito', 'Comic Sans MS', system-ui, sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            text-shadow: 0 2px 0 var(--tile-dark);
             display: flex; align-items: center; justify-content: center;
             pointer-events: none;
             z-index: 99999;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.35);
-            transform: translate(-50%, -50%) scale(1.08);
-            opacity: 0.95;
+            box-shadow: 0 10px 20px rgba(40,20,110,0.4), inset 0 4px 0 rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%) scale(1.12) rotate(-6deg);
         }
 
         /* ── Overlay fin de grille ── */
@@ -394,69 +493,116 @@
             position: absolute; inset: 0;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            gap: 10px;
-            background: rgba(255,255,255,0.94);
-            backdrop-filter: blur(1px);
+            gap: 12px;
+            background: rgba(255,255,255,0.93);
             z-index: 10;
             text-align: center;
             padding: 14px;
-            border-radius: 12px;
+            border-radius: 19px;
+            overflow: hidden;
         }
         .jsk-overlay.hidden { display: none; }
-        .jsk-overlay-title { font-size: 20px; font-weight: 800; color: #374151; }
-        .jsk-overlay-sub { font-size: 13px; color: #6b7280; max-width: 340px; }
-        .jsk-overlay-btn {
-            padding: 10px 22px; border-radius: 10px; border: none;
-            background: #2e7d32; color: white; font-size: 14px;
-            font-weight: 800; cursor: pointer; transition: background .15s, transform .1s;
+        .jsk-overlay-trophy {
+            font-size: 64px; line-height: 1;
+            animation: jsk-bounce 1s ease-in-out infinite;
         }
-        .jsk-overlay-btn:hover { background: #256428; }
-        .jsk-overlay-btn:active { transform: scale(0.96); }
+        .jsk-overlay-title {
+            font-size: 40px; font-weight: 700; color: var(--jsk-violet);
+            text-shadow: 0 4px 0 #e4dcff;
+            animation: jsk-pop-in .45s cubic-bezier(.34,1.56,.64,1);
+        }
+        .jsk-overlay-sub { font-size: 16px; color: var(--jsk-ink); max-width: 340px; font-weight: 500; }
+        .jsk-overlay-btn {
+            padding: 12px 26px; border-radius: 999px; border: 3px solid #1f8a5b;
+            background: #3ecf8e; color: white; font-size: 17px; font-family: inherit;
+            font-weight: 700; cursor: pointer; box-shadow: 0 5px 0 #1f8a5b;
+            text-shadow: 0 2px 0 #1f8a5b;
+            transition: transform .1s, box-shadow .1s; position: relative; z-index: 2;
+        }
+        .jsk-overlay-btn:hover { transform: translateY(-2px); }
+        .jsk-overlay-btn:active { transform: translateY(5px); box-shadow: 0 0 0 #1f8a5b; }
+        .jsk-confetti {
+            position: absolute; top: -20px;
+            width: 10px; height: 14px; border-radius: 3px;
+            pointer-events: none;
+            animation: jsk-fall linear forwards;
+        }
 
-        /* ── Barre contrôles bas ── */
+        /* ── Barre contrôles bas : boutons "bonbons" ── */
         .jsk-controls {
-            display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;
-            flex-shrink: 0;
+            display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+            flex-shrink: 0; padding-bottom: 4px;
         }
         .jsk-btn {
-            padding: 6px 14px; border-radius: 8px; border: none;
-            font-size: 11px; font-weight: 700; cursor: pointer; color: white;
-            transition: background .15s, transform .1s;
+            --b: #fff; --bd: var(--jsk-frame); --bt: var(--jsk-ink);
+            padding: 8px 18px; border-radius: 999px; border: 3px solid var(--bd);
+            background: var(--b); color: var(--bt);
+            font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
+            box-shadow: 0 5px 0 var(--bd);
+            transition: transform .1s, box-shadow .1s;
         }
-        .jsk-btn:active { transform: scale(0.96); }
-        .jsk-btn-clear    { background: #6b7280; }
-        .jsk-btn-clear:hover    { background: #4b5563; }
-        .jsk-btn-check    { background: #22c55e; }
-        .jsk-btn-check:hover    { background: #16a34a; }
-        .jsk-btn-solution { background: #f97316; }
-        .jsk-btn-solution:hover { background: #ea580c; }
+        .jsk-btn:hover { transform: translateY(-2px); }
+        .jsk-btn:active { transform: translateY(5px); box-shadow: 0 0 0 var(--bd); }
+        .jsk-btn-clear    { --b: #ffffff; --bd: var(--jsk-frame); --bt: var(--jsk-ink); }
+        .jsk-btn-check    { --b: #3ecf8e; --bd: #1f8a5b; --bt: #fff; text-shadow: 0 2px 0 #1f8a5b; }
+        .jsk-btn-solution { --b: #ff9f1c; --bd: #c26a00; --bt: #fff; text-shadow: 0 2px 0 #c26a00; }
 
         /* ── Mini confirmation (solution) ── */
         .jsk-confirm-popup {
             display: none; position: absolute;
-            bottom: 46px; left: 50%; transform: translateX(-50%);
-            background: #fff; border: 1px solid #ddd;
-            border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-            padding: 12px 14px; width: 240px;
-            font-size: 12px; color: #374151; z-index: 25; text-align: center;
+            bottom: 50px; left: 50%; transform: translateX(-50%);
+            background: #fff; border: 3px solid var(--jsk-frame);
+            border-radius: 18px; box-shadow: 0 6px 0 var(--jsk-frame);
+            padding: 14px 16px; width: 250px;
+            font-size: 15px; font-weight: 600; color: var(--jsk-ink); z-index: 25; text-align: center;
         }
         .jsk-confirm-popup.show { display: block; }
-        .jsk-confirm-row { display: flex; gap: 8px; margin-top: 10px; }
+        .jsk-confirm-row { display: flex; gap: 10px; margin-top: 12px; }
         .jsk-confirm-row button {
-            flex: 1; padding: 7px; border-radius: 7px; border: none;
-            font-size: 11px; font-weight: 800; cursor: pointer; color: white;
+            flex: 1; padding: 8px; border-radius: 999px; border: 3px solid;
+            font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; color: white;
+            transition: transform .1s, box-shadow .1s;
         }
-        .jsk-confirm-no  { background: #6b7280; }
-        .jsk-confirm-yes { background: #f97316; }
+        .jsk-confirm-row button:active { transform: translateY(4px); box-shadow: none; }
+        .jsk-confirm-no  { background: #fff; color: var(--jsk-ink) !important; border-color: var(--jsk-frame) !important; box-shadow: 0 4px 0 var(--jsk-frame); }
+        .jsk-confirm-yes { background: #ff9f1c; border-color: #c26a00 !important; box-shadow: 0 4px 0 #c26a00; }
 
         /* ── Poignée resize ── */
         .jsk-resize-handle {
-            position: absolute; right: 0; bottom: 0;
-            width: 18px; height: 18px; cursor: se-resize;
-            background: linear-gradient(135deg, transparent 50%, #aaa 50%);
-            border-radius: 0 0 14px 0; opacity: 0; transition: opacity .2s; z-index: 5;
+            position: absolute; right: 2px; bottom: 2px;
+            width: 20px; height: 20px; cursor: se-resize;
+            background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.7) 50%);
+            border-radius: 0 0 22px 0; opacity: 0; transition: opacity .2s; z-index: 5;
         }
         .jsk-container:hover .jsk-resize-handle { opacity: 1; }
+
+        /* ── Animations ── */
+        @keyframes jsk-pop-cell {
+            0%   { transform: scale(0.4); }
+            100% { transform: scale(1); }
+        }
+        @keyframes jsk-pop-in {
+            0%   { transform: scale(0.6); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes jsk-shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-4px); }
+            40% { transform: translateX(4px); }
+            60% { transform: translateX(-3px); }
+            80% { transform: translateX(3px); }
+        }
+        @keyframes jsk-bounce {
+            0%, 100% { transform: translateY(0) rotate(-6deg); }
+            50%      { transform: translateY(-12px) rotate(6deg); }
+        }
+        @keyframes jsk-fall {
+            to { transform: translateY(var(--fall, 600px)) rotate(var(--spin, 540deg)); opacity: 0.2; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .jsk-container *, .jsk-drag-ghost { animation: none !important; transition: none !important; }
+            .jsk-confetti { display: none; }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -471,7 +617,7 @@
 
   <!-- En-tête -->
   <div class="jsk-header">
-    <span class="jsk-title">🧩 Sudoku</span>
+    <span class="jsk-title" aria-label="Sudoku"><span>S</span><span>u</span><span>d</span><span>o</span><span>k</span><span>u</span></span>
     <div class="wf-btns" style="margin-left:auto">
       <button class="jsk-params-btn" title="Paramètres">⚙</button>
       <button class="jsk-help-btn"   title="Aide">?</button>
@@ -498,7 +644,10 @@
   </div>
 
   <!-- HUD -->
-  <div class="jsk-hud">Glisse un chiffre de la barre du bas dans une case vide.</div>
+  <div class="jsk-hud-row">
+    <div class="jsk-hud">Glisse un chiffre de la barre du bas dans une case vide.</div>
+    <div class="jsk-progress"><div class="jsk-progress-fill"></div></div>
+  </div>
 
   <!-- Zone de jeu -->
   <div class="jsk-board-zone">
@@ -510,7 +659,8 @@
     <div class="jsk-tray"></div>
 
     <div class="jsk-overlay hidden">
-      <div class="jsk-overlay-title">🏆 Bravo !</div>
+      <div class="jsk-overlay-trophy">🏆</div>
+      <div class="jsk-overlay-title">Bravo !</div>
       <div class="jsk-overlay-sub">Grille complétée sans erreur.</div>
       <button class="jsk-overlay-btn">🔄 Nouvelle grille</button>
     </div>
@@ -568,6 +718,7 @@
         const helpPopup       = widget.querySelector('.jsk-help-popup');
         const resizeHandle    = widget.querySelector('.jsk-resize-handle');
         const hudEl            = widget.querySelector('.jsk-hud');
+        const progressFill     = widget.querySelector('.jsk-progress-fill');
         const boardZone        = widget.querySelector('.jsk-board-zone');
         const gridZone          = widget.querySelector('.jsk-grid-zone');
         const gridWrap          = widget.querySelector('.jsk-grid-wrap');
@@ -721,12 +872,15 @@
 
                     let borderStyle = '';
                     if ((c + 1) % data.blockWidth === 0 && (c + 1) < data.size) {
-                        borderStyle += 'border-right:2.5px solid #000000;';
+                        borderStyle += 'border-right:3.5px solid #3b2a8f;';
                     }
                     if ((r + 1) % data.blockHeight === 0 && (r + 1) < data.size) {
-                        borderStyle += 'border-bottom:2.5px solid #000000;';
+                        borderStyle += 'border-bottom:3.5px solid #3b2a8f;';
                     }
                     cell.style.cssText = borderStyle;
+
+                    // Un bloc sur deux légèrement teinté (effet damier)
+                    const blockAlt = (Math.floor(r / data.blockHeight) + Math.floor(c / data.blockWidth)) % 2 === 1;
 
                     if (val !== 0) {
                         cell.className = 'jsk-cell cell-fixed';
@@ -735,6 +889,7 @@
                         cell.className = 'jsk-cell cell-input';
                         cell.dataset.ans = data.solution[r][c];
                     }
+                    if (blockAlt) cell.classList.add('jsk-block-alt');
                     gridEl.appendChild(cell);
                     cellEls[r][c] = cell;
                 });
@@ -748,6 +903,9 @@
                 tile.className = 'jsk-tile';
                 tile.dataset.value = v;
                 tile.textContent = v;
+                const col = JSK_COLORS[(v - 1) % JSK_COLORS.length];
+                tile.style.setProperty('--tile', col.bg);
+                tile.style.setProperty('--tile-dark', col.dark);
                 trayEl.appendChild(tile);
                 attachTileDrag(tile);
             }
@@ -779,6 +937,9 @@
                 const ghost = document.createElement('div');
                 ghost.className = 'jsk-drag-ghost';
                 ghost.textContent = value;
+                const gcol = JSK_COLORS[(parseInt(value, 10) - 1) % JSK_COLORS.length];
+                ghost.style.setProperty('--tile', gcol.bg);
+                ghost.style.setProperty('--tile-dark', gcol.dark);
                 ghost.style.left = e.clientX + 'px';
                 ghost.style.top  = e.clientY + 'px';
                 document.body.appendChild(ghost);
@@ -817,13 +978,18 @@
         function placeValue(cell, value) {
             cell.textContent = value;
             cell.classList.add('filled');
-            cell.classList.remove('jsk-correct', 'jsk-incorrect');
+            cell.classList.remove('jsk-correct', 'jsk-incorrect', 'jsk-pop');
+            const col = JSK_COLORS[(parseInt(value, 10) - 1) % JSK_COLORS.length];
+            cell.style.setProperty('--jsk-num', col.text);
+            void cell.offsetWidth; // relance l'animation "pop"
+            cell.classList.add('jsk-pop');
             updateHUD();
         }
 
         function clearCell(cell) {
             cell.textContent = '';
-            cell.classList.remove('filled', 'jsk-correct', 'jsk-incorrect');
+            cell.classList.remove('filled', 'jsk-correct', 'jsk-incorrect', 'jsk-pop');
+            cell.style.removeProperty('--jsk-num');
             updateHUD();
         }
 
@@ -861,8 +1027,9 @@
             let total = 0, filled = 0;
             currentGrid.puzzle.forEach(row => row.forEach(v => { if (v === 0) total++; }));
             gridEl.querySelectorAll('.jsk-cell.cell-input.filled').forEach(() => filled++);
+            if (progressFill) progressFill.style.width = (total ? (filled / total) * 100 : 0) + '%';
             if (solved) return;
-            setHudMessage('📝 ' + filled + ' / ' + total + ' cases complétées');
+            setHudMessage('✏️ ' + filled + ' / ' + total + ' cases');
         }
 
         // =====================================================================
@@ -871,8 +1038,9 @@
         function showCorrection() {
             if (!currentGrid || solved) return;
             let hasError = false, isComplete = true;
+            gridEl.querySelectorAll('.jsk-cell.cell-input').forEach(cell => cell.classList.remove('jsk-correct', 'jsk-incorrect', 'jsk-pop'));
+            void gridEl.offsetWidth; // relance l'animation de secousse
             gridEl.querySelectorAll('.jsk-cell.cell-input').forEach(cell => {
-                cell.classList.remove('jsk-correct', 'jsk-incorrect');
                 if (!cell.classList.contains('filled')) { isComplete = false; return; }
                 const val = cell.textContent.trim();
                 const ans = String(cell.dataset.ans);
@@ -901,6 +1069,7 @@
                 cell.classList.remove('jsk-correct', 'jsk-incorrect');
             });
             solved = true;
+            if (progressFill) progressFill.style.width = '100%';
             setHudMessage('🔓 Solution affichée.', null);
         }
 
@@ -910,12 +1079,30 @@
             updateHUD();
         }
 
+        function launchConfetti() {
+            const colors = JSK_COLORS.map(c => c.bg);
+            const h = overlay.clientHeight || 500;
+            for (let i = 0; i < 60; i++) {
+                const p = document.createElement('span');
+                p.className = 'jsk-confetti';
+                p.style.left = (Math.random() * 100) + '%';
+                p.style.background = colors[i % colors.length];
+                p.style.animationDuration = (1.8 + Math.random() * 1.8) + 's';
+                p.style.animationDelay = (Math.random() * 0.6) + 's';
+                p.style.setProperty('--fall', (h + 40) + 'px');
+                p.style.setProperty('--spin', (Math.random() > 0.5 ? '' : '-') + (360 + Math.floor(Math.random() * 540)) + 'deg');
+                if (Math.random() > 0.6) p.style.borderRadius = '50%';
+                overlay.appendChild(p);
+            }
+        }
         function showWinOverlay() {
             overlay.classList.remove('hidden');
+            launchConfetti();
             setHudMessage('🏆 Bravo, grille complétée !', 'ok');
         }
         function hideOverlay() {
             overlay.classList.add('hidden');
+            overlay.querySelectorAll('.jsk-confetti').forEach(p => p.remove());
         }
 
         // =====================================================================

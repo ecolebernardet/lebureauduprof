@@ -659,7 +659,9 @@ function createFriseHistoriqueWidget() {
     helpPopup.innerHTML = `
         <h4>💡 La frise historique</h4>
         <p>La frise présente les <b>5 grandes périodes</b> de l'histoire, de la Préhistoire à nos jours.</p>
-        <p>👆 <b>Clique sur une période</b> pour afficher sa fiche (dates, début, fin, description).</p>
+        <p>👆 <b>Clique sur une période</b> pour l'agrandir : elle prend plus de place sur la frise,
+        seuls ses repères sont affichés et sa fiche apparaît (dates, début, fin, description).
+        Clique à nouveau dessus pour revenir à la frise complète.</p>
         <p>📍 <b>Repères</b> : affiche ou cache les grands événements historiques.</p>
         <p>🙈 <b>Masquer les noms</b> : les noms des périodes sont cachés ; clique sur une période
         pour la dévoiler. Idéal pour faire réviser les élèves !</p>
@@ -689,11 +691,46 @@ function createFriseHistoriqueWidget() {
     let bandH = Math.max(60, Math.round(initW * 0.075));
 
     // ── Géométrie ─────────────────────────────────────────────────────────
-    function segFractions() {
+    function baseFractions() {
         if (scale === 'equal') return FH_PERIODS.map(() => 1 / FH_PERIODS.length);
         const pre = 0.16;
         const total = FH_NOW - FH_PERIODS[1].start;
         return FH_PERIODS.map((p, i) => i === 0 ? pre : (1 - pre) * (p.end - p.start) / total);
+    }
+
+    // Largeurs cibles : la période sélectionnée est agrandie, les autres se resserrent
+    const FH_ZOOM = 0.6; // part de la frise occupée par la période agrandie
+    function targetFractions() {
+        const base = baseFractions();
+        if (selected < 0) return base;
+        const z = Math.max(base[selected], FH_ZOOM);
+        const rest = base.reduce((sum, f, i) => i === selected ? sum : sum + f, 0);
+        return base.map((f, i) => i === selected ? z : (1 - z) * f / rest);
+    }
+
+    let animFr = null;   // largeurs intermédiaires pendant l'animation
+    let animId = null;
+    function segFractions() { return animFr || targetFractions(); }
+
+    // Animation fluide entre les anciennes et les nouvelles largeurs
+    function animateTo(fromFr) {
+        if (animId) cancelAnimationFrame(animId);
+        const to = targetFractions();
+        const t0 = performance.now(), dur = 380;
+        const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        const step = (now) => {
+            const k = Math.min(1, (now - t0) / dur);
+            if (k >= 1 || !document.body.contains(widget)) {
+                animFr = null; animId = null;
+                render(); renderDetail();
+                return;
+            }
+            const e = ease(k);
+            animFr = fromFr.map((f, i) => f + (to[i] - f) * e);
+            render();
+            animId = requestAnimationFrame(step);
+        };
+        animId = requestAnimationFrame(step);
     }
 
     function layout(bw) {
@@ -763,7 +800,8 @@ function createFriseHistoriqueWidget() {
                 }
                 name.textContent = txt;
                 name.style.fontSize = size + 'px';
-                seg.title = p.name + ' (' + _fhFmtYear(p.start) + ' → ' + (i === FH_PERIODS.length - 1 ? 'aujourd\'hui' : _fhFmtYear(p.end)) + ')';
+                seg.title = p.name + ' (' + _fhFmtYear(p.start) + ' → ' + (i === FH_PERIODS.length - 1 ? 'aujourd\'hui' : _fhFmtYear(p.end)) + ')'
+                    + (selected === i ? ' — clique pour revenir à la frise complète' : ' — clique pour agrandir');
             }
             if (selected >= 0) seg.classList.add(selected === i ? 'sel' : 'dim');
             seg.appendChild(name);
@@ -803,7 +841,12 @@ function createFriseHistoriqueWidget() {
         evTrack.style.display = '';
         const dSize = Math.round(fs * 0.85), tSize = Math.round(fs * 0.8);
         const all = FH_EVENTS.map(e => ({ ...e }))
-            .concat(custom.map((c, idx) => ({ y: c.y, d: _fhFmtYear(c.y), t: c.t, c: true, idx })));
+            .concat(custom.map((c, idx) => ({ y: c.y, d: _fhFmtYear(c.y), t: c.t, c: true, idx })))
+            .filter(e => {
+                if (selected < 0) return true;
+                const p = FH_PERIODS[selected];
+                return e.y >= p.start && e.y <= p.end;
+            });
         // Création des étiquettes puis mesure réelle de leur largeur
         const items = all.map(e => {
             const p = FH_PERIODS[_fhPeriodOf(e.y)];
@@ -916,20 +959,24 @@ function createFriseHistoriqueWidget() {
 
     // ── Interactions ──────────────────────────────────────────────────────
     function onSegClick(i) {
+        const fromFr = segFractions();
         if (hideNames && !revealed.has(i)) {
             revealed.add(i);
             selected = -1;
         } else {
             selected = selected === i ? -1 : i;
         }
-        render(); renderDetail(); saveBoard();
+        renderDetail();
+        animateTo(fromFr);
+        saveBoard();
     }
 
     function setScale(sc) {
+        const fromFr = segFractions();
         scale = sc === 'prop' ? 'prop' : 'equal';
         badge.textContent = scale === 'prop' ? 'Échelle proportionnelle' : 'Échelle égale';
         container.querySelectorAll('.fh-scale-btn').forEach(b => b.classList.toggle('active', b.dataset.scale === scale));
-        render();
+        animateTo(fromFr);
     }
 
     function setShowEvents(v) {

@@ -1837,7 +1837,7 @@ body.presentation-mode #tools-panel-tab { display: none !important; }
 
 /* ── Panneau Activités ────────────────────────────────────────────── */
 
-:root { --act-panel-w: 50vw; }
+:root { --act-panel-w: 70vw; }
 #activities-panel {
     display: flex;
     position: fixed;
@@ -2036,7 +2036,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
    Réutilise les classes .act-* pour le contenu (grille,
    cartes...) ; seuls le conteneur et l'onglet sont propres.
 ══════════════════════════════════════════════════ */
-:root { --jeux-panel-w: 50vw; }
+:root { --jeux-panel-w: 70vw; }
 #jeux-panel {
     display: flex;
     position: fixed;

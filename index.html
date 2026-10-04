@@ -1335,7 +1335,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             // Garde-fou : si la valeur sauvegardée est absurde pour l'écran
             // actuel (ex. sauvegardée sur téléphone, rouverte sur PC), on
             // l'ignore et on repasse sur le comportement responsive par défaut.
-            var maxReasonableW = Math.round(window.innerWidth * 0.5);
+            var maxReasonableW = Math.round(window.innerWidth * 0.7);
             if (initW >= 260 && initW <= maxReasonableW) {
                 panel.style.width = initW + 'px';
                 document.documentElement.style.setProperty('--jeux-panel-w', initW + 'px');
@@ -1355,7 +1355,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.5);
+            var maxW = Math.round(window.innerWidth * 0.7);
             var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--jeux-panel-w', w + 'px');
@@ -1561,9 +1561,9 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         var tab    = document.getElementById('activities-panel-tab');
         if (!handle || !panel) return;
 
-        // Restaurer la largeur sauvegardée (en px), sinon utiliser 50% de la fenêtre
+        // Restaurer la largeur sauvegardée (en px), sinon utiliser 70% de la fenêtre
         var savedW = localStorage.getItem(ACT_W_KEY);
-        var initW = savedW ? parseInt(savedW) : Math.round(window.innerWidth * 0.5);
+        var initW = savedW ? parseInt(savedW) : Math.round(window.innerWidth * 0.7);
         panel.style.width = initW + 'px';
         document.documentElement.style.setProperty('--act-panel-w', initW + 'px');
 
@@ -1578,7 +1578,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.5);
+            var maxW = Math.round(window.innerWidth * 0.7);
             var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--act-panel-w', w + 'px');

@@ -288,12 +288,12 @@
         .ge-map text { font-family: 'Segoe UI', system-ui, sans-serif; paint-order: stroke; stroke-linejoin: round; }
         .ge-item { cursor: pointer; transition: opacity .25s; }
         .ge-has-sel .ge-item:not(.ge-sel) { opacity: .3; }
-        .ge-country { stroke: #ffffff; stroke-width: 0.9; stroke-linejoin: round; transition: fill .3s, opacity .25s; }
+        .ge-country { stroke: #ffffff; stroke-width: 0.8; stroke-linejoin: round; transition: fill .3s, opacity .25s; }
         .ge-country:hover { filter: brightness(0.94); }
-        .ge-country.ge-sel { stroke: #374151; stroke-width: 1.8; }
+        .ge-country.ge-sel { stroke: #374151; stroke-width: 2; }
         .ge-other { fill: #ebece6; stroke: #ffffff; stroke-width: 1; }
         .ge-massif { stroke: #9a6a3a; stroke-width: 0.8; stroke-opacity: .55; }
-        .ge-massif:hover, .ge-massif.ge-sel { stroke-width: 2.5; stroke-opacity: 1; }
+        .ge-massif:hover, .ge-massif.ge-sel { stroke-width: 1.8; stroke-opacity: 1; }
         .ge-river { fill: none; stroke: #2b7bd0; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
         .ge-river.ge-sel { stroke-width: 5; }
         .ge-river-hit { fill: none; stroke: transparent; stroke-width: 18; cursor: pointer; }
@@ -892,7 +892,7 @@ function createGeoEuropeWidget() {
         const it = items[c.id] = { id: c.id, layer: 'pays', name: c.name, data: c, shapes: [], fills: [] };
         const polys = [c.shape].concat(c.extraShapes || []).concat((c.extra || []).map(k => GE_ISLANDS[k]));
         polys.forEach((pts, i) => {
-            const p = el('path', { class: 'ge-country ge-item', d: _gePath(pts, true), 'data-id': c.id }, gCountries);
+            const p = el('path', { class: 'ge-country ge-item', d: _gePath(pts, true), 'data-id': c.id, 'vector-effect': 'non-scaling-stroke' }, gCountries);
             it.shapes.push(p);
             it.fills.push(p);
             if (i === 0) it.mainShape = p;
@@ -925,7 +925,7 @@ function createGeoEuropeWidget() {
     // Montagnes
     GE_MOUNTAINS.forEach(m => {
         const it = items[m.id] = { id: m.id, layer: 'montagnes', name: m.name, data: m, shapes: [] };
-        const p = el('path', { class: 'ge-massif ge-item', d: _gePath(m.shape, true), 'data-id': m.id, fill: `url(#ge-hatch-${uid})` }, gMountains);
+        const p = el('path', { class: 'ge-massif ge-item', d: _gePath(m.shape, true), 'data-id': m.id, fill: `url(#ge-hatch-${uid})`, 'vector-effect': 'non-scaling-stroke' }, gMountains);
         it.shapes.push(p);
         it.mainShape = p;
         it.label = addLabel(it, 'montagnes', 'ge-lbl-massif', m.lbl, 15, 0, 5, 'middle', m.lines || null);

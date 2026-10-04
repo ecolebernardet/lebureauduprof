@@ -175,6 +175,11 @@ function buildBoardState() {
         if (w.dataset.type === 'geo-france' && typeof w._gfGetData === 'function') {
             geoFranceData = w._gfGetData();
         }
+        // Données propres au widget géographie de l'Europe
+        let geoEuropeData = null;
+        if (w.dataset.type === 'geo-europe' && typeof w._geGetData === 'function') {
+            geoEuropeData = w._geGetData();
+        }
         // Données propres au widget pause calme
         let pauseCalmeData = null;
         if (w.dataset.type === 'pause-calme' && typeof w._wpcGetData === 'function') {
@@ -373,6 +378,7 @@ function buildBoardState() {
 			motLongData,
 			friseHistData,
 			geoFranceData,
+			geoEuropeData,
 			pauseCalmeData,
 			horlogeData,
 			sondageData,
@@ -631,6 +637,11 @@ function restoreBoardFromJSON(json) {
             widget = createGeoFranceWidget();
             if (w.geoFranceData && typeof widget._gfSetData === 'function') {
                 widget._gfSetData(w.geoFranceData);
+            }
+        } else if (w.type === 'geo-europe') {
+            widget = createGeoEuropeWidget();
+            if (w.geoEuropeData && typeof widget._geSetData === 'function') {
+                widget._geSetData(w.geoEuropeData);
             }
         } else if (w.type === 'tableau-num') {
             widget = createTableauNumWidget();

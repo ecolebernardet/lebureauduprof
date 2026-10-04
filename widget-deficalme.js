@@ -1953,10 +1953,10 @@ function createDeficalmeWidget() {
     // ── Event listeners ───────────────────────────────────────────────────
     // ── Aperçu ────────────────────────────────────────────────────────────
     // Bouton : « 👁 » (aperçu) quand l'image est cachée,
-    // « 🙈 Cacher l'image » quand elle est visible
+    // « 🙈 » (Cacher l'image) quand elle est visible
     function setApercuButton() {
         if (apercuActive) {
-            btnApercu.textContent = '🙈 Cacher l\'image';
+            btnApercu.textContent = '🙈';
             btnApercu.title = 'Cacher l\'image';
             btnApercu.style.background = '#ef4444';
         } else {

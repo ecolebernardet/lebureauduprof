@@ -432,8 +432,8 @@ const GW_EU_AS = [[40.0,43.4],[42.5,43.2],[44.5,42.7],[46.5,41.9],[48.6,41.85],[
 
 // ── Continents (tracé très simplifié) ─────────────────────────────────────
 const GW_SHAPES = {
-    namerique: [
-        [[-168,65.6],[-166,68.9],[-156.8,71.3],[-148,70.3],[-141,69.7],[-135,69.5],[-128,70.2],[-120,69.4],[-115,68.0],[-108,68.5],[-98,68],[-94,68.5],[-90,68.5],[-85,69.5],[-82,66.5],[-87,64],[-95,62],[-94,59],[-92,57],[-88,56],[-82,55],[-80,52],[-79,54.5],[-77,58],[-78,60.5],[-77.5,62.5],[-74,62.3],[-70,61],[-65,60.3],[-64.5,58.5],[-61.5,56],[-58,54],[-56,51.5],[-60,50.2],[-66.5,50.2],[-69.5,48.2],[-64.2,48.8],[-64.8,47.0],[-61,45.6],[-60,46],[-61.8,45.0],[-65.8,43.5],[-66.2,44.5],[-68,44.3],[-70.2,43.6],[-70.6,42.6],[-70.0,41.8],[-71.5,41.4],[-74,40.6],[-74.1,39.7],[-75,38.8],[-76,37],[-75.5,35.3],[-77,34.5],[-79,33.2],[-81,31.5],[-81.3,30],[-80.2,27],[-80.1,25.4],[-81.1,25.2],[-82,26.7],[-82.7,28],[-83.5,29.8],[-85.5,29.8],[-88,30.4],[-89.5,29.2],[-90.5,29.1],[-93.5,29.7],[-95,29],[-97.3,27.6],[-97.3,25.9],[-97.7,22.5],[-97.4,21],[-96.2,19.2],[-94.5,18.2],[-92,18.6],[-91,19],[-90.3,21.0],[-87,21.5],[-87.5,19.0],[-88.2,17],[-88.3,16],[-87.5,15.8],[-84,15.9],[-83.2,15],[-83.5,12],[-83.7,11],[-83,10],[-81,9],[-79.5,9.6],[-77.3,8.6],[-77.9,7.2],[-78,7.4],[-79.5,7.0],[-80.5,7.3],[-81.5,7.8],[-83.5,8.4],[-85.7,10.0],[-85.8,11],[-87.5,12.9],[-89.5,13.5],[-91.5,14],[-94,16],[-96.5,15.7],[-99.9,16.8],[-103.5,18.3],[-105.5,20.5],[-105.7,22.5],[-107.5,24.7],[-108.2,25.3],[-109.5,26.5],[-111,27.9],[-112.8,30.5],[-114.8,31.8],[-114.5,30.5],[-113,29],[-112.2,27.5],[-111.5,26],[-110.3,24.2],[-109.9,22.9],[-111.5,24.5],[-112.2,25.5],[-114.9,27.9],[-115.8,30],[-116.6,31.8],[-117.1,32.5],[-118.5,34],[-120.6,34.6],[-122.5,37.8],[-124,40.5],[-124.5,43],[-124,46.2],[-124.7,48.4],[-123,48.3],[-125,50],[-127.5,50.8],[-128,52.2],[-130.5,54.5],[-133,57],[-136,58.3],[-140,59.7],[-144,60],[-147.5,60.8],[-150,59.5],[-152,59.8],[-154,58],[-158,56.5],[-162,55],[-164.5,54.4],[-161,58.5],[-157.5,58.8],[-162,58.5],[-164.8,60.5],[-165,62],[-165,63],[-161,64.4],[-166,64.6]],
+    amerique: [
+        [[-168,65.6],[-166,68.9],[-156.8,71.3],[-148,70.3],[-141,69.7],[-135,69.5],[-128,70.2],[-120,69.4],[-115,68],[-108,68.5],[-98,68],[-94,68.5],[-90,68.5],[-85,69.5],[-82,66.5],[-87,64],[-95,62],[-94,59],[-92,57],[-88,56],[-82,55],[-80,52],[-79,54.5],[-77,58],[-78,60.5],[-77.5,62.5],[-74,62.3],[-70,61],[-65,60.3],[-64.5,58.5],[-61.5,56],[-58,54],[-56,51.5],[-60,50.2],[-66.5,50.2],[-69.5,48.2],[-64.2,48.8],[-64.8,47],[-61,45.6],[-60,46],[-61.8,45],[-65.8,43.5],[-66.2,44.5],[-68,44.3],[-70.2,43.6],[-70.6,42.6],[-70,41.8],[-71.5,41.4],[-74,40.6],[-74.1,39.7],[-75,38.8],[-76,37],[-75.5,35.3],[-77,34.5],[-79,33.2],[-81,31.5],[-81.3,30],[-80.2,27],[-80.1,25.4],[-81.1,25.2],[-82,26.7],[-82.7,28],[-83.5,29.8],[-85.5,29.8],[-88,30.4],[-89.5,29.2],[-90.5,29.1],[-93.5,29.7],[-95,29],[-97.3,27.6],[-97.3,25.9],[-97.7,22.5],[-97.4,21],[-96.2,19.2],[-94.5,18.2],[-92,18.6],[-91,19],[-90.3,21],[-87,21.5],[-87.5,19],[-88.2,17],[-88.3,16],[-87.5,15.8],[-84,15.9],[-83.2,15],[-83.5,12],[-83.7,11],[-83,10],[-81,9],[-79.5,9.6],[-77.3,8.6],[-76,9.4],[-75.5,10.5],[-74.2,11.3],[-72.2,12],[-71.3,12.4],[-70,11.5],[-68.3,10.5],[-66,10.6],[-64,10.6],[-61.8,10.7],[-61,9.5],[-60,8.5],[-58.5,7],[-57,6],[-55,5.95],[-53,5.5],[-51.5,4.3],[-50,1.8],[-49.5,0],[-48.5,-1],[-46,-1],[-44,-2.4],[-41,-2.9],[-38.5,-3.7],[-35.2,-5.4],[-34.8,-7.5],[-35.5,-9.5],[-37,-11],[-38.5,-13],[-39,-15.5],[-39.5,-18],[-40.5,-20.5],[-41.5,-22.5],[-43.2,-23],[-45.5,-23.8],[-48,-25.5],[-48.6,-28],[-50,-30.5],[-51.5,-31.5],[-53.4,-33.7],[-55,-35],[-56.2,-34.9],[-58,-34.4],[-57.5,-35.5],[-57.5,-38],[-62.3,-38.8],[-62.2,-40.5],[-65,-41],[-63.8,-42],[-65,-42.5],[-65.3,-45],[-67.5,-46.5],[-65.8,-47.8],[-68.5,-50.5],[-68.3,-52.3],[-68.5,-53.5],[-66.5,-55],[-67.3,-55.9],[-70,-55],[-72,-54],[-74.5,-52.5],[-75.5,-50],[-75.5,-47],[-74,-45],[-73.8,-43],[-74,-42],[-73.5,-39.5],[-73.4,-37],[-71.8,-33],[-71.6,-33],[-71.3,-30],[-70.4,-23.6],[-70.3,-18.5],[-71.5,-17.5],[-74.2,-15.5],[-76.3,-13.5],[-77,-12],[-79,-8],[-81.3,-6],[-81.1,-4.5],[-80.3,-3.4],[-80,-2.5],[-80.9,-1],[-80,0.8],[-79.6,1],[-78.8,1.8],[-77.5,3.8],[-77.4,6.5],[-77.9,7.2],[-78,7.4],[-79.5,7],[-80.5,7.3],[-81.5,7.8],[-83.5,8.4],[-85.7,10],[-85.8,11],[-87.5,12.9],[-89.5,13.5],[-91.5,14],[-94,16],[-96.5,15.7],[-99.9,16.8],[-103.5,18.3],[-105.5,20.5],[-105.7,22.5],[-107.5,24.7],[-108.2,25.3],[-109.5,26.5],[-111,27.9],[-112.8,30.5],[-114.8,31.8],[-114.5,30.5],[-113,29],[-112.2,27.5],[-111.5,26],[-110.3,24.2],[-109.9,22.9],[-111.5,24.5],[-112.2,25.5],[-114.9,27.9],[-115.8,30],[-116.6,31.8],[-117.1,32.5],[-118.5,34],[-120.6,34.6],[-122.5,37.8],[-124,40.5],[-124.5,43],[-124,46.2],[-124.7,48.4],[-123,48.3],[-125,50],[-127.5,50.8],[-128,52.2],[-130.5,54.5],[-133,57],[-136,58.3],[-140,59.7],[-144,60],[-147.5,60.8],[-150,59.5],[-152,59.8],[-154,58],[-158,56.5],[-162,55],[-164.5,54.4],[-161,58.5],[-157.5,58.8],[-162,58.5],[-164.8,60.5],[-165,62],[-165,63],[-161,64.4],[-166,64.6]],
         [[-60,82.5],[-30,83.5],[-20,82],[-12,81.5],[-18,77],[-19,74],[-22,71],[-24,69],[-32,68],[-38,65.5],[-42,61],[-44,59.8],[-48,61],[-51,64],[-53,66.5],[-54,69],[-55,70.5],[-56,72.5],[-60,75.5],[-66,76.2],[-72,78.5],[-68,80.5]],
         [[-61.5,66.6],[-65.5,62.5],[-71,62.8],[-77.5,64.5],[-73,67.5],[-81,70],[-88,73.4],[-80,73.8],[-72,71.5],[-67,69.5]],
         [[-80,77],[-90,78.5],[-93,81],[-75,83],[-62,82.5],[-70,79.5],[-75,78]],
@@ -442,9 +442,6 @@ const GW_SHAPES = {
         [[-80,74.5],[-92,74.8],[-92,76.5],[-80,76.3]],
         [[-84.95,21.85],[-83,23],[-81,23.15],[-78,22.4],[-75.5,21],[-74.15,20.25],[-77.5,19.85],[-79,21.6],[-81.5,22.1],[-84.3,21.6]],
         [[-74.4,19.9],[-70,19.8],[-68.4,18.6],[-70,18.2],[-71.4,17.6],[-74.4,18.4]]
-    ],
-    samerique: [
-        [[-77.3,8.6],[-76,9.4],[-75.5,10.5],[-74.2,11.3],[-72.2,12],[-71.3,12.4],[-70,11.5],[-68.3,10.5],[-66,10.6],[-64,10.6],[-61.8,10.7],[-61,9.5],[-60,8.5],[-58.5,7],[-57,6],[-55,5.95],[-53,5.5],[-51.5,4.3],[-50,1.8],[-49.5,0],[-48.5,-1],[-46,-1],[-44,-2.4],[-41,-2.9],[-38.5,-3.7],[-35.2,-5.4],[-34.8,-7.5],[-35.5,-9.5],[-37,-11],[-38.5,-13],[-39,-15.5],[-39.5,-18],[-40.5,-20.5],[-41.5,-22.5],[-43.2,-23],[-45.5,-23.8],[-48,-25.5],[-48.6,-28],[-50,-30.5],[-51.5,-31.5],[-53.4,-33.7],[-55,-35],[-56.2,-34.9],[-58,-34.4],[-57.5,-35.5],[-57.5,-38],[-62.3,-38.8],[-62.2,-40.5],[-65,-41],[-63.8,-42],[-65,-42.5],[-65.3,-45],[-67.5,-46.5],[-65.8,-47.8],[-68.5,-50.5],[-68.3,-52.3],[-68.5,-53.5],[-66.5,-55],[-67.3,-55.9],[-70,-55],[-72,-54],[-74.5,-52.5],[-75.5,-50],[-75.5,-47],[-74,-45],[-73.8,-43],[-74,-42],[-73.5,-39.5],[-73.4,-37],[-71.8,-33],[-71.6,-33],[-71.3,-30],[-70.4,-23.6],[-70.3,-18.5],[-71.5,-17.5],[-74.2,-15.5],[-76.3,-13.5],[-77,-12],[-79,-8],[-81.3,-6],[-81.1,-4.5],[-80.3,-3.4],[-80,-2.5],[-80.9,-1],[-80,0.8],[-79.6,1],[-78.8,1.8],[-77.5,3.8],[-77.4,6.5],[-77.9,7.2]]
     ],
     europe: [
         [].concat([[29.0,41.1],[28.0,41.98],[27.9,43.2],[28.65,44.2],[29.67,45.21],[30.75,46.45],[31.9,46.55],[32.6,46.1],[33.6,45.95],[32.5,45.4],[33.4,44.55],[35.4,45.05],[36.6,45.4],[35.1,45.95],[36.8,46.75],[38.25,47.1],[38.4,46.6],[37.6,45.6],[36.7,45.25],[37.8,44.7],[38.7,44.3]], GW_EU_AS,
@@ -493,9 +490,8 @@ const GW_CASPIAN = [[49.2,46.3],[48.5,45.9],[47.8,45.6],[47.5,45.0],[47.0,44.4],
 // ── Continents ────────────────────────────────────────────────────────────
 const GW_CONTINENTS = [
     { id: 'asie', name: 'Asie', lbl: [90,47], col: '#f2a9a0', sup: '44,6 millions de km²', pop: '4,8 milliards', pays: '48', grand: 'la Russie (partie asiatique) et la Chine', sommet: 'l\'Everest (8 849 m)', fact: 'Le plus grand et le plus peuplé des continents : 6 humains sur 10 y vivent. On y trouve les deux pays les plus peuplés du monde, l\'Inde et la Chine.' },
+    { id: 'amerique', name: 'Amérique', lbl: [-100,45], col: '#f4c28f', sup: '42,5 millions de km²', pop: '1 milliard', pays: '35', grand: 'le Canada', sommet: 'l\'Aconcagua (6 961 m, Andes)', fact: 'Le continent américain s\'étend sur plus de 14 000 km, de l\'océan Arctique jusqu\'au cap Horn. On y distingue trois ensembles : l\'Amérique du Nord, l\'Amérique centrale (avec les îles des Caraïbes) et l\'Amérique du Sud, reliées par l\'isthme de Panama. Le Groenland lui est rattaché géographiquement.' },
     { id: 'afrique', name: 'Afrique', lbl: [18,8], col: '#f3e08a', sup: '30,4 millions de km²', pop: '1,5 milliard', pays: '54', grand: 'l\'Algérie', sommet: 'le Kilimandjaro (5 895 m)', fact: 'C\'est le berceau de l\'humanité : les plus anciens fossiles d\'ancêtres de l\'Homme y ont été découverts. Sa population est la plus jeune du monde.' },
-    { id: 'namerique', name: 'Amérique du Nord', lines: ['Amérique', 'du Nord'], lbl: [-102,48], col: '#f4c28f', sup: '24,7 millions de km²', pop: '600 millions', pays: '23', grand: 'le Canada', sommet: 'le Denali (6 190 m, Alaska)', fact: 'Elle va du Canada et de l\'Alaska jusqu\'à l\'Amérique centrale et aux îles des Caraïbes. Le Groenland lui est rattaché géographiquement.' },
-    { id: 'samerique', name: 'Amérique du Sud', lines: ['Amérique', 'du Sud'], lbl: [-60,-15], col: '#b9dc8f', sup: '17,8 millions de km²', pop: '440 millions', pays: '12', grand: 'le Brésil', sommet: 'l\'Aconcagua (6 961 m)', fact: 'Elle abrite la forêt amazonienne, la plus grande forêt tropicale du monde, et la cordillère des Andes, la plus longue chaîne de montagnes.' },
     { id: 'antarctique', name: 'Antarctique', lbl: [20,-80], col: '#f4f7fb', sup: '14 millions de km²', pop: 'aucun habitant permanent (quelques milliers de scientifiques)', pays: 'aucun (continent protégé par un traité international)', grand: '—', sommet: 'le mont Vinson (4 892 m)', fact: 'Le continent le plus froid, le plus venteux et le plus sec. Il est recouvert d\'une calotte de glace qui atteint plus de 4 km d\'épaisseur. On y a mesuré −89 °C.' },
     { id: 'europe', name: 'Europe', lbl: [22,53], col: '#c6b5e8', sup: '10,2 millions de km²', pop: '745 millions', pays: 'une cinquantaine', grand: 'la Russie (partie européenne)', sommet: 'l\'Elbrouz (5 642 m, Caucase) ; le Mont Blanc (4 806 m) dans les Alpes', fact: 'Petit continent très peuplé, limité à l\'est par les monts Oural. La France s\'y trouve, ainsi que les 27 pays de l\'Union européenne.' },
     { id: 'oceanie', name: 'Océanie', lbl: [134,-25], col: '#a3d9c9', sup: '8,5 millions de km²', pop: '45 millions', pays: '14', grand: 'l\'Australie', sommet: 'le Puncak Jaya (4 884 m, Nouvelle-Guinée)', fact: 'Le plus petit continent, formé de l\'Australie et de milliers d\'îles du Pacifique. La Nouvelle-Calédonie et la Polynésie française en font partie.' }
@@ -504,7 +500,7 @@ const GW_CONTINENTS = [
 // ── Océans ────────────────────────────────────────────────────────────────
 const GW_OCEANS = [
     { id: 'pacifique', name: 'Océan Pacifique', lines: ['Océan', 'Pacifique'], lbls: [[-140,8],[165,20]], sup: '165 millions de km²', prof: '10 994 m (fosse des Mariannes)', fact: 'Le plus grand et le plus profond des océans : il couvre presque un tiers de la surface de la Terre. On pourrait y faire tenir tous les continents réunis !' },
-    { id: 'atlantique', name: 'Océan Atlantique', lines: ['Océan', 'Atlantique'], lbls: [[-35,25],[-17,-25]], sup: '106 millions de km²', prof: '8 376 m (fosse de Porto Rico)', fact: 'Il sépare l\'Europe et l\'Afrique des Amériques. La France métropolitaine le borde à l\'ouest.' },
+    { id: 'atlantique', name: 'Océan Atlantique', lines: ['Océan', 'Atlantique'], lbls: [[-35,25],[-17,-25]], sup: '106 millions de km²', prof: '8 376 m (fosse de Porto Rico)', fact: 'Il sépare l\'Europe et l\'Afrique de l\'Amérique. La France métropolitaine le borde à l\'ouest.' },
     { id: 'indien', name: 'Océan Indien', lines: ['Océan', 'Indien'], lbls: [[80,-20]], sup: '70 millions de km²', prof: '7 192 m (fosse de Java)', fact: 'Le plus chaud des océans. Il baigne l\'Afrique de l\'Est, l\'Asie du Sud et l\'Australie. La Réunion et Mayotte s\'y trouvent.' },
     { id: 'arctique', name: 'Océan Arctique', lines: ['Océan Arctique'], lbls: [[-10,79.5]], sup: '14 millions de km²', prof: '5 550 m', fact: 'Le plus petit et le plus froid des océans, autour du pôle Nord. Il est en grande partie recouvert de banquise (eau de mer gelée).' },
     { id: 'austral', name: 'Océan Austral', lines: ['Océan Austral'], lbls: [[-100,-60],[100,-58]], sup: '21 millions de km²', prof: '7 432 m', fact: 'Il entoure l\'Antarctique. Ses eaux sont glaciales et ses tempêtes très violentes.' }
@@ -515,11 +511,11 @@ const GW_RIVERS = [
     { id: 'nil', name: 'Nil', lbl: [28.5,22], path: [[33,-1.5],[32.5,1.5],[31.6,4.8],[31.5,9.5],[32.5,12],[32.5,15.6],[33.9,17.6],[31.5,18.5],[33,21.5],[32.9,24.1],[32.7,25.7],[31.2,28],[31.2,30.0],[31,31.5]],
       longueur: '6 650 km', source: 'région du lac Victoria (Burundi, Rwanda)', mer: 'la mer Méditerranée', cont: 'Afrique', fact: 'L\'un des deux plus longs fleuves du monde avec l\'Amazone. Sans lui, l\'Égypte ne serait qu\'un désert : c\'est grâce à ses crues que la civilisation égyptienne est née.' },
     { id: 'amazone', name: 'Amazone', lbl: [-62,-0.5], path: [[-72,-15],[-73.5,-11],[-73.8,-6],[-73.2,-3.75],[-70,-4.2],[-65,-3],[-60,-3.1],[-55,-2.3],[-52,-1.5],[-50,-0.5]],
-      longueur: '6 400 km environ', source: 'cordillère des Andes (Pérou)', mer: 'l\'océan Atlantique', cont: 'Amérique du Sud', fact: 'Le fleuve le plus puissant du monde : il transporte à lui seul un cinquième de l\'eau douce qui se jette dans les océans. Il traverse la forêt amazonienne.' },
+      longueur: '6 400 km environ', source: 'cordillère des Andes (Pérou)', mer: 'l\'océan Atlantique', cont: 'Amérique (du Sud)', fact: 'Le fleuve le plus puissant du monde : il transporte à lui seul un cinquième de l\'eau douce qui se jette dans les océans. Il traverse la forêt amazonienne.' },
     { id: 'yangzi', name: 'Yangzi Jiang', lbl: [108,33], path: [[91,33.5],[95,32.5],[98.5,30],[100,27],[102.5,26.2],[104.6,28.8],[106.5,29.6],[111,30.8],[114.3,30.6],[118.8,32.05],[121.6,31.4]],
       longueur: '6 300 km', source: 'plateau du Tibet', mer: 'la mer de Chine orientale (à Shanghai)', cont: 'Asie', fact: 'Le plus long fleuve d\'Asie. On l\'appelle aussi « fleuve Bleu ». Le barrage des Trois-Gorges, le plus grand du monde, y a été construit.' },
     { id: 'mississippi', name: 'Mississippi', lbl: [-84,38], path: [[-95.2,47.2],[-93.1,44.95],[-91,42.5],[-90.2,38.6],[-89.5,36.5],[-90,35.1],[-91,33],[-91.2,30.5],[-90,29.95],[-89.3,29.1]],
-      longueur: '3 770 km (6 275 km avec le Missouri)', source: 'lac Itasca (Minnesota, États-Unis)', mer: 'le golfe du Mexique', cont: 'Amérique du Nord', fact: 'Le grand fleuve des États-Unis, qui traverse le pays du nord au sud. Il se termine par un grand delta près de La Nouvelle-Orléans.' },
+      longueur: '3 770 km (6 275 km avec le Missouri)', source: 'lac Itasca (Minnesota, États-Unis)', mer: 'le golfe du Mexique', cont: 'Amérique (du Nord)', fact: 'Le grand fleuve des États-Unis, qui traverse le pays du nord au sud. Il se termine par un grand delta près de La Nouvelle-Orléans.' },
     { id: 'congo', name: 'Congo', lbl: [24.5,-3.5], path: [[26.5,-10.5],[26.7,-5],[25.2,0.5],[22,2],[18.3,0.05],[15.3,-4.3],[12.3,-6.05]],
       longueur: '4 700 km', source: 'plateau du Katanga (République démocratique du Congo)', mer: 'l\'océan Atlantique', cont: 'Afrique', fact: 'Le deuxième fleuve le plus puissant du monde. Il traverse deux fois l\'équateur et la grande forêt équatoriale d\'Afrique.' },
     { id: 'gange', name: 'Gange', lbl: [83,22.5], path: [[79,30.9],[78.15,29.95],[80.3,26.5],[83,25.3],[85.1,25.6],[88,24.5],[90.5,22.5]],
@@ -533,9 +529,9 @@ const GW_MOUNTAINS = [
     { id: 'himalaya', name: 'Himalaya', lbl: [84,32.5], shape: [[73,36],[77,35.5],[81,30.5],[85,28.5],[88,27.8],[92,28],[95.5,29],[97,28.3],[95,27.3],[92,26.9],[88,26.6],[84,27.3],[80,28.6],[77,30.5],[74,33.5],[72,35]],
       sommet: 'l\'Everest (8 849 m), le plus haut sommet du monde', cont: 'Asie', fact: 'La plus haute chaîne de montagnes du monde, entre l\'Inde et le Tibet. Elle compte 14 sommets de plus de 8 000 m. On l\'appelle le « toit du monde ».' },
     { id: 'andes', name: 'Andes', lbl: [-63,-30], shape: [[-75,10],[-72,8],[-77,3],[-79,-2],[-77.5,-8],[-72,-15],[-69,-17],[-68,-22],[-69.5,-28],[-70,-33],[-71,-38],[-72,-42],[-73,-47],[-73,-52],[-71,-52],[-71,-47],[-70.3,-42],[-69.5,-38],[-68.5,-33],[-67,-28],[-65.5,-22],[-66,-17],[-69,-14],[-74.5,-8],[-76.5,-2],[-75,3],[-70.5,7],[-72.5,10]],
-      sommet: 'l\'Aconcagua (6 961 m)', cont: 'Amérique du Sud', fact: 'La plus longue chaîne de montagnes du monde : environ 7 000 km le long de la côte ouest de l\'Amérique du Sud. Elle compte de nombreux volcans.' },
+      sommet: 'l\'Aconcagua (6 961 m)', cont: 'Amérique (du Sud)', fact: 'La plus longue chaîne de montagnes du monde : environ 7 000 km le long de la côte ouest de l\'Amérique du Sud. Elle compte de nombreux volcans.' },
     { id: 'rocheuses', name: 'Rocheuses', lbl: [-112,43], shape: [[-125,60],[-120,55],[-115,50],[-111,45],[-107,40],[-106,35],[-105.5,32],[-103.5,33],[-104.5,38],[-105.5,42],[-109,46],[-113,50],[-117,55],[-123,61],[-130,64],[-135,65],[-132,62]],
-      sommet: 'le mont Elbert (4 401 m)', cont: 'Amérique du Nord', fact: 'Grande chaîne de l\'ouest de l\'Amérique du Nord, du Canada jusqu\'au Mexique. Le plus haut sommet du continent, le Denali, se trouve plus au nord, en Alaska.' },
+      sommet: 'le mont Elbert (4 401 m)', cont: 'Amérique (du Nord)', fact: 'Grande chaîne de l\'ouest de l\'Amérique du Nord, du Canada jusqu\'au Mexique. Le plus haut sommet d\'Amérique du Nord, le Denali (6 190 m), se trouve plus au nord, en Alaska.' },
     { id: 'alpes', name: 'Alpes', lbl: [10,49.5], shape: [[5.4,44],[5.3,45],[6.6,46.4],[9.5,47.3],[14,47.9],[16.1,47.7],[15.5,46.5],[12,46],[9.5,45.85],[7.6,45.4],[7.4,44.3],[6.5,43.85]],
       sommet: 'le Mont Blanc (4 806 m)', cont: 'Europe', fact: 'La plus haute chaîne de montagnes d\'Europe occidentale. Elle traverse la France, l\'Italie, la Suisse, l\'Autriche…' },
     { id: 'atlas', name: 'Atlas', lbl: [-3,30], shape: [[-9.6,30.8],[-6,31.5],[-3,33],[0,34.5],[5,35.5],[9,36.5],[10,36],[6,34.5],[2,33.5],[-2,32],[-5,30.8],[-8.5,30]],
@@ -557,7 +553,7 @@ const GW_DESERTS = [
     { id: 'australie', name: 'Désert australien', lines: ['Désert', 'australien'], lbl: [128,-25.5], shape: [[120,-21],[130,-20],[138,-22],[136,-28],[128,-30],[121,-28]],
       sup: '2,7 millions de km² (plusieurs déserts réunis)', type: 'désert chaud', cont: 'Océanie', fact: 'Le centre de l\'Australie, appelé l\'« outback », est occupé par plusieurs grands déserts. On y trouve le célèbre rocher Uluru.' },
     { id: 'atacama', name: 'Atacama', lbl: [-62.5,-24.5], shape: [[-70.5,-18],[-69,-19],[-68.8,-27],[-70.6,-27]],
-      sup: '105 000 km²', type: 'désert côtier', cont: 'Amérique du Sud', fact: 'Le désert non polaire le plus sec du monde, au Chili. Certaines de ses stations météo n\'ont jamais enregistré de pluie !' }
+      sup: '105 000 km²', type: 'désert côtier', cont: 'Amérique (du Sud)', fact: 'Le désert non polaire le plus sec du monde, au Chili. Certaines de ses stations météo n\'ont jamais enregistré de pluie !' }
 ];
 
 // ── Grandes villes ────────────────────────────────────────────────────────
@@ -572,12 +568,49 @@ const GW_CITIES = [
     { id: 'kinshasa', name: 'Kinshasa', p: [15.3,-4.3], lp: 'l', pays: 'République démocratique du Congo', cont: 'Afrique', pop: '17 millions', fact: 'Capitale de la RDC, au bord du fleuve Congo. C\'est la plus grande ville francophone du monde.' },
     { id: 'paris', name: 'Paris', p: [2.35,48.86], lp: 'l', pays: 'France', cont: 'Europe', pop: '11 millions', fact: 'Capitale de la France, l\'une des villes les plus visitées du monde.' },
     { id: 'moscou', name: 'Moscou', p: [37.6,55.75], lp: 'r', pays: 'Russie', cont: 'Europe', pop: '13 millions', fact: 'Capitale de la Russie et plus grande ville d\'Europe.' },
-    { id: 'newyork', name: 'New York', p: [-74,40.7], lp: 'r', pays: 'États-Unis', cont: 'Amérique du Nord', pop: '19 millions', fact: 'La plus grande ville des États-Unis, célèbre pour ses gratte-ciel et sa statue de la Liberté, offerte par la France.' },
-    { id: 'losangeles', name: 'Los Angeles', p: [-118.2,34.05], lp: 'l', pays: 'États-Unis', cont: 'Amérique du Nord', pop: '12 millions', fact: 'Grande ville de Californie, au bord de l\'océan Pacifique, capitale mondiale du cinéma (Hollywood).' },
-    { id: 'mexico', name: 'Mexico', p: [-99.1,19.4], lp: 'l', pays: 'Mexique', cont: 'Amérique du Nord', pop: '22 millions', fact: 'Capitale du Mexique, construite à plus de 2 200 m d\'altitude sur l\'ancienne capitale des Aztèques.' },
-    { id: 'saopaulo', name: 'São Paulo', p: [-46.6,-23.5], lp: 'r', pays: 'Brésil', cont: 'Amérique du Sud', pop: '22 millions', fact: 'La plus grande ville d\'Amérique du Sud, centre économique du Brésil.' },
-    { id: 'buenosaires', name: 'Buenos Aires', p: [-58.4,-34.6], lp: 'l', pays: 'Argentine', cont: 'Amérique du Sud', pop: '15 millions', fact: 'Capitale de l\'Argentine, sur le Río de la Plata. C\'est la ville du tango.' },
-    { id: 'sydney', name: 'Sydney', p: [151.2,-33.9], lp: 'l', pays: 'Australie', cont: 'Océanie', pop: '5 millions', fact: 'La plus grande ville d\'Océanie, célèbre pour son opéra au bord de la baie. (La capitale de l\'Australie est Canberra.)' }
+    { id: 'newyork', name: 'New York', p: [-74,40.7], lp: 'r', pays: 'États-Unis', cont: 'Amérique (du Nord)', pop: '19 millions', fact: 'La plus grande ville des États-Unis, célèbre pour ses gratte-ciel et sa statue de la Liberté, offerte par la France.' },
+    { id: 'losangeles', name: 'Los Angeles', p: [-118.2,34.05], lp: 'l', pays: 'États-Unis', cont: 'Amérique (du Nord)', pop: '12 millions', fact: 'Grande ville de Californie, au bord de l\'océan Pacifique, capitale mondiale du cinéma (Hollywood).' },
+    { id: 'mexico', name: 'Mexico', p: [-99.1,19.4], lp: 'l', pays: 'Mexique', cont: 'Amérique (du Nord)', pop: '22 millions', fact: 'Capitale du Mexique, construite à plus de 2 200 m d\'altitude sur l\'ancienne capitale des Aztèques.' },
+    { id: 'saopaulo', name: 'São Paulo', p: [-46.6,-23.5], lp: 'l', pays: 'Brésil', cont: 'Amérique (du Sud)', pop: '22 millions', fact: 'La plus grande ville d\'Amérique du Sud, centre économique du Brésil.' },
+    { id: 'buenosaires', name: 'Buenos Aires', p: [-58.4,-34.6], lp: 'r', pays: 'Argentine', cont: 'Amérique (du Sud)', pop: '15 millions', fact: 'Capitale de l\'Argentine, sur le Río de la Plata. C\'est la ville du tango.' },
+    { id: 'sydney', name: 'Sydney', p: [151.2,-33.9], lp: 'r', pays: 'Australie', cont: 'Océanie', pop: '5 millions', fact: 'La plus grande ville d\'Océanie, célèbre pour son opéra au bord de la baie. (La capitale de l\'Australie est Canberra.)' },
+    // ── Villes ajoutées : Europe ──
+    { id: 'londres', name: 'Londres', p: [-0.13,51.5], lp: 'l', pays: 'Royaume-Uni', cont: 'Europe', pop: '14 millions', fact: 'Capitale du Royaume-Uni, traversée par la Tamise. Elle est reliée à Paris par le tunnel sous la Manche.' },
+    { id: 'madrid', name: 'Madrid', p: [-3.7,40.4], lp: 'b', pays: 'Espagne', cont: 'Europe', pop: '7 millions', fact: 'Capitale de l\'Espagne, située au centre du pays, sur un haut plateau.' },
+    { id: 'rome', name: 'Rome', p: [12.5,41.9], lp: 'r', pays: 'Italie', cont: 'Europe', pop: '4 millions', fact: 'Capitale de l\'Italie, ancienne capitale de l\'Empire romain. Le Vatican, plus petit État du monde, se trouve en son cœur.' },
+    { id: 'berlin', name: 'Berlin', p: [13.4,52.5], lp: 'r', pays: 'Allemagne', cont: 'Europe', pop: '6 millions', fact: 'Capitale de l\'Allemagne. Elle a été coupée en deux par un mur de 1961 à 1989.' },
+    { id: 'istanbul', name: 'Istanbul', p: [29.0,41.0], lp: 'r', pays: 'Turquie', cont: 'Europe / Asie', pop: '16 millions', fact: 'Plus grande ville de Turquie, à cheval sur deux continents : le détroit du Bosphore sépare sa partie européenne de sa partie asiatique.' },
+    // ── Villes ajoutées : Afrique ──
+    { id: 'alger', name: 'Alger', p: [3.06,36.75], lp: 'r', pays: 'Algérie', cont: 'Afrique', pop: '4 millions', fact: 'Capitale de l\'Algérie, le plus grand pays d\'Afrique, au bord de la mer Méditerranée.' },
+    { id: 'dakar', name: 'Dakar', p: [-17.45,14.7], lp: 'r', pays: 'Sénégal', cont: 'Afrique', pop: '4 millions', fact: 'Capitale du Sénégal, la ville la plus à l\'ouest du continent africain. On y parle français.' },
+    { id: 'abidjan', name: 'Abidjan', p: [-4.0,5.35], lp: 'l', pays: 'Côte d\'Ivoire', cont: 'Afrique', pop: '6 millions', fact: 'Plus grande ville de Côte d\'Ivoire et grand port sur le golfe de Guinée. C\'est l\'une des plus grandes villes francophones du monde.' },
+    { id: 'addisabeba', name: 'Addis-Abeba', p: [38.75,9.0], lp: 'r', pays: 'Éthiopie', cont: 'Afrique', pop: '5,5 millions', fact: 'Capitale de l\'Éthiopie, perchée à 2 350 m d\'altitude. L\'Union africaine y a son siège.' },
+    { id: 'nairobi', name: 'Nairobi', p: [36.8,-1.3], lp: 'r', pays: 'Kenya', cont: 'Afrique', pop: '5,5 millions', fact: 'Capitale du Kenya, presque sur l\'équateur. Un parc national avec lions et girafes se trouve aux portes de la ville.' },
+    { id: 'johannesburg', name: 'Johannesburg', p: [28.0,-26.2], lp: 'r', pays: 'Afrique du Sud', cont: 'Afrique', pop: '10 millions', fact: 'Plus grande ville d\'Afrique du Sud, née à la fin du XIXe siècle grâce à la découverte de mines d\'or.' },
+    { id: 'lecap', name: 'Le Cap', p: [18.4,-33.9], lp: 'l', pays: 'Afrique du Sud', cont: 'Afrique', pop: '5 millions', fact: 'Ville portuaire tout au sud de l\'Afrique, dominée par la montagne de la Table. Le cap de Bonne-Espérance est tout proche.' },
+    // ── Villes ajoutées : Asie ──
+    { id: 'teheran', name: 'Téhéran', p: [51.4,35.7], lp: 'b', pays: 'Iran', cont: 'Asie', pop: '16 millions', fact: 'Capitale de l\'Iran, au pied des monts Elbourz, au sud de la mer Caspienne.' },
+    { id: 'karachi', name: 'Karachi', p: [67.0,24.9], lp: 'l', pays: 'Pakistan', cont: 'Asie', pop: '18 millions', fact: 'Plus grande ville du Pakistan et son principal port, sur la mer d\'Arabie.' },
+    { id: 'dacca', name: 'Dacca', p: [90.4,23.8], lp: 'r', pays: 'Bangladesh', cont: 'Asie', pop: '24 millions', fact: 'Capitale du Bangladesh, l\'une des villes les plus densément peuplées du monde, près du delta du Gange.' },
+    { id: 'bangkok', name: 'Bangkok', p: [100.5,13.75], lp: 'l', pays: 'Thaïlande', cont: 'Asie', pop: '17 millions', fact: 'Capitale de la Thaïlande, connue pour ses temples bouddhistes et ses marchés flottants sur les canaux.' },
+    { id: 'singapour', name: 'Singapour', p: [103.8,1.35], lp: 'r', pays: 'Singapour', cont: 'Asie', pop: '6 millions', fact: 'Une ville qui est aussi un pays (une cité-État), à la pointe de la péninsule malaise. C\'est l\'un des plus grands ports du monde.' },
+    { id: 'jakarta', name: 'Jakarta', p: [106.8,-6.2], lp: 'b', pays: 'Indonésie', cont: 'Asie', pop: '35 millions', fact: 'Capitale de l\'Indonésie, sur l\'île de Java. C\'est l\'une des plus grandes agglomérations du monde.' },
+    { id: 'manille', name: 'Manille', p: [121.0,14.6], lp: 'r', pays: 'Philippines', cont: 'Asie', pop: '24 millions', fact: 'Capitale des Philippines, un pays formé de plus de 7 000 îles.' },
+    { id: 'seoul', name: 'Séoul', p: [127.0,37.55], lp: 'r', pays: 'Corée du Sud', cont: 'Asie', pop: '26 millions', fact: 'Capitale de la Corée du Sud. Près de la moitié des habitants du pays vivent dans son agglomération.' },
+    // ── Villes ajoutées : Amérique ──
+    { id: 'montreal', name: 'Montréal', p: [-73.6,45.5], lp: 'r', pays: 'Canada', cont: 'Amérique (du Nord)', pop: '4,3 millions', fact: 'Grande ville du Québec, sur une île du fleuve Saint-Laurent. C\'est la plus grande ville francophone d\'Amérique.' },
+    { id: 'chicago', name: 'Chicago', p: [-87.6,41.9], lp: 'l', pays: 'États-Unis', cont: 'Amérique (du Nord)', pop: '9 millions', fact: 'Grande ville au bord du lac Michigan, l\'un des Grands Lacs. C\'est là qu\'ont été construits les premiers gratte-ciel.' },
+    { id: 'washington', name: 'Washington', p: [-77.04,38.9], lp: 'l', pays: 'États-Unis', cont: 'Amérique (du Nord)', pop: '6 millions', fact: 'Capitale fédérale des États-Unis. Le président y habite, à la Maison-Blanche.' },
+    { id: 'bogota', name: 'Bogota', p: [-74.1,4.7], lp: 'r', pays: 'Colombie', cont: 'Amérique (du Sud)', pop: '11 millions', fact: 'Capitale de la Colombie, construite à plus de 2 600 m d\'altitude dans la cordillère des Andes.' },
+    { id: 'lima', name: 'Lima', p: [-77.0,-12.05], lp: 'l', pays: 'Pérou', cont: 'Amérique (du Sud)', pop: '11 millions', fact: 'Capitale du Pérou, au bord de l\'océan Pacifique. Il n\'y pleut presque jamais.' },
+    { id: 'rio', name: 'Rio de Janeiro', p: [-43.2,-22.9], lp: 'r', pays: 'Brésil', cont: 'Amérique (du Sud)', pop: '13 millions', fact: 'Ville célèbre pour son carnaval, la plage de Copacabana et la statue du Christ rédempteur qui domine la baie.' },
+    { id: 'santiago', name: 'Santiago', p: [-70.65,-33.45], lp: 'l', pays: 'Chili', cont: 'Amérique (du Sud)', pop: '7 millions', fact: 'Capitale du Chili, au pied des Andes. Le Chili est un pays très long et très étroit.' },
+    // ── Villes ajoutées : Océanie ──
+    { id: 'perth', name: 'Perth', p: [115.86,-31.95], lp: 'r', pays: 'Australie', cont: 'Océanie', pop: '2,2 millions', fact: 'Grande ville de la côte ouest de l\'Australie, l\'une des villes les plus isolées du monde.' },
+    { id: 'melbourne', name: 'Melbourne', p: [144.96,-37.8], lp: 'l', pays: 'Australie', cont: 'Océanie', pop: '5 millions', fact: 'Deuxième ville d\'Australie, au sud-est du pays. Elle accueille chaque année un grand tournoi de tennis.' },
+    { id: 'canberra', name: 'Canberra', p: [149.13,-35.3], lp: 'l', pays: 'Australie', cont: 'Océanie', pop: '470 000', fact: 'Capitale de l\'Australie, construite spécialement pour mettre fin à la rivalité entre Sydney et Melbourne.' },
+    { id: 'auckland', name: 'Auckland', p: [174.76,-36.85], lp: 'b', pays: 'Nouvelle-Zélande', cont: 'Océanie', pop: '1,7 million', fact: 'Plus grande ville de Nouvelle-Zélande, construite sur d\'anciens volcans.' },
+    { id: 'noumea', name: 'Nouméa', p: [166.45,-22.27], lp: 'r', pays: 'France (Nouvelle-Calédonie)', cont: 'Océanie', pop: '180 000', fact: 'Chef-lieu de la Nouvelle-Calédonie, territoire français du Pacifique. Son lagon, l\'un des plus grands du monde, est classé au patrimoine mondial.' }
 ];
 
 // ── Lignes repères ────────────────────────────────────────────────────────
@@ -840,7 +873,7 @@ function createGeoMondeWidget() {
     helpPopup.className = 'gw-help-popup';
     helpPopup.innerHTML = `
         <h4>💡 Géographie du monde</h4>
-        <p>Le planisphère présente les <b>7 continents</b>, les <b>5 océans</b>, de grands
+        <p>Le planisphère présente les <b>6 continents</b>, les <b>5 océans</b>, de grands
         <b>fleuves</b>, des <b>chaînes de montagnes</b>, des <b>déserts</b> et de
         <b>grandes villes</b>.</p>
         <p>👆 <b>Clique sur un élément</b> : la carte zoome dessus et sa fiche s'affiche à droite.
@@ -913,9 +946,14 @@ function createGeoMondeWidget() {
             o.el.setAttribute('r', (o.r * s).toFixed(2));
             o.el.setAttribute('stroke-width', (o.sw * s).toFixed(2));
         });
+        // Continent sélectionné : on affiche aussi les noms des éléments qui s'y trouvent
+        const selIt = selected && items[selected];
+        const selCont = selIt && selIt.layer === 'continents' ? selIt.name : null;
         labels.forEach(lb => {
             const own = selected && lb.item.id === selected;
-            const far = zoom < lb.minZ && !own;
+            const inCont = !!(selCont && lb.item.data && typeof lb.item.data.cont === 'string'
+                && lb.item.data.cont.includes(selCont));
+            const far = zoom < lb.minZ && !own && !inCont;
             lb.el.classList.toggle('gw-far', far);
             if (far) return;
             lb.el.setAttribute('font-size', (lb.size * s).toFixed(2));
@@ -1007,7 +1045,7 @@ function createGeoMondeWidget() {
         if (!it) {
             side.style.borderLeftColor = '#9ca3af';
             const sw = {
-                continents: 'background:linear-gradient(90deg,#f4c28f 0 33%,#b9dc8f 33% 66%,#f2a9a0 66%)',
+                continents: 'background:linear-gradient(90deg,#f4c28f 0 33%,#f3e08a 33% 66%,#f2a9a0 66%)',
                 oceans:     'background:#cfe6f3;border:1px solid #9cc3dc',
                 fleuves:    'background:#2b7bd0;height:4px',
                 montagnes:  'background:repeating-linear-gradient(45deg,#b5834d 0 3px,#e6cfae 3px 6px)',

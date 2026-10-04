@@ -165,6 +165,11 @@ function buildBoardState() {
         if (w.dataset.type === 'mot-long' && typeof w._mlGetData === 'function') {
             motLongData = w._mlGetData();
         }
+        // Données propres au widget frise historique
+        let friseHistData = null;
+        if (w.dataset.type === 'frise-historique' && typeof w._fhGetData === 'function') {
+            friseHistData = w._fhGetData();
+        }
         // Données propres au widget pause calme
         let pauseCalmeData = null;
         if (w.dataset.type === 'pause-calme' && typeof w._wpcGetData === 'function') {
@@ -361,6 +366,7 @@ function buildBoardState() {
 			conjData,
 			tableauNumData,
 			motLongData,
+			friseHistData,
 			pauseCalmeData,
 			horlogeData,
 			sondageData,
@@ -609,6 +615,11 @@ function restoreBoardFromJSON(json) {
             widget = createMotLePlusLongWidget();
             if (w.motLongData && typeof widget._mlSetData === 'function') {
                 widget._mlSetData(w.motLongData);
+            }
+        } else if (w.type === 'frise-historique') {
+            widget = createFriseHistoriqueWidget();
+            if (w.friseHistData && typeof widget._fhSetData === 'function') {
+                widget._fhSetData(w.friseHistData);
             }
         } else if (w.type === 'tableau-num') {
             widget = createTableauNumWidget();

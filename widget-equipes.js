@@ -484,6 +484,50 @@
         color: #374151;
         font-weight: 800;
     }
+
+    /* ── Footer : actions sur les équipes (sauvegarde, PDF, effacer) ── */
+    .equipes-footer-row {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .equipes-foot-btn {
+        padding: 7px 14px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        font-family: inherit;
+        color: #fff;
+        transition: background .15s, transform .1s;
+    }
+    .equipes-foot-btn:active { transform: scale(0.96); }
+    .equipes-save-btn { background: #10b981; }
+    .equipes-save-btn:hover { background: #059669; }
+    .equipes-pdf-btn  { background: #6366f1; }
+    .equipes-pdf-btn:hover  { background: #4f46e5; }
+    .equipes-footer .equipes-reset-btn { width: auto; min-width: 0; margin: 0; }
+    .equipes-open-teams-btn { background: #0ea5e9 !important; }
+    .equipes-open-teams-btn:hover { background: #0284c7 !important; }
+
+    /* ── Champ de saisie dans la modale (nom de sauvegarde) ── */
+    .equipes-modal-input {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 10px;
+        padding: 8px 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 12px;
+        font-family: inherit;
+        color: #374151;
+        user-select: text;
+    }
+    .equipes-modal-input:focus { outline: none; border-color: #4a90e2; box-shadow: 0 0 0 2px #dbeafe; }
+
     `;
 
     if (!document.getElementById('equipes-widget-style')) {
@@ -526,6 +570,7 @@
     const TEAM_MIN = 2;
     const TEAM_MAX = 8;
     const DEFAULT_TEAM_COUNT = 4;
+    const SAVE_FILE_TYPE = 'bdp-equipes'; // identifiant des fichiers .json d'équipes
 
     // ── HTML interne partagé (création + restauration) ────────────────────
     function equipesInnerHTML() {
@@ -546,11 +591,16 @@
                 Format : <em>Prénom;NOM;sexe;NIVEAU;date</em><br><br>
                 • Cliquez sur un élève pour le marquer absent (il ne sera pas inclus).<br>
                 • Choisissez le nombre d'équipes (2 à 8).<br>
-                • L'algorithme équilibre les équipes par genre et par niveau.</p>
+                • L'algorithme équilibre les équipes par genre et par niveau.<br><br>
+                • 💾 « Enregistrer » télécharge les équipes dans un fichier .json.<br>
+                • 📥 « Ouvrir des équipes » recharge un fichier .json enregistré.<br>
+                • 📄 « Exporter en PDF » télécharge un fichier .pdf des équipes.</p>
             </div>
             <div class="equipes-import-zone">
                 <button class="equipes-import-btn equipes-class-btn" style="display:none;">📋 Utiliser une liste de classe</button>
                 <button class="equipes-import-btn">📄 Importer une liste d'élèves</button>
+                <button class="equipes-import-btn equipes-open-teams-btn">📥 Ouvrir des équipes (.json)</button>
+                <input type="file" class="equipes-teams-file-input" accept=".json,application/json" style="display:none;">
                 <input type="file" class="equipes-file-input" accept=".txt,.csv" style="display:none;">
                 <div class="equipes-status">Format : Prénom;NOM;sexe;NIVEAU;date</div>
             </div>
@@ -569,12 +619,17 @@
                 <button class="equipes-scroll-btn equipes-scroll-down" title="Défiler vers le bas">▼</button>
             </div>
             <div class="equipes-footer">
-                <button class="equipes-reset-btn">⚠️ Effacer les équipes</button>
+                <div class="equipes-footer-row">
+                    <button class="equipes-foot-btn equipes-save-btn" title="Enregistrer ces équipes dans un fichier .json">💾 Enregistrer (.json)</button>
+                    <button class="equipes-foot-btn equipes-pdf-btn" title="Exporter les équipes en PDF">📄 Exporter en PDF</button>
+                    <button class="equipes-reset-btn">⚠️ Effacer les équipes</button>
+                </div>
             </div>
             <div class="equipes-modal-overlay">
                 <div class="equipes-modal-box">
                     <div class="equipes-modal-title">Confirmation</div>
                     <p class="equipes-modal-text"></p>
+                    <input type="text" class="equipes-modal-input" maxlength="60" style="display:none;">
                     <div class="equipes-modal-list"></div>
                     <div class="equipes-modal-btns">
                         <button class="equipes-modal-btn equipes-modal-cancel">Annuler</button>
@@ -612,7 +667,12 @@
 
         // ── Références DOM ────────────────────────────────────────────────
         const importZone    = widget.querySelector('.equipes-import-zone');
-        const importBtn     = widget.querySelector('.equipes-import-btn:not(.equipes-class-btn)');
+        const importBtn     = widget.querySelector('.equipes-import-btn:not(.equipes-class-btn):not(.equipes-open-teams-btn)');
+        const openTeamsBtn  = widget.querySelector('.equipes-open-teams-btn');
+        const teamsFileInput = widget.querySelector('.equipes-teams-file-input');
+        const saveBtn       = widget.querySelector('.equipes-save-btn');
+        const pdfBtn        = widget.querySelector('.equipes-pdf-btn');
+        const modalInput    = widget.querySelector('.equipes-modal-input');
         const classBtn      = widget.querySelector('.equipes-class-btn');
         const fileInput     = widget.querySelector('.equipes-file-input');
         const statusEl      = widget.querySelector('.equipes-status');
@@ -955,6 +1015,7 @@
             modalOverlay.querySelector('.equipes-modal-text').textContent  = '';
             const listEl = modalOverlay.querySelector('.equipes-modal-list');
             listEl.innerHTML = '';
+            hideModalInput();
             classes.forEach(c => {
                 const b = document.createElement('button');
                 b.textContent = '📋 ' + c.name + ' (' + c.count + ')';
@@ -1042,9 +1103,18 @@
             changeBtn.className = 'equipes-level-tab equipes-change-class-btn';
             changeBtn.title = 'Charger une autre liste (classe ou fichier)';
             changeBtn.textContent = '📂';
-            changeBtn.style.cssText = 'margin-right:auto;background:#f0f4ff;border-color:#c7d9f8;color:#4a90e2;';
+            changeBtn.style.cssText = 'background:#f0f4ff;border-color:#c7d9f8;color:#4a90e2;';
             changeBtn.addEventListener('click', showClassPicker);
             levelTabs.appendChild(changeBtn);
+
+            // Bouton "Ouvrir des équipes" (fichier .json)
+            const savedTab = document.createElement('button');
+            savedTab.className = 'equipes-level-tab equipes-open-tab';
+            savedTab.title = 'Ouvrir un fichier d\'équipes (.json)';
+            savedTab.textContent = '📥 Ouvrir des équipes';
+            savedTab.style.cssText = 'margin-right:auto;background:#f0f9ff;border-color:#bae6fd;color:#0284c7;text-transform:none;';
+            savedTab.addEventListener('click', openTeamsFile);
+            levelTabs.appendChild(savedTab);
 
             if (niveaux.length > 1) {
                 levelTabs.appendChild(makeTab('Tous', 'tous'));
@@ -1064,6 +1134,7 @@
 
         function setActiveTab(value) {
             levelTabs.querySelectorAll('.equipes-level-tab').forEach(t => {
+                if (!t.dataset.level) return; // boutons 📂 / 📥 : garder leur style
                 const isActive = t.dataset.level === value;
                 const color    = t.dataset.level === 'tous' ? EQUIPES_THEME : getLevelColor(t.dataset.level);
                 t.style.backgroundColor = isActive ? color  : '#f0f0f0';
@@ -1299,6 +1370,7 @@
             const confirmBtn = modalOverlay.querySelector('.equipes-modal-confirm');
             const pickList = modalOverlay.querySelector('.equipes-modal-list');
             if (pickList) pickList.innerHTML = '';
+            hideModalInput();
             cancelBtn.style.display = 'none';
             confirmBtn.style.display = '';
             confirmBtn.textContent  = 'OK';
@@ -1313,15 +1385,371 @@
             const confirmBtn = modalOverlay.querySelector('.equipes-modal-confirm');
             const pickList = modalOverlay.querySelector('.equipes-modal-list');
             if (pickList) pickList.innerHTML = '';
+            hideModalInput();
             confirmBtn.style.display = '';
             confirmBtn.textContent = confirmLabel || 'Confirmer';
             cancelBtn.style.display = '';
             confirmBtn.onclick = () => { closeModal(); onConfirm(); };
             modalOverlay.classList.add('open');
         }
-        function closeModal() { modalOverlay.classList.remove('open'); }
+        function closeModal() {
+            modalOverlay.classList.remove('open');
+            modalOverlay.querySelector('.equipes-modal-cancel').textContent = 'Annuler';
+            hideModalInput();
+        }
         modalOverlay.querySelector('.equipes-modal-cancel').addEventListener('click', closeModal);
         modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
+
+        function hideModalInput() {
+            if (!modalInput) return;
+            modalInput.style.display = 'none';
+            modalInput.value = '';
+            modalInput.onkeydown = null;
+        }
+
+        // =================================================================
+        // ENREGISTREMENT / OUVERTURE DES ÉQUIPES (fichier .json)
+        // =================================================================
+        function getClassName() {
+            const CL = window.ClasseListe;
+            if (!CL || !classId) return '';
+            const c = CL.getClasses().find(c => String(c.id) === String(classId));
+            return c ? c.name : '';
+        }
+
+        function formatDate(d, long) {
+            return long
+                ? d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                : d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function defaultSetName() {
+            const cls = getClassName();
+            const n = savedTeams ? savedTeams.length : selectedCount;
+            return (cls ? cls + ' – ' : '') + n + ' équipes – ' + new Date().toLocaleDateString('fr-FR');
+        }
+
+        function flashButton(btn, text) {
+            if (!btn) return;
+            const old = btn.textContent;
+            btn.textContent = text;
+            btn.disabled = true;
+            setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1600);
+        }
+
+        function safeFileName(name) {
+            return (name || 'equipes')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // accents
+                .replace(/[\/\\:*?"<>|]+/g, '-')                   // caractères interdits
+                .replace(/\s+/g, '_')
+                .replace(/^[-_.]+|[-_.]+$/g, '')
+                .slice(0, 80) || 'equipes';
+        }
+
+        function downloadJSON(data, fileName) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function saveCurrentTeams() {
+            if (!savedTeams || !savedTeams.length) return;
+            const def = defaultSetName();
+            modalOverlay.querySelector('.equipes-modal-title').textContent = 'Enregistrer les équipes';
+            modalOverlay.querySelector('.equipes-modal-text').textContent  = 'Nom du fichier .json :';
+            modalOverlay.querySelector('.equipes-modal-list').innerHTML = '';
+            const cancelBtn  = modalOverlay.querySelector('.equipes-modal-cancel');
+            const confirmBtn = modalOverlay.querySelector('.equipes-modal-confirm');
+            cancelBtn.style.display  = '';
+            confirmBtn.style.display = '';
+            confirmBtn.textContent   = '💾 Enregistrer';
+
+            const doSave = () => {
+                const name = (modalInput.value || '').trim() || def;
+                const data = {
+                    type:      SAVE_FILE_TYPE,
+                    version:   1,
+                    name:      name,
+                    date:      new Date().toISOString(),
+                    className: getClassName() || null,
+                    classId:   classId || null,
+                    count:     savedTeams.length,
+                    teams:     savedTeams,
+                    students:  allStudents,
+                    absents:   Array.from(absentSet)
+                };
+                closeModal();
+                try {
+                    downloadJSON(data, safeFileName(name) + '.json');
+                    flashButton(saveBtn, '✓ Enregistré');
+                } catch (e) {
+                    showAlert("L'enregistrement du fichier a échoué.");
+                }
+            };
+
+            modalInput.style.display = 'block';
+            modalInput.value = def;
+            modalInput.onkeydown = (e) => {
+                e.stopPropagation(); // éviter les raccourcis clavier du tableau
+                if (e.key === 'Enter')  { e.preventDefault(); doSave(); }
+                if (e.key === 'Escape') { e.preventDefault(); closeModal(); }
+            };
+            confirmBtn.onclick = doSave;
+            modalOverlay.classList.add('open');
+            setTimeout(() => { modalInput.focus(); modalInput.select(); }, 30);
+        }
+
+        function openTeamsFile() {
+            if (teamsFileInput) teamsFileInput.click();
+        }
+
+        function isValidTeamsFile(data) {
+            return data && typeof data === 'object' &&
+                Array.isArray(data.teams) && data.teams.length &&
+                data.teams.every(t => Array.isArray(t) && t.every(s => s && typeof s.prenom === 'string'));
+        }
+
+        if (teamsFileInput) {
+            teamsFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                e.target.value = '';
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    let data;
+                    try { data = JSON.parse(ev.target.result); } catch (err) { data = null; }
+                    if (!isValidTeamsFile(data)) {
+                        showAlert("Ce fichier n'est pas un fichier d'équipes valide.\nChoisissez un fichier .json enregistré depuis ce widget.");
+                        return;
+                    }
+                    const label = data.name || file.name.replace(/\.json$/i, '');
+                    if (savedTeams && savedTeams.length) {
+                        showConfirm('Ouvrir « ' + label + ' » ?',
+                            'Les équipes affichées seront remplacées.',
+                            () => loadSavedSet(data), 'Ouvrir');
+                    } else {
+                        loadSavedSet(data);
+                    }
+                };
+                reader.onerror = () => showAlert('Impossible de lire ce fichier.');
+                reader.readAsText(file, 'UTF-8');
+            });
+        }
+
+        function loadSavedSet(set) {
+            if (!set || !Array.isArray(set.teams) || !set.teams.length) {
+                showAlert('Cette sauvegarde est vide ou illisible.');
+                return;
+            }
+            const teams     = set.teams.map(t => normalizeStudents(t));
+            const fromTeams = [].concat(...teams);
+            allStudents   = (Array.isArray(set.students) && set.students.length) ? normalizeStudents(set.students) : fromTeams;
+            set = Object.assign({}, set, { teams: teams });
+            absentSet     = new Set((set.absents || []).map(String));
+            selectedCount = Math.min(TEAM_MAX, Math.max(TEAM_MIN, set.teams.length));
+            currentLevel  = 'tous';
+            savedTeams    = set.teams;
+
+            const CL = window.ClasseListe;
+            if (set.classId && CL && CL.getClass(set.classId)) {
+                classId = set.classId;
+                widget.dataset.equipesClassId = classId;
+                persistData();
+                syncFromClass();          // noms à jour depuis la liste de classe
+            } else {
+                classId = null;
+                delete widget.dataset.equipesClassId;
+                persistData();
+                showLoadedState();
+                renderTeams(savedTeams);
+            }
+            if (typeof saveBoard === 'function') saveBoard();
+        }
+
+        // =================================================================
+        // EXPORT PDF (via la fenêtre d'impression du navigateur)
+        // =================================================================
+        function esc(str) {
+            return String(str == null ? '' : str).replace(/[&<>"']/g, c => (
+                { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function sortByLevel(team) {
+            return [...team].sort((a, b) => {
+                const ia = EQUIPES_LEVEL_ORDER.indexOf(a.niveau);
+                const ib = EQUIPES_LEVEL_ORDER.indexOf(b.niveau);
+                return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.prenom.localeCompare(b.prenom);
+            });
+        }
+
+        // Chargement de jsPDF à la demande (une seule fois pour toute la page)
+        const JSPDF_URLS = [
+            'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+            'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
+        ];
+        function loadJsPDF() {
+            if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+            if (window._equipesJsPDFPromise) return window._equipesJsPDFPromise;
+            const tryUrl = (i) => new Promise((resolve, reject) => {
+                if (i >= JSPDF_URLS.length) { reject(new Error('jsPDF indisponible')); return; }
+                const sc = document.createElement('script');
+                sc.src = JSPDF_URLS[i];
+                sc.async = true;
+                sc.onload  = () => (window.jspdf && window.jspdf.jsPDF)
+                    ? resolve(window.jspdf.jsPDF)
+                    : tryUrl(i + 1).then(resolve, reject);
+                sc.onerror = () => { sc.remove(); tryUrl(i + 1).then(resolve, reject); };
+                document.head.appendChild(sc);
+            });
+            window._equipesJsPDFPromise = tryUrl(0).catch(err => {
+                window._equipesJsPDFPromise = null; // permettre un nouvel essai
+                throw err;
+            });
+            return window._equipesJsPDFPromise;
+        }
+
+        function hexToRgb(hex) {
+            const h = hex.replace('#', '');
+            return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+        }
+
+        function fitText(doc, text, maxW) {
+            if (doc.getTextWidth(text) <= maxW) return text;
+            let t = text;
+            while (t.length > 1 && doc.getTextWidth(t + '...') > maxW) t = t.slice(0, -1);
+            return t + '...';
+        }
+
+        function buildTeamsPDF(JsPDF) {
+            const doc = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+            const PAGE_W = 210, PAGE_H = 297, M = 14;
+            const GRAY_DARK = [55, 65, 81], GRAY = [107, 114, 128], GRAY_LIGHT = [156, 163, 175];
+            const BORDER = [209, 213, 219], GREEN = [22, 163, 74], ORANGE = [234, 88, 12];
+
+            const cls     = getClassName();
+            const title   = 'Équipes' + (cls ? ' – ' + cls : '');
+            const dateTxt = formatDate(new Date(), true);
+            const multiLevel = new Set(allStudents.map(s => s.niveau)).size > 1;
+
+            // ── En-tête ──
+            let y = M + 6;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(20);
+            doc.setTextColor(...GRAY_DARK);
+            doc.text(title, M, y);
+            y += 6;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(...GRAY);
+            doc.text(dateTxt.charAt(0).toUpperCase() + dateTxt.slice(1), M, y);
+            y += 8;
+
+            // ── Grille de cartes ──
+            const cols  = savedTeams.length <= 4 ? 2 : 3;
+            const GAP   = 5;
+            const cardW = (PAGE_W - 2 * M - GAP * (cols - 1)) / cols;
+            const PAD = 4, HEAD_H = 12, LINE_H = 7;
+            const TAG_W = 11, TAG_H = 4.4;
+
+            for (let r = 0; r < savedTeams.length; r += cols) {
+                const rowTeams = savedTeams.slice(r, r + cols);
+                const rowH = Math.max(...rowTeams.map(t => HEAD_H + PAD * 2 + t.length * LINE_H));
+                if (y + rowH > PAGE_H - M) { doc.addPage(); y = M; }
+
+                rowTeams.forEach((team, k) => {
+                    const idx = r + k;
+                    const x = M + k * (cardW + GAP);
+                    const st = getTeamStats(team);
+
+                    // Cadre
+                    doc.setDrawColor(...BORDER);
+                    doc.setLineWidth(0.4);
+                    doc.setFillColor(248, 249, 250);
+                    doc.roundedRect(x, y, cardW, rowH, 3, 3, 'FD');
+
+                    // Titre + stats
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(13);
+                    doc.setTextColor(...GRAY_DARK);
+                    doc.text('ÉQUIPE ' + (idx + 1), x + PAD, y + PAD + 4.5);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.setTextColor(...GRAY_LIGHT);
+                    doc.text(st.total + ' élèves  -  ' + st.f + ' F / ' + st.m + ' G', x + PAD, y + PAD + 9);
+                    doc.setDrawColor(229, 231, 235);
+                    doc.setLineWidth(0.3);
+                    doc.line(x + PAD, y + HEAD_H + 1, x + cardW - PAD, y + HEAD_H + 1);
+
+                    // Membres
+                    let ly = y + HEAD_H + PAD + 3.5;
+                    sortByLevel(team).forEach(s => {
+                        let nx = x + PAD;
+                        if (multiLevel) {
+                            doc.setFillColor(...hexToRgb(getLevelColor(s.niveau)));
+                            doc.roundedRect(nx, ly - 3.4, TAG_W, TAG_H, 2.2, 2.2, 'F');
+                            doc.setFont('helvetica', 'bold');
+                            doc.setFontSize(6.5);
+                            doc.setTextColor(255, 255, 255);
+                            doc.text(fitText(doc, s.niveau, TAG_W - 1), nx + TAG_W / 2, ly - 0.3, { align: 'center' });
+                            nx += TAG_W + 2.5;
+                        }
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(12);
+                        doc.setTextColor(...(isFemale(s) ? GREEN : ORANGE));
+                        doc.text(fitText(doc, displayName(s), x + cardW - PAD - nx), nx, ly);
+                        ly += LINE_H;
+                    });
+                });
+                y += rowH + GAP;
+            }
+
+            // ── Absents ──
+            const absents = allStudents
+                .filter(s => absentSet.has(String(s.id)))
+                .map(s => s.prenom + (s.nom ? ' ' + s.nom : ''));
+            if (absents.length) {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                const lines = doc.splitTextToSize('Absents : ' + absents.join(', '), PAGE_W - 2 * M);
+                if (y + lines.length * 5 > PAGE_H - M) { doc.addPage(); y = M + 4; }
+                doc.setTextColor(...GRAY);
+                doc.text(lines, M, y + 3);
+            }
+
+            doc.setProperties({ title: title, creator: 'Le Bureau du Prof' });
+            return { doc, fileName: safeFileName(title + '_' + new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')) + '.pdf' };
+        }
+
+        function exportTeamsPDF() {
+            if (!savedTeams || !savedTeams.length) return;
+            const oldLabel = pdfBtn.textContent;
+            pdfBtn.textContent = '⏳ Création…';
+            pdfBtn.disabled = true;
+            loadJsPDF()
+                .then(JsPDF => {
+                    const { doc, fileName } = buildTeamsPDF(JsPDF);
+                    doc.save(fileName);
+                    pdfBtn.textContent = oldLabel;
+                    pdfBtn.disabled = false;
+                    flashButton(pdfBtn, '✓ PDF créé');
+                })
+                .catch(err => {
+                    console.warn('equipes: export PDF', err);
+                    pdfBtn.textContent = oldLabel;
+                    pdfBtn.disabled = false;
+                    showAlert("Impossible de créer le PDF.\nVérifiez la connexion Internet (la bibliothèque PDF est chargée en ligne au premier export).");
+                });
+        }
+
+        if (saveBtn)      saveBtn.addEventListener('click', saveCurrentTeams);
+        if (pdfBtn)       pdfBtn.addEventListener('click', exportTeamsPDF);
+        if (openTeamsBtn) openTeamsBtn.addEventListener('click', openTeamsFile);
 
         // ── Boutons de défilement tactiles pour equipes-results ───────────
         const SCROLL_STEP = 120;

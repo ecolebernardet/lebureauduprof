@@ -185,6 +185,11 @@ function buildBoardState() {
         if (w.dataset.type === 'geo-monde' && typeof w._gwGetData === 'function') {
             geoMondeData = w._gwGetData();
         }
+        // Données propres au widget globe terrestre
+        let geoGlobeData = null;
+        if (w.dataset.type === 'geo-globe' && typeof w._ggGetData === 'function') {
+            geoGlobeData = w._ggGetData();
+        }
         // Données propres au widget pause calme
         let pauseCalmeData = null;
         if (w.dataset.type === 'pause-calme' && typeof w._wpcGetData === 'function') {
@@ -390,6 +395,7 @@ function buildBoardState() {
 			geoFranceData,
 			geoEuropeData,
 			geoMondeData,
+			geoGlobeData,
 			pauseCalmeData,
 			horlogeData,
 			sondageData,
@@ -659,6 +665,11 @@ function restoreBoardFromJSON(json) {
             widget = createGeoMondeWidget();
             if (w.geoMondeData && typeof widget._gwSetData === 'function') {
                 widget._gwSetData(w.geoMondeData);
+            }
+        } else if (w.type === 'geo-globe') {
+            widget = createGeoGlobeWidget();
+            if (w.geoGlobeData && typeof widget._ggSetData === 'function') {
+                widget._ggSetData(w.geoGlobeData);
             }
         } else if (w.type === 'tableau-num') {
             widget = createTableauNumWidget();

@@ -1029,6 +1029,7 @@ function setVisuelsMode(mode) {
 <script src="widget-geo-france.js"></script>
 <script src="widget-geo-europe.js"></script>
 <script src="widget-geo-monde.js"></script>
+<script src="widget-geo-globe.js"></script>
 <script src="widget-pause-calme.js"></script>
 <script src="widget-conversion.js"></script>
 <script src="widget-seyes.js"></script>
@@ -1527,6 +1528,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activites-geo-monde.jpeg" alt="Géographie du monde" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🗺'"></div>
                 <div class="act-card-name">Géographie du monde</div>
                 <div class="act-card-desc">Planisphère interactif : continents, océans, fleuves, montagnes, déserts et grandes villes</div>
+            </div>
+            <div class="act-card" onclick="createGeoGlobeWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-geo-globe.jpeg" alt="Globe terrestre" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌐'"></div>
+                <div class="act-card-name">Globe terrestre</div>
+                <div class="act-card-desc">Faire tourner la Terre en 3D : continents, océans et lignes repères</div>
             </div>
         </div>
     </div>

@@ -358,7 +358,10 @@
             font-size: 11px; line-height: 16px; padding: 0; cursor: pointer;
             display: none;
         }
-        .fh-ev.custom .fh-ev-lbl:hover .fh-ev-del { display: block; }
+        .fh-ev.custom .fh-ev-lbl:hover .fh-ev-del,
+        .fh-ev.custom .fh-ev-lbl.show-del .fh-ev-del { display: block; }
+        .fh-ev.custom .fh-ev-lbl { cursor: pointer; }
+        .fh-seg, .fh-ev-del, .fh-ev.custom .fh-ev-lbl { touch-action: none; }
 
         /* Dates */
         .fh-date { position: absolute; top: 0; width: 0; }
@@ -518,6 +521,42 @@ function _fhEsc(s) {
 }
 
 let _fhCtx = null;
+// Tap compatible souris, doigt et stylet (vidéoprojecteur interactif, TBI).
+// Le stylet envoie des événements pointer/touch que le déplacement du widget
+// peut intercepter : le « click » n'arrive alors jamais. On détecte donc le tap
+// nous-mêmes (pointerdown → pointerup, avec tolérance de tremblement) et on
+// garde le click en secours, sans double déclenchement.
+function _fhOnTap(el, fn) {
+    const TOL = 20;
+    let lastAt = 0;
+    const fire = (e) => {
+        const now = Date.now();
+        if (now - lastAt < 450) return;
+        lastAt = now;
+        fn(e);
+    };
+    el.addEventListener('mousedown', (e) => e.stopPropagation());
+    el.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+    el.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button > 0) return;
+        e.stopPropagation();
+        const pid = e.pointerId, x0 = e.clientX, y0 = e.clientY;
+        const cleanup = () => {
+            window.removeEventListener('pointerup', onUp, true);
+            window.removeEventListener('pointercancel', cleanup, true);
+        };
+        const onUp = (ev) => {
+            if (ev.pointerId !== pid) return;
+            cleanup();
+            if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > TOL) return;
+            fire(ev);
+        };
+        window.addEventListener('pointerup', onUp, true);
+        window.addEventListener('pointercancel', cleanup, true);
+    });
+    el.addEventListener('click', (e) => { e.stopPropagation(); fire(e); });
+}
+
 function _fhTextW(txt, size, weight) {
     if (!_fhCtx) _fhCtx = document.createElement('canvas').getContext('2d');
     _fhCtx.font = (weight || 400) + ' ' + size + 'px "Segoe UI", system-ui, sans-serif';
@@ -805,8 +844,7 @@ function createFriseHistoriqueWidget() {
             }
             if (selected >= 0) seg.classList.add(selected === i ? 'sel' : 'dim');
             seg.appendChild(name);
-            seg.addEventListener('mousedown', (e) => e.stopPropagation());
-            seg.addEventListener('click', (e) => { e.stopPropagation(); onSegClick(i); });
+            _fhOnTap(seg, () => onSegClick(i));
             band.appendChild(seg);
         });
         // Flèche du temps
@@ -865,14 +903,19 @@ function createFriseHistoriqueWidget() {
                 del.className = 'fh-ev-del';
                 del.title = 'Supprimer ce repère';
                 del.textContent = '×';
-                del.addEventListener('mousedown', (ev2) => ev2.stopPropagation());
-                del.addEventListener('click', (ev2) => {
-                    ev2.stopPropagation();
+                _fhOnTap(del, () => {
                     if (typeof snapshotNow === 'function') snapshotNow();
                     custom.splice(e.idx, 1);
                     render(); renderDetail(); saveBoard();
                 });
                 lbl.appendChild(del);
+                // Le stylet ne peut pas « survoler » : un tap sur l'étiquette
+                // affiche / masque le bouton de suppression.
+                _fhOnTap(lbl, () => {
+                    const on = !lbl.classList.contains('show-del');
+                    evTrack.querySelectorAll('.fh-ev-lbl.show-del').forEach(l => l.classList.remove('show-del'));
+                    lbl.classList.toggle('show-del', on);
+                });
             }
             ev.appendChild(stem);
             ev.appendChild(dot);

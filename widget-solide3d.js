@@ -371,7 +371,13 @@ function createSolide3DWidgetFromSave(savedW, savedH) {
 
 
 // ─────────────────────────────────────────────────────────────────
-//  Moteur de rendu 3D (projection perspective + éclairage Phong simplifié)
+//  Moteur de rendu 3D (projection orthographique + éclairage diffus doux)
+//  • Canvas net sur écrans haute densité (devicePixelRatio)
+//  • Animation indépendante de la fréquence d'affichage (delta-temps)
+//  • Faces ombrées en douceur, sans liserés entre faces
+//  • Cylindre / cône lisses (128 segments) avec contours de silhouette
+//  • Sphère à silhouette parfaite (dégradé radial) + grille sur l'hémisphère visible
+//  • Inertie légère après un cliquer-glisser
 // ─────────────────────────────────────────────────────────────────
 function _initSolide3D(widget) {
 
@@ -388,89 +394,124 @@ function _initSolide3D(widget) {
     let autoRotate = false;
     let currentShape = 'cube';
     let animId = null;
+    let lastT  = 0;
+    let velX = 0, velY = 0;          // vitesse d'inertie (rad/s)
+    let dragging = false;
 
-    // Palette de couleurs par face (une couleur distincte par face, par solide)
-    const FACE_PALETTES = {
-        cube:          ['#1a9ecc','#e26fa7','#f0e117','#34c77b','#a855f7','#f72b2b'],
-        parallelepiped:['#1a9ecc','#e26fa7','#f0e117','#34c77b','#a855f7','#f72b2b'],
-        tetrahedron:   ['#1a9ecc','#e26fa7','#f0e117','#34c77b'],
-        octahedron:    ['#2041d4','#e26fa7','#f0e117','#34c77b','#a855f7','#f72b2b','#fb923c','#22d3ee'],
-        pyramid:       ['#34c77b','#1a9ecc','#e26fa7','#f0e117','#a855f7'],
-        prism3:        ['#2041d4','#34c77b','#e26fa7','#f0e117','#a855f7'],
-        prism6:        ['#2041d4','#34c77b','#e26fa7','#f0e117','#a855f7','#f72b2b','#fb923c','#22d3ee'],
-        cylinder:      ['#1a9ecc'],
-        cone:          ['#e26fa7'],
-        sphere:        ['#1a9ecc'],
+    // Dimensions logiques (px CSS) + densité de pixels de l'écran
+    let cssW = 0, cssH = 0, dpr = 1;
+
+    // ── Palette adoucie (tons moins saturés que l'original) ───────
+    const C = {
+        bleu:   '#5f9fc9',
+        rose:   '#d48aaa',
+        jaune:  '#e2c86c',
+        vert:   '#6fb78f',
+        violet: '#9a88cf',
+        rouge:  '#d47a70',
+        orange: '#e09d6a',
+        cyan:   '#6dbcc4',
+        indigo: '#6f86c6',
     };
-    const ROUND_BASE_COLORS = { cylinder: ['#34c77b','#a855f7'], cone: ['#f5a623'] };
+    const FACE_PALETTES = {
+        cube:          [C.bleu, C.rose, C.jaune, C.vert, C.violet, C.rouge],
+        parallelepiped:[C.bleu, C.rose, C.jaune, C.vert, C.violet, C.rouge],
+        tetrahedron:   [C.bleu, C.rose, C.jaune, C.vert],
+        octahedron:    [C.indigo, C.rose, C.jaune, C.vert, C.violet, C.rouge, C.orange, C.cyan],
+        pyramid:       [C.vert, C.bleu, C.rose, C.jaune, C.violet],
+        prism3:        [C.indigo, C.vert, C.rose, C.jaune, C.violet],
+        prism6:        [C.indigo, C.vert, C.rose, C.jaune, C.violet, C.rouge, C.orange, C.cyan],
+        cylinder:      [C.bleu],
+        cone:          [C.rose],
+        sphere:        [C.bleu],
+    };
+    const ROUND_BASE_COLORS = { cylinder: [C.vert, C.violet], cone: [C.orange] };
 
     function getFaceColor(shape, faceIndex) {
-        const pal = FACE_PALETTES[shape] || ['#1a9ecc'];
+        const pal = FACE_PALETTES[shape] || [C.bleu];
         return pal[faceIndex % pal.length];
     }
 
+    // ── Taille du canvas (net sur écrans Retina / HiDPI) ──────────
     function syncCanvasSize() {
         const W = canvasWrap.clientWidth, H = canvasWrap.clientHeight;
-        if (W>0&&H>0&&(canvas.width!==W||canvas.height!==H)){canvas.width=W;canvas.height=H;}
-    }
-    if (typeof ResizeObserver!=='undefined') {
-        const ro=new ResizeObserver(()=>{syncCanvasSize();if(!autoRotate)draw();});
-        ro.observe(canvasWrap);
+        if (W <= 0 || H <= 0) return;
+        const r = Math.min(window.devicePixelRatio || 1, 3);
+        const pw = Math.round(W * r), ph = Math.round(H * r);
+        cssW = W; cssH = H; dpr = r;
+        if (canvas.width !== pw || canvas.height !== ph) {
+            canvas.width = pw; canvas.height = ph;
+        }
     }
 
+    // Redessin unique au prochain frame (regroupe les événements rapprochés)
+    let drawPending = false;
+    function requestDraw() {
+        if (drawPending || animId) return;
+        drawPending = true;
+        requestAnimationFrame(() => { drawPending = false; draw(); });
+    }
+
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined') {
+        ro = new ResizeObserver(() => { syncCanvasSize(); requestDraw(); });
+        ro.observe(canvasWrap);
+    }
+    // Changement de thème clair/sombre → redessiner
+    const themeObs = new MutationObserver(requestDraw);
+    themeObs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
     // ── Géométrie : normales explicites ───────────────────────────
-    // Tous les solides sont normalisés pour être inscrits dans la sphère de rayon 1
-    // (rayon max = 1) → même taille apparente quelle que soit la forme.
-    const S3 = 1/Math.sqrt(3); // cube et pyramide : leurs sommets extrêmes sont à √3
+    // Tous les solides sont inscrits dans la sphère de rayon 1.
+    const S3  = 1 / Math.sqrt(3);
+    const SEG = 128;   // segments des solides de révolution
     const SHAPES = {
-        cube: ()=>{
-            const r=S3; // normalise ±1 → rayon √3 → ×1/√3 donne rayon 1
-            const v=[[-r,-r,-r],[r,-r,-r],[r,r,-r],[-r,r,-r],[-r,-r,r],[r,-r,r],[r,r,r],[-r,r,r]];
-            return {vertices:v,faces:[
+        cube: () => {
+            const r = S3;
+            const v = [[-r,-r,-r],[r,-r,-r],[r,r,-r],[-r,r,-r],[-r,-r,r],[r,-r,r],[r,r,r],[-r,r,r]];
+            return {vertices:v, faces:[
                 {idx:[0,3,2,1],n:[0,0,-1]},{idx:[4,5,6,7],n:[0,0,1]},
                 {idx:[0,1,5,4],n:[0,-1,0]},{idx:[3,7,6,2],n:[0,1,0]},
                 {idx:[0,4,7,3],n:[-1,0,0]},{idx:[1,2,6,5],n:[1,0,0]},
             ]};
         },
-        parallelepiped: ()=>{
-            // Pavé droit : 3 dimensions distinctes, normalisé sur la sphère unité
-            // Proportions 2.5 : 1.5 : 1 → clairement non cubique
-            const a=0.8111, b=0.4867, c=0.3244; // rayon max = 1
-            const v=[
+        parallelepiped: () => {
+            const a = 0.8111, b = 0.4867, c = 0.3244;
+            const v = [
                 [-a,-b,-c],[a,-b,-c],[a,b,-c],[-a,b,-c],
                 [-a,-b, c],[a,-b, c],[a,b, c],[-a,b, c],
             ];
-            return {vertices:v,faces:[
+            return {vertices:v, faces:[
                 {idx:[0,3,2,1],n:[0,0,-1]},{idx:[4,5,6,7],n:[0,0,1]},
                 {idx:[0,1,5,4],n:[0,-1,0]},{idx:[3,7,6,2],n:[0,1,0]},
                 {idx:[0,4,7,3],n:[-1,0,0]},{idx:[1,2,6,5],n:[1,0,0]},
             ]};
         },
-        tetrahedron: ()=>{
-            const s=Math.sqrt(8/9),a0=Math.PI/2,a1=a0+2*Math.PI/3,a2=a0+4*Math.PI/3;
-            const v=[[0,1,0],[s*Math.cos(a0),-1/3,s*Math.sin(a0)],[s*Math.cos(a1),-1/3,s*Math.sin(a1)],[s*Math.cos(a2),-1/3,s*Math.sin(a2)]];
-            const fn=(i,j,k)=>{const cx=(v[i][0]+v[j][0]+v[k][0])/3,cy=(v[i][1]+v[j][1]+v[k][1])/3,cz=(v[i][2]+v[j][2]+v[k][2])/3,l=Math.sqrt(cx*cx+cy*cy+cz*cz)||1;return[cx/l,cy/l,cz/l];};
-            return {vertices:v,faces:[{idx:[0,1,2],n:fn(0,1,2)},{idx:[0,2,3],n:fn(0,2,3)},{idx:[0,3,1],n:fn(0,3,1)},{idx:[1,3,2],n:fn(1,3,2)}]};
+        tetrahedron: () => {
+            const s = Math.sqrt(8/9), a0 = Math.PI/2, a1 = a0 + 2*Math.PI/3, a2 = a0 + 4*Math.PI/3;
+            const v = [[0,1,0],[s*Math.cos(a0),-1/3,s*Math.sin(a0)],[s*Math.cos(a1),-1/3,s*Math.sin(a1)],[s*Math.cos(a2),-1/3,s*Math.sin(a2)]];
+            const fn = (...is) => centroidNormal(v, is);
+            return {vertices:v, faces:[{idx:[0,1,2],n:fn(0,1,2)},{idx:[0,2,3],n:fn(0,2,3)},{idx:[0,3,1],n:fn(0,3,1)},{idx:[1,3,2],n:fn(1,3,2)}]};
         },
-        octahedron: ()=>{
-            const v=[[0,1,0],[0,-1,0],[1,0,0],[-1,0,0],[0,0,1],[0,0,-1]];
-            const fn=(i,j,k)=>{const cx=(v[i][0]+v[j][0]+v[k][0])/3,cy=(v[i][1]+v[j][1]+v[k][1])/3,cz=(v[i][2]+v[j][2]+v[k][2])/3,l=Math.sqrt(cx*cx+cy*cy+cz*cz)||1;return[cx/l,cy/l,cz/l];};
-            return {vertices:v,faces:[
+        octahedron: () => {
+            const v = [[0,1,0],[0,-1,0],[1,0,0],[-1,0,0],[0,0,1],[0,0,-1]];
+            const fn = (...is) => centroidNormal(v, is);
+            return {vertices:v, faces:[
                 {idx:[0,4,2],n:fn(0,4,2)},{idx:[0,2,5],n:fn(0,2,5)},{idx:[0,5,3],n:fn(0,5,3)},{idx:[0,3,4],n:fn(0,3,4)},
                 {idx:[1,2,4],n:fn(1,2,4)},{idx:[1,5,2],n:fn(1,5,2)},{idx:[1,3,5],n:fn(1,3,5)},{idx:[1,4,3],n:fn(1,4,3)},
             ]};
         },
-        pyramid: ()=>{
-            const r=S3;
-            const v=[[-r,-r,-r],[r,-r,-r],[r,-r,r],[-r,-r,r],[0,1,0]];
-            const pv=(a,b,c)=>{
-                const ax=b[0]-a[0],ay=b[1]-a[1],az=b[2]-a[2];
-                const bx=c[0]-a[0],by=c[1]-a[1],bz=c[2]-a[2];
-                const nx=ay*bz-az*by,ny=az*bx-ax*bz,nz=ax*by-ay*bx;
+        pyramid: () => {
+            const r = S3;
+            const v = [[-r,-r,-r],[r,-r,-r],[r,-r,r],[-r,-r,r],[0,1,0]];
+            const pv = (a,b,c) => {
+                const ax=b[0]-a[0], ay=b[1]-a[1], az=b[2]-a[2];
+                const bx=c[0]-a[0], by=c[1]-a[1], bz=c[2]-a[2];
+                const nx=ay*bz-az*by, ny=az*bx-ax*bz, nz=ax*by-ay*bx;
                 const l=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
-                return[nx/l,ny/l,nz/l];
+                return [nx/l, ny/l, nz/l];
             };
-            return {vertices:v,faces:[
+            return {vertices:v, faces:[
                 {idx:[0,1,2,3], n:[0,-1,0]},
                 {idx:[0,4,1],   n:pv(v[0],v[4],v[1])},
                 {idx:[1,4,2],   n:pv(v[1],v[4],v[2])},
@@ -478,347 +519,431 @@ function _initSolide3D(widget) {
                 {idx:[3,4,0],   n:pv(v[3],v[4],v[0])},
             ]};
         },
-
-        prism3: ()=>{
-            const h = 0.75;
-            const R = Math.sqrt(1 - h*h);
-            const a0=Math.PI/2, a1=a0+2*Math.PI/3, a2=a0+4*Math.PI/3;
+        prism3: () => {
+            const h = 0.75, R = Math.sqrt(1 - h*h);
+            const a0 = Math.PI/2, a1 = a0 + 2*Math.PI/3, a2 = a0 + 4*Math.PI/3;
             const v = [
-                [R*Math.cos(a0), -h, R*Math.sin(a0)], // 0 bas-A
-                [R*Math.cos(a1), -h, R*Math.sin(a1)], // 1 bas-B
-                [R*Math.cos(a2), -h, R*Math.sin(a2)], // 2 bas-C
-                [R*Math.cos(a0),  h, R*Math.sin(a0)], // 3 haut-A
-                [R*Math.cos(a1),  h, R*Math.sin(a1)], // 4 haut-B
-                [R*Math.cos(a2),  h, R*Math.sin(a2)], // 5 haut-C
+                [R*Math.cos(a0), -h, R*Math.sin(a0)],
+                [R*Math.cos(a1), -h, R*Math.sin(a1)],
+                [R*Math.cos(a2), -h, R*Math.sin(a2)],
+                [R*Math.cos(a0),  h, R*Math.sin(a0)],
+                [R*Math.cos(a1),  h, R*Math.sin(a1)],
+                [R*Math.cos(a2),  h, R*Math.sin(a2)],
             ];
-            // Normales = barycentre de chaque face normalisé (toujours correct pour convexe centré)
-            const fn=(...is)=>{const cx=is.reduce((s,i)=>s+v[i][0],0)/is.length,cy=is.reduce((s,i)=>s+v[i][1],0)/is.length,cz=is.reduce((s,i)=>s+v[i][2],0)/is.length,l=Math.sqrt(cx*cx+cy*cy+cz*cz)||1;return[cx/l,cy/l,cz/l];};
+            const fn = (...is) => centroidNormal(v, is);
             return {vertices:v, faces:[
-                {idx:[0,1,2],   n:[0,-1,0]},            // base bas
-                {idx:[5,4,3],   n:[0, 1,0]},            // base haut
-                {idx:[3,4,1,0], n:fn(3,4,1,0)},         // face A-B
-                {idx:[4,5,2,1], n:fn(4,5,2,1)},         // face B-C
-                {idx:[5,3,0,2], n:fn(5,3,0,2)},         // face C-A
+                {idx:[0,1,2],   n:[0,-1,0]},
+                {idx:[5,4,3],   n:[0, 1,0]},
+                {idx:[3,4,1,0], n:fn(3,4,1,0)},
+                {idx:[4,5,2,1], n:fn(4,5,2,1)},
+                {idx:[5,3,0,2], n:fn(5,3,0,2)},
             ]};
         },
-
-        prism6: ()=>{
-            const h = 0.6;
-            const R = Math.sqrt(1 - h*h);
+        prism6: () => {
+            const h = 0.6, R = Math.sqrt(1 - h*h);
             const v = [];
             for (let i=0;i<6;i++){const a=i*Math.PI/3+Math.PI/6;v.push([R*Math.cos(a),-h,R*Math.sin(a)]);}
             for (let i=0;i<6;i++){const a=i*Math.PI/3+Math.PI/6;v.push([R*Math.cos(a), h,R*Math.sin(a)]);}
-            const fn=(...is)=>{const cx=is.reduce((s,i)=>s+v[i][0],0)/is.length,cy=is.reduce((s,i)=>s+v[i][1],0)/is.length,cz=is.reduce((s,i)=>s+v[i][2],0)/is.length,l=Math.sqrt(cx*cx+cy*cy+cz*cz)||1;return[cx/l,cy/l,cz/l];};
-            const faces=[
-                {idx:[0,1,2,3,4,5], n:[0,-1,0]},
-                {idx:[11,10,9,8,7,6], n:[0,1,0]},
+            const fn = (...is) => centroidNormal(v, is);
+            const faces = [
+                {idx:[0,1,2,3,4,5],   n:[0,-1,0]},
+                {idx:[11,10,9,8,7,6], n:[0, 1,0]},
             ];
-            for(let i=0;i<6;i++){const j=(i+1)%6;faces.push({idx:[i+6,j+6,j,i],n:fn(i+6,j+6,j,i)});}
+            for (let i=0;i<6;i++){const j=(i+1)%6;faces.push({idx:[i+6,j+6,j,i],n:fn(i+6,j+6,j,i)});}
             return {vertices:v, faces};
         },
-
-        cylinder: ()=>{
-            // Le cylindre utilise un rendu spécial (arc Canvas) — marqué isRound
-            const N=32, h=0.7, R=Math.sqrt(1-h*h);
-            const v=[];
-            for(let i=0;i<N;i++){const a=2*Math.PI*i/N;v.push([R*Math.cos(a),-h,R*Math.sin(a)]);}
-            for(let i=0;i<N;i++){const a=2*Math.PI*i/N;v.push([R*Math.cos(a), h,R*Math.sin(a)]);}
-            const faces=[];
-            for(let i=0;i<N;i++){
-                const j=(i+1)%N;
-                const a=(i+0.5)*2*Math.PI/N;
-                faces.push({idx:[i,j,j+N,i+N],n:[Math.cos(a),0,Math.sin(a)]});
+        cylinder: () => {
+            const N = SEG, h = 0.7, R = Math.sqrt(1 - h*h);
+            const v = [];
+            for (let i=0;i<N;i++){const a=2*Math.PI*i/N;v.push([R*Math.cos(a),-h,R*Math.sin(a)]);}
+            for (let i=0;i<N;i++){const a=2*Math.PI*i/N;v.push([R*Math.cos(a), h,R*Math.sin(a)]);}
+            const faces = [];
+            for (let i=0;i<N;i++){
+                const j=(i+1)%N, a=(i+0.5)*2*Math.PI/N;
+                faces.push({idx:[i,j,j+N,i+N], n:[Math.cos(a),0,Math.sin(a)]});
             }
-            return {vertices:v, faces, isRound:true, R, h, type:'cylinder'};
+            return {vertices:v, faces, isRound:true, N, R, h, type:'cylinder'};
         },
-
-        cone: ()=>{
-            const N=32, h=0.7, R=Math.sqrt(1-h*h);
-            const sY=R/Math.sqrt(R*R+4*h*h), sR=2*h/Math.sqrt(R*R+4*h*h);
-            const v=[];
-            for(let i=0;i<N;i++){const a=2*Math.PI*i/N;v.push([R*Math.cos(a),-h,R*Math.sin(a)]);}
+        cone: () => {
+            const N = SEG, h = 0.7, R = Math.sqrt(1 - h*h);
+            const sY = R/Math.sqrt(R*R+4*h*h), sR = 2*h/Math.sqrt(R*R+4*h*h);
+            const v = [];
+            for (let i=0;i<N;i++){const a=2*Math.PI*i/N;v.push([R*Math.cos(a),-h,R*Math.sin(a)]);}
             v.push([0,h,0]); // apex
-            const faces=[];
-            for(let i=0;i<N;i++){
-                const j=(i+1)%N;
-                const a=(i+0.5)*2*Math.PI/N;
-                faces.push({idx:[i,j,N],n:[sR*Math.cos(a),sY,sR*Math.sin(a)]});
+            const faces = [];
+            for (let i=0;i<N;i++){
+                const j=(i+1)%N, a=(i+0.5)*2*Math.PI/N;
+                faces.push({idx:[i,j,N], n:[sR*Math.cos(a),sY,sR*Math.sin(a)]});
             }
-            return {vertices:v, faces, isRound:true, R, h, type:'cone'};
+            return {vertices:v, faces, isRound:true, N, R, h, type:'cone'};
         },
-
-        sphere: ()=>{
-            // Rendu par bandes de latitude (isSphere = true)
-            // Pas de géométrie à vertices/faces : tout se dessine dans draw()
-            return {vertices:[], faces:[], isRound:false, isSphere:true};
-        },
+        sphere: () => ({vertices:[], faces:[], isSphere:true}),
     };
 
-    // ── Rotation ──────────────────────────────────────────────────
+    function centroidNormal(v, is) {
+        let cx=0, cy=0, cz=0;
+        for (const i of is) { cx+=v[i][0]; cy+=v[i][1]; cz+=v[i][2]; }
+        const l = Math.sqrt(cx*cx+cy*cy+cz*cz) || 1;
+        return [cx/l, cy/l, cz/l];
+    }
+
+    // Géométrie calculée une seule fois par forme
+    const shapeCache = {};
+    function getShape(name) {
+        return shapeCache[name] || (shapeCache[name] = SHAPES[name]());
+    }
+
+    // ── Rotation (cos/sin calculés une fois par image) ────────────
+    let cX=1, sX=0, cY=1, sY=0;
+    function updateRot() {
+        cX = Math.cos(rotX); sX = Math.sin(rotX);
+        cY = Math.cos(rotY); sY = Math.sin(rotY);
+    }
     function applyRot(v) {
-        const cx=Math.cos(rotX),sx=Math.sin(rotX);
-        const cy=Math.cos(rotY),sy=Math.sin(rotY);
-        const y1=cx*v[1]-sx*v[2], z1=sx*v[1]+cx*v[2];
-        const x2=cy*v[0]+sy*z1,   z2=-sy*v[0]+cy*z1;
-        return [x2, y1, z2];
+        const y1 = cX*v[1] - sX*v[2], z1 = sX*v[1] + cX*v[2];
+        return [cY*v[0] + sY*z1, y1, -sY*v[0] + cY*z1];
     }
 
-    // ── Projection orthographique FIXE ────────────────────────────
-    // sc est constant (ne dépend pas de la rotation) → pas de zoom parasite
+    // ── Projection orthographique (échelle fixe → pas de zoom parasite)
+    function scale() { return Math.min(cssW, cssH) * 0.46 * zoom; }
     function project(v) {
-        const W=canvas.width,H=canvas.height;
-        const sc=Math.min(W,H)*0.46*zoom;
-        return [W/2+v[0]*sc, H/2-v[1]*sc];
+        const sc = scale();
+        return [cssW/2 + v[0]*sc, cssH/2 - v[1]*sc];
     }
 
-    // ── Éclairage ─────────────────────────────────────────────────
-    const Lraw=[0.5,0.8,0.5],Llen=Math.sqrt(0.5**2+0.8**2+0.5**2);
-    const L=Lraw.map(x=>x/Llen);
-    function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
-    function hexToRgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
-    function shadedColor(hex,br){const[r,g,b]=hexToRgb(hex),f=Math.max(0.12,Math.min(1,br));return`rgb(${Math.round(r*f)},${Math.round(g*f)},${Math.round(b*f)})`;}
+    // ── Éclairage doux (ambiant + diffus) ─────────────────────────
+    const Lraw = [0.5, 0.8, 0.5], Llen = Math.hypot(...Lraw);
+    const L = Lraw.map(x => x/Llen);
+    const AMB = 0.64, DIF = 0.40;     // luminosité entre 0.64 et 1.04
+    function dot(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+    const rgbCache = {};
+    function hexToRgb(h) {
+        return rgbCache[h] || (rgbCache[h] = [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]);
+    }
+    function colorAt(hex, f) {
+        const [r,g,b] = hexToRgb(hex);
+        if (f <= 1) return `rgb(${Math.round(r*f)},${Math.round(g*f)},${Math.round(b*f)})`;
+        const w = Math.min(1, f - 1);   // au-delà de 1 : léger éclaircissement vers le blanc
+        return `rgb(${Math.round(r+(255-r)*w)},${Math.round(g+(255-g)*w)},${Math.round(b+(255-b)*w)})`;
+    }
+    function shade(hex, n) {
+        return colorAt(hex, AMB + DIF * Math.max(0, dot(n, L)));
+    }
+
+    // Remplit un polygone + trait de même couleur (supprime les liserés
+    // d'anticrénelage visibles entre faces adjacentes pendant la rotation)
+    function fillPoly(pts, color) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let k=1;k<pts.length;k++) ctx.lineTo(pts[k][0], pts[k][1]);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    function edgeStyle(isLight, alpha) {
+        return isLight ? `rgba(20,40,60,${alpha*0.85})` : `rgba(235,245,255,${alpha})`;
+    }
 
     // ── Rendu ─────────────────────────────────────────────────────
     function draw() {
         syncCanvasSize();
-        const W=canvas.width,H=canvas.height;
-        if(W<=0||H<=0) return;
-        ctx.clearRect(0,0,W,H);
-        const isLight=document.body.classList.contains('menu-light');
-        const bg=ctx.createRadialGradient(W/2,H/2,8,W/2,H/2,Math.max(W,H)*0.7);
-        if(isLight){bg.addColorStop(0,'#ddeaf6');bg.addColorStop(1,'#c4d8ee');}
-        else       {bg.addColorStop(0,'#152535');bg.addColorStop(1,'#080f18');}
-        ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+        const W = cssW, H = cssH;
+        if (W <= 0 || H <= 0) return;
 
-        const shape=SHAPES[currentShape]();
-        const {vertices,faces}=shape;
-        const T=vertices.map(v=>applyRot(v));
-        const P=T.map(v=>project(v));
-        const sc=Math.min(W,H)*0.46*zoom;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, W, H);
+        ctx.lineJoin = 'round';
+        ctx.lineCap  = 'round';
 
-        // Trace le polygone d'un cercle 3D projeté (128 segments = visuellement parfait)
-        function circlePolygon(yVal, R) {
-            const N=128;
-            const pts=[];
-            for(let i=0;i<N;i++){
-                const a=2*Math.PI*i/N;
-                const p=applyRot([R*Math.cos(a), yVal, R*Math.sin(a)]);
-                pts.push([W/2+p[0]*sc, H/2-p[1]*sc]);
-            }
-            return pts;
+        const isLight = document.body.classList.contains('menu-light');
+        const bg = ctx.createRadialGradient(W/2, H/2, 8, W/2, H/2, Math.max(W,H)*0.7);
+        if (isLight) { bg.addColorStop(0,'#ddeaf6'); bg.addColorStop(1,'#c4d8ee'); }
+        else         { bg.addColorStop(0,'#152535'); bg.addColorStop(1,'#080f18'); }
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        updateRot();
+        const shape = getShape(currentShape);
+
+        if (shape.isSphere) { drawSphere(isLight); return; }
+
+        const {vertices, faces} = shape;
+        const P  = vertices.map(v => project(applyRot(v)));
+        const RN = faces.map(f => applyRot(f.n));          // normales tournées
+
+        // ── Solides de révolution ──
+        if (shape.isRound) { drawRound(shape, P, RN, isLight); return; }
+
+        // ── Polyèdres (convexes → élimination des faces arrière suffit) ──
+        for (let fi=0; fi<faces.length; fi++) {
+            if (RN[fi][2] <= 1e-6) continue;
+            fillPoly(faces[fi].idx.map(i => P[i]), shade(getFaceColor(currentShape, fi), RN[fi]));
         }
 
-        // Pour cylindre/cône : préparer les bases circulaires
-        const isRound = shape.isRound || false;
-        const isSphere = shape.isSphere || false;
-
-        // ── Rendu sphère ─────────────────────────────────────────────
-        if(isSphere){
-            const NLat=24, NLon=48;
-            const SPHERE_COLORS=['#1a9ecc','#0e7fa8','#2196c8','#1488b0'];
-            // Dessiner les fuseaux (patches lat×lon) triés par Z
-            const patches=[];
-            for(let lat=0;lat<NLat;lat++){
-                const phi0=Math.PI*(lat/NLat-0.5);
-                const phi1=Math.PI*((lat+1)/NLat-0.5);
-                for(let lon=0;lon<NLon;lon++){
-                    const th0=2*Math.PI*lon/NLon;
-                    const th1=2*Math.PI*(lon+1)/NLon;
-                    // 4 coins du patch
-                    const c=[
-                        [Math.cos(phi0)*Math.cos(th0), Math.sin(phi0), Math.cos(phi0)*Math.sin(th0)],
-                        [Math.cos(phi0)*Math.cos(th1), Math.sin(phi0), Math.cos(phi0)*Math.sin(th1)],
-                        [Math.cos(phi1)*Math.cos(th1), Math.sin(phi1), Math.cos(phi1)*Math.sin(th1)],
-                        [Math.cos(phi1)*Math.cos(th0), Math.sin(phi1), Math.cos(phi1)*Math.sin(th0)],
-                    ];
-                    const tphi=(phi0+phi1)/2, tth=(th0+th1)/2;
-                    const nRaw=[Math.cos(tphi)*Math.cos(tth), Math.sin(tphi), Math.cos(tphi)*Math.sin(tth)];
-                    const nr=applyRot(nRaw);
-                    if(nr[2]<=0) continue; // face cachée
-                    const rpts=c.map(p=>applyRot(p));
-                    const zAvg=rpts.reduce((s,p)=>s+p[2],0)/4;
-                    const pts2d=rpts.map(p=>project(p));
-                    // Éclairage diffus sur la normale
-                    const br=Math.max(0.15, dot(nr, L));
-                    patches.push({pts2d, zAvg, br, lat});
+        if (showEdges) {
+            const edgeMap = new Map();
+            for (let fi=0; fi<faces.length; fi++) {
+                const vis = RN[fi][2] > 1e-6;
+                const idx = faces[fi].idx;
+                for (let k=0;k<idx.length;k++) {
+                    const a = idx[k], b = idx[(k+1)%idx.length];
+                    const key = a<b ? a*1000+b : b*1000+a;
+                    const e = edgeMap.get(key) || {a, b, vis:0};
+                    if (vis) e.vis++;
+                    edgeMap.set(key, e);
                 }
             }
-            patches.sort((a,b)=>a.zAvg-b.zAvg);
-            // Passe remplissage
-            for(const {pts2d,br,lat} of patches){
-                const baseHex=SPHERE_COLORS[lat%SPHERE_COLORS.length];
-                ctx.beginPath();
-                ctx.moveTo(pts2d[0][0],pts2d[0][1]);
-                for(let k=1;k<pts2d.length;k++) ctx.lineTo(pts2d[k][0],pts2d[k][1]);
-                ctx.closePath();
-                ctx.fillStyle=shadedColor(baseHex,br);
-                ctx.fill();
+            // Épaisseur uniforme → plus de « saut » d'épaisseur quand une face bascule
+            ctx.strokeStyle = edgeStyle(isLight, 0.55);
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            for (const e of edgeMap.values()) {
+                if (e.vis === 0) continue;
+                ctx.moveTo(P[e.a][0], P[e.a][1]);
+                ctx.lineTo(P[e.b][0], P[e.b][1]);
             }
-            // Passe arêtes (méridiens + parallèles)
-            if(showEdges){
-                ctx.strokeStyle=isLight?'rgba(0,0,0,0.18)':'rgba(255,255,255,0.22)';
-                ctx.lineWidth=0.7;
-                ctx.lineCap='round';
-                for(const {pts2d} of patches){
-                    ctx.beginPath();
-                    ctx.moveTo(pts2d[0][0],pts2d[0][1]);
-                    for(let k=1;k<pts2d.length;k++) ctx.lineTo(pts2d[k][0],pts2d[k][1]);
-                    ctx.closePath();
-                    ctx.stroke();
-                }
-            }
-            return; // rendu terminé pour la sphère
-        }
-        let roundBases=[];
-        if(isRound){
-            const {R,h,type}=shape;
-            const rnB=applyRot([0,-1,0]);
-            roundBases.push({yVal:-h, R, rn:rnB, zVal:applyRot([0,-h,0])[2]});
-            if(type==='cylinder'){
-                const rnT=applyRot([0,1,0]);
-                roundBases.push({yVal:h, R, rn:rnT, zVal:applyRot([0,h,0])[2]});
-            }
-        }
-
-        // Trier les faces + les bases circulaires par Z moyen
-        const items=[];
-        for(let fi=0;fi<faces.length;fi++){
-            const face=faces[fi];
-            const z=face.idx.reduce((s,i)=>s+T[i][2],0)/face.idx.length;
-            items.push({type:'poly', face, z, faceIndex:fi});
-        }
-        for(let bi=0;bi<roundBases.length;bi++){
-            const base=roundBases[bi];
-            items.push({type:'circle', base, z:base.zVal, faceIndex:bi});
-        }
-        items.sort((a,b)=>a.z-b.z);
-
-        // Passe 1 : remplissage (couleurs unies, sans éclairage)
-        for(const item of items){
-            if(item.type==='circle'){
-                const {base}=item;
-                if(base.rn[2]<=0) continue;
-                const pts=circlePolygon(base.yVal, base.R);
-                const baseColors=ROUND_BASE_COLORS[currentShape]||['#34c77b'];
-                const bColor=baseColors[item.faceIndex%baseColors.length];
-                ctx.beginPath();
-                ctx.moveTo(pts[0][0],pts[0][1]);
-                for(let k=1;k<pts.length;k++) ctx.lineTo(pts[k][0],pts[k][1]);
-                ctx.closePath();
-                ctx.fillStyle=bColor;
-                ctx.fill();
-            } else {
-                const {face}=item;
-                const rn=applyRot(face.n);
-                if(rn[2]<=0) continue;
-                const fc=getFaceColor(currentShape,item.faceIndex);
-                ctx.beginPath();
-                ctx.moveTo(P[face.idx[0]][0],P[face.idx[0]][1]);
-                for(let k=1;k<face.idx.length;k++) ctx.lineTo(P[face.idx[k]][0],P[face.idx[k]][1]);
-                ctx.closePath();
-                ctx.fillStyle=fc;
-                ctx.fill();
-            }
-        }
-
-        // Passe 2 : arêtes par-dessus tout
-        if(showEdges){
-            ctx.lineCap='round'; ctx.lineJoin='round';
-            ctx.strokeStyle=isLight?'rgba(0,0,0,0.3)':'rgba(255,255,255,0.4)';
-
-            if(isRound){
-                for(const base of roundBases){
-                    if(base.rn[2]<=0) continue;
-                    const pts=circlePolygon(base.yVal, base.R);
-                    ctx.lineWidth=1.8;
-                    ctx.beginPath();
-                    ctx.moveTo(pts[0][0],pts[0][1]);
-                    for(let k=1;k<pts.length;k++) ctx.lineTo(pts[k][0],pts[k][1]);
-                    ctx.closePath();
-                    ctx.stroke();
-                }
-            } else {
-                // Solides à faces planes : arêtes avec détection silhouette
-                const edgeMap=new Map();
-                for(const face of faces){
-                    const rn=applyRot(face.n);
-                    const vis=rn[2]>0;
-                    for(let k=0;k<face.idx.length;k++){
-                        const a=face.idx[k],b=face.idx[(k+1)%face.idx.length];
-                        const key=a<b?`${a}_${b}`:`${b}_${a}`;
-                        const e=edgeMap.get(key)||{a,b,vis:0,hid:0};
-                        if(vis) e.vis++; else e.hid++;
-                        edgeMap.set(key,e);
-                    }
-                }
-                for(const e of edgeMap.values()){
-                    if(e.vis===0) continue;
-                    ctx.lineWidth=(e.hid>0)?2.0:1.2;
-                    ctx.beginPath();
-                    ctx.moveTo(P[e.a][0],P[e.a][1]);
-                    ctx.lineTo(P[e.b][0],P[e.b][1]);
-                    ctx.stroke();
-                }
-            }
+            ctx.stroke();
         }
     }
-    // ── Boucle d'animation ────────────────────────────────────────
-    function loop() {
-        if (autoRotate) { rotY += 0.012; rotX += 0.005; }
+
+    // ── Cylindre / cône ───────────────────────────────────────────
+    function drawRound(shape, P, RN, isLight) {
+        const {N, type, faces} = shape;
+        const baseColors = ROUND_BASE_COLORS[type] || [C.vert];
+        const sideColor  = getFaceColor(type, 0);
+
+        const caps = [{off:0, rn:applyRot([0,-1,0]), color:baseColors[0]}];
+        if (type === 'cylinder') caps.push({off:N, rn:applyRot([0,1,0]), color:baseColors[1 % baseColors.length]});
+
+        // Bases visibles
+        for (const cap of caps) {
+            if (cap.rn[2] <= 1e-6) continue;
+            fillPoly(P.slice(cap.off, cap.off + N), shade(cap.color, cap.rn));
+        }
+        // Surface latérale : bandes fines ombrées individuellement → rendu lisse
+        for (let i=0;i<N;i++) {
+            if (RN[i][2] <= 1e-6) continue;
+            fillPoly(faces[i].idx.map(k => P[k]), shade(sideColor, RN[i]));
+        }
+
+        if (!showEdges) return;
+        ctx.strokeStyle = edgeStyle(isLight, 0.55);
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+
+        // Cercles des bases : en entier si la base est visible,
+        // sinon seulement l'arc avant (bord de la surface latérale visible)
+        for (const cap of caps) {
+            const capVis = cap.rn[2] > 1e-6;
+            let pen = false;
+            for (let i=0;i<N;i++) {
+                const drawSeg = capVis || RN[i][2] > 1e-6;
+                const p0 = P[cap.off + i], p1 = P[cap.off + (i+1)%N];
+                if (drawSeg) {
+                    if (!pen) { ctx.moveTo(p0[0], p0[1]); pen = true; }
+                    ctx.lineTo(p1[0], p1[1]);
+                } else pen = false;
+            }
+        }
+        // Génératrices de silhouette (contour latéral)
+        for (let i=0;i<N;i++) {
+            const prev = (i - 1 + N) % N;
+            if ((RN[prev][2] > 1e-6) !== (RN[i][2] > 1e-6)) {
+                const top = type === 'cylinder' ? P[i + N] : P[N];
+                ctx.moveTo(P[i][0], P[i][1]);
+                ctx.lineTo(top[0], top[1]);
+            }
+        }
+        ctx.stroke();
+    }
+
+    // ── Sphère ────────────────────────────────────────────────────
+    function drawSphere(isLight) {
+        const r  = scale();
+        const cx = cssW/2, cy = cssH/2;
+        const base = getFaceColor('sphere', 0);
+
+        // Corps : dégradé radial centré sur le point le plus éclairé
+        const hx = cx + L[0]*r*0.5, hy = cy - L[1]*r*0.5;
+        const g = ctx.createRadialGradient(hx, hy, r*0.02, cx, cy, r);
+        g.addColorStop(0.00, colorAt(base, 1.10));
+        g.addColorStop(0.45, colorAt(base, 0.92));
+        g.addColorStop(0.85, colorAt(base, 0.72));
+        g.addColorStop(1.00, colorAt(base, 0.62));
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2*Math.PI);
+        ctx.fillStyle = g;
+        ctx.fill();
+
+        const NLat = 12, NLon = 24, NS = 96;
+
+        // Bandes de latitude alternées (léger voile) → la rotation reste lisible
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2*Math.PI);
+        ctx.clip();
+        // Chaque morceau de bande est découpé en 3D sur le plan z = 0 :
+        // seule la partie située sur l'hémisphère visible est dessinée,
+        // jamais celle de l'arrière (qui transparaissait près du bord).
+        const sph = (p, t) => applyRot([Math.cos(p)*Math.cos(t), Math.sin(p), Math.cos(p)*Math.sin(t)]);
+        const clipFront = (poly) => {
+            const out = [];
+            for (let k=0;k<poly.length;k++) {
+                const a = poly[k], b = poly[(k+1)%poly.length];
+                const ia = a[2] >= 0, ib = b[2] >= 0;
+                if (ia) out.push(a);
+                if (ia !== ib) {
+                    const u = a[2] / (a[2] - b[2]);
+                    out.push([a[0]+(b[0]-a[0])*u, a[1]+(b[1]-a[1])*u, 0]);
+                }
+            }
+            return out;
+        };
+        const LON_SEG = 96, LAT_SUB = 3;   // découpage fin → bords bien ronds
+        ctx.beginPath();
+        for (let lat=1; lat<NLat; lat+=2) {
+            for (let s=0; s<LAT_SUB; s++) {
+                const phi0 = Math.PI*((lat + s/LAT_SUB)/NLat - 0.5);
+                const phi1 = Math.PI*((lat + (s+1)/LAT_SUB)/NLat - 0.5);
+                for (let lon=0; lon<LON_SEG; lon++) {
+                    const th0 = 2*Math.PI*lon/LON_SEG, th1 = 2*Math.PI*(lon+1)/LON_SEG;
+                    const poly = clipFront([sph(phi0,th0), sph(phi0,th1), sph(phi1,th1), sph(phi1,th0)]);
+                    if (poly.length < 3) continue;
+                    const q = poly.map(project);
+                    ctx.moveTo(q[0][0], q[0][1]);
+                    for (let k=1;k<q.length;k++) ctx.lineTo(q[k][0], q[k][1]);
+                    ctx.closePath();
+                }
+            }
+        }
+        ctx.fillStyle = isLight ? 'rgba(255,255,255,0.10)' : 'rgba(10,30,50,0.10)';
+        ctx.fill();
+        ctx.restore();
+
+        if (!showEdges) return;
+
+        // Grille : parallèles + méridiens, uniquement sur l'hémisphère visible
+        ctx.strokeStyle = edgeStyle(isLight, 0.28);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const traceCurve = (fn) => {
+            let pen = false;
+            for (let k=0;k<=NS;k++) {
+                const p = applyRot(fn(k/NS));
+                if (p[2] >= 0) {
+                    const s = project(p);
+                    if (!pen) { ctx.moveTo(s[0], s[1]); pen = true; }
+                    else ctx.lineTo(s[0], s[1]);
+                } else pen = false;
+            }
+        };
+        for (let lat=1; lat<NLat; lat++) {
+            const phi = Math.PI*(lat/NLat - 0.5), cp = Math.cos(phi), sp = Math.sin(phi);
+            traceCurve(t => [cp*Math.cos(2*Math.PI*t), sp, cp*Math.sin(2*Math.PI*t)]);
+        }
+        for (let lon=0; lon<NLon; lon++) {
+            const th = 2*Math.PI*lon/NLon, ct = Math.cos(th), st = Math.sin(th);
+            traceCurve(t => { const phi = Math.PI*(t - 0.5); return [Math.cos(phi)*ct, Math.sin(phi), Math.cos(phi)*st]; });
+        }
+        ctx.stroke();
+
+        // Contour
+        ctx.strokeStyle = edgeStyle(isLight, 0.55);
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2*Math.PI);
+        ctx.stroke();
+    }
+
+    // ── Boucle d'animation (delta-temps → vitesse constante) ──────
+    const AUTO_SPEED_Y = 0.72, AUTO_SPEED_X = 0.30;   // rad/s
+    function loop(t) {
+        const dt = lastT ? Math.min(0.05, (t - lastT) / 1000) : 1/60;
+        lastT = t;
+        if (autoRotate) { rotY += AUTO_SPEED_Y*dt; rotX += AUTO_SPEED_X*dt; }
+        if (!dragging && (velX || velY)) {
+            rotX += velX*dt; rotY += velY*dt;
+            const k = Math.exp(-dt*3.5);
+            velX *= k; velY *= k;
+            if (Math.abs(velX) < 0.03 && Math.abs(velY) < 0.03) { velX = 0; velY = 0; }
+        }
         draw();
-        animId = requestAnimationFrame(loop);
+        if (autoRotate || velX || velY) animId = requestAnimationFrame(loop);
+        else { animId = null; lastT = 0; }
     }
-
     function startLoop() {
-        if (animId) cancelAnimationFrame(animId);
+        if (animId) return;
+        lastT = 0;
         animId = requestAnimationFrame(loop);
     }
 
-    // ── Interaction : rotation par drag ──────────────────────────
-    // Bloquer mousedown ET pointerdown pour empêcher le drag du widget
+    // ── Interaction : rotation par drag (+ inertie) ───────────────
     canvas.addEventListener('mousedown', e => { e.stopPropagation(); });
 
-    let dragging = false, lastX = 0, lastY = 0;
+    let lastX = 0, lastY = 0, lastMoveT = 0;
+    const DRAG_K = 0.01;
 
     canvas.addEventListener('pointerdown', e => {
         e.stopPropagation();
         e.preventDefault();
         dragging = true;
+        velX = velY = 0;
         lastX = e.clientX; lastY = e.clientY;
+        lastMoveT = performance.now();
         canvas.setPointerCapture(e.pointerId);
     });
     canvas.addEventListener('pointermove', e => {
         if (!dragging) return;
-        rotY += (e.clientX - lastX) * 0.01;
-        rotX += (e.clientY - lastY) * 0.01;
+        const dx = e.clientX - lastX, dy = e.clientY - lastY;
+        rotY += dx * DRAG_K;
+        rotX += dy * DRAG_K;
+        const now = performance.now();
+        const dts = Math.max(8, now - lastMoveT) / 1000;
+        velY = 0.6*velY + 0.4*(dx*DRAG_K/dts);
+        velX = 0.6*velX + 0.4*(dy*DRAG_K/dts);
+        lastMoveT = now;
         lastX = e.clientX; lastY = e.clientY;
-        if (!autoRotate) draw();
+        requestDraw();
     });
-    canvas.addEventListener('pointerup',     () => { dragging = false; });
-    canvas.addEventListener('pointercancel', () => { dragging = false; });
+    function endDrag() {
+        if (!dragging) return;
+        dragging = false;
+        // Pas d'élan si le pointeur était immobile au relâchement
+        if (performance.now() - lastMoveT > 80) { velX = velY = 0; }
+        const MAXV = 6;
+        velX = Math.max(-MAXV, Math.min(MAXV, velX));
+        velY = Math.max(-MAXV, Math.min(MAXV, velY));
+        if (velX || velY) startLoop();
+    }
+    canvas.addEventListener('pointerup',     endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
 
     // ── Slider de zoom ────────────────────────────────────────────
     const zoomSlider = widget.querySelector('.s3d-zoom-slider');
     const zoomVal    = widget.querySelector('.s3d-zoom-val');
+    const ZOOM_MIN = parseInt(zoomSlider.min) / 100, ZOOM_MAX = parseInt(zoomSlider.max) / 100;
     zoomSlider.addEventListener('input', e => {
         e.stopPropagation();
         zoom = parseInt(e.target.value) / 100;
         zoomVal.textContent = e.target.value + '%';
-        if (!autoRotate) draw();
+        requestDraw();
     });
     zoomSlider.addEventListener('mousedown', e => e.stopPropagation());
     zoomSlider.addEventListener('pointerdown', e => e.stopPropagation());
 
-    // ── Molette → zoom (met aussi à jour le slider) ───────────────
+    // ── Molette → zoom (même plage que le slider) ─────────────────
     canvas.addEventListener('wheel', e => {
         e.preventDefault();
         zoom *= e.deltaY > 0 ? 0.92 : 1.09;
-        zoom = Math.max(0.20, Math.min(1.0, zoom));
-        // Synchroniser le slider
+        zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom));
         const pct = Math.round(zoom * 100);
         zoomSlider.value    = pct;
         zoomVal.textContent = pct + '%';
-        if (!autoRotate) draw();
+        requestDraw();
     }, { passive: false });
 
     // ── Redimensionnement via poignée ─────────────────────────────
@@ -837,8 +962,7 @@ function _initSolide3D(widget) {
             if (!rsz) return;
             widget.style.width  = Math.max(240, rW0 + e.clientX - rMX0) + 'px';
             widget.style.height = Math.max(280, rH0 + e.clientY - rMY0) + 'px';
-            syncCanvasSize();
-            if (!autoRotate) draw();
+            requestDraw();
         });
         resizeHandle.addEventListener('pointerup', () => {
             rsz = false;
@@ -854,14 +978,15 @@ function _initSolide3D(widget) {
             widget.querySelectorAll('.s3d-shape-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentShape = btn.dataset.shape;
-            rotX=30*Math.PI/180; rotY=45*Math.PI/180; rotZ=0;
-            if (!autoRotate) draw();
+            rotX = 30*Math.PI/180; rotY = 45*Math.PI/180; rotZ = 0;
+            velX = velY = 0;
+            requestDraw();
         });
     });
 
     // ── Cases à cocher ────────────────────────────────────────────
     widget.querySelector('.s3d-aretes-chk').addEventListener('change', function() {
-        showEdges = this.checked; if (!autoRotate) draw();
+        showEdges = this.checked; requestDraw();
     });
     widget.querySelector('.s3d-anim-chk').addEventListener('change', function() {
         autoRotate = this.checked;
@@ -869,23 +994,27 @@ function _initSolide3D(widget) {
     });
 
     // ── Réinitialiser ─────────────────────────────────────────────
-    const ZOOM_DEFAULT = parseInt(widget.querySelector('.s3d-zoom-slider').value);
+    const ZOOM_DEFAULT = parseInt(zoomSlider.value);
     widget.querySelector('.s3d-reset-btn').addEventListener('click', e => {
         e.stopPropagation();
-        rotX=30*Math.PI/180; rotY=45*Math.PI/180; rotZ=0;
+        rotX = 30*Math.PI/180; rotY = 45*Math.PI/180; rotZ = 0;
+        velX = velY = 0;
         zoom = ZOOM_DEFAULT / 100;
         zoomSlider.value    = ZOOM_DEFAULT;
         zoomVal.textContent = ZOOM_DEFAULT + '%';
-        if (!autoRotate) draw();
+        requestDraw();
     });
 
     // ── Lancement ─────────────────────────────────────────────────
-    startLoop();
+    requestDraw();
 
     // Nettoyage à la suppression du widget
     const obs = new MutationObserver(() => {
         if (!document.contains(widget)) {
             if (animId) cancelAnimationFrame(animId);
+            animId = null; autoRotate = false; velX = velY = 0;
+            if (ro) ro.disconnect();
+            themeObs.disconnect();
             obs.disconnect();
         }
     });

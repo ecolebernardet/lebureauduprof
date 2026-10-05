@@ -1114,14 +1114,54 @@ function createGeoMondeWidget() {
     }
 
     // ── Événements ────────────────────────────────────────────────────────
-    svg.addEventListener('mousedown', (e) => {
+    // Gestion « tap » compatible souris, doigt et stylet (vidéoprojecteur
+    // interactif, TBI). Le stylet envoie des événements pointer/touch : si le
+    // déplacement du widget les intercepte, le « click » n'arrive jamais sur
+    // l'élément. On détecte donc nous-mêmes le tap (pointerdown → pointerup),
+    // avec une tolérance de mouvement, et on garde le click en secours.
+    const _TAP_TOL = 20;          // px de tremblement toléré pour le stylet
+    let _lastTapAt = 0;
+    const _itemFrom = (target) => {
+        const t = target && target.closest ? target.closest('[data-id]') : null;
+        return (t && svg.contains(t)) ? t : null;
+    };
+    const _activate = (t) => {
+        const now = Date.now();
+        if (now - _lastTapAt < 450) return;   // évite le double déclenchement pointerup + click
+        _lastTapAt = now;
+        onItemClick(t.getAttribute('data-id'));
+    };
+    const _stopIfItem = (e) => {
         if (e.target.closest && e.target.closest('.gw-item')) e.stopPropagation();
-    });
-    svg.addEventListener('click', (e) => {
-        const t = e.target.closest ? e.target.closest('[data-id]') : null;
+    };
+    svg.addEventListener('mousedown', _stopIfItem);
+    svg.addEventListener('touchstart', _stopIfItem, { passive: true });
+    svg.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button > 0) return;   // clic droit / milieu
+        const t = _itemFrom(e.target);
         if (!t) return;
         e.stopPropagation();
-        onItemClick(t.getAttribute('data-id'));
+        const pid = e.pointerId, x0 = e.clientX, y0 = e.clientY;
+        const cleanup = () => {
+            window.removeEventListener('pointerup', onUp, true);
+            window.removeEventListener('pointercancel', cleanup, true);
+        };
+        const onUp = (ev) => {
+            if (ev.pointerId !== pid) return;
+            cleanup();
+            if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > _TAP_TOL) return;
+            _activate(t);
+        };
+        // écoute sur window (phase de capture) : fonctionne même si un autre
+        // script a capturé le pointeur entre-temps
+        window.addEventListener('pointerup', onUp, true);
+        window.addEventListener('pointercancel', cleanup, true);
+    });
+    svg.addEventListener('click', (e) => {
+        const t = _itemFrom(e.target);
+        if (!t) return;
+        e.stopPropagation();
+        _activate(t);
     });
     hideBtn.addEventListener('click', () => {
         revealed = new Set();

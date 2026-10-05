@@ -265,13 +265,38 @@ function _ggDensify(pts, closed) {
     return out;
 }
 
+// Sens de parcours du tracé (aire signée en lon/lat) : +1 = sens direct
+// (intérieur à gauche), −1 = sens horaire. La carte lon/lat vue « de
+// l'extérieur » a la même orientation que le globe : ce signe est donc valable
+// sur le globe et sert à savoir dans quel sens longer le bord de la Terre.
+// Renvoie 0 pour les petites îles et les tracés qui se croisent eux-mêmes
+// (sens ambigu) : on y prendra simplement l'arc le plus court.
+function _ggOrient(pts) {
+    let minLon = 999, maxLon = -999, minLat = 999, maxLat = -999;
+    for (const p of pts) {
+        minLon = Math.min(minLon, p[0]); maxLon = Math.max(maxLon, p[0]);
+        minLat = Math.min(minLat, p[1]); maxLat = Math.max(maxLat, p[1]);
+    }
+    if (Math.max(maxLon - minLon, maxLat - minLat) < 40) return 0;
+    const n = pts.length;
+    const side = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+    for (let i = 0; i < n; i++) for (let j = i + 2; j < n; j++) {
+        if (i === 0 && j === n - 1) continue;
+        const a = pts[i], b = pts[(i + 1) % n], c = pts[j], d = pts[(j + 1) % n];
+        if (side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0) return 0;
+    }
+    let area = 0;
+    for (let i = 0, j = n - 1; i < n; j = i++) area += (pts[j][0] - pts[i][0]) * (pts[j][1] + pts[i][1]);
+    return area < 0 ? -1 : 1;
+}
+
 function _ggPrepare() {
     if (_GG_DATA) return _GG_DATA;
     const conts = GW_CONTINENTS.map(c => ({
         c,
-        polys: GW_SHAPES[c.id].map(pts => ({ ll: pts, v: _ggDensify(pts, true) }))
+        polys: GW_SHAPES[c.id].map(pts => ({ ll: pts, v: _ggDensify(pts, true), dir: _ggOrient(pts) }))
     }));
-    _GG_DATA = { conts, caspian: { ll: GW_CASPIAN, v: _ggDensify(GW_CASPIAN, true) } };
+    _GG_DATA = { conts, caspian: { ll: GW_CASPIAN, v: _ggDensify(GW_CASPIAN, true), dir: _ggOrient(GW_CASPIAN) } };
     return _GG_DATA;
 }
 
@@ -490,56 +515,83 @@ function createGeoGlobeWidget() {
         return [Math.atan2(x, z) / GG_D2R, Math.asin(Math.max(-1, Math.min(1, y1))) / GG_D2R];
     }
 
-    // Découpe d'un polygone sur l'hémisphère visible ; les parties qui passent
-    // derrière la Terre sont remplacées par un arc du bord du globe.
-    function clipPoly(V) {
+    // Découpe d'un polygone sur l'hémisphère visible (algorithme de
+    // Weiler-Atherton sur le cercle du bord de la Terre).
+    // 1. On découpe la côte en morceaux visibles, chacun allant d'un point
+    //    où elle réapparaît (entrée) à un point où elle disparaît (sortie).
+    // 2. Depuis chaque sortie, on longe le bord du globe — dans le sens donné
+    //    par l'orientation du tracé — jusqu'à la PROCHAINE entrée rencontrée,
+    //    qui peut appartenir à un autre morceau (côtes très découpées).
+    // Renvoie une liste d'anneaux [{x, y, s}] (s = ne pas tracer l'arête).
+    function clipPoly(V, dir) {
         const n = V.length;
         const R = new Array(n);
         let start = -1;
         for (let i = 0; i < n; i++) { R[i] = rot(V[i]); if (start < 0 && R[i][2] >= 0) start = i; }
         if (start < 0) return null;
-        const out = [{ x: R[start][0], y: R[start][1], s: true }];
         const TAU = 2 * Math.PI;
-        const wrap = v => v - TAU * Math.round(v / TAU);
-        let E = null, prevAng = 0, turn = 0;
+        const mod = v => ((v % TAU) + TAU) % TAU;
         const limb = (a, b) => {
             const u = a[2] / (a[2] - b[2]);
             const x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
             const l = Math.hypot(x, y) || 1;
             return [x / l, y / l];
         };
-        // Le trajet caché (derrière la Terre) est « rabattu » sur le bord du
-        // globe : on cumule son angle de rotation autour du centre, ce qui
-        // donne le bon sens et la bonne longueur de l'arc de remplacement.
+
+        const chains = [];
+        const first = { pts: [{ x: R[start][0], y: R[start][1], s: true }], aIn: null, aOut: null };
+        let cur = first;
         for (let k = 1; k <= n; k++) {
-            const ia = (start + k - 1) % n, ib = (start + k) % n;
-            const a = R[ia], b = R[ib], bs = V[ib].s;
+            const a = R[(start + k - 1) % n], b = R[(start + k) % n], bs = V[(start + k) % n].s;
             const av = a[2] >= 0, bv = b[2] >= 0;
             if (av && bv) {
-                out.push({ x: b[0], y: b[1], s: bs });
-            } else if (av) {                       // sortie vers l'arrière
-                E = limb(a, b);
-                out.push({ x: E[0], y: E[1], s: bs });
-                prevAng = Math.atan2(E[1], E[0]);
-                turn = 0;
-                if (b[0] || b[1]) { const ang = Math.atan2(b[1], b[0]); turn += wrap(ang - prevAng); prevAng = ang; }
-            } else if (!bv) {                      // reste derrière
-                if (b[0] || b[1]) { const ang = Math.atan2(b[1], b[0]); turn += wrap(ang - prevAng); prevAng = ang; }
-            } else {                               // retour vers l'avant
+                cur.pts.push({ x: b[0], y: b[1], s: bs });
+            } else if (av) {                               // sortie
+                const E = limb(a, b);
+                cur.pts.push({ x: E[0], y: E[1], s: bs });
+                cur.aOut = Math.atan2(E[1], E[0]);
+                chains.push(cur);
+                cur = null;
+            } else if (bv) {                               // entrée
                 const I = limb(a, b);
-                const aI = Math.atan2(I[1], I[0]);
-                turn += wrap(aI - prevAng);
-                const aE = Math.atan2(E[1], E[0]);
-                const steps = Math.max(1, Math.ceil(Math.abs(turn) / (3 * GG_D2R)));
-                for (let j = 1; j < steps; j++) {
-                    const ang = aE + turn * j / steps;
-                    out.push({ x: Math.cos(ang), y: Math.sin(ang), s: true });
-                }
-                out.push({ x: I[0], y: I[1], s: true });
-                out.push({ x: b[0], y: b[1], s: bs });
+                cur = { pts: [{ x: I[0], y: I[1], s: true }, { x: b[0], y: b[1], s: bs }],
+                        aIn: Math.atan2(I[1], I[0]), aOut: null };
             }
         }
-        return out;
+        if (!chains.length) return [first.pts];           // entièrement visible
+        // Le dernier morceau (qui revient au point de départ) se raccorde au premier
+        if (cur !== first) {
+            first.pts = cur.pts.concat(first.pts.slice(1));
+            first.aIn = cur.aIn;
+        }
+
+        const rings = [], used = new Set();
+        for (let i0 = 0; i0 < chains.length; i0++) {
+            if (used.has(i0)) continue;
+            const ring = [];
+            let c = i0, guard = 0;
+            while (!used.has(c) && guard++ <= chains.length) {
+                used.add(c);
+                const ch = chains[c];
+                for (const p of ch.pts) ring.push(p);
+                // prochaine entrée en longeant le bord dans le sens « dir »
+                // (dir = 0 : petite île → entrée la plus proche, dans un sens ou l'autre)
+                let best = c, bd = Infinity, span = 0;
+                for (let j = 0; j < chains.length; j++) {
+                    const fwd = mod(chains[j].aIn - ch.aOut), back = mod(ch.aOut - chains[j].aIn);
+                    const cand = dir > 0 ? [fwd] : dir < 0 ? [-back] : [fwd, -back];
+                    for (const sp of cand) if (Math.abs(sp) < bd) { bd = Math.abs(sp); best = j; span = sp; }
+                }
+                const steps = Math.max(1, Math.ceil(bd / (3 * GG_D2R)));
+                for (let j = 1; j < steps; j++) {
+                    const ang = ch.aOut + span * j / steps;
+                    ring.push({ x: Math.cos(ang), y: Math.sin(ang), s: true });
+                }
+                c = best;
+            }
+            rings.push(ring);
+        }
+        return rings;
     }
 
     // ── Canvas net sur écrans haute densité ───────────────────────────────
@@ -601,27 +653,32 @@ function createGeoGlobeWidget() {
             const isSel = c.id === contSel;
             const fill = dim && !isSel ? mix(c.col, '#c3c8cf', 0.65) : c.col;
             for (const poly of polys) {
-                const pts = clipPoly(poly.v);
-                if (!pts) continue;
+                const rings = clipPoly(poly.v, poly.dir);
+                if (!rings) continue;
                 ctx.beginPath();
-                pts.forEach((p, i) => { const q = S(p.x, p.y); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); });
-                ctx.closePath();
+                for (const pts of rings) {
+                    pts.forEach((p, i) => { const q = S(p.x, p.y); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); });
+                    ctx.closePath();
+                }
                 ctx.fillStyle = fill;
                 ctx.fill();
                 // contour (sans les coutures ni le bord du globe)
                 ctx.beginPath();
-                pts.forEach((p, i) => { const q = S(p.x, p.y); (i === 0 || p.s) ? ctx.moveTo(q[0], q[1]) : ctx.lineTo(q[0], q[1]); });
+                for (const pts of rings)
+                    pts.forEach((p, i) => { const q = S(p.x, p.y); (i === 0 || p.s) ? ctx.moveTo(q[0], q[1]) : ctx.lineTo(q[0], q[1]); });
                 ctx.strokeStyle = isSel ? '#2b3340' : 'rgba(80,88,100,0.55)';
                 ctx.lineWidth = isSel ? 2.4 : 0.8;
                 ctx.stroke();
             }
         }
         // Mer Caspienne (lac)
-        const casp = clipPoly(DATA.caspian.v);
+        const casp = clipPoly(DATA.caspian.v, DATA.caspian.dir);
         if (casp) {
             ctx.beginPath();
-            casp.forEach((p, i) => { const q = S(p.x, p.y); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); });
-            ctx.closePath();
+            for (const pts of casp) {
+                pts.forEach((p, i) => { const q = S(p.x, p.y); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); });
+                ctx.closePath();
+            }
             ctx.fillStyle = OCEAN;
             ctx.fill();
         }

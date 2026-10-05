@@ -426,18 +426,18 @@
     function buildBar(sel, full) {
         const isToday = sameDay(sel, new Date());
         return '<div class="ephem-bar">' +
-            '<div class="wf-btns"' + STOP + '>' +
-                '<button type="button" class="wf-btn wf-btn-min" data-ephem-action="wf-min" title="Réduire" aria-label="Réduire"></button>' +
-                '<button type="button" class="wf-btn wf-btn-max" data-ephem-action="wf-max" title="' + (full ? 'Quitter le plein écran' : 'Plein écran') + '" aria-label="Plein écran"></button>' +
-                '<button type="button" class="wf-btn wf-btn-close" data-ephem-action="wf-close" title="Fermer" aria-label="Fermer"></button>' +
-            '</div>' +
+            '<button type="button" class="ephem-gear" data-ephem-action="toggle" title="Réglages" aria-label="Réglages"' + STOP + '>⚙</button>' +
             '<div class="ephem-datebox"' + STOP + '>' +
                 '<button type="button" class="ephem-nav" data-ephem-action="prev" title="Jour précédent" aria-label="Jour précédent">‹</button>' +
                 '<input type="date" class="ephem-date" data-ephem-date value="' + toInputDate(sel) + '" min="1900-01-01" max="2200-12-31" title="Choisir un jour" aria-label="Choisir un jour">' +
                 '<button type="button" class="ephem-nav" data-ephem-action="next" title="Jour suivant" aria-label="Jour suivant">›</button>' +
                 '<button type="button" class="ephem-today' + (isToday ? ' is-hidden' : '') + '" data-ephem-action="today" title="Revenir à aujourd\'hui" aria-label="Revenir à aujourd\'hui">⟲</button>' +
             '</div>' +
-            '<button type="button" class="ephem-gear" data-ephem-action="toggle" title="Réglages" aria-label="Réglages"' + STOP + '>⚙</button>' +
+            '<div class="wf-btns"' + STOP + '>' +
+                '<button type="button" class="wf-btn wf-btn-min" data-ephem-action="wf-min" title="Réduire" aria-label="Réduire"></button>' +
+                '<button type="button" class="wf-btn wf-btn-max" data-ephem-action="wf-max" title="' + (full ? 'Quitter le plein écran' : 'Plein écran') + '" aria-label="Plein écran"></button>' +
+                '<button type="button" class="wf-btn wf-btn-close" data-ephem-action="wf-close" title="Fermer" aria-label="Fermer"></button>' +
+            '</div>' +
         '</div>';
     }
 
@@ -593,7 +593,7 @@
 }
 .ephem-bar{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5cqw;
   padding:2cqw 2.5cqw 0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-.ephem-bar .wf-btns{justify-self:start}
+.ephem-bar .wf-btns{justify-self:end}
 .ephem-datebox{display:flex;align-items:center;gap:.8cqw}
 .ephem-nav,.ephem-today{border:0;background:none;color:var(--ep-soft);cursor:pointer;padding:0 1cqw;
   font-size:max(13px,5cqw);line-height:1;border-radius:4px}
@@ -603,7 +603,7 @@
 .ephem-date{font:inherit;font-size:max(11px,3.6cqw);color:var(--ep-ink);background:transparent;color-scheme:light;
   border:1px solid var(--ep-line);border-radius:4px;padding:.4cqw 1cqw;cursor:pointer;user-select:auto}
 .ephem-date:hover{border-color:#b3aa9b}
-.ephem-gear{justify-self:end;border:0;background:none;color:#b3aa9b;
+.ephem-gear{justify-self:start;border:0;background:none;color:#b3aa9b;
   font-size:5.2cqw;line-height:1;cursor:pointer;padding:1cqw;border-radius:4px}
 .ephem-gear:hover,.ephem-gear:focus-visible{color:var(--ep-ink);outline:1px solid var(--ep-line)}
 .ephem-bar :focus-visible{outline:2px solid var(--ep-red);outline-offset:1px}

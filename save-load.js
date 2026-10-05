@@ -190,6 +190,11 @@ function buildBoardState() {
         if (w.dataset.type === 'geo-globe' && typeof w._ggGetData === 'function') {
             geoGlobeData = w._ggGetData();
         }
+        // Données propres au widget « La Terre en mouvement »
+        let terreMvtData = null;
+        if (w.dataset.type === 'terre-mouvement' && typeof w._tmGetData === 'function') {
+            terreMvtData = w._tmGetData();
+        }
         // Données propres au widget pause calme
         let pauseCalmeData = null;
         if (w.dataset.type === 'pause-calme' && typeof w._wpcGetData === 'function') {
@@ -396,6 +401,7 @@ function buildBoardState() {
 			geoEuropeData,
 			geoMondeData,
 			geoGlobeData,
+			terreMvtData,
 			pauseCalmeData,
 			horlogeData,
 			sondageData,
@@ -670,6 +676,11 @@ function restoreBoardFromJSON(json) {
             widget = createGeoGlobeWidget();
             if (w.geoGlobeData && typeof widget._ggSetData === 'function') {
                 widget._ggSetData(w.geoGlobeData);
+            }
+        } else if (w.type === 'terre-mouvement') {
+            widget = createTerreMouvementWidget();
+            if (w.terreMvtData && typeof widget._tmSetData === 'function') {
+                widget._tmSetData(w.terreMvtData);
             }
         } else if (w.type === 'tableau-num') {
             widget = createTableauNumWidget();

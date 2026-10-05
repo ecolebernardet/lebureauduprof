@@ -137,8 +137,12 @@
             border-radius: 0 0 14px 0; opacity: .6; z-index: 5; touch-action: none;
         }
         .tm-resize-handle:hover { opacity: 1; }
-        .tm-only-day, .tm-only-season { }
         .tm-container[data-mode="saisons"] .tm-only-day { display: none !important; }
+        .tm-container[data-mode="saisons"]:not([data-zoom="1"]) .tm-only-time { display: none !important; }
+        .tm-container[data-mode="jour"] .tm-only-zoom,
+        .tm-container:not([data-zoom="1"]) .tm-only-zoom { display: none !important; }
+        .tm-zoom-btn { background: #fff4e6; border-color: #f2c48f; color: #8a4a12; }
+        .tm-zoom-btn.on { background: #6fb78f; border-color: #6fb78f; color: #fff; }
         .tm-container[data-mode="jour"] .tm-only-season { display: none !important; }
         .tm-msg { padding: 30px; color: #b91c1c; font-weight: 700; }
     `;
@@ -434,7 +438,9 @@ function createTerreMouvementWidget() {
         <button class="tm-btn tm-view tm-only-day on" data-view="60" title="La Terre vue de trois-quarts, côté Soleil">De trois-quarts</button>
         <button class="tm-btn tm-view tm-only-day" data-view="90" title="La Terre vue de profil : moitié jour, moitié nuit">De profil</button>
         <span class="tm-sep tm-only-day"></span>
-        <button class="tm-btn tm-rays tm-only-day on" title="Afficher les rayons du Soleil">☀️ Rayons</button>
+        <button class="tm-btn tm-zoom-btn tm-only-season" title="Voir la Terre de près, de profil face au Soleil">🔍 Zoom sur la Terre</button>
+        <button class="tm-btn tm-noon-btn tm-only-zoom" title="Faire tourner la Terre jusqu'à midi au lieu suivi (face au Soleil)">☀️ Midi</button>
+        <button class="tm-btn tm-rays tm-only-time on" title="Afficher les rayons du Soleil">☀️ Rayons</button>
         <button class="tm-btn tm-lines on" title="Équateur, tropiques et cercles polaires">🧭 Repères</button>
     `;
     container.appendChild(row1);
@@ -449,7 +455,7 @@ function createTerreMouvementWidget() {
             <input type="range" class="tm-slider tm-day" min="0" max="364" step="1" value="171" aria-label="Date">
             <span class="tm-val tm-day-val"></span>
         </div>
-        <div class="tm-slider-box tm-only-day">
+        <div class="tm-slider-box tm-only-time">
             <span class="tm-lbl">Heure :</span>
             <input type="range" class="tm-slider tm-hour" min="0" max="24" step="0.05" value="12" aria-label="Heure solaire au lieu choisi">
             <span class="tm-val tm-hour-val"></span>
@@ -498,6 +504,10 @@ function createTerreMouvementWidget() {
         23,4° dans la même direction. <b>Fais glisser la Terre</b> sur son orbite ou touche une des quatre
         dates. Quand un hémisphère est penché vers le Soleil, les rayons y arrivent plus droit et les
         journées sont plus longues : c'est l'été.</p>
+        <p><b>🔍 Zoom sur la Terre</b> (ou toucher la Terre) : la Terre est vue de profil, le Soleil à
+        gauche. <b>☀️ Midi</b> la fait tourner jusqu'à ce que le lieu suivi soit face au Soleil : on lit
+        alors la <b>hauteur du Soleil</b> entre les rayons et l'horizon, et l'on compare la surface éclairée
+        par un même faisceau de lumière avec celle du point où le Soleil est au zénith.</p>
         <p>La fiche de droite donne, pour le lieu suivi : jour ou nuit, durée du jour, lever et coucher
         du Soleil, hauteur du Soleil à midi.</p>
         <p style="color:#888">Modèle simplifié : orbite circulaire, heures en <b>heure solaire</b>
@@ -521,6 +531,7 @@ function createTerreMouvementWidget() {
     const $ = sel => container.querySelector(sel);
     const playBtn = $('.tm-btn-play'), speedBtn = $('.tm-btn-speed');
     const raysBtn = $('.tm-rays'), linesBtn = $('.tm-lines');
+    const zoomBtn = $('.tm-zoom-btn'), noonBtn = $('.tm-noon-btn');
     const daySl = $('.tm-day'), dayVal = $('.tm-day-val');
     const hourSl = $('.tm-hour'), hourVal = $('.tm-hour-val');
     const placeSel = side.querySelector('.tm-place');
@@ -539,11 +550,14 @@ function createTerreMouvementWidget() {
     let playing = false, fast = false;
     let velLon = 0;                   // inertie (rad/s) dans « Jour et nuit »
     let dayAnim = null;               // animation vers une date
+    let utcAnim = null;               // animation de rotation (bouton « Midi »)
+    let zoom = false;                 // onglet saisons : vue rapprochée de la Terre
     let animId = null, lastT = 0, drawPending = false;
     let cssW = 0, cssH = 0, dpr = 1;
     let keyHits = [];                 // zones touchables des 4 dates (onglet saisons)
     let orbitGeo = null;              // géométrie de l'orbite (onglet saisons)
 
+    const timeView = () => mode === 'jour' || zoom;     // vues où l'on fait tourner la Terre
     const solarHour = () => (((utc + place.lon / 15) % 24) + 24) % 24;
 
     function syncSize() {
@@ -669,7 +683,7 @@ function createTerreMouvementWidget() {
         // Lieu suivi
         if (opt.marker) {
             const p = _tmMul(M, _tmVec(place.lon, place.lat));
-            if (p[2] > 0.02) {
+            if (p[2] > (opt.markerMinZ !== undefined ? opt.markerMinZ : 0.02)) {
                 const q = S(p[0], p[1]);
                 const lit = p[0] * sv[0] + p[1] * sv[1] + p[2] * sv[2];
                 const rr = Math.max(4, Math.min(8, r * 0.03));
@@ -913,6 +927,176 @@ function createTerreMouvementWidget() {
         ctx.fillText('hémisphère Nord', cssW - 12, 10 + fs * 1.3);
     }
 
+    // ── Scène « Saisons » zoomée : la Terre de profil, face au Soleil ─────
+    // La caméra est choisie pour que le Soleil soit à gauche ET que l'axe de
+    // la Terre soit dans le plan de l'écran. L'inclinaison visible de l'axe
+    // par rapport aux rayons est alors exacte (0° aux équinoxes, 23,4° aux
+    // solstices) et, à midi, le lieu suivi est sur le bord gauche du globe :
+    // l'angle entre les rayons et son horizon y est la vraie hauteur du Soleil.
+    function zoomMatrix(A) {
+        const x = [-A.u[0], -A.u[1], -A.u[2]];                 // vers la droite = à l'opposé du Soleil
+        const a = _tmMul(A.E2W, [0, 1, 0]);                    // axe des pôles
+        const ax = a[0] * x[0] + a[1] * x[1] + a[2] * x[2];
+        let y = [a[0] - ax * x[0], a[1] - ax * x[1], a[2] - ax * x[2]];
+        const ly = Math.hypot(y[0], y[1], y[2]) || 1;
+        y = y.map(v => v / ly);
+        const z = [x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0]];
+        return _tmMM([x, y, z], A.E2W);
+    }
+
+    let zoomMsg = '';
+    function drawZoomScene(A) {
+        const M = zoomMatrix(A);
+        const sv = [-1, 0, 0];
+        const r = Math.min(cssW * 0.28, cssH * 0.34);
+        const cx = cssW * 0.6, cy = cssH * 0.5;
+        dayGeo = { cx, cy, r, M };
+        const rs = r * 0.2;
+        const sx = Math.max(rs * 1.3, cx - r * 2.1), sy = cy;
+        drawSun(sx, sy, rs);
+
+        const t = solarHour();
+        const alt = _tmAltitude(place.lat, A.decl, t);
+        const noonAlt = _tmAltitude(place.lat, A.decl, 12);
+        const p = _tmMul(M, _tmVec(place.lon, place.lat));
+        const P2 = [cx + p[0] * r, cy - p[1] * r];
+        const atNoon = Math.abs(t - 12) < 0.35 && alt > 0.5;
+        const xHit = y => cx - Math.sqrt(Math.max(0, r * r - (y - cy) * (y - cy)));
+        const x0 = sx + rs * 1.35;
+        const arrow = (x, y, sz, col) => {
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - sz, y - sz * 0.55); ctx.lineTo(x - sz, y + sz * 0.55); ctx.closePath();
+            ctx.fillStyle = col; ctx.fill();
+        };
+
+        // Rayons parallèles (fins)
+        if (showRays) {
+            ctx.strokeStyle = 'rgba(255,214,102,0.5)';
+            ctx.lineWidth = 1.3;
+            for (let k = -4; k <= 4; k++) {
+                const y = cy + k * r * 0.21;
+                if (Math.abs(y - cy) >= r * 0.995) continue;
+                const xe = xHit(y) - 2;
+                ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(xe, y); ctx.stroke();
+                arrow(xe, y, 7, 'rgba(255,214,102,0.7)');
+            }
+        }
+
+        drawGlobe(cx, cy, r, M, sv, { lines: showLines, labels: true, axis: true, marker: true, markerLabel: true, markerMinZ: -0.04 });
+
+        // Faisceau de rayons de largeur fixe, et zone du sol qu'il éclaire
+        const beam = (yc, w, fill, stroke) => {
+            const yA = Math.max(cy - r + 0.5, yc - w), yB = Math.min(cy + r - 0.5, yc + w);
+            if (yB <= yA) return;
+            ctx.beginPath();
+            ctx.moveTo(x0, yA);
+            for (let i = 0; i <= 30; i++) { const y = yA + (yB - yA) * i / 30; ctx.lineTo(xHit(y), y); }
+            ctx.lineTo(x0, yB);
+            ctx.closePath();
+            ctx.fillStyle = fill; ctx.fill();
+            ctx.globalAlpha = 0.6;
+            ctx.strokeStyle = stroke; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(x0, yA); ctx.lineTo(xHit(yA), yA); ctx.moveTo(x0, yB); ctx.lineTo(xHit(yB), yB); ctx.stroke();
+            ctx.globalAlpha = 1;
+            const a1 = Math.atan2(yA - cy, xHit(yA) - cx), a2 = Math.atan2(yB - cy, xHit(yB) - cx);
+            ctx.beginPath(); ctx.arc(cx, cy, r, a1, a2, true);
+            ctx.lineWidth = Math.max(5, r * 0.025); ctx.strokeStyle = stroke; ctx.lineCap = 'round'; ctx.stroke();
+        };
+
+        const fs = Math.max(12, Math.min(16, r * 0.065));
+        const shortName = place.name.replace(/ \(.*\)$/, '');
+        if (atNoon) {
+            const w = r * 0.075;
+            const showZen = Math.abs(P2[1] - cy) > 2.4 * w;
+            if (showZen) {
+                beam(cy, w, 'rgba(255,230,130,0.30)', '#ffd24a');
+                ctx.font = `800 ${fs * 0.9}px 'Segoe UI', system-ui, sans-serif`;
+                ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#ffe08a';
+                ctx.fillText('Soleil au zénith', cx - r - 8, cy - w - fs * 0.7);
+            }
+            beam(P2[1], w, 'rgba(255,140,50,0.38)', '#ff8a3d');
+
+            // Horizon du lieu et hauteur du Soleil
+            const nx = (P2[0] - cx) / r, ny = (cy - P2[1]) / r;
+            let tx = -ny, ty = nx;
+            if (tx > 0) { tx = -tx; ty = -ty; }                 // horizon côté Soleil
+            const hs = [tx, -ty];                                // en coordonnées écran
+            const Lh = r * 0.42;
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(P2[0] - hs[0] * Lh * 0.45, P2[1] - hs[1] * Lh * 0.45);
+            ctx.lineTo(P2[0] + hs[0] * Lh, P2[1] + hs[1] * Lh);
+            ctx.stroke();
+            // côté opposé au faisceau (sous l'horizon pour l'hémisphère Nord)
+            const away = hs[1] > 0 ? 1 : -1;
+            ctx.font = `700 ${fs * 0.85}px 'Segoe UI', system-ui, sans-serif`;
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('horizon', P2[0] + hs[0] * Lh - 4, P2[1] + hs[1] * Lh + away * fs * 0.4);
+            ctx.textAlign = 'left';
+            // arc d'angle entre l'horizon et le rayon venant du Soleil
+            const aH = Math.atan2(hs[1], hs[0]);
+            let diff = Math.PI - aH;
+            diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+            const R2 = r * 0.3;
+            ctx.beginPath(); ctx.arc(P2[0], P2[1], R2, aH, aH + diff, diff < 0);
+            ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 3.5; ctx.stroke();
+            const lbl = Math.round(alt) + '°';
+            ctx.font = `900 ${fs * 1.35}px 'Segoe UI', system-ui, sans-serif`;
+            const lw = ctx.measureText(lbl).width;
+            const lx = P2[0] + hs[0] * R2 * 1.0 - lw * 0.6, ly = P2[1] + hs[1] * R2 * 1.0 + away * fs * 1.1;
+            ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(10,19,34,0.9)';
+            ctx.strokeText(lbl, lx, ly);
+            ctx.fillStyle = '#ffd24a'; ctx.fillText(lbl, lx, ly);
+            // rayon qui arrive sur le lieu, bien visible
+            ctx.strokeStyle = '#ff8a3d'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(x0, P2[1]); ctx.lineTo(P2[0] - 3, P2[1]); ctx.stroke();
+            arrow(P2[0] - 2, P2[1], 11, '#ff8a3d');
+        } else if (alt > 0.5 && p[2] > -0.04) {
+            // le lieu est au soleil mais pas à midi : un seul rayon vers lui
+            ctx.strokeStyle = '#ff8a3d'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(x0, P2[1]); ctx.lineTo(P2[0] - 3, P2[1]); ctx.stroke();
+            arrow(P2[0] - 2, P2[1], 10, '#ff8a3d');
+        }
+
+        // Légendes Jour / Nuit
+        const fj = Math.max(13, Math.min(20, r * 0.075));
+        ctx.font = `900 ${fj}px 'Segoe UI', system-ui, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(255,224,140,0.95)';
+        ctx.fillText('☀️ Jour', cx - r * 0.5, cy + r + fj * 1.1);
+        ctx.fillStyle = 'rgba(170,190,230,0.9)';
+        ctx.fillText('🌙 Nuit', cx + r * 0.5, cy + r + fj * 1.1);
+
+        // Encadré d'explication
+        const dd = k => Math.abs(((day - k + 182.5) % 365 + 365) % 365 - 182.5);
+        const key = TM_KEYS.find(k => dd(k.day) < 3);
+        const title = key ? `${key.date} · ${key.name}` : _tmDate(day);
+        let msg;
+        if (atNoon) {
+            const ratio = 1 / Math.sin(alt * TM_D2R);
+            msg = `À midi, à ${shortName}, le Soleil est à ${Math.round(alt)}° au-dessus de l'horizon. ` +
+                (ratio < 1.08
+                    ? 'Ses rayons arrivent presque à la verticale : ils chauffent au maximum.'
+                    : `Ses rayons arrivent penchés : la même lumière s'étale sur une surface ${ratio.toFixed(1).replace('.', ',')} fois plus grande qu'au zénith, elle chauffe moins.`);
+        } else if (noonAlt <= 0) {
+            msg = `À ${shortName}, le Soleil ne se lève pas de la journée : c'est la nuit polaire.`;
+        } else {
+            msg = `Appuie sur « ☀️ Midi » pour tourner ${shortName} face au Soleil et mesurer la hauteur du Soleil.`;
+        }
+        zoomMsg = msg;
+        // Titre (l'explication détaillée est dans la fiche de droite)
+        ctx.font = `900 ${fs * 1.05}px 'Segoe UI', system-ui, sans-serif`;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        const tw = ctx.measureText(title).width;
+        ctx.fillStyle = 'rgba(10,19,34,0.72)';
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(8, 8, tw + 20, fs * 2, 9); else ctx.rect(8, 8, tw + 20, fs * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffd9a8';
+        ctx.fillText(title, 18, 8 + fs);
+    }
+
     // ── Dessin principal ──────────────────────────────────────────────────
     function draw() {
         if (!syncSize()) return;
@@ -921,7 +1105,9 @@ function createTerreMouvementWidget() {
         ctx.lineCap = 'round';
         drawSky();
         const A = _tmAstro(day, utc);
-        if (mode === 'jour') drawDayScene(A); else drawSeasonScene(A);
+        if (mode === 'jour') drawDayScene(A);
+        else if (zoom) drawZoomScene(A);
+        else drawSeasonScene(A);
         updateInfo(A);
     }
 
@@ -942,7 +1128,7 @@ function createTerreMouvementWidget() {
         hourVal.textContent = _tmFmtH(t);
         if (document.activeElement !== hourSl) hourSl.value = t.toFixed(2);
 
-        const key = [mode, Math.floor(day), Math.round(t * 12), place.id, place.lon, place.lat].join('|');
+        const key = [mode, zoom, Math.floor(day), Math.round(t * 12), place.id, place.lon, place.lat].join('|');
         drawChart(decl, t);
         if (key === lastInfoKey) return;
         lastInfoKey = key;
@@ -959,7 +1145,7 @@ function createTerreMouvementWidget() {
 
         const rows = [];
         rows.push(`<li><b>Date :</b> ${_tmDate(day)}</li>`);
-        if (mode === 'jour') rows.push(`<li><b>Heure solaire :</b> ${_tmFmtH(t)}</li>`);
+        if (timeView()) rows.push(`<li><b>Heure solaire :</b> ${_tmFmtH(t)}</li>`);
         rows.push(`<li><b>Saison :</b> ${TM_SEASON_ICO[seasonHere]} ${seasonHere}${southern ? ' (hémisphère Sud)' : ''}</li>`);
         if (len >= 24) rows.push('<li><b>Jour polaire :</b> le Soleil ne se couche pas</li>');
         else if (len <= 0) rows.push('<li><b>Nuit polaire :</b> le Soleil ne se lève pas</li>');
@@ -970,7 +1156,8 @@ function createTerreMouvementWidget() {
         rows.push(`<li><b>Hauteur du Soleil à midi :</b> ${noon > 0 ? Math.round(noon) + '°' : 'sous l\'horizon'}</li>`);
         factsEl.innerHTML = rows.join('');
         statusEl.innerHTML = mode === 'jour' ? status : `${TM_SEASON_ICO[seasonHere]} <span style="color:#b45309">C'est ${seasonHere === 'été' ? 'l\'été' : seasonHere === 'automne' ? 'l\'automne' : seasonHere === 'hiver' ? 'l\'hiver' : 'le printemps'}</span>`;
-        explainEl.innerHTML = mode === 'jour' ? explainDay(alt, len) : explainSeason();
+        explainEl.innerHTML = mode === 'jour' ? explainDay(alt, len)
+            : zoom ? `<b>${zoomMsg}</b><br><br>${explainSeason()}` : explainSeason();
     }
 
     function explainDay(alt, len) {
@@ -1036,7 +1223,7 @@ function createTerreMouvementWidget() {
         cctx.fillStyle = '#7a6a4f'; cctx.textAlign = 'left';
         cctx.fillText('horizon', L + 3, y0 + 7);
         // Soleil à l'heure actuelle (Jour et nuit) ou à midi (Saisons)
-        const th = mode === 'jour' ? t : 12;
+        const th = timeView() ? t : 12;
         const a = _tmAltitude(place.lat, decl, th);
         cctx.beginPath(); cctx.arc(X(th), Y(a), 6, 0, 2 * Math.PI);
         cctx.fillStyle = a > 0 ? '#ffc93c' : '#9aa5b8'; cctx.fill();
@@ -1058,11 +1245,18 @@ function createTerreMouvementWidget() {
             const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
             day = (dayAnim.from + dayAnim.delta * e + 365) % 365;
             if (k >= 1) dayAnim = null;
-        } else if (playing) {
-            if (mode === 'jour') {
+        }
+        if (utcAnim) {
+            const k = Math.min(1, (t - utcAnim.t0) / utcAnim.dur);
+            const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+            utc = utcAnim.from + utcAnim.delta * e;
+            if (k >= 1) utcAnim = null;
+        }
+        if (playing && !dayAnim && !utcAnim) {
+            if (timeView()) {
                 const hoursPerSec = 24 / (fast ? 8 : 24);       // 1 jour en 24 s (ou 8 s)
                 utc += hoursPerSec * dt;
-                day = (day + hoursPerSec * dt / 24) % 365;
+                if (mode === 'jour') day = (day + hoursPerSec * dt / 24) % 365;   // en vue zoomée, la date reste fixe
             } else {
                 day = (day + TM_YEAR / (fast ? 12 : 36) * dt) % 365;   // 1 an en 36 s (ou 12 s)
             }
@@ -1074,7 +1268,7 @@ function createTerreMouvementWidget() {
         }
         utc = ((utc % 24) + 24) % 24;
         draw();
-        if (playing || dayAnim || (velLon && !drag)) animId = requestAnimationFrame(loop);
+        if (playing || dayAnim || utcAnim || (velLon && !drag)) animId = requestAnimationFrame(loop);
         else { animId = null; lastT = 0; }
     }
     function startLoop() { if (animId) return; lastT = 0; animId = requestAnimationFrame(loop); }
@@ -1100,10 +1294,35 @@ function createTerreMouvementWidget() {
         mode = m === 'saisons' ? 'saisons' : 'jour';
         container.dataset.mode = mode;
         header.querySelectorAll('.tm-tab').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+        updateHint();
+        side.style.borderLeftColor = mode === 'jour' ? '#e8833a' : '#6fb78f';
+        lastInfoKey = '';
+        requestDraw();
+    }
+    function updateHint() {
         hint.textContent = mode === 'jour'
             ? 'Fais glisser le globe pour faire tourner la Terre · Touche le globe pour choisir un lieu'
-            : 'Fais glisser la Terre sur son orbite · Touche une date';
-        side.style.borderLeftColor = mode === 'jour' ? '#e8833a' : '#6fb78f';
+            : zoom
+                ? 'Glisse pour tourner la Terre · Touche le globe pour choisir un lieu'
+                : 'Fais glisser la Terre sur son orbite · Touche une date, puis la Terre pour zoomer';
+    }
+    function goToNoon() {
+        const target = 12 - place.lon / 15;
+        let delta = target - utc;
+        delta = ((delta + 12) % 24 + 24) % 24 - 12;
+        velLon = 0;
+        utcAnim = { from: utc, delta, t0: performance.now(), dur: 900 };
+        startLoop();
+    }
+    function setZoom(v, opts) {
+        zoom = !!v;
+        container.dataset.zoom = zoom ? '1' : '0';
+        zoomBtn.classList.toggle('on', zoom);
+        zoomBtn.textContent = zoom ? '🪐 Vue de l\'orbite' : '🔍 Zoom sur la Terre';
+        if (playing) setPlaying(false);
+        velLon = 0;
+        if (zoom && !(opts && opts.keepTime)) goToNoon();
+        updateHint();
         lastInfoKey = '';
         requestDraw();
     }
@@ -1145,7 +1364,7 @@ function createTerreMouvementWidget() {
         const L = local(e);
         drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, lx: e.clientX, ly: e.clientY, lt: performance.now(), moved: false };
         dayAnim = null; velLon = 0;
-        if (mode === 'saisons' && orbitGeo) {
+        if (mode === 'saisons' && !zoom && orbitGeo) {
             // Saisir la Terre (ou l'orbite) pour la faire glisser
             const ea = orbitGeo.earth;
             const onEarth = ea && Math.hypot(L.x - ea.x, L.y - ea.y) < ea.r * 1.5;
@@ -1163,15 +1382,16 @@ function createTerreMouvementWidget() {
         if (e.pointerType === 'mouse' && e.buttons === 0) { onEnd(e); return; }
         if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > TAP_TOL) drag.moved = true;
         const L = local(e);
-        if (mode === 'jour' && dayGeo) {
+        if (timeView() && dayGeo) {
             const dx = (e.clientX - drag.lx) * L.kx, dy = (e.clientY - drag.ly) * L.ky;
             const dLon = dx / dayGeo.r;                       // la surface suit le stylet
+            utcAnim = null;
             utc = (((utc + dLon * 12 / Math.PI) % 24) + 24) % 24;
-            camLat = Math.max(-75 * TM_D2R, Math.min(75 * TM_D2R, camLat + dy / dayGeo.r));
+            if (mode === 'jour') camLat = Math.max(-75 * TM_D2R, Math.min(75 * TM_D2R, camLat + dy / dayGeo.r));
             const now = performance.now(), dts = Math.max(8, now - drag.lt) / 1000;
             velLon = 0.6 * velLon + 0.4 * (dLon / dts);
             drag.lt = now;
-        } else if (mode === 'saisons' && drag.orbit && drag.moved) {
+        } else if (mode === 'saisons' && !zoom && drag.orbit && drag.moved) {
             const phi = orbitAngleAt(L.x, L.y);
             let dp = phi - drag.lastPhi;
             dp = Math.atan2(Math.sin(dp), Math.cos(dp));
@@ -1193,7 +1413,7 @@ function createTerreMouvementWidget() {
         if (e.type === 'pointercancel') { velLon = 0; return; }
         const L = local(e);
         if (!d.moved) { velLon = 0; onTap(L.x, L.y); return; }
-        if (mode === 'jour') {
+        if (timeView()) {
             if (performance.now() - d.lt > 80) velLon = 0;
             velLon = Math.max(-5, Math.min(5, velLon));
             if (velLon && !playing) startLoop();
@@ -1202,7 +1422,7 @@ function createTerreMouvementWidget() {
     }
 
     function onTap(x, y) {
-        if (mode === 'jour' && dayGeo) {
+        if (timeView() && dayGeo) {
             const g = dayGeo;
             const vx = (x - g.cx) / g.r, vy = -(y - g.cy) / g.r, q = vx * vx + vy * vy;
             if (q > 1) return;
@@ -1211,9 +1431,14 @@ function createTerreMouvementWidget() {
             setPlace({ id: 'custom', name: `Lieu choisi (${Math.abs(lat).toFixed(0)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon).toFixed(0)}° ${lon >= 0 ? 'E' : 'O'})`, lon, lat });
             saveBoard();
         } else if (mode === 'saisons') {
+            // Toucher la Terre : zoom sur elle
+            const ea = orbitGeo && orbitGeo.earth;
+            if (ea && Math.hypot(x - ea.x, y - ea.y) < ea.r * 1.25) { setZoom(true); saveBoard(); return; }
             for (const h of keyHits) {
                 if ((x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h) || Math.hypot(x - h.px, y - h.py) < h.pr) {
                     if (playing) setPlaying(false);
+                    const dd = Math.abs(((day - h.day + 182.5) % 365 + 365) % 365 - 182.5);
+                    if (dd < 1) { setZoom(true); saveBoard(); return; }   // 2e toucher : zoom
                     goToDay(h.day);
                     saveBoard();
                     return;
@@ -1244,6 +1469,8 @@ function createTerreMouvementWidget() {
         row1.querySelectorAll('.tm-view').forEach(x => x.classList.toggle('on', x === b));
         requestDraw(); saveBoard();
     }));
+    zoomBtn.addEventListener('click', () => { setZoom(!zoom); saveBoard(); });
+    noonBtn.addEventListener('click', () => { if (playing) setPlaying(false); goToNoon(); });
     raysBtn.addEventListener('click', () => { showRays = !showRays; raysBtn.classList.toggle('on', showRays); requestDraw(); saveBoard(); });
     linesBtn.addEventListener('click', () => { showLines = !showLines; linesBtn.classList.toggle('on', showLines); requestDraw(); saveBoard(); });
     row2.querySelectorAll('.tm-date-btn').forEach(b => b.addEventListener('click', () => {
@@ -1255,7 +1482,7 @@ function createTerreMouvementWidget() {
     daySl.addEventListener('change', () => saveBoard());
     hourSl.addEventListener('input', () => {
         if (playing) setPlaying(false);
-        velLon = 0;
+        velLon = 0; utcAnim = null;
         utc = Number(hourSl.value) - place.lon / 15;
         requestDraw();
     });
@@ -1362,13 +1589,14 @@ function createTerreMouvementWidget() {
 
     applySize();
     setMode('jour');
+    setZoom(false, { keepTime: true });
     setFast(false);
     requestAnimationFrame(() => draw());
 
     // ── API pour save-load.js ─────────────────────────────────────────────
     widget._tmGetData = () => ({
         containerW: contW, containerH: contH,
-        mode, day: +day.toFixed(3), utc: +utc.toFixed(4),
+        mode, zoom, day: +day.toFixed(3), utc: +utc.toFixed(4),
         place: { ...place },
         camLat: +(camLat / TM_D2R).toFixed(2), viewOff,
         showRays, showLines, fast
@@ -1390,6 +1618,7 @@ function createTerreMouvementWidget() {
         if (typeof d.showLines === 'boolean') { showLines = d.showLines; linesBtn.classList.toggle('on', showLines); }
         setFast(!!d.fast);
         setMode(d.mode || 'jour');
+        setZoom(!!d.zoom, { keepTime: true });
     };
 
     if (typeof saveBoard === 'function') saveBoard();

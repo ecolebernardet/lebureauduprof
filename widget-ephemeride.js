@@ -12,6 +12,12 @@
    - un dicton
    - le numéro de semaine et le jour de l'année
 
+   Barre du haut :
+   - boutons fenêtre jaune (réduire), vert (plein écran), rouge (fermer),
+     identiques à ceux du widget Défi calme
+   - champ « date » pour afficher n'importe quel jour (‹ › pour passer au
+     jour précédent / suivant, ⟲ pour revenir à aujourd'hui)
+
    Utilisation : createWidget('ephemeride')
    Le template #template-ephemeride est injecté dans le DOM par ce fichier.
    Les réglages sont stockés dans l'attribut data-cfg de .ephem-root,
@@ -110,6 +116,18 @@
     const isLeap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
     const pad = n => String(n).padStart(2, '0');
     const hhmm = d => pad(d.getHours()) + ' h ' + pad(d.getMinutes());
+    const toInputDate = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+
+    // Lit une valeur « AAAA-MM-JJ » (champ date) ; null si invalide ou hors limites
+    function parseInputDate(v) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || '');
+        if (!m) return null;
+        const y = +m[1], mo = +m[2] - 1, d = +m[3];
+        if (y < 1900 || y > 2200) return null;
+        const date = new Date(y, mo, d);
+        if (date.getMonth() !== mo || date.getDate() !== d) return null;
+        return date;
+    }
 
     function isoWeek(d) {
         const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -269,6 +287,18 @@
         return CITIES[cfg.city] || CITIES.chambery;
     }
 
+    /* ── Date affichée (aujourd'hui par défaut) ────────────────────── */
+    // La date choisie est gardée dans l'attribut data-sel-date de .ephem-root.
+    // Sans cet attribut, le widget suit le jour courant.
+    function getSelDate(root) {
+        return parseInputDate(root.getAttribute('data-sel-date')) || midnight(new Date());
+    }
+    function setSelDate(root, d) {
+        if (!d || sameDay(d, new Date())) root.removeAttribute('data-sel-date');
+        else root.setAttribute('data-sel-date', toInputDate(d));
+        renderSheet(root);
+    }
+
     /* ── Rendu ────────────────────────────────────────────────────── */
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -390,15 +420,78 @@
         '</div>';
     }
 
+    // Empêche le déplacement du widget quand on clique sur un contrôle
+    const STOP = ' onpointerdown="event.stopPropagation()" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()"';
+
+    function buildBar(sel, full) {
+        const isToday = sameDay(sel, new Date());
+        return '<div class="ephem-bar">' +
+            '<div class="wf-btns"' + STOP + '>' +
+                '<button type="button" class="wf-btn wf-btn-min" data-ephem-action="wf-min" title="Réduire" aria-label="Réduire"></button>' +
+                '<button type="button" class="wf-btn wf-btn-max" data-ephem-action="wf-max" title="' + (full ? 'Quitter le plein écran' : 'Plein écran') + '" aria-label="Plein écran"></button>' +
+                '<button type="button" class="wf-btn wf-btn-close" data-ephem-action="wf-close" title="Fermer" aria-label="Fermer"></button>' +
+            '</div>' +
+            '<div class="ephem-datebox"' + STOP + '>' +
+                '<button type="button" class="ephem-nav" data-ephem-action="prev" title="Jour précédent" aria-label="Jour précédent">‹</button>' +
+                '<input type="date" class="ephem-date" data-ephem-date value="' + toInputDate(sel) + '" min="1900-01-01" max="2200-12-31" title="Choisir un jour" aria-label="Choisir un jour">' +
+                '<button type="button" class="ephem-nav" data-ephem-action="next" title="Jour suivant" aria-label="Jour suivant">›</button>' +
+                '<button type="button" class="ephem-today' + (isToday ? ' is-hidden' : '') + '" data-ephem-action="today" title="Revenir à aujourd\'hui" aria-label="Revenir à aujourd\'hui">⟲</button>' +
+            '</div>' +
+            '<button type="button" class="ephem-gear" data-ephem-action="toggle" title="Réglages" aria-label="Réglages"' + STOP + '>⚙</button>' +
+        '</div>';
+    }
+
     function render(root) {
         const cfg = getCfg(root);
-        const now = new Date();
+        const sel = getSelDate(root);
         const open = root.classList.contains('ephem-open');
         root.innerHTML =
-            '<button type="button" class="ephem-gear" data-ephem-action="toggle" title="Réglages" aria-label="Réglages">⚙</button>' +
-            '<div class="ephem-sheet">' + buildSheet(cfg, now) + '</div>' +
+            buildBar(sel, root.classList.contains('ephem-full')) +
+            '<div class="ephem-sheet">' + buildSheet(cfg, sel) + '</div>' +
             (open ? buildSettings(cfg) : '');
-        root.setAttribute('data-day', now.toDateString());
+        root.setAttribute('data-day', new Date().toDateString());
+    }
+
+    // Met à jour seulement la feuille (sans recréer le champ date en cours de saisie)
+    function renderSheet(root) {
+        const sheet = root.querySelector('.ephem-sheet');
+        if (!sheet) { render(root); return; }
+        const sel = getSelDate(root);
+        sheet.innerHTML = buildSheet(getCfg(root), sel);
+        const inp = root.querySelector('[data-ephem-date]');
+        if (inp && document.activeElement !== inp) inp.value = toInputDate(sel);
+        const t = root.querySelector('[data-ephem-action="today"]');
+        if (t) t.classList.toggle('is-hidden', sameDay(sel, new Date()));
+    }
+
+    /* ── Boutons fenêtre : réduire / plein écran / fermer ───────────── */
+    function toggleFull(root, force) {
+        const full = force !== undefined ? force : !root.classList.contains('ephem-full');
+        root.classList.toggle('ephem-full', full);
+        const widget = root.closest('.widget');
+        if (widget) widget.classList.toggle('ephem-is-full', full);
+        const b = root.querySelector('[data-ephem-action="wf-max"]');
+        if (b) b.title = full ? 'Quitter le plein écran' : 'Plein écran';
+    }
+
+    function minimizeWidget(root) {
+        const widget = root.closest('.widget');
+        if (!widget || typeof window._wfMiniBarCollapse !== 'function') return;
+        if (root.classList.contains('ephem-full')) toggleFull(root, false);
+        root.classList.remove('ephem-open');
+        const box = root.closest('.editor-container') || root;
+        box.style.visibility = 'hidden'; // la feuille ne doit pas passer par-dessus la mini-barre
+        window._wfMiniBarCollapse(widget, '📅 Éphéméride', {
+            onExpand: () => { box.style.visibility = ''; render(root); }
+        });
+    }
+
+    function closeWidget(root) {
+        const widget = root.closest('.widget');
+        if (!widget) return;
+        if (typeof snapshotNow === 'function') snapshotNow();
+        widget.remove();
+        if (typeof saveBoard === 'function') saveBoard();
     }
 
     function renderAll(onlyIfDayChanged) {
@@ -416,6 +509,11 @@
         if (!root) return;
         e.stopPropagation();
         const act = btn.getAttribute('data-ephem-action');
+        if (act === 'wf-min')   { minimizeWidget(root); return; }
+        if (act === 'wf-max')   { toggleFull(root); return; }
+        if (act === 'wf-close') { closeWidget(root); return; }
+        if (act === 'prev' || act === 'next') { setSelDate(root, addDays(getSelDate(root), act === 'prev' ? -1 : 1)); return; }
+        if (act === 'today')    { setSelDate(root, null); return; }
         if (act === 'toggle') root.classList.toggle('ephem-open');
         if (act === 'close') root.classList.remove('ephem-open');
         render(root);
@@ -424,8 +522,13 @@
     document.addEventListener('change', function (e) {
         const root = e.target.closest && e.target.closest('.ephem-root');
         if (!root) return;
-        const cfg = getCfg(root);
         const t = e.target;
+        if (t.hasAttribute('data-ephem-date')) {
+            const d = parseInputDate(t.value);
+            if (d) setSelDate(root, d);
+            return;
+        }
+        const cfg = getCfg(root);
         if (t.hasAttribute('data-ephem-show')) cfg.show[t.getAttribute('data-ephem-show')] = t.checked;
         else if (t.hasAttribute('data-ephem-city')) cfg.city = t.value;
         else if (t.hasAttribute('data-ephem-pname')) cfg.persoName = t.value.trim();
@@ -435,9 +538,15 @@
         setCfg(root, cfg);
     });
 
-    // Empêche les raccourcis clavier du board pendant la saisie dans les réglages
+    // Échap : quitter le plein écran (déclaré avant le blocage ci-dessous)
     document.addEventListener('keydown', function (e) {
-        if (e.target.closest && e.target.closest('.ephem-settings')) e.stopPropagation();
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('.ephem-root.ephem-full').forEach(r => toggleFull(r, false));
+    }, true);
+
+    // Empêche les raccourcis clavier du board pendant la saisie (réglages, champ date)
+    document.addEventListener('keydown', function (e) {
+        if (e.target.closest && e.target.closest('.ephem-settings, .ephem-bar')) e.stopPropagation();
     }, true);
 
     /* ── Hydratation : nouveaux widgets et boards rechargés ──────── */
@@ -482,11 +591,24 @@
   font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",serif;
   color:var(--ep-ink); user-select:none;
 }
-.ephem-gear{position:absolute;top:1.2cqw;right:2cqw;z-index:3;border:0;background:none;color:#b3aa9b;
+.ephem-bar{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5cqw;
+  padding:2cqw 2.5cqw 0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.ephem-bar .wf-btns{justify-self:start}
+.ephem-datebox{display:flex;align-items:center;gap:.8cqw}
+.ephem-nav,.ephem-today{border:0;background:none;color:var(--ep-soft);cursor:pointer;padding:0 1cqw;
+  font-size:max(13px,5cqw);line-height:1;border-radius:4px}
+.ephem-today{font-size:max(12px,4.2cqw)}
+.ephem-today.is-hidden{visibility:hidden}
+.ephem-nav:hover,.ephem-today:hover{color:var(--ep-ink);background:#f1ece1}
+.ephem-date{font:inherit;font-size:max(11px,3.6cqw);color:var(--ep-ink);background:transparent;color-scheme:light;
+  border:1px solid var(--ep-line);border-radius:4px;padding:.4cqw 1cqw;cursor:pointer;user-select:auto}
+.ephem-date:hover{border-color:#b3aa9b}
+.ephem-gear{justify-self:end;border:0;background:none;color:#b3aa9b;
   font-size:5.2cqw;line-height:1;cursor:pointer;padding:1cqw;border-radius:4px}
 .ephem-gear:hover,.ephem-gear:focus-visible{color:var(--ep-ink);outline:1px solid var(--ep-line)}
+.ephem-bar :focus-visible{outline:2px solid var(--ep-red);outline-offset:1px}
 .ephem-sheet{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-.ephem-head{text-align:center;padding:3cqw 4cqw 2cqw;flex:none}
+.ephem-head{text-align:center;padding:1cqw 4cqw 2cqw;flex:none}
 .ephem-month{font-size:5cqw;letter-spacing:.04em;color:var(--ep-soft);font-style:italic}
 .ephem-num{font-family:Rockwell,"Roboto Slab","Clarendon","Bookman Old Style",Georgia,serif;font-weight:800;
   font-size:34cqw;line-height:.95;letter-spacing:-.03em;font-variant-numeric:lining-nums}
@@ -515,12 +637,118 @@
 .ephem-chk{display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer}
 .ephem-done{margin-top:4cqw;width:100%;padding:7px;border:0;border-radius:4px;background:var(--ep-ink);color:#fff;font:inherit;font-weight:600;cursor:pointer}
 .ephem-done:focus-visible,.ephem-settings :focus-visible{outline:2px solid var(--ep-red);outline-offset:1px}
-@media print{.ephem-gear,.ephem-settings{display:none}}
+/* Plein écran : la feuille garde ses proportions et occupe toute la hauteur */
+.ephem-root.ephem-full{position:fixed;z-index:9999;top:0;bottom:0;left:50%;transform:translateX(-50%);
+  width:min(100vw,66.7vh);height:100vh;box-shadow:0 0 0 100vmax rgba(35,32,28,.88)}
+.widget.ephem-is-full > .drag-handle,
+.widget.ephem-is-full > .widget-rotate-handle,
+.widget.ephem-is-full > .widget-action-bar,
+.widget.ephem-is-full > .widget-ctx-menu,
+.widget.ephem-is-full > .custom-resize-handle{display:none !important}
+@media print{.ephem-bar,.ephem-settings{display:none}}
 `;
         document.head.appendChild(st);
     }
 
+    /* ── Code partagé avec le widget Défi calme (boutons fenêtre +
+          mini-barre « Réduire »). Chaque bloc n'est installé qu'une fois,
+          quel que soit le widget chargé en premier. ─────────────────── */
+    function installSharedWindowButtons() {
+        // ── Mini-barre collapse (partagée avec les autres widgets) ─────────────────
+        if (!window._wfMiniBarCollapse) {
+            window._wfMiniBarCollapse = function(widget, label, opts) {
+                const COLLAPSED_W = 300, COLLAPSED_H = 50, GAP = 10, MARGIN_TOP = 8;
+                const onExpand = opts && opts.onExpand;
+                widget.dataset.wfMiniSavedTop  = widget.style.top;
+                widget.dataset.wfMiniSavedLeft = widget.style.left;
+                widget.dataset.wfMiniSavedW    = widget.style.width  || '';
+                widget.dataset.wfMiniSavedH    = widget.style.height || '';
+                const others = Array.from(document.querySelectorAll('.widget')).filter(w => w !== widget && w.querySelector('.wf-mini-bar'));
+                const occupiedX = others.reduce((maxX, w) => Math.max(maxX, w.offsetLeft + COLLAPSED_W + GAP), MARGIN_TOP);
+                widget.style.top = MARGIN_TOP + 'px'; widget.style.left = occupiedX + 'px';
+                widget.style.width = COLLAPSED_W + 'px'; widget.style.height = COLLAPSED_H + 'px';
+                widget.style.zIndex = '9000'; widget.style.background = '#2a2a3e';
+                widget.style.borderRadius = '8px'; widget.style.border = 'none';
+                widget.style.display = 'block'; widget.style.overflow = 'hidden'; widget.style.padding = '0';
+                const wc = widget.querySelector('.widget-content');
+                if (wc) { wc.style.padding = '0'; wc.style.background = 'transparent'; wc.style.borderRadius = '0'; }
+                widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = 'none');
+                const miniBar = document.createElement('div');
+                miniBar.className = 'wf-mini-bar';
+                miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+                const labelEl = document.createElement('span');
+                labelEl.textContent = label;
+                labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
+                const expandBtn = document.createElement('button');
+                expandBtn.title = 'Déplier'; expandBtn.textContent = '▲';
+                expandBtn.style.cssText = 'flex-shrink:0;background:transparent;border:1px solid #555;color:#aaa;border-radius:4px;width:22px;height:22px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;position:relative;z-index:2;';
+                expandBtn.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
+                expandBtn.addEventListener('mousedown',   (e) => { e.stopPropagation(); });
+                expandBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); e.preventDefault();
+                    widget.style.top = widget.dataset.wfMiniSavedTop || widget.style.top;
+                    widget.style.left = widget.dataset.wfMiniSavedLeft || widget.style.left;
+                    widget.style.width = widget.dataset.wfMiniSavedW || '';
+                    widget.style.height = widget.dataset.wfMiniSavedH || '';
+                    widget.style.zIndex = ''; widget.style.background = ''; widget.style.borderRadius = '';
+                    widget.style.border = ''; widget.style.display = ''; widget.style.overflow = ''; widget.style.padding = '';
+                    const wc2 = widget.querySelector('.widget-content');
+                    if (wc2) { wc2.style.padding = ''; wc2.style.background = ''; wc2.style.borderRadius = ''; }
+                    widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = '');
+                    miniBar.remove();
+                    const curW = window.innerWidth, curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
+                    widget.dataset.leftPercent = (widget.offsetLeft / curW) * 100;
+                    widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
+                    if (onExpand) onExpand();
+                    if (typeof saveBoard === 'function') saveBoard();
+                });
+                miniBar.appendChild(labelEl); miniBar.appendChild(expandBtn); widget.appendChild(miniBar);
+                miniBar.addEventListener('pointerdown', (e) => {
+                    if (e.target === expandBtn || expandBtn.contains(e.target)) return;
+                    e.stopPropagation(); e.preventDefault(); miniBar.setPointerCapture(e.pointerId);
+                    const startX = e.clientX - widget.offsetLeft, startY = e.clientY - widget.offsetTop;
+                    const onMove = (ev) => { widget.style.left = Math.max(0, ev.clientX - startX) + 'px'; widget.style.top = Math.max(0, ev.clientY - startY) + 'px'; };
+                    const onUp = () => {
+                        miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp);
+                        const curW = window.innerWidth, curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
+                        widget.dataset.leftPercent = (widget.offsetLeft / curW) * 100;
+                        widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
+                        if (typeof saveBoard === 'function') saveBoard();
+                    };
+                    miniBar.addEventListener('pointermove', onMove); miniBar.addEventListener('pointerup', onUp);
+                });
+                const curW = window.innerWidth, curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
+                widget.dataset.leftPercent = (widget.offsetLeft / curW) * 100;
+                widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
+                if (typeof saveBoard === 'function') saveBoard();
+            };
+        }
+
+        // ── Boutons fenêtre (CSS partagé) ──────────────────────────────────────────
+        if (!document.getElementById('wf-btns-style')) {
+            const ws = document.createElement('style');
+            ws.id = 'wf-btns-style';
+            ws.textContent = `
+            .wf-btns { display:flex; gap:5px; align-items:center; flex-shrink:0; }
+            .wf-btn { width:13px; height:13px; border-radius:50%; border:none; cursor:pointer;
+                display:flex; align-items:center; justify-content:center; font-size:0;
+                transition:filter .15s, transform .1s; flex-shrink:0; position:relative; }
+            .wf-btn:hover { filter:brightness(0.82); transform:scale(1.15); }
+            .wf-btn:active { transform:scale(0.92); }
+            .wf-btn-min   { background:#febc2e; }
+            .wf-btn-max   { background:#28c840; }
+            .wf-btn-close { background:#ff5f57; }
+            .wf-btns:hover .wf-btn::after { font-size:8px; font-weight:900; color:rgba(0,0,0,0.5); line-height:1; }
+            .wf-btns:hover .wf-btn-min::after   { content:'−'; }
+            .wf-btns:hover .wf-btn-max::after   { content:'⤢'; font-size:7px; }
+            .wf-btns:hover .wf-btn-close::after { content:'×'; font-size:10px; }
+            `;
+            document.head.appendChild(ws);
+        }
+    }
+
     function init() {
+        installSharedWindowButtons();
         injectStyles();
         injectTemplate();
         renderAll(false);
@@ -535,4 +763,18 @@
 
     // Accès public (tests / autres scripts)
     window.renderEphemerides = () => renderAll(false);
+
+    // Sauvegarde / chargement (utilisés par save-load.js)
+    // On ne sauvegarde que les réglages : la date choisie reste temporaire
+    // et le widget revient au jour courant au rechargement.
+    window.ephemGetData = function (widget) {
+        const root = widget && widget.querySelector('.ephem-root');
+        return root ? { cfg: getCfg(root) } : null;
+    };
+    window.ephemSetData = function (widget, data) {
+        const root = widget && widget.querySelector('.ephem-root');
+        if (!root || !data || !data.cfg) return;
+        root.setAttribute('data-cfg', JSON.stringify(data.cfg));
+        render(root);
+    };
 })();

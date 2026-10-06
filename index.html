@@ -1031,6 +1031,7 @@ function setVisuelsMode(mode) {
 <script src="widget-geo-monde.js"></script>
 <script src="widget-geo-globe.js"></script>
 <script src="widget-terre-mouvement.js"></script>
+<script src="widget-systeme-solaire.js"></script>
 <script src="widget-pause-calme.js"></script>
 <script src="widget-conversion.js"></script>
 <script src="widget-seyes.js"></script>
@@ -1524,6 +1525,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activites-terre-mouvement.jpeg" alt="La Terre en mouvement" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌗'"></div>
                 <div class="act-card-name">La Terre en mouvement</div>
                 <div class="act-card-desc">Comprendre le jour et la nuit, et l'origine des saisons</div>
+            </div>
+            <div class="act-card" onclick="createSystemeSolaireWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-systeme-solaire.jpeg" alt="Le système solaire" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🪐'"></div>
+                <div class="act-card-name">Le système solaire</div>
+                <div class="act-card-desc">Voir les planètes tourner autour du Soleil et comparer leurs tailles</div>
             </div>
 			<div class="act-card" onclick="createPixelArtWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-pixelart2.jpeg" alt="Pixel Art" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎨'"></div>

@@ -195,6 +195,11 @@ function buildBoardState() {
         if (w.dataset.type === 'terre-mouvement' && typeof w._tmGetData === 'function') {
             terreMvtData = w._tmGetData();
         }
+        // Données propres au widget « Le système solaire »
+        let sysSolData = null;
+        if (w.dataset.type === 'systeme-solaire' && typeof w._ssGetData === 'function') {
+            sysSolData = w._ssGetData();
+        }
         // Données propres au widget pause calme
         let pauseCalmeData = null;
         if (w.dataset.type === 'pause-calme' && typeof w._wpcGetData === 'function') {
@@ -402,6 +407,7 @@ function buildBoardState() {
 			geoMondeData,
 			geoGlobeData,
 			terreMvtData,
+			sysSolData,
 			pauseCalmeData,
 			horlogeData,
 			sondageData,
@@ -681,6 +687,11 @@ function restoreBoardFromJSON(json) {
             widget = createTerreMouvementWidget();
             if (w.terreMvtData && typeof widget._tmSetData === 'function') {
                 widget._tmSetData(w.terreMvtData);
+            }
+        } else if (w.type === 'systeme-solaire') {
+            widget = createSystemeSolaireWidget();
+            if (w.sysSolData && typeof widget._ssSetData === 'function') {
+                widget._ssSetData(w.sysSolData);
             }
         } else if (w.type === 'tableau-num') {
             widget = createTableauNumWidget();

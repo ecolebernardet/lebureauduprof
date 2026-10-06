@@ -229,14 +229,15 @@
         .widget-close-handle:hover  { color: #ff5f56; background: white; }
         .drag-handle:hover          { color: var(--primary-color); background: white; }
 
-        /* Surcharge : les boutons fenêtre dans la toolbar PDF ne doivent pas hériter du style bouton générique */
+        /* Surcharge : les boutons fenêtre dans la toolbar ne doivent pas hériter du style bouton générique.
+           Même taille que dans widget-geo-monde (22px), au repos ET au survol/focus. */
         .editor-toolbar .wf-btn,
         .editor-toolbar .wf-btn:focus,
         .editor-toolbar .wf-btn:hover {
-            width: 13px !important;
-            height: 13px !important;
-            min-width: 13px !important;
-            min-height: 13px !important;
+            width: 22px !important;
+            height: 22px !important;
+            min-width: 22px !important;
+            min-height: 22px !important;
             padding: 0 !important;
             border: none !important;
             border-radius: 50% !important;
@@ -247,10 +248,10 @@
         .editor-toolbar .wf-btn-max   { background: #28c840 !important; }
         .editor-toolbar .wf-btn-close { background: #ff5f57 !important; }
         .editor-toolbar .wf-btn:hover { filter: brightness(0.82); transform: scale(1.15); background-color: inherit; }
-        .editor-toolbar .wf-btns { align-items: center; }
-        .wf-btns { display:flex; gap:5px; align-items:center; flex-shrink:0; }
+        .editor-toolbar .wf-btns { align-items: center; gap: 8px !important; }
+        .wf-btns { display:flex; gap:8px; align-items:center; flex-shrink:0; }
         .wf-btn {
-            width:13px; height:13px; border-radius:50%; border:none; cursor:pointer;
+            width:22px; height:22px; border-radius:50%; border:none; cursor:pointer;
             display:flex; align-items:center; justify-content:center; font-size:0;
             transition:filter .15s, transform .1s; flex-shrink:0; position:relative;
         }
@@ -259,10 +260,10 @@
         .wf-btn-min   { background:#febc2e; }
         .wf-btn-max   { background:#28c840; }
         .wf-btn-close { background:#ff5f57; }
-        .wf-btns:hover .wf-btn::after { font-size:8px; font-weight:900; color:rgba(0,0,0,0.5); line-height:1; }
+        .wf-btns:hover .wf-btn::after { font-size:14px; font-weight:900; color:rgba(0,0,0,0.5); line-height:1; }
         .wf-btns:hover .wf-btn-min::after   { content:'−'; }
-        .wf-btns:hover .wf-btn-max::after   { content:'⤢'; font-size:7px; }
-        .wf-btns:hover .wf-btn-close::after { content:'×'; font-size:10px; }
+        .wf-btns:hover .wf-btn-max::after   { content:'⤢'; font-size:12px; }
+        .wf-btns:hover .wf-btn-close::after { content:'×'; font-size:17px; }
         /* État plein écran board PDF */
         .editor-container.wf-pdf-fullboard {
             position: fixed !important;
@@ -293,7 +294,7 @@
         .pdf-fs-tab {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             padding: 0 10px 0 12px;
             background: rgba(255,255,255,0.08);
             border: 1px solid rgba(255,255,255,0.12);
@@ -322,7 +323,9 @@
         }
         .pdf-fs-tab .tab-wf-btn {
             flex-shrink: 0;
-            width: 13px; height: 13px;
+            width: 22px; height: 22px;
+            min-width: 22px; min-height: 22px;
+            padding: 0;
             border-radius: 50%;
             border: none;
             cursor: pointer;
@@ -336,9 +339,9 @@
         .pdf-fs-tab .tab-wf-btn:active { transform: scale(0.92); }
         .pdf-fs-tab .tab-wf-btn-max  { background: #28c840; }
         .pdf-fs-tab .tab-wf-btn-close { background: #ff5f57; }
-        .pdf-fs-tab:hover .tab-wf-btn::after { font-size: 8px; font-weight: 900; color: rgba(0,0,0,0.5); line-height: 1; }
-        .pdf-fs-tab:hover .tab-wf-btn-max::after   { content: '⤢'; font-size: 7px; }
-        .pdf-fs-tab:hover .tab-wf-btn-close::after { content: '×'; font-size: 10px; }
+        .pdf-fs-tab:hover .tab-wf-btn::after { font-size: 14px; font-weight: 900; color: rgba(0,0,0,0.5); line-height: 1; }
+        .pdf-fs-tab:hover .tab-wf-btn-max::after   { content: '⤢'; font-size: 12px; }
+        .pdf-fs-tab:hover .tab-wf-btn-close::after { content: '×'; font-size: 17px; }
         .pdf-fs-tab.active {
             background: #3a3a5c;
             color: white;

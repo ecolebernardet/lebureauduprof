@@ -1,5 +1,12 @@
 // =========================================================================
 // WIDGET CALENDRIER — Le Bureau du Prof
+//
+// Mise en page adaptative (calculée par _calLayout) :
+//   - l'année scolaire (12 mini-mois) se place soit EN HAUT, soit SUR LE CÔTÉ,
+//     selon ce qui laisse le plus de place au mois affiché ;
+//   - en haut, le nombre de mois par ligne augmente avec la largeur (3, 4, 6, 12) ;
+//   - la taille du texte de la grille est calculée pour que TOUT tienne
+//     dans le widget (et dans l'écran en plein écran), sans défilement.
 // =========================================================================
 
 // =========================================================================
@@ -12,371 +19,375 @@
     style.textContent = `
 /* ══════════════════════════════════════════════════
    WIDGET CALENDRIER
-   Toutes les tailles sont en em : un seul font-size
-   sur .cal-container (posé par JS via ResizeObserver)
-   suffit pour tout faire grossir/rétrécir.
 ══════════════════════════════════════════════════ */
-
-/* ── Conteneur principal ─────────────────────────── */
 .cal-container {
+    --cal-accent: #3b6fd8;
+    --cal-accent-soft: #e8effc;
+    --cal-ink: #1f2340;
+    --cal-soft: #7a7f9a;
+    --cal-line: #e3e5ef;
+    --cal-panel: #f6f7fb;
+    --cal-grey: #f2f3f8;
+    --cal-we: #8a5cc7;
+    --cal-school: #f9dde1;
+    --cal-school-ink: #a23a52;
     font-family: 'Nunito', sans-serif;
-    font-size: 13px;
-    border-radius: 0.6em;
-    padding: 0.5em;
+    font-size: 14px;
+    color: var(--cal-ink);
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 0.7em 0.8em 0.8em;
+    box-sizing: border-box;
+    overflow: hidden;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55em;
+    position: relative;
     min-width: 260px;
     min-height: 220px;
-    overflow: hidden;
-    box-sizing: border-box;
-    user-select: none;
-    background: #ffffff;
 }
-.cal-container.cal-light { background: #ffffff; }
 
-/* ── Header ─────────────────────────────────────── */
+/* ── En-tête ─────────────────────────────────────── */
 .cal-header {
+    flex: none;
     display: flex;
     align-items: center;
-    gap: 0.3em;
-    margin-bottom: 0.4em;
+    gap: 0.5em;
+    min-width: 0;
 }
 .cal-title {
     flex: 1;
-    text-align: center;
-    font-weight: 700;
-    font-size: 1.05em;
-    color: #1a1a3a;
+    min-width: 0;
+    font-size: 1.45em;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.cal-title-year { font-weight: 400; color: var(--cal-soft); margin-left: 0.2em; }
+.cal-navgroup {
+    flex: none;
+    display: flex;
+    align-items: center;
+    background: var(--cal-panel);
+    border: 1px solid var(--cal-line);
+    border-radius: 999px;
+    padding: 0.15em;
+}
 .cal-nav {
-    background: #f0f0f8;
-    border: 1px solid #c8c8e0;
-    color: #444;
-    border-radius: 0.4em;
+    border: 0;
+    background: none;
+    color: var(--cal-ink);
     width: 1.9em; height: 1.9em;
+    border-radius: 50%;
     cursor: pointer;
-    font-size: 1.1em;
+    font-size: 1.05em;
     line-height: 1;
     display: flex; align-items: center; justify-content: center;
     padding: 0;
-    transition: background .15s;
-    flex-shrink: 0;
 }
-.cal-nav:hover { background: #4a90e2; color: #fff; border-color: #4a90e2; }
+.cal-nav:hover, .cal-today-btn:hover { background: #fff; box-shadow: 0 1px 3px rgba(20,24,60,.15); }
 .cal-today-btn {
-    background: #eef5ff;
-    border: 1px solid #4a90e2;
-    color: #2a6abf;
-    border-radius: 0.4em;
-    padding: 0.15em 0.5em;
+    border: 0;
+    background: none;
+    color: var(--cal-accent);
+    font-family: inherit;
+    font-weight: 800;
     font-size: 0.85em;
-    font-weight: 600;
+    padding: 0.4em 0.8em;
+    border-radius: 999px;
     cursor: pointer;
-    transition: background .15s;
     white-space: nowrap;
-    flex-shrink: 0;
 }
-.cal-today-btn:hover { background: #4a90e2; color: #fff; }
-.cal-year-btn {
-    background: #f0f0f8;
-    border: 1px solid #c8c8e0;
-    color: #555;
-    border-radius: 0.4em;
-    width: 1.9em; height: 1.9em;
-    font-size: 1em;
+.cal-tool {
+    flex: none;
+    border: 1px solid var(--cal-line);
+    background: var(--cal-panel);
+    color: var(--cal-soft);
+    width: 2.1em; height: 2.1em;
+    border-radius: 0.6em;
     cursor: pointer;
+    font-size: 0.95em;
     display: flex; align-items: center; justify-content: center;
     padding: 0;
-    transition: background .15s;
-    flex-shrink: 0;
+    transition: background .12s, border-color .12s;
 }
-.cal-year-btn:hover { background: #4a90e2; color: #fff; border-color: #4a90e2; }
-.cal-opts-btn {
-    background: #f0f0f8;
-    border: 1px solid #c8c8e0;
-    color: #666;
-    border-radius: 0.4em;
-    width: 1.9em; height: 1.9em;
-    font-size: 1em;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0;
-    transition: background .15s;
-    flex-shrink: 0;
-}
-.cal-opts-btn:hover { background: #444; color: #fff; border-color: #444; }
+.cal-tool:hover { border-color: #c4c9de; color: var(--cal-ink); }
+.cal-tool.is-on { background: var(--cal-accent-soft); border-color: var(--cal-accent); color: var(--cal-accent); }
+.cal-header .wf-btns { margin-left: 0.35em; }
 
-/* ── Panneau options ─────────────────────────────── */
+/* ── Menu Options (déroulant, ne prend pas de place) ── */
 .cal-opts-panel {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4em;
-    background: #f0f0f8;
-    border: 1px solid #c8c8e0;
-    border-radius: 0.5em;
-    padding: 0.4em 0.5em;
-    margin-bottom: 0.4em;
-    align-items: center;
-}
-.cal-opt-check {
-    display: flex; align-items: center; gap: 0.35em;
-    font-size: 0.82em; color: #444; cursor: pointer;
-}
-.cal-opt-check input { accent-color: #4a90e2; cursor: pointer; }
-.cal-opts-sep {
-    width: 1px;
-    background: #ccc;
-    align-self: stretch;
-    margin: 0 2px;
-    flex-shrink: 0;
-}
-.cal-idb-status {
-    background: #f0fff0;
-    border: 1px solid #aaddaa;
-    border-radius: 0.4em;
-    color: #2a7a2a;
-    font-size: 0.72em;
-    padding: 0.12em 0.35em;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: background .12s;
-    line-height: 1.4;
-}
-.cal-idb-status:hover { background: #d0f0d0; }
-.cal-export-btn, .cal-import-lbl {
-    background: #eef5ff;
-    border: 1px solid #4a90e2;
-    border-radius: 0.4em;
-    color: #2a6abf;
-    font-size: 0.72em;
-    padding: 0.12em 0.35em;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: background .12s;
-    font-family: inherit;
-    display: flex; align-items: center;
-    line-height: 1.4;
-}
-.cal-export-btn:hover, .cal-import-lbl:hover { background: #4a90e2; color: #fff; }
-.cal-school-btn {
-    background: #fff0f2;
-    border: 1px solid #e0909a;
-    border-radius: 0.4em;
-    color: #a04050;
-    font-size: 0.72em;
-    padding: 0.12em 0.4em;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: background .12s;
-    font-family: inherit;
-    line-height: 1.4;
-}
-.cal-school-btn:hover { background: #e0909a; color: #fff; }
-
-/* ── Vue annuelle (mini-calendriers) ────────────── */
-.cal-year-panel {
-    margin-bottom: 0.4em;
-    overflow: hidden;
-}
-.cal-year-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    grid-template-rows: repeat(2, auto);
-    gap: 0.35em;
-    background: #f0f0f8;
-    border: 1px solid #c8c8e0;
-    border-radius: 0.5em;
-    padding: 0.4em;
-}
-.cal-ym-card {
+    position: absolute;
+    top: 3.3em;
+    right: 0.8em;
+    z-index: 5;
+    display: none;
+    flex-direction: column;
+    gap: 0.45em;
+    min-width: 14em;
     background: #fff;
-    border: 1.5px solid #dde;
-    border-radius: 0.4em;
+    border: 1px solid var(--cal-line);
+    border-radius: 0.8em;
+    padding: 0.8em 0.9em 0.9em;
+    box-shadow: 0 10px 30px rgba(20,24,60,.18);
+}
+.cal-opts-panel.is-open { display: flex; }
+.cal-opts-title {
+    font-size: 0.7em;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--cal-soft);
+    margin-top: 0.35em;
+}
+.cal-opts-title:first-child { margin-top: 0; }
+.cal-opt-check { display: flex; align-items: center; gap: 0.45em; font-size: 0.9em; cursor: pointer; }
+.cal-opt-check input { accent-color: var(--cal-accent); cursor: pointer; width: 1em; height: 1em; margin: 0; }
+.cal-opts-row { display: flex; flex-wrap: wrap; gap: 0.35em; }
+.cal-opt-btn {
+    border: 1px solid var(--cal-line);
+    background: var(--cal-panel);
+    color: var(--cal-ink);
+    font-family: inherit;
+    font-size: 0.8em;
+    font-weight: 700;
+    padding: 0.35em 0.7em;
+    border-radius: 999px;
     cursor: pointer;
-    padding: 0.25em 0.2em 0.2em;
+    white-space: nowrap;
+    display: inline-flex; align-items: center;
+    transition: background .12s, border-color .12s;
+}
+.cal-opt-btn:hover { background: var(--cal-accent-soft); border-color: var(--cal-accent); }
+.cal-school-btn { background: var(--cal-school); border-color: #efbcc5; color: var(--cal-school-ink); }
+.cal-school-btn:hover { background: #f3c6ce; border-color: var(--cal-school-ink); }
+
+/* ── Corps : année scolaire + mois ───────────────── */
+.cal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    gap: 0.7em;
+}
+.cal-body.cal-mode-top  { flex-direction: column; }
+.cal-body.cal-mode-side { flex-direction: row; }
+.cal-body.cal-year-hidden .cal-year-panel { display: none; }
+
+.cal-year-panel {
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(var(--ym-cols, 6), minmax(0, 1fr));
+    gap: var(--ym-gap, 6px);
+    align-content: start;
+}
+.cal-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.15em;
-    transition: border-color .12s, box-shadow .12s;
-    overflow: hidden;
+    gap: 0.5em;
 }
-.cal-ym-card:hover { border-color: #4a90e2; box-shadow: 0 2px 6px rgba(74,144,226,0.18); }
-.cal-ym-card.cal-ym-active { border-color: #4a90e2; background: #eef5ff; }
-.cal-ym-card.cal-ym-today:not(.cal-ym-active) { border-color: #9ab8e0; }
-.cym-title {
-    text-align: center;
-    font-weight: 700;
-    font-size: 0.5em;
-    color: #3a3a6a;
-    line-height: 1.2;
-    padding-bottom: 0.15em;
-    border-bottom: 1px solid #eee;
-    white-space: nowrap;
-}
-.cal-ym-card.cal-ym-active .cym-title { color: #1a4a8a; }
-.cym-yr { font-weight: 400; opacity: 0.65; font-size: 0.9em; }
-.cym-grid { display: flex; flex-direction: column; gap: 0; }
-.cym-row { display: grid; grid-template-columns: repeat(7, 1fr); }
-.cym-row span {
-    text-align: center;
-    font-size: 0.3em;
-    line-height: 1.7;
-    border-radius: 0;
-    border-right: 1px solid #eee;
-    border-bottom: 1px solid #eee;
-    box-sizing: border-box;
-}
-.cym-row span:last-child { border-right: none; }
-.cym-row:last-child span { border-bottom: none; }
-.cym-head span {
-    font-weight: 700;
-    color: #8888bb;
-    font-size: 0.4em;
-    line-height: 1.8;
-    border-bottom: 1px solid #d0d0e8;
-    background: #f6f6fc;
-}
-.cym-empty { visibility: hidden; }
-.cym-row span.cym-school { background: #f5d5d8; color: #a04050; }
-.cym-row span.cym-curday { background: #4a90e2; color: #fff; font-weight: 700; border-radius: 50%; }
-.cym-row span.cym-curday.cym-school { background: #c0607a; color: #fff; }
 
-/* ── Grille principale ───────────────────────────── */
-.cal-grid {
+/* ── Mini-mois (tailles en cqi : tout suit la largeur de la carte) ── */
+.cal-ym-card {
+    container-type: inline-size;
+    aspect-ratio: 10 / 11;
+    box-sizing: border-box;
+    padding: 4% 4% 3%;
+    background: #fff;
+    border: 1px solid var(--cal-line);
+    border-radius: 8px;
+    cursor: pointer;
     display: grid;
-    gap: 0;
-    border: 1px solid #ddd;
-    border-radius: 0.4em;
+    grid-template-rows: 1.5fr repeat(7, 1fr);
     overflow: hidden;
+    transition: border-color .12s, box-shadow .12s;
+}
+.cal-ym-card:hover { border-color: var(--cal-accent); }
+.cal-ym-card.cal-ym-active { border-color: var(--cal-accent); box-shadow: 0 0 0 2px var(--cal-accent-soft); }
+.cym-title {
+    font-size: 11cqi;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.3em;
+    white-space: nowrap;
+    overflow: hidden;
+    line-height: 1;
+}
+.cal-ym-today .cym-title { color: var(--cal-accent); }
+.cym-yr { font-weight: 400; color: var(--cal-soft); }
+.cym-row { display: grid; grid-template-columns: repeat(7, 1fr); min-height: 0; }
+.cym-row span {
+    font-size: 8cqi;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 0;
+}
+.cym-head span { font-size: 6.5cqi; font-weight: 800; color: var(--cal-soft); }
+.cym-we { color: var(--cal-we); }
+.cym-row span.cym-school { background: var(--cal-school); color: var(--cal-school-ink); }
+.cym-row span.cym-curday { background: var(--cal-accent); color: #fff; font-weight: 800; border-radius: 999px; }
+
+/* ── Grille du mois ─────────────────────────────── */
+.cal-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto;
+    grid-auto-rows: minmax(auto, 1fr);
+    border: 1px solid var(--cal-line);
+    border-radius: 0.6em;
+    overflow: hidden;
+    background: #fff;
 }
 .cal-cell {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0.2em 0.1em;
+    min-width: 0;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: clip;            /* (pas "hidden" : la hauteur mini du contenu reste prise en compte) */
     position: relative;
 }
-.cal-border-r { border-right:  1px solid #ddd; }
-.cal-border-b { border-bottom: 1px solid #ddd; }
+.cal-border-r { border-right:  1px solid var(--cal-line); }
+.cal-border-b { border-bottom: 1px solid var(--cal-line); }
 .cal-day-head {
-    font-weight: 700;
-    font-size: 0.82em;
-    color: #6666aa;
-    min-height: 1.4em;
+    font-size: 0.62em;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--cal-soft);
+    padding: 0.55em 0;
+    align-items: center;
     justify-content: center;
-    padding: 0.2em 0;
-    border-bottom: 1px solid #c8c8e0;
-    width: 100%;
-    text-align: center;
+    background: var(--cal-panel);
+    border-bottom: 1px solid var(--cal-line);
 }
-.cal-we.cal-day-head { color: #8855bb; }
-.cal-wn-head { min-height: 1.4em; border-bottom: 1px solid #c8c8e0; }
+.cal-we.cal-day-head { color: var(--cal-we); }
+.cal-wn-head { background: var(--cal-panel); border-bottom: 1px solid var(--cal-line); }
 .cal-wn {
-    font-size: 0.7em;
-    color: #aaa;
-    justify-content: flex-start;
-    padding-top: 0.3em;
-    min-height: 2.2em;
+    font-size: 0.55em;
+    font-weight: 700;
+    color: #a9adc2;
+    align-items: center;
+    padding-top: 0.6em;
+    background: var(--cal-panel);
 }
 .cal-day {
     cursor: pointer;
+    padding: 0.25em 0.3em;
     transition: background .12s;
-    min-height: 2.2em;
-    width: 100%;
 }
-.cal-day:hover { background: #e8f0ff; }
+.cal-grey-col { background: var(--cal-grey); }
+.cal-day:hover { background: #eaf0ff; }
 .cal-day-num {
-    font-size: 0.88em;
-    font-weight: 600;
-    color: #222244;
-    line-height: 1.3;
-    padding-top: 0.1em;
-}
-.cal-other-month .cal-day-num { color: #bbb; opacity: 0.25;}
-.cal-today { background: #ddeeff !important; border: 0.1em solid #4a90e2 !important; }
-.cal-today .cal-day-num { color: #1a5abf; font-weight: 800; }
-.cal-we .cal-day-num { color: #8855bb; }
-.cal-selected { background: #cce0ff !important; outline: 1px solid #4a90e2; }
-.cal-event {
-    font-size: 0.4em;
-    border-radius: 0.25em;
-    padding: 0.1em 0.25em;
-    margin-top: 0.1em;
-    width: 100%;
+    align-self: flex-start;
+    font-size: 1em;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0.2em 0.3em;
+    border-radius: 999px;
+    min-width: 1em;
     text-align: center;
+}
+.cal-we .cal-day-num { color: var(--cal-we); }
+.cal-other-month .cal-day-num { color: #cdd0dc; font-weight: 600; }
+.cal-school-day { background: var(--cal-school); }
+.cal-school-day:hover { background: #f3c6ce; }
+.cal-school-day .cal-day-num { color: var(--cal-school-ink); }
+.cal-today { box-shadow: inset 0 0 0 2px var(--cal-accent); }
+.cal-today .cal-day-num { background: var(--cal-accent); color: #fff; }
+.cal-school-day.cal-today .cal-day-num { background: var(--cal-school-ink); color: #fff; }
+.cal-selected { box-shadow: inset 0 0 0 2px #f0a500 !important; }
+.cal-event {
+    margin-top: 0.25em;
+    font-size: 0.5em;
+    font-weight: 700;
+    line-height: 1.2;
+    padding: 0.3em 0.5em;
+    border-radius: 0.45em;
     overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    line-height: 1.3;
-    box-sizing: border-box;
+    overflow-wrap: anywhere;
+    display: -webkit-box;           /* 2 lignes maximum, puis « … » */
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
-.cal-grey-col { background: rgba(0,0,0,0.075); }
 
-/* ── Jours vacances / fériés (vieux rose) ────────── */
-.cal-school-day { background: #f5d5d8 !important; }
-.cal-school-day:hover { background: #ebbfc4 !important; }
-.cal-school-day .cal-day-num { color: #a04050 !important; }
-.cal-school-day.cal-today { background: #e8aab2 !important; border-color: #c0607080 !important; }
-.cal-school-day.cal-today .cal-day-num { color: #7a2535 !important; }
-
-/* ── Barre d'événement ──────────────────────────── */
+/* ── Barre d'édition d'un événement ──────────────── */
 .cal-event-bar {
-    display: flex;
+    flex: none;
+    display: none;
     align-items: center;
-    gap: 0.35em;
-    background: #f0f0f8;
-    border: 1px solid #c8c8e0;
-    border-radius: 0.5em;
-    padding: 0.35em 0.55em;
-    margin-top: 0.4em;
     flex-wrap: wrap;
+    gap: 0.45em;
+    background: var(--cal-panel);
+    border: 1px solid var(--cal-line);
+    border-radius: 0.7em;
+    padding: 0.4em 0.5em;
 }
+.cal-event-bar.is-open { display: flex; }
+.cal-ev-date { font-weight: 800; font-size: 0.85em; color: var(--cal-accent); white-space: nowrap; }
 .cal-ev-input {
     flex: 1;
-    min-width: 4em;
+    min-width: 6em;
     background: #fff;
-    border: 1px solid #aab;
-    border-radius: 0.35em;
-    color: #222;
-    font-size: 0.85em;
-    padding: 0.2em 0.45em;
+    border: 1px solid #cfd3e3;
+    border-radius: 0.45em;
+    color: var(--cal-ink);
+    font-family: inherit;
+    font-size: 0.9em;
+    padding: 0.3em 0.5em;
     outline: none;
-    font-family: inherit;
+    user-select: text;
 }
-.cal-ev-input:focus { border-color: #4a90e2; }
-.cal-ev-color {
-    background: #fff;
-    border: 1px solid #aab;
-    border-radius: 0.35em;
-    color: #444;
-    font-size: 0.82em;
-    padding: 0.2em 0.3em;
-    cursor: pointer;
-    font-family: inherit;
-}
-.cal-ev-save, .cal-ev-del, .cal-ev-cancel {
-    background: #e8e8f5;
-    border: 1px solid #c8c8e0;
-    border-radius: 0.35em;
-    color: #444;
-    font-size: 0.95em;
-    width: 1.8em; height: 1.8em;
-    display: flex; align-items: center; justify-content: center;
+.cal-ev-input:focus { border-color: var(--cal-accent); }
+.cal-ev-colors { display: flex; gap: 0.3em; }
+.cal-ev-sw {
+    width: 1.3em; height: 1.3em;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px #cfd3e3;
     cursor: pointer;
     padding: 0;
-    flex-shrink: 0;
-    transition: background .12s;
 }
-.cal-ev-save:hover   { background: #27ae60; color: #fff; border-color: #27ae60; }
-.cal-ev-del:hover    { background: #c0392b; color: #fff; border-color: #c0392b; }
-.cal-ev-cancel:hover { background: #555; color: #fff; }
+.cal-ev-sw.is-sel { box-shadow: 0 0 0 2px var(--cal-ink); }
+.cal-ev-btn {
+    border: 1px solid #cfd3e3;
+    background: #fff;
+    color: var(--cal-ink);
+    width: 1.9em; height: 1.9em;
+    border-radius: 0.45em;
+    font-size: 0.9em;
+    cursor: pointer;
+    padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .12s, color .12s;
+}
+.cal-ev-save:hover   { background: #27ae60; border-color: #27ae60; color: #fff; }
+.cal-ev-del:hover    { background: #c0392b; border-color: #c0392b; color: #fff; }
+.cal-ev-cancel:hover { background: #555;    border-color: #555;    color: #fff; }
+
+/* ── Plein écran board ───────────────────────────── */
+.cal-container.cal-fullboard {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 9999 !important;
+    border-radius: 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 1em 1.4em 1.2em;
+}
+.widget.cal-is-full > .drag-handle,
+.widget.cal-is-full > .widget-rotate-handle,
+.widget.cal-is-full > .widget-action-bar,
+.widget.cal-is-full > .widget-ctx-menu,
+.widget.cal-is-full > .custom-resize-handle { display: none !important; }
 
 /* ══════════════════════════════════════════════
    MODAL DATES SCOLAIRES
@@ -474,8 +485,30 @@
 .csm-save:hover { opacity: .88; }
 `;
     document.head.appendChild(style);
-})();
 
+    // CSS partagé des boutons fenêtre (identique à l'éphéméride / défi calme).
+    // Injecté seulement s'il n'existe pas déjà.
+    if (!document.getElementById('wf-btns-style')) {
+        const ws = document.createElement('style');
+        ws.id = 'wf-btns-style';
+        ws.textContent = `
+        .wf-btns { display:flex; gap:5px; align-items:center; flex-shrink:0; }
+        .wf-btn { width:13px; height:13px; border-radius:50%; border:none; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; font-size:0;
+            transition:filter .15s, transform .1s; flex-shrink:0; position:relative; }
+        .wf-btn:hover { filter:brightness(0.82); transform:scale(1.15); }
+        .wf-btn:active { transform:scale(0.92); }
+        .wf-btn-min   { background:#febc2e; }
+        .wf-btn-max   { background:#28c840; }
+        .wf-btn-close { background:#ff5f57; }
+        .wf-btns:hover .wf-btn::after { font-size:8px; font-weight:900; color:rgba(0,0,0,0.5); line-height:1; }
+        .wf-btns:hover .wf-btn-min::after   { content:'−'; }
+        .wf-btns:hover .wf-btn-max::after   { content:'⤢'; font-size:7px; }
+        .wf-btns:hover .wf-btn-close::after { content:'×'; font-size:10px; }
+        `;
+        document.head.appendChild(ws);
+    }
+})();
 
 
 // =========================================================================
@@ -760,11 +793,11 @@ function createCalendrierWidget() {
     widget.dataset.calId = _calGenId();   // identifiant unique pour IndexedDB
     widget.tabIndex = 0;
 
-    const p = findFreePosition(720, 800);
+    const p = findFreePosition(900, 640);
     // Le widget s'ouvre à 100px du bord gauche du board.
     widget.style.left   = '100px';
     widget.style.top    = p.y + 'px';
-    widget.style.width  = '720px';
+    widget.style.width  = '900px';
     // Pas de height fixe : le système de resize pilote l'editor-container,
     // et widget-content (flex-grow:1) s'adapte automatiquement.
 
@@ -815,23 +848,33 @@ function createCalendrierWidget() {
         yearPanelOpen: true,
     };
 
+    const con = widget.querySelector('.cal-container');
+
+    // Fermer le menu Options quand on clique ailleurs dans le calendrier
+    // (écouteur posé une seule fois : le conteneur survit aux re-rendus)
+    con.addEventListener('pointerdown', (e) => {
+        const panel = con.querySelector('.cal-opts-panel');
+        if (!panel || !panel.classList.contains('is-open')) return;
+        if (panel.contains(e.target) || e.target.closest('.cal-opts-btn')) return;
+        panel.classList.remove('is-open');
+        widget._calOptsOpen = false;
+        const b = con.querySelector('.cal-opts-btn');
+        if (b) b.classList.remove('is-on');
+    });
+
     _calRender(widget);
 
     // Hauteur initiale sur l'editor-container (c'est lui que makeResizableByHandle pilote,
     // pas le widget lui-même en hauteur)
-    const conInit = widget.querySelector('.cal-container');
-    if (conInit) conInit.style.height = '780px';
+    con.style.height = '640px';
 
-    // ResizeObserver : font-size proportionnel + barre action compacte
+    // ResizeObserver : mise en page + barre action compacte
     if (typeof ResizeObserver !== 'undefined') {
-        const con = widget.querySelector('.cal-container');
-        if (con) {
-            const ro = new ResizeObserver(() => {
-                _calScaleFont(con);
-                if (typeof _updateActionBarCompact === 'function') _updateActionBarCompact(widget);
-            });
-            ro.observe(con);
-        }
+        const ro = new ResizeObserver(() => {
+            _calLayout(con);
+            if (typeof _updateActionBarCompact === 'function') _updateActionBarCompact(widget);
+        });
+        ro.observe(con);
     }
 
     if (!isInitialLoading && !isRestoringState) saveBoard();
@@ -844,17 +887,174 @@ function createCalendrierWidget() {
     return widget;
 }
 
-// ─── Font-size proportionnel à la largeur ────────────────────────────────
-function _calScaleFont(con) {
-    const w = con.offsetWidth;
-    if (!w) return;
-    const basePx = Math.max(9, Math.round(13 * w / CAL_REF_WIDTH));
-    con.style.fontSize = basePx + 'px';
+// =========================================================================
+// MISE EN PAGE ADAPTATIVE
+// =========================================================================
+const CAL_YM_RATIO = 1.1;   // hauteur / largeur d'un mini-mois (aspect-ratio 10/11)
+const CAL_YM_GAP   = 6;     // espace entre les mini-mois (px)
+const CAL_YM_MIN   = 95;    // largeur mini d'un mini-mois lisible (px)
+const CAL_YM_MAX   = 240;   // au-delà, les mini-mois prennent trop de place (px)
+
+// Choisit la disposition de l'année scolaire qui laisse les plus grandes
+// cases au mois affiché :
+//   'top'  : mini-mois en haut, sur 1 à 4 lignes (12, 6, 4 ou 3 par ligne)
+//   'side' : mini-mois sur le côté gauche, en 1, 2 ou 3 colonnes
+function _calChooseYearLayout(W, H, gap, barH, minCw) {
+    let best = null;
+    const consider = (mode, cols) => {
+        const rows = 12 / cols;
+        let cw, panelW, mainW, mainH;
+        if (mode === 'top') {
+            cw = (W - (cols - 1) * CAL_YM_GAP) / cols;
+            if (cw > CAL_YM_MAX) return;
+            const panelH = rows * cw * CAL_YM_RATIO + (rows - 1) * CAL_YM_GAP;
+            panelW = W;
+            mainW  = W;
+            mainH  = H - panelH - gap - barH;
+        } else {
+            cw = Math.min(
+                (H - (rows - 1) * CAL_YM_GAP) / (rows * CAL_YM_RATIO),   // tenir en hauteur
+                (W * 0.5 - (cols - 1) * CAL_YM_GAP) / cols,              // au plus la moitié de la largeur
+                CAL_YM_MAX
+            );
+            panelW = cols * cw + (cols - 1) * CAL_YM_GAP;
+            mainW  = W - panelW - gap;
+            mainH  = H - barH;
+        }
+        if (cw < minCw || mainW < 140 || mainH < 120) return;
+        const cell  = Math.min(mainW / 7, mainH / 7);   // taille d'une case du mois
+        const score = cell + 0.25 * cw;                 // les mini-mois doivent rester lisibles
+        if (!best || score > best.score) best = { mode, cols, panelW: Math.floor(panelW), score };
+    };
+    [3, 4, 6, 12].forEach(c => consider('top',  c));
+    [1, 2, 3].forEach(c     => consider('side', c));
+    return best;
 }
+
+function _calLayout(con) {
+    if (!con || !con.isConnected) return;
+    const header = con.querySelector('.cal-header');
+    const body   = con.querySelector('.cal-body');
+    if (!header || !body) return;
+
+    const cs = getComputedStyle(con);
+    const W = con.clientWidth  - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const H = con.clientHeight - parseFloat(cs.paddingTop)  - parseFloat(cs.paddingBottom);
+    if (W <= 0 || H <= 0) return;
+
+    // 1. Taille du texte de l'en-tête, du menu et de la barre d'événement
+    const hf = Math.round(Math.max(12, Math.min(26, W / 48, H / 26)));
+    con.style.fontSize = hf + 'px';
+
+    // 2. Place disponible pour le corps (année + mois)
+    const main  = con.querySelector('.cal-main');
+    const panel = con.querySelector('.cal-year-panel');
+    const bar   = con.querySelector('.cal-event-bar');
+    const bodyGap = Math.round(hf * 0.7);
+    body.style.gap = bodyGap + 'px';
+    const outerGap = parseFloat(cs.rowGap) || 0;
+    const bodyW = W;
+    const bodyH = H - header.offsetHeight - outerGap;
+    const barH  = (bar && bar.classList.contains('is-open'))
+        ? bar.offsetHeight + (parseFloat(getComputedStyle(main).rowGap) || 0)
+        : 0;
+
+    // 3. Disposition de l'année scolaire
+    let mode = 'top';
+    if (panel && !body.classList.contains('cal-year-hidden')) {
+        const best = _calChooseYearLayout(bodyW, bodyH, bodyGap, barH, CAL_YM_MIN)
+                  || _calChooseYearLayout(bodyW, bodyH, bodyGap, barH, 0)
+                  || { mode: 'top', cols: 12, panelW: bodyW };
+        mode = best.mode;
+        panel.style.setProperty('--ym-cols', best.cols);
+        panel.style.setProperty('--ym-gap', CAL_YM_GAP + 'px');
+        panel.style.width = mode === 'side' ? best.panelW + 'px' : '';
+    }
+    body.classList.toggle('cal-mode-side', mode === 'side');
+    body.classList.toggle('cal-mode-top',  mode !== 'side');
+
+    // 4. Taille du texte de la grille : la plus grande qui tient
+    _calFitGrid(con.querySelector('.cal-grid'));
+}
+
+// Recherche par dichotomie de la plus grande police pour laquelle
+// toutes les cases du mois tiennent dans la grille, sans débordement.
+function _calFitGrid(grid) {
+    if (!grid) return;
+    const gw = grid.clientWidth, gh = grid.clientHeight;
+    if (!gw || !gh) return;
+    const nCols = grid.querySelectorAll('.cal-day-head').length || 7;
+    const nRows = grid.querySelectorAll('.cal-day').length / nCols || 6;
+    const wn    = grid.querySelector('.cal-wn-head');
+    const cellW = (gw - (wn ? wn.offsetWidth : 0)) / nCols;
+    const fits = px => {
+        grid.style.fontSize = px + 'px';
+        return grid.scrollHeight <= grid.clientHeight + 1;
+    };
+    const lo0 = 7;
+    // Plafond : le numéro du jour ne doit pas manger la place des événements
+    let hi = Math.max(lo0, Math.min(48, cellW / 4.2, gh / ((nRows + 0.7) * 2.6)));
+    if (fits(hi)) return;
+    let lo = lo0;
+    if (!fits(lo)) return;
+    for (let i = 0; i < 10 && hi - lo > 0.25; i++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid; else hi = mid;
+    }
+    fits(Math.floor(lo * 4) / 4);
+}
+
+// Ancien nom conservé pour compatibilité
+function _calScaleFont(con) { _calLayout(con); }
+
+// Réajuste les calendriers en plein écran quand la fenêtre change de taille
+window.addEventListener('resize', () => {
+    document.querySelectorAll('.cal-container.cal-fullboard').forEach(_calLayout);
+});
 
 // =========================================================================
 // RENDU COMPLET
 // =========================================================================
+const CAL_MOIS_COURT = ['Janv.','Févr.','Mars','Avril','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
+const CAL_JOURS_LONG = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+
+// Échappe le texte saisi par l'utilisateur avant de l'insérer dans le HTML
+function _calEsc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+// Mini-calendrier d'un mois (toujours 6 lignes de semaines : toutes les cartes ont la même taille)
+function _calMiniHtml(m, yr, s, today, schoolSet) {
+    const isActive = (m === s.month && yr === s.year);
+    const isToday  = (m === today.getMonth() && yr === today.getFullYear());
+    let cls = 'cal-ym-card';
+    if (isActive) cls += ' cal-ym-active';
+    if (isToday)  cls += ' cal-ym-today';
+
+    const dim = new Date(yr, m + 1, 0).getDate();
+    let dow = new Date(yr, m, 1).getDay();
+    dow = dow === 0 ? 6 : dow - 1; // lundi = 0
+
+    let h = `<div class="cym-title">${CAL_MOIS_COURT[m]} <span class="cym-yr">${yr}</span></div>`;
+    h += '<div class="cym-row cym-head">' +
+         ['L','M','M','J','V','S','D'].map((j, i) => `<span class="${i >= 5 ? 'cym-we' : ''}">${j}</span>`).join('') +
+         '</div>';
+    for (let r = 0; r < 6; r++) {
+        h += '<div class="cym-row">';
+        for (let c = 0; c < 7; c++) {
+            const d = r * 7 + c - dow + 1;
+            if (d < 1 || d > dim) { h += '<span></span>'; continue; }
+            const key = `${yr}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            let sc = c >= 5 ? 'cym-we' : '';
+            if (schoolSet.has(key))              sc += ' cym-school';
+            if (isToday && d === today.getDate()) sc += ' cym-curday';
+            h += `<span class="${sc.trim()}">${d}</span>`;
+        }
+        h += '</div>';
+    }
+    return `<div class="${cls}" data-ym-month="${m}" data-ym-year="${yr}" title="${CALENDRIER_MOIS[m]} ${yr}">${h}</div>`;
+}
+
 function _calRender(widget) {
     const s   = widget._calState;
     const con = widget.querySelector('.cal-container');
@@ -863,184 +1063,140 @@ function _calRender(widget) {
     const { year, month, events, showWeekends, showWeekNums } = s;
     const today = new Date();
     const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+    const isFull = con.classList.contains('cal-fullboard');
 
-    // Toujours en mode clair
-    con.classList.add('cal-light');
-
-    const firstDay = new Date(year, month, 1);
-    let startDow = firstDay.getDay();
+    let startDow = new Date(year, month, 1).getDay();
     startDow = (startDow === 0) ? 6 : startDow - 1;
-
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrev  = new Date(year, month, 0).getDate();
 
     const cols      = showWeekends ? 7 : 5;
     const colLabels = showWeekends ? CALENDRIER_JOURS : CALENDRIER_JOURS.slice(0, 5);
-
     // Colonnes grisées : Mer=2, Sam=5, Dim=6  (lundi=0)
     const GREY_COLS = new Set(showWeekends ? [2, 5, 6] : [2]);
 
-    // Vue annuelle : toujours l'année scolaire EN COURS (basée sur aujourd'hui)
-    // sept→déc : schoolYear = today.year ; jan→août : schoolYear = today.year - 1
+    // Vue annuelle : toujours l'année scolaire EN COURS (sept → août)
     const schoolYear = today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1;
-    const yearViewMois   = [8,9,10,11,0,1,2,3,4,5,6,7]; // indices JS
-    const schoolSet      = _calSchoolDates.dateSet;
+    const yearViewMois = [8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7];
+    const schoolSet = _calSchoolDates.dateSet;
 
-    // Génère le HTML d'un mini-calendrier pour un mois donné
-    function _miniCal(m, yr) {
-        const isActive  = (m === month && yr === year);
-        const isToday   = (m === today.getMonth() && yr === today.getFullYear());
-        let wrapCls = 'cal-ym-card';
-        if (isActive) wrapCls += ' cal-ym-active';
-        if (isToday)  wrapCls += ' cal-ym-today';
-
-        const dim = new Date(yr, m + 1, 0).getDate();
-        let dow = new Date(yr, m, 1).getDay();
-        dow = dow === 0 ? 6 : dow - 1; // lundi=0
-
-        const JOURS_MINI = ['L','M','M','J','V','S','D'];
-        let grid = '<div class="cym-row cym-head">';
-        JOURS_MINI.forEach(j => { grid += `<span>${j}</span>`; });
-        grid += '</div><div class="cym-row">';
-
-        // cases vides avant le 1er
-        for (let b = 0; b < dow; b++) grid += '<span class="cym-empty"></span>';
-
-        let col = dow;
-        for (let d = 1; d <= dim; d++) {
-            const key = `${yr}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const isSchool   = schoolSet.has(key);
-            const isTodayDay = (isToday && d === today.getDate());
-            let cls = '';
-            if (isSchool)   cls += ' cym-school';
-            if (isTodayDay) cls += ' cym-curday';
-            grid += `<span class="${cls.trim()}">${d}</span>`;
-            col++;
-            if (col % 7 === 0 && d < dim) grid += '</div><div class="cym-row">';
-        }
-        grid += '</div>';
-
-        const mLabel = CALENDRIER_MOIS[m].slice(0, 4);
-        return `<div class="${wrapCls}" data-ym-month="${m}" data-ym-year="${yr}">
-            <div class="cym-title">${mLabel} <span class="cym-yr">${yr}</span></div>
-            <div class="cym-grid">${grid}</div>
-        </div>`;
-    }
-
+    // ── En-tête ──
     let html = `
     <div class="cal-header">
-        <button class="cal-nav cal-prev" title="Mois précédent">‹</button>
-        <span class="cal-title">${CALENDRIER_MOIS[month]} ${year}</span>
-        <button class="cal-nav cal-next" title="Mois suivant">›</button>
-        <button class="cal-today-btn" title="Aujourd'hui">Auj.</button>
-        <button class="cal-year-btn" title="Vue annuelle (sept→août)">📅</button>
-        <button class="cal-opts-btn" title="Options">⚙</button>
-    </div>
-    <div class="cal-year-panel" style="display:${s.yearPanelOpen ? 'block' : 'none'};">
-        <div class="cal-year-grid">
-            ${yearViewMois.map(m => {
-                const yr = (m >= 8) ? schoolYear : schoolYear + 1;
-                return _miniCal(m, yr);
-            }).join('')}
+        <div class="cal-title">${CALENDRIER_MOIS[month]}<span class="cal-title-year">${year}</span></div>
+        <div class="cal-navgroup">
+            <button class="cal-nav cal-prev" title="Mois précédent">‹</button>
+            <button class="cal-today-btn" title="Revenir au mois en cours">Aujourd'hui</button>
+            <button class="cal-nav cal-next" title="Mois suivant">›</button>
         </div>
-    </div>
-    <div class="cal-opts-panel" style="display:none;">
-        <label class="cal-opt-check"><input type="checkbox" class="cal-cb-we" ${showWeekends?'checked':''}> Week-ends</label>
-        <label class="cal-opt-check"><input type="checkbox" class="cal-cb-wn" ${showWeekNums?'checked':''}> N° semaine</label>
-        <div class="cal-opts-sep"></div>
-        <button class="cal-school-btn" title="Gérer les vacances et jours fériés">🌸 Vacances</button>
-        <div class="cal-opts-sep"></div>
-        <button class="cal-idb-status" title="État de la sauvegarde IndexedDB">💾 …</button>
-        <button class="cal-export-btn" title="Exporter les événements en JSON">⬇ JSON</button>
-        <label class="cal-import-lbl" title="Importer des événements depuis un fichier JSON">⬆ JSON<input type="file" class="cal-import-input" accept=".json" style="display:none;"></label>
-    </div>
-    <div class="cal-grid" style="grid-template-columns:${showWeekNums ? '2em ' : ''}repeat(${cols}, 1fr);">`;
+        <button class="cal-tool cal-year-btn ${s.yearPanelOpen ? 'is-on' : ''}" title="Afficher / masquer l'année scolaire">🗓</button>
+        <button class="cal-tool cal-opts-btn ${widget._calOptsOpen ? 'is-on' : ''}" title="Options">⚙</button>
+        <div class="wf-btns">
+            <button type="button" class="wf-btn wf-btn-min" data-cal-wf="min" title="Réduire" aria-label="Réduire"></button>
+            <button type="button" class="wf-btn wf-btn-max" data-cal-wf="max" title="${isFull ? 'Quitter le plein écran' : 'Plein écran'}" aria-label="Plein écran"></button>
+            <button type="button" class="wf-btn wf-btn-close" data-cal-wf="close" title="Fermer" aria-label="Fermer"></button>
+        </div>
+    </div>`;
 
-    // En-têtes jours
+    // ── Menu Options (déroulant) ──
+    html += `
+    <div class="cal-opts-panel ${widget._calOptsOpen ? 'is-open' : ''}">
+        <div class="cal-opts-title">Affichage</div>
+        <label class="cal-opt-check"><input type="checkbox" class="cal-cb-we" ${showWeekends ? 'checked' : ''}> Week-ends</label>
+        <label class="cal-opt-check"><input type="checkbox" class="cal-cb-wn" ${showWeekNums ? 'checked' : ''}> Numéros de semaine</label>
+        <div class="cal-opts-title">Année scolaire</div>
+        <div class="cal-opts-row"><button class="cal-opt-btn cal-school-btn" title="Gérer les vacances et jours fériés">🌸 Vacances et jours fériés</button></div>
+        <div class="cal-opts-title">Sauvegarde des événements</div>
+        <div class="cal-opts-row">
+            <button class="cal-opt-btn cal-idb-status" title="État de la sauvegarde IndexedDB">💾 …</button>
+            <button class="cal-opt-btn cal-export-btn" title="Exporter les événements en JSON">⬇ Exporter</button>
+            <label class="cal-opt-btn cal-import-lbl" title="Importer des événements depuis un fichier JSON">⬆ Importer<input type="file" class="cal-import-input" accept=".json" style="display:none;"></label>
+        </div>
+    </div>`;
+
+    // ── Corps : année scolaire + mois ──
+    html += `
+    <div class="cal-body cal-mode-top ${s.yearPanelOpen ? '' : 'cal-year-hidden'}">
+        <div class="cal-year-panel">
+            ${yearViewMois.map(m => _calMiniHtml(m, m >= 8 ? schoolYear : schoolYear + 1, s, today, schoolSet)).join('')}
+        </div>
+        <div class="cal-main">
+            <div class="cal-grid" style="grid-template-columns:${showWeekNums ? '2.2em ' : ''}repeat(${cols}, minmax(0, 1fr));">`;
+
+    // En-têtes des jours
     if (showWeekNums) html += `<div class="cal-cell cal-wn-head"></div>`;
     colLabels.forEach((j, i) => {
-        const isWE   = showWeekends && (i === 5 || i === 6);
-        const isGrey = GREY_COLS.has(i);
         let cls = 'cal-cell cal-day-head';
-        if (isWE)   cls += ' cal-we';
-        if (isGrey) cls += ' cal-grey-col';
+        if (showWeekends && (i === 5 || i === 6)) cls += ' cal-we';
+        if (GREY_COLS.has(i)) cls += ' cal-grey-col';
+        if (i < cols - 1) cls += ' cal-border-r';
         html += `<div class="${cls}">${j}</div>`;
     });
 
-    // Cellules
+    // Cases des jours
     let cellDay = 1 - startDow;
-    const totalCells = Math.ceil((startDow + daysInMonth) / cols) * cols;
-    const totalRows  = totalCells / cols;
-    // schoolSet est déjà déclaré plus haut (utilisé aussi par _miniCal)
-
-    for (let i = 0; i < totalCells; i++) {
-        const row = Math.floor(i / cols);
-        const col = i % cols;
-        const isLastRow = row === totalRows - 1;
-        const isLastCol = col === cols - 1;
-
-        if (showWeekNums && col === 0) {
-            const d = cellDay > 0 && cellDay <= daysInMonth
-                ? new Date(year, month, cellDay)
-                : cellDay <= 0
-                    ? new Date(year, month - 1, daysInPrev + cellDay)
-                    : new Date(year, month + 1, cellDay - daysInMonth);
-            const wnCls = 'cal-cell cal-wn' + (isLastRow ? '' : ' cal-border-b');
-            html += `<div class="${wnCls}">${_getWeekNumber(d)}</div>`;
+    // Sans les week-ends, on saute les samedis/dimanches : on avance par semaine de 7 jours
+    const weeks = Math.ceil((startDow + daysInMonth) / 7);
+    for (let w = 0; w < weeks; w++) {
+        const isLastRow = w === weeks - 1;
+        const weekStart = cellDay;
+        if (showWeekNums) {
+            const d = new Date(year, month, weekStart);
+            html += `<div class="cal-cell cal-wn${isLastRow ? '' : ' cal-border-b'}">${_getWeekNumber(d)}</div>`;
         }
+        for (let c = 0; c < 7; c++, cellDay++) {
+            if (!showWeekends && c >= 5) continue;
+            const isWE = c >= 5;
+            let cls = 'cal-cell cal-day';
+            if (!isLastRow)    cls += ' cal-border-b';
+            if (c < cols - 1)  cls += ' cal-border-r';
+            if (GREY_COLS.has(c)) cls += ' cal-grey-col';
 
-        const isWE   = showWeekends && (col === 5 || col === 6);
-        const isGrey = GREY_COLS.has(col);
-        let cls = 'cal-cell cal-day';
-        if (!isLastRow) cls += ' cal-border-b';
-        if (!isLastCol) cls += ' cal-border-r';
-        if (isGrey)     cls += ' cal-grey-col';
-
-        let labelNum = '';
-        let evtHtml  = '';
-
-        if (cellDay < 1) {
-            cls += ' cal-other-month';
-            labelNum = daysInPrev + cellDay;
-        } else if (cellDay > daysInMonth) {
-            cls += ' cal-other-month';
-            labelNum = cellDay - daysInMonth;
-        } else {
-            if (isCurrentMonth && cellDay === today.getDate()) cls += ' cal-today';
-            if (isWE) cls += ' cal-we';
-            const key = `${year}-${String(month+1).padStart(2,'0')}-${String(cellDay).padStart(2,'0')}`;
-            if (schoolSet.has(key)) cls += ' cal-school-day';
-            if (events[key]) {
-                const ev = events[key];
-                const th = CALENDRIER_THEMES[ev.color] || CALENDRIER_THEMES.bleu;
-                evtHtml = `<div class="cal-event" style="background:${th.bg};color:${th.text};" title="${ev.label}">${ev.label}</div>`;
+            let labelNum, evtHtml = '', dataAttr = '';
+            if (cellDay < 1) {
+                cls += ' cal-other-month';
+                labelNum = daysInPrev + cellDay;
+            } else if (cellDay > daysInMonth) {
+                cls += ' cal-other-month';
+                labelNum = cellDay - daysInMonth;
+            } else {
+                labelNum = cellDay;
+                if (isCurrentMonth && cellDay === today.getDate()) cls += ' cal-today';
+                if (isWE) cls += ' cal-we';
+                const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(cellDay).padStart(2, '0')}`;
+                if (schoolSet.has(key)) cls += ' cal-school-day';
+                if (events[key]) {
+                    const ev = events[key];
+                    const th = CALENDRIER_THEMES[ev.color] || CALENDRIER_THEMES.bleu;
+                    const lbl = _calEsc(ev.label);
+                    evtHtml = `<div class="cal-event" style="background:${th.bg};color:${th.text};" title="${lbl}">${lbl}</div>`;
+                }
+                dataAttr = `data-day="${cellDay}" data-month="${month}" data-year="${year}"`;
             }
-            labelNum = cellDay;
+            html += `<div class="${cls}" ${dataAttr}><span class="cal-day-num">${labelNum}</span>${evtHtml}</div>`;
         }
-
-        const dataAttr = (cellDay >= 1 && cellDay <= daysInMonth)
-            ? `data-day="${cellDay}" data-month="${month}" data-year="${year}"`
-            : '';
-
-        html += `<div class="${cls}" ${dataAttr}><span class="cal-day-num">${labelNum}</span>${evtHtml}</div>`;
-        cellDay++;
     }
 
+    // ── Barre d'édition d'un événement ──
     html += `</div>
-    <div class="cal-event-bar" style="display:none;">
-        <input class="cal-ev-input" type="text" placeholder="Étiquette…" maxlength="30">
-        <select class="cal-ev-color">
-            ${Object.keys(CALENDRIER_THEMES).map(c=>`<option value="${c}">${c}</option>`).join('')}
-        </select>
-        <button class="cal-ev-save">✓</button>
-        <button class="cal-ev-del">🗑</button>
-        <button class="cal-ev-cancel">✕</button>
+            <div class="cal-event-bar">
+                <span class="cal-ev-date"></span>
+                <input class="cal-ev-input" type="text" placeholder="Étiquette…" maxlength="30">
+                <div class="cal-ev-colors">
+                    ${Object.entries(CALENDRIER_THEMES).map(([k, th]) =>
+                        `<button class="cal-ev-sw" data-color="${k}" title="${k}" style="background:${th.bg};"></button>`).join('')}
+                </div>
+                <button class="cal-ev-btn cal-ev-save"   title="Enregistrer (Entrée)">✓</button>
+                <button class="cal-ev-btn cal-ev-del"    title="Supprimer l'événement">🗑</button>
+                <button class="cal-ev-btn cal-ev-cancel" title="Fermer (Échap)">✕</button>
+            </div>
+        </div>
     </div>`;
 
     con.innerHTML = html;
-    _calScaleFont(con);
     _calBindEvents(widget);
     _calUpdateIdbStatus(widget);
+    _calLayout(con);
 }
 
 // =========================================================================
@@ -1156,32 +1312,32 @@ function _calImportJSON(widget, file) {
 function _calBindEvents(widget) {
     const s   = widget._calState;
     const con = widget.querySelector('.cal-container');
+    const on  = (sel, ev, fn) => { const el = con.querySelector(sel); if (el) el.addEventListener(ev, fn); };
 
     // ── Navigation ──
-    con.querySelector('.cal-prev').addEventListener('click', (e) => {
+    on('.cal-prev', 'click', (e) => {
         e.stopPropagation();
         s.month--; if (s.month < 0) { s.month = 11; s.year--; }
         _calRender(widget); saveBoard();
     });
-    con.querySelector('.cal-next').addEventListener('click', (e) => {
+    on('.cal-next', 'click', (e) => {
         e.stopPropagation();
         s.month++; if (s.month > 11) { s.month = 0; s.year++; }
         _calRender(widget); saveBoard();
     });
-    con.querySelector('.cal-today-btn').addEventListener('click', (e) => {
+    on('.cal-today-btn', 'click', (e) => {
         e.stopPropagation();
         const now = new Date(); s.year = now.getFullYear(); s.month = now.getMonth();
         _calRender(widget); saveBoard();
     });
 
-    // ── Vue annuelle ──
-    const yearBtn   = con.querySelector('.cal-year-btn');
-    const yearPanel = con.querySelector('.cal-year-panel');
-    yearBtn.addEventListener('click', (e) => {
+    // ── Afficher / masquer l'année scolaire ──
+    on('.cal-year-btn', 'click', (e) => {
         e.stopPropagation();
-        const open = yearPanel.style.display === 'none';
-        yearPanel.style.display = open ? 'block' : 'none';
-        s.yearPanelOpen = open;
+        s.yearPanelOpen = !s.yearPanelOpen;
+        con.querySelector('.cal-body').classList.toggle('cal-year-hidden', !s.yearPanelOpen);
+        e.currentTarget.classList.toggle('is-on', s.yearPanelOpen);
+        _calLayout(con);
         saveBoard();
     });
     con.querySelectorAll('.cal-ym-card').forEach(card => {
@@ -1189,76 +1345,74 @@ function _calBindEvents(widget) {
             e.stopPropagation();
             s.month = parseInt(card.dataset.ymMonth);
             s.year  = parseInt(card.dataset.ymYear);
-            s.yearPanelOpen = true;
             _calRender(widget); saveBoard();
         });
     });
 
-    // ── Options ──
-    const optsBtn   = con.querySelector('.cal-opts-btn');
-    const optsPanel = con.querySelector('.cal-opts-panel');
-    optsBtn.addEventListener('click', (e) => {
+    // ── Menu Options ──
+    on('.cal-opts-btn', 'click', (e) => {
         e.stopPropagation();
-        optsPanel.style.display = optsPanel.style.display === 'none' ? 'flex' : 'none';
+        const panel = con.querySelector('.cal-opts-panel');
+        widget._calOptsOpen = !panel.classList.contains('is-open');
+        panel.classList.toggle('is-open', widget._calOptsOpen);
+        e.currentTarget.classList.toggle('is-on', widget._calOptsOpen);
     });
-    con.querySelector('.cal-cb-we').addEventListener('change', function(e) {
+    on('.cal-cb-we', 'change', function (e) {
         e.stopPropagation(); s.showWeekends = this.checked; _calRender(widget); saveBoard();
     });
-    con.querySelector('.cal-cb-wn').addEventListener('change', function(e) {
+    on('.cal-cb-wn', 'change', function (e) {
         e.stopPropagation(); s.showWeekNums = this.checked; _calRender(widget); saveBoard();
     });
-
-    // ── Bouton vacances / fériés ──
-    con.querySelector('.cal-school-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        _calOpenSchoolDatesModal();
-    });
-
-    // ── Export JSON ──
-    con.querySelector('.cal-export-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        _calExportJSON(widget);
-    });
-
-    // ── Import JSON ──
+    on('.cal-school-btn', 'click', (e) => { e.stopPropagation(); _calOpenSchoolDatesModal(); });
+    on('.cal-export-btn', 'click', (e) => { e.stopPropagation(); _calExportJSON(widget); });
+    on('.cal-idb-status', 'click', (e) => { e.stopPropagation(); _calSaveEvents(widget); });
     const importInput = con.querySelector('.cal-import-input');
-    importInput.addEventListener('change', (e) => {
+    if (importInput) importInput.addEventListener('change', (e) => {
         e.stopPropagation();
         _calImportJSON(widget, importInput.files[0]);
         importInput.value = '';
     });
 
-    // ── Badge IDB (clic = forcer re-sauvegarde) ──
-    con.querySelector('.cal-idb-status').addEventListener('click', (e) => {
-        e.stopPropagation();
-        _calSaveEvents(widget);
-    });
+    // ── Barre d'édition d'un événement ──
+    const bar = con.querySelector('.cal-event-bar');
+    const input = bar.querySelector('.cal-ev-input');
+    const selectColor = (color) => {
+        bar.dataset.color = CALENDRIER_THEMES[color] ? color : 'bleu';
+        bar.querySelectorAll('.cal-ev-sw').forEach(sw => sw.classList.toggle('is-sel', sw.dataset.color === bar.dataset.color));
+    };
+    const closeBar = () => {
+        bar.classList.remove('is-open');
+        con.querySelectorAll('.cal-day.cal-selected').forEach(c => c.classList.remove('cal-selected'));
+        _calLayout(con);
+    };
 
-    // ── Clic sur un jour ──
     con.querySelectorAll('.cal-day[data-day]').forEach(cell => {
         cell.addEventListener('click', (e) => {
             e.stopPropagation();
-            const key = `${cell.dataset.year}-${String(parseInt(cell.dataset.month)+1).padStart(2,'0')}-${String(cell.dataset.day).padStart(2,'0')}`;
+            const y = +cell.dataset.year, m = +cell.dataset.month, d = +cell.dataset.day;
+            const key = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const ev  = s.events[key] || { label: '', color: 'bleu' };
-            const bar = con.querySelector('.cal-event-bar');
             con.querySelectorAll('.cal-day.cal-selected').forEach(c => c.classList.remove('cal-selected'));
             cell.classList.add('cal-selected');
-            bar.querySelector('.cal-ev-input').value = ev.label;
-            bar.querySelector('.cal-ev-color').value = ev.color || 'bleu';
             bar.dataset.key = key;
-            bar.style.display = 'flex';
-            bar.querySelector('.cal-ev-input').focus();
+            bar.querySelector('.cal-ev-date').textContent =
+                `${CAL_JOURS_LONG[new Date(y, m, d).getDay()]} ${d} ${CALENDRIER_MOIS[m].toLowerCase()}`;
+            input.value = ev.label;
+            selectColor(ev.color || 'bleu');
+            const wasOpen = bar.classList.contains('is-open');
+            bar.classList.add('is-open');
+            if (!wasOpen) _calLayout(con);
+            input.focus();
         });
     });
 
-    // ── Barre événement ──
-    const bar = con.querySelector('.cal-event-bar');
-
+    bar.querySelectorAll('.cal-ev-sw').forEach(sw => {
+        sw.addEventListener('click', (e) => { e.stopPropagation(); selectColor(sw.dataset.color); input.focus(); });
+    });
     bar.querySelector('.cal-ev-save').addEventListener('click', (e) => {
         e.stopPropagation();
-        const label = bar.querySelector('.cal-ev-input').value.trim();
-        const color = bar.querySelector('.cal-ev-color').value;
-        if (label) s.events[bar.dataset.key] = { label, color };
+        const label = input.value.trim();
+        if (label) s.events[bar.dataset.key] = { label, color: bar.dataset.color || 'bleu' };
         else delete s.events[bar.dataset.key];
         _calSaveEvents(widget);   // → IndexedDB
         _calRender(widget);
@@ -1271,22 +1425,88 @@ function _calBindEvents(widget) {
         _calRender(widget);
         saveBoard();
     });
-    bar.querySelector('.cal-ev-cancel').addEventListener('click', (e) => {
-        e.stopPropagation();
-        bar.style.display = 'none';
-        con.querySelectorAll('.cal-day.cal-selected').forEach(c => c.classList.remove('cal-selected'));
-    });
-    bar.querySelector('.cal-ev-input').addEventListener('keydown', (e) => {
+    bar.querySelector('.cal-ev-cancel').addEventListener('click', (e) => { e.stopPropagation(); closeBar(); });
+    input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter')  bar.querySelector('.cal-ev-save').click();
-        if (e.key === 'Escape') bar.querySelector('.cal-ev-cancel').click();
+        if (e.key === 'Escape') closeBar();
         e.stopPropagation();
     });
 
-    // Bloquer drag sur tous les contrôles
-    con.querySelectorAll('button, input, select, label').forEach(el => {
+    // ── Boutons fenêtre : réduire / plein écran / fermer ──
+    con.querySelectorAll('[data-cal-wf]').forEach(btn => {
+        ['pointerdown', 'touchstart'].forEach(t =>
+            btn.addEventListener(t, e => e.stopPropagation(), { passive: true }));
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const act = btn.dataset.calWf;
+            if (act === 'min')   _calMinimize(widget);
+            if (act === 'max')   _calToggleFull(widget);
+            if (act === 'close') _calClose(widget);
+        });
+    });
+
+    // Bloquer le déplacement du widget depuis les contrôles
+    con.querySelectorAll('button, input, select, label, .cal-ym-card, .cal-day').forEach(el => {
         el.addEventListener('mousedown', e => e.stopPropagation());
     });
 }
+
+// =========================================================================
+// BOUTONS FENÊTRE (même comportement que le widget Éphéméride)
+// =========================================================================
+
+// Plein écran board (force : true = entrer, false = sortir, undefined = basculer)
+function _calToggleFull(widget, force) {
+    const con = widget.querySelector('.cal-container');
+    if (!con) return;
+    const full = force !== undefined ? force : !con.classList.contains('cal-fullboard');
+    if (full === con.classList.contains('cal-fullboard')) return;
+
+    if (full) {
+        // Passer le widget au premier plan pour que le plein écran couvre les autres
+        widget.dataset.calSavedZ = widget.style.zIndex || '';
+        widget.style.zIndex = '9999';
+    } else {
+        widget.style.zIndex = widget.dataset.calSavedZ || '';
+        delete widget.dataset.calSavedZ;
+    }
+    con.classList.toggle('cal-fullboard', full);
+    widget.classList.toggle('cal-is-full', full);
+
+    const b = con.querySelector('[data-cal-wf="max"]');
+    if (b) b.title = full ? 'Quitter le plein écran' : 'Plein écran';
+    _calLayout(con);
+}
+
+// Réduire en mini-barre (fonction partagée installée par widget-ephemeride.js)
+function _calMinimize(widget) {
+    if (typeof window._wfMiniBarCollapse !== 'function') return;
+    const con = widget.querySelector('.cal-container');
+    _calToggleFull(widget, false);
+    if (con) con.style.visibility = 'hidden'; // le calendrier ne doit pas déborder sur la mini-barre
+    window._wfMiniBarCollapse(widget, '📅 Calendrier', {
+        onExpand: () => {
+            if (con) con.style.visibility = '';
+            _calRender(widget);
+        }
+    });
+}
+
+// Fermer (identique à la croix de la barre d'action)
+function _calClose(widget) {
+    if (typeof snapshotNow === 'function') snapshotNow();
+    if (typeof closeCtxMenuAll === 'function') closeCtxMenuAll();
+    if (widget.dataset.calId) calEventStorage.remove(widget.dataset.calId);
+    widget.remove();
+    if (typeof saveBoard === 'function') saveBoard();
+}
+
+// Échap : quitter le plein écran
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('.widget.cal-is-full').forEach(w => _calToggleFull(w, false));
+}, true);
 
 // =========================================================================
 // UTILITAIRES

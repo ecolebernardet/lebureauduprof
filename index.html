@@ -1495,22 +1495,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         </div>
 		<div class="act-section-label">🎨 Autres activités</div>
         <div class="act-grid">
-			<div class="act-card" onclick="createPixelArtWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-pixelart2.jpeg" alt="Pixel Art" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎨'"></div>
-                <div class="act-card-name">Pixel Art</div>
-                <div class="act-card-desc">Colorier une grille de pixels</div>
-            </div>
-            <div class="act-card" onclick="createCouleursWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-couleurs6.jpeg" alt="Écriture Seyes" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Mélange de couleurs</div>
-                <div class="act-card-desc">Mélanger les couleurs primaires pour en créer de nouvelles</div>
-            </div>
-            <div class="act-card" onclick="createWidget('musique-clavier');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-piano6.jpeg" alt="Clavier de piano" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Clavier de piano</div>
-                <div class="act-card-desc">Jouer les notes sur 3 octaves pour découvrir les sons</div>
-            </div>
-            <div class="act-card" onclick="createFriseHistoriqueWidget();toggleActivitiesPanel()">
+			<div class="act-card" onclick="createFriseHistoriqueWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-frise-historique.jpeg" alt="Frise historique" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='📜'"></div>
                 <div class="act-card-name">Frise historique</div>
                 <div class="act-card-desc">Les 5 grandes périodes de l'histoire, de la Préhistoire à nos jours</div>
@@ -1539,6 +1524,21 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activites-terre-mouvement.jpeg" alt="La Terre en mouvement" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌗'"></div>
                 <div class="act-card-name">La Terre en mouvement</div>
                 <div class="act-card-desc">Comprendre le jour et la nuit, et l'origine des saisons</div>
+            </div>
+			<div class="act-card" onclick="createPixelArtWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-pixelart2.jpeg" alt="Pixel Art" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎨'"></div>
+                <div class="act-card-name">Pixel Art</div>
+                <div class="act-card-desc">Colorier une grille de pixels</div>
+            </div>
+            <div class="act-card" onclick="createCouleursWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-couleurs6.jpeg" alt="Écriture Seyes" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Mélange de couleurs</div>
+                <div class="act-card-desc">Mélanger les couleurs primaires pour en créer de nouvelles</div>
+            </div>
+            <div class="act-card" onclick="createWidget('musique-clavier');toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-piano6.jpeg" alt="Clavier de piano" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Clavier de piano</div>
+                <div class="act-card-desc">Jouer les notes sur 3 octaves pour découvrir les sons</div>
             </div>
         </div>
     </div>

@@ -22,6 +22,23 @@
 
 // ── CSS ───────────────────────────────────────────────────────────────────
 (function () {
+    // Taille des pastilles réduire / plein écran / fermer.
+    // Injecté à part, avec !important : s'applique même si un autre script
+    // a déjà défini « wf-btns-style » avec l'ancienne taille.
+    if (!document.getElementById('wf-btns-size')) {
+        const wz = document.createElement('style');
+        wz.id = 'wf-btns-size';
+        wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+        `;
+        document.head.appendChild(wz);
+    }
+
     if (document.getElementById('gg-style')) return;
     const s = document.createElement('style');
     s.id = 'gg-style';
@@ -75,9 +92,7 @@
             text-overflow: ellipsis;
             max-width: 40%;
         }
-        /* Boutons fenêtre un peu plus grands : plus faciles à viser au stylet */
-        .gg-header .wf-btns { gap: 8px; }
-        .gg-header .wf-btn { width: 18px; height: 18px; }
+        /* Boutons fenêtre : taille commune définie dans le bloc wf-btns-style */
 
         .gg-container.wf-fullboard {
             position: fixed !important;

@@ -118,13 +118,30 @@
         };
     }
 
+    // Taille des pastilles réduire / plein écran / fermer.
+    // Injecté à part, avec !important : s'applique même si un autre script
+    // a déjà défini « wf-btns-style » avec l'ancienne taille.
+    if (!document.getElementById('wf-btns-size')) {
+        const wz = document.createElement('style');
+        wz.id = 'wf-btns-size';
+        wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+        `;
+        document.head.appendChild(wz);
+    }
+
     // CSS partagé boutons fenêtre (injecté une seule fois)
     if (!document.getElementById('wf-btns-style')) {
         const ws = document.createElement('style');
         ws.id = 'wf-btns-style';
         ws.textContent = `
-    .wf-btns { display:flex; gap:5px; align-items:center; flex-shrink:0; }
-    .wf-btn { width:13px; height:13px; border-radius:50%; border:none; cursor:pointer;
+    .wf-btns { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+    .wf-btn { width:22px; height:22px; border-radius:50%; border:none; cursor:pointer;
         display:flex; align-items:center; justify-content:center; font-size:0;
         transition:filter .15s, transform .1s; flex-shrink:0; position:relative; }
     .wf-btn:hover { filter:brightness(0.82); transform:scale(1.15); }
@@ -132,10 +149,10 @@
     .wf-btn-min   { background:#febc2e; }
     .wf-btn-max   { background:#28c840; }
     .wf-btn-close { background:#ff5f57; }
-    .wf-btns:hover .wf-btn::after { font-size:8px; font-weight:900; color:rgba(0,0,0,0.5); line-height:1; }
+    .wf-btns:hover .wf-btn::after { font-size:14px; font-weight:900; color:rgba(0,0,0,0.5); line-height:1; }
     .wf-btns:hover .wf-btn-min::after   { content:'−'; }
-    .wf-btns:hover .wf-btn-max::after   { content:'⤢'; font-size:7px; }
-    .wf-btns:hover .wf-btn-close::after { content:'×'; font-size:10px; }
+    .wf-btns:hover .wf-btn-max::after   { content:'⤢'; font-size:12px; }
+    .wf-btns:hover .wf-btn-close::after { content:'×'; font-size:17px; }
         `;
         document.head.appendChild(ws);
     }

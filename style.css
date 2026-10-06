@@ -1447,6 +1447,7 @@ body.presentation-mode #sticker-panel-tab { display: none !important; }
 			grid-template-columns: repeat(3, 1fr);
 			gap: 6px;
 			padding: 12px 8px;
+			margin-left: 42px; /* laisse libre la bande de fermeture (ligne bleue comprise) */
 			border-bottom: 2px solid #4a90e2;
 			flex-shrink: 0;
 			background: linear-gradient(180deg, #1c1c28, #14141c);
@@ -1802,7 +1803,7 @@ body.presentation-mode #tools-panel-tab { display: none !important; }
 }
 .tools-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(8, 1fr);
     gap: 8px;
     margin-bottom: 10px;
     padding-top: 6px;
@@ -1995,12 +1996,12 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
 }
 .act-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(10, 1fr);
     gap: 8px;
     margin-bottom: 8px;
 }
 #jeux-panel-content .act-grid {
-    grid-template-columns: repeat(6, 1fr);   /* nombre de colonnes propre au panneau Jeux */
+    grid-template-columns: repeat(8, 1fr);   /* nombre de colonnes propre au panneau Jeux */
 }
 .act-card {
     background: #1a1a1a;
@@ -4205,3 +4206,55 @@ body.menu-light #board-quick-menu button:active {
     background: rgba(0,0,0,0.06);
     color: var(--panel-light-text, #000);
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   BANDE DE FERMETURE : toute la partie gauche des panneaux latéraux
+   (la marge de 50px déjà réservée dans chaque panneau)
+══════════════════════════════════════════════════════════════════ */
+.panel-close-strip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    background: rgba(255,255,255,0.02);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+    z-index: 20;
+    user-select: none;
+    touch-action: manipulation;
+    transition: background 0.15s, border-color 0.15s;
+}
+.panel-close-strip .pcs-ico {
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.25);
+    pointer-events: none;
+    transition: color 0.15s, transform 0.15s;
+}
+.panel-close-strip:hover,
+.panel-close-strip:active {
+    background: rgba(255,95,87,0.15);
+    border-right-color: rgba(255,95,87,0.5);
+}
+.panel-close-strip:hover .pcs-ico,
+.panel-close-strip:active .pcs-ico {
+    color: #ff5f57;
+    transform: translateX(-3px);
+}
+body.menu-light .panel-close-strip {
+    background: rgba(0,0,0,0.03);
+    border-right-color: rgba(0,0,0,0.08);
+}
+body.menu-light .panel-close-strip .pcs-ico { color: rgba(0,0,0,0.25); }
+body.menu-light .panel-close-strip:hover,
+body.menu-light .panel-close-strip:active {
+    background: rgba(255,95,87,0.12);
+    border-right-color: rgba(255,95,87,0.5);
+}
+body.menu-light .panel-close-strip:hover .pcs-ico,
+body.menu-light .panel-close-strip:active .pcs-ico { color: #e0443c; }

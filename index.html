@@ -1338,7 +1338,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             // Garde-fou : si la valeur sauvegardée est absurde pour l'écran
             // actuel (ex. sauvegardée sur téléphone, rouverte sur PC), on
             // l'ignore et on repasse sur le comportement responsive par défaut.
-            var maxReasonableW = Math.round(window.innerWidth * 0.7);
+            var maxReasonableW = Math.round(window.innerWidth * 0.75);
             if (initW >= 260 && initW <= maxReasonableW) {
                 panel.style.width = initW + 'px';
                 document.documentElement.style.setProperty('--jeux-panel-w', initW + 'px');
@@ -1358,7 +1358,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.7);
+            var maxW = Math.round(window.innerWidth * 0.75);
             var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--jeux-panel-w', w + 'px');
@@ -1596,7 +1596,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.7);
+            var maxW = Math.round(window.innerWidth * 0.75);
             var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--act-panel-w', w + 'px');
@@ -1740,7 +1740,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.5);
+            var maxW = Math.round(window.innerWidth * 0.75);
             var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--widgets-panel-w', w + 'px');
@@ -1923,7 +1923,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.5);
+            var maxW = Math.round(window.innerWidth * 0.75);
             var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--tools-panel-w', w + 'px');
@@ -3415,6 +3415,48 @@ document.addEventListener('DOMContentLoaded', function() {
             window.parent.postMessage({ type: 'pg-ready' }, '*');
         }
     });
+})();
+</script>
+<script>
+// ── Bande de fermeture sur toute la partie gauche de chaque panneau latéral ─────
+(function() {
+    // [id du panneau, sélecteur du bouton de fermeture existant]
+    var PANELS = [
+        ['jeux-panel',        '#jeux-panel-close'],
+        ['activities-panel',  '#act-panel-close'],
+        ['tools-panel',       '#tools-panel-close'],
+        ['widgets-panel',     '#widgets-panel-close'],
+        ['sticker-panel',     '.sp-close'],
+        ['projects-panel',    '#proj-panel-close'],
+        ['display-panel',     '#display-panel-close'],
+        ['pdf-library-panel', '#pdf-library-close'],
+        ['image-panel',       '#image-panel-close']
+    ];
+
+    function addCloseButtons() {
+        PANELS.forEach(function(cfg) {
+            var panel = document.getElementById(cfg[0]);
+            if (!panel || panel.querySelector(':scope > .panel-close-strip')) return;
+            var btn = document.createElement('div');
+            btn.className = 'panel-close-strip';
+            btn.title = 'Fermer le panneau';
+            btn.setAttribute('role', 'button');
+            btn.setAttribute('aria-label', 'Fermer le panneau');
+            btn.innerHTML = '<span class="pcs-ico">&#10094;</span><span class="pcs-ico">&#10094;</span><span class="pcs-ico">&#10094;</span>';
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Réutilise le bouton de fermeture existant du panneau
+                var orig = panel.querySelector(cfg[1]);
+                if (orig) orig.click();
+            });
+            panel.appendChild(btn);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', addCloseButtons);
+    window.addEventListener('load', addCloseButtons);
+    // Les panneaux PDF et Images peuvent être construits plus tard par leurs scripts
+    setTimeout(addCloseButtons, 1500);
 })();
 </script>
 </body>

@@ -1,5 +1,11 @@
 // =========================================================================
 // WIDGET MÉTÉO
+//
+// Toutes les tailles sont en em : un seul font-size sur .meteo-container,
+// calculé par meteoFitContent(), suffit pour tout faire grossir / rétrécir.
+// La taille choisie est la plus grande pour laquelle TOUTES les infos
+// (ville, conditions actuelles, vent, humidité, prévisions, heure de mise
+// à jour) tiennent dans le widget, sans être coupées.
 // =========================================================================
 
 // ── CSS ───────────────────────────────────────────────────────────────────
@@ -8,13 +14,75 @@
     s.textContent = `
         .widget[data-type="meteo"] { min-width: unset; background: transparent !important; border: none !important; box-shadow: none !important; }
         .widget[data-type="meteo"] .editor-container { border: none; border-radius: 16px; overflow: hidden; resize: both; }
-        .meteo-city-name { text-decoration: underline dotted; }
-        .meteo-forecast { display: flex; gap: 6px; width: 100%; justify-content: space-between; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.25); padding-top: 6px; }
-        .meteo-forecast-day { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
-        .meteo-forecast-label { font-size: 10px; opacity: 0.75; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
-        .meteo-forecast-icon { font-size: 20px; line-height: 1; }
-        .meteo-forecast-temps { font-size: 10px; opacity: 0.9; white-space: nowrap; }
-        .meteo-forecast-temps span { opacity: 0.65; }
+
+        .meteo-container { font-family: 'Nunito', sans-serif; }
+
+        /* Ville (cliquable) */
+        .meteo-city {
+            flex: none;
+            width: 100%;
+            font-size: 0.95em;
+            font-weight: 700;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            opacity: 0.9;
+            padding-bottom: 0.45em;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+        }
+        .meteo-city:hover { opacity: 1; }
+        .meteo-city-name { text-decoration: underline dotted; text-underline-offset: 0.15em; }
+
+        /* Conditions actuelles : icône à gauche, température + description à droite */
+        .meteo-now {
+            flex: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45em;
+            max-width: 100%;
+        }
+        .meteo-icon { font-size: 3.4em; line-height: 1; flex: none; }
+        .meteo-now-txt { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+        .meteo-temp { font-size: 2.9em; font-weight: 800; line-height: 1; letter-spacing: -0.02em; white-space: nowrap; }
+        .meteo-desc { font-size: 0.95em; font-weight: 600; opacity: 0.92; line-height: 1.2; max-width: 9em; }
+
+        /* Vent / humidité */
+        .meteo-details { flex: none; display: flex; gap: 0.45em; justify-content: center; flex-wrap: wrap; font-size: 0.85em; }
+        .meteo-details span {
+            background: rgba(255,255,255,0.22);
+            border-radius: 999px;
+            padding: 0.2em 0.7em;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+
+        /* Prévisions 3 jours */
+        .meteo-forecast {
+            flex: none;
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.4em;
+        }
+        .meteo-forecast-day {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.15em;
+            min-width: 0;
+            background: rgba(255,255,255,0.16);
+            border-radius: 0.6em;
+            padding: 0.35em 0.2em 0.4em;
+        }
+        .meteo-forecast-label { font-size: 0.7em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
+        .meteo-forecast-icon  { font-size: 1.5em; line-height: 1.1; }
+        .meteo-forecast-temps { font-size: 0.8em; font-weight: 700; white-space: nowrap; }
+        .meteo-forecast-temps span { opacity: 0.65; font-weight: 600; }
+
+        .meteo-updated { flex: none; font-size: 0.65em; opacity: 0.6; }
     `;
     document.head.appendChild(s);
 })();
@@ -24,16 +92,19 @@
     const tpl = document.createElement('template');
     tpl.id = 'template-meteo';
     tpl.innerHTML = `
-        <div class="editor-container meteo-container" style="width:280px;height:260px;background:linear-gradient(135deg,#1a6fa8,#38b6e8);border-radius:16px;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px;box-sizing:border-box;color:white;overflow:hidden;">
-            <div class="meteo-city" style="font-size:13px;font-weight:600;opacity:0.85;cursor:pointer;text-align:center;border-bottom:1px solid rgba(255,255,255,0.3);padding-bottom:6px;width:100%;" title="Cliquer pour changer de ville">📍 <span class="meteo-city-name">Chargement...</span></div>
-            <div class="meteo-icon" style="font-size:52px;line-height:1;margin:4px 0;">⛅</div>
-            <div class="meteo-temp" style="font-size:36px;font-weight:800;line-height:1;">--°</div>
-            <div class="meteo-desc" style="font-size:13px;opacity:0.9;text-align:center;">--</div>
-            <div class="meteo-details" style="font-size:11px;opacity:0.75;display:flex;gap:12px;margin-top:2px;">
+        <div class="editor-container meteo-container" style="width:300px;height:300px;background:linear-gradient(135deg,#1a6fa8,#38b6e8);border-radius:16px;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.55em;padding:0.9em 1em;box-sizing:border-box;color:white;overflow:hidden;font-size:16px;">
+            <div class="meteo-city" title="Cliquer pour changer de ville">📍 <span class="meteo-city-name">Chargement...</span></div>
+            <div class="meteo-now">
+                <div class="meteo-icon">⛅</div>
+                <div class="meteo-now-txt">
+                    <div class="meteo-temp">--°</div>
+                    <div class="meteo-desc">--</div>
+                </div>
+            </div>
+            <div class="meteo-details">
                 <span class="meteo-wind">💨 --</span>
                 <span class="meteo-humidity">💧 --</span>
             </div>
-            <div class="meteo-updated" style="font-size:9px;opacity:0.5;margin-top:2px;">--</div>
             <div class="meteo-forecast">
                 <div class="meteo-forecast-day" data-day="1">
                     <div class="meteo-forecast-label">--</div>
@@ -51,9 +122,32 @@
                     <div class="meteo-forecast-temps">--</div>
                 </div>
             </div>
+            <div class="meteo-updated">--</div>
         </div>`;
     document.body.appendChild(tpl);
 })();
+
+// ── Ajustement automatique : tout doit tenir dans le widget ──────────────
+// Recherche par dichotomie de la plus grande taille de police pour laquelle
+// le contenu ne déborde ni en hauteur ni en largeur.
+function meteoFitContent(container) {
+    if (!container || !container.isConnected) return;
+    const W = container.clientWidth, H = container.clientHeight;
+    if (!W || !H) return;
+    const fits = px => {
+        container.style.fontSize = px + 'px';
+        return container.scrollHeight <= H + 1 && container.scrollWidth <= W + 1;
+    };
+    let lo = 6;
+    let hi = Math.max(lo, Math.min(W / 13, H / 12, 72));
+    if (fits(hi)) return;
+    if (!fits(lo)) return; // cas extrême : on garde la plus petite taille
+    for (let i = 0; i < 10 && hi - lo > 0.25; i++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid; else hi = mid;
+    }
+    fits(Math.floor(lo * 4) / 4);
+}
 
 // ── Données WMO + fetch + init ────────────────────────────────────────────
 const WMO_CODES = {
@@ -146,7 +240,7 @@ function initMeteoWidget(widget) {
                     <div style="font-size:32px;margin-bottom:8px;">⛅</div>
                     <div style="font-size:16px;font-weight:700;margin-bottom:4px;color:#222;">Widget Météo</div>
                     <div style="font-size:13px;color:#666;margin-bottom:16px;">Entrez la ville de votre école</div>
-                    <input id="meteo-city-input" type="text" value="${currentCity || ''}" placeholder="Ex : Paris, Lyon, Grenoble..."
+                    <input id="meteo-city-input" type="text" placeholder="Ex : Paris, Lyon, Grenoble..."
                         style="width:100%;box-sizing:border-box;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;margin-bottom:16px;">
                     <div style="display:flex;gap:10px;justify-content:center;">
                         <button id="meteo-cancel" style="padding:9px 20px;border:1px solid #ddd;background:#f8f9fa;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:#555;">Annuler</button>
@@ -155,6 +249,7 @@ function initMeteoWidget(widget) {
                 </div>`;
             document.body.appendChild(overlay);
             const input = overlay.querySelector('#meteo-city-input');
+            input.value = currentCity || '';
             input.focus(); input.select();
             const close = (val) => { overlay.remove(); resolve(val); };
             overlay.querySelector('#meteo-confirm').onclick = () => close(input.value.trim());
@@ -164,27 +259,15 @@ function initMeteoWidget(widget) {
         });
     }
 
-    function adaptMeteoFontSizes(c, w, h) {
-        const scale = Math.min(w / 280, h / 260);
-        iconEl.style.fontSize     = Math.round(52 * scale) + 'px';
-        tempEl.style.fontSize     = Math.round(36 * scale) + 'px';
-        descEl.style.fontSize     = Math.round(13 * scale) + 'px';
-        windEl.parentElement.style.fontSize = Math.round(11 * scale) + 'px';
-        cityNameEl.style.fontSize = Math.round(13 * scale) + 'px';
-        updEl.style.fontSize      = Math.round(9  * scale) + 'px';
-        forecastDays.forEach(day => {
-            day.querySelector('.meteo-forecast-label').style.fontSize = Math.round(10 * scale) + 'px';
-            day.querySelector('.meteo-forecast-icon').style.fontSize  = Math.round(20 * scale) + 'px';
-            day.querySelector('.meteo-forecast-temps').style.fontSize = Math.round(10 * scale) + 'px';
-        });
-    }
-
+    // Recalcule la taille du texte quand le widget est redimensionné
     let resizeSaveTimer = null;
     new ResizeObserver(() => {
-        adaptMeteoFontSizes(container, container.offsetWidth, container.offsetHeight);
+        meteoFitContent(container);
         clearTimeout(resizeSaveTimer);
         resizeSaveTimer = setTimeout(() => { if (typeof saveBoard === 'function') saveBoard(); }, 400);
     }).observe(container);
+    // Les polices et émojis changent la taille du texte : on réajuste une fois chargés
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => meteoFitContent(container));
 
     // --- VILLE : localStorage en priorité, sinon dataset ---
     let city = localStorage.getItem('meteo-city') || widget.dataset.meteoCity || '';
@@ -192,12 +275,13 @@ function initMeteoWidget(widget) {
     function applyMeteo(data) {
         const code = data.code;
         cityNameEl.textContent = `${data.name}, ${data.country}`;
+        widget.querySelector('.meteo-city').title = `${data.name}, ${data.country} — cliquer pour changer de ville`;
         iconEl.textContent  = WMO_ICONS[code] || '🌡️';
         tempEl.textContent  = `${data.temp}°`;
         descEl.textContent  = WMO_CODES[code] || '';
         windEl.textContent  = `💨 ${data.wind} km/h`;
-        humEl.textContent   = `💧 ${data.humidity}%`;
-        updEl.textContent   = 'Mis à jour ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+        humEl.textContent   = `💧 ${data.humidity} %`;
+        updEl.textContent   = 'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
         container.style.background = WMO_BG[code] || WMO_BG[2];
         const lightBg = [71,73,75,3];
         container.style.color = lightBg.includes(code) ? '#222' : 'white';
@@ -211,16 +295,18 @@ function initMeteoWidget(widget) {
                 dayEl.querySelector('.meteo-forecast-temps').innerHTML   = `${f.tmax}° <span>${f.tmin}°</span>`;
             });
         }
+        meteoFitContent(container);
     }
 
     async function loadCity(c) {
         cityNameEl.textContent = 'Chargement...';
-        iconEl.textContent = '⏳'; tempEl.textContent = ''; descEl.textContent = '';
+        iconEl.textContent = '⏳'; tempEl.textContent = '--°'; descEl.textContent = '';
         forecastDays.forEach(day => {
             day.querySelector('.meteo-forecast-label').textContent = '--';
             day.querySelector('.meteo-forecast-icon').textContent  = '--';
             day.querySelector('.meteo-forecast-temps').textContent = '--';
         });
+        meteoFitContent(container);
         try {
             const data = await fetchMeteo(c);
             widget.dataset.meteoCity = c;
@@ -230,6 +316,7 @@ function initMeteoWidget(widget) {
         } catch(e) {
             cityNameEl.textContent = 'Ville introuvable';
             iconEl.textContent = '❓'; tempEl.textContent = ''; descEl.textContent = '';
+            meteoFitContent(container);
         }
     }
 
@@ -244,6 +331,8 @@ function initMeteoWidget(widget) {
             if (widget.isConnected && c) loadCity(c).then(scheduleRefresh);
         }, 10 * 60 * 1000);
     }
+
+    meteoFitContent(container);
 
     if (city) {
         loadCity(city).then(scheduleRefresh);

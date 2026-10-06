@@ -726,20 +726,53 @@ function updateUndoRedoBtns() {
 	// POINTEUR LASER
 	// =========================================================================
 	let isLaserMode = false;
-	const laserDot = document.getElementById('laser-pointer') || (() => {
-		const d = document.createElement('div');
-		d.id = 'laser-pointer';
-		document.body.appendChild(d);
+
+	// Le point laser est récupéré au moment de l'utilisation (et non au chargement
+	// de board.js) : la balise <div id="laser-pointer"> est placée plus bas dans
+	// index.html, elle n'existe donc pas encore quand board.js s'exécute.
+	function getLaserDot() {
+		let d = document.getElementById('laser-pointer');
+		if (!d) {
+			d = document.createElement('div');
+			d.id = 'laser-pointer';
+			document.body.appendChild(d);
+		}
+		// Styles indispensables (au cas où le CSS ne les définirait pas)
+		d.style.position      = 'fixed';
+		d.style.pointerEvents = 'none';
+		d.style.zIndex        = '2147483647';
 		return d;
-	})();
+	}
+
+	// Le bouton laser s'appelle 'disp-laser-btn' dans le panneau Écran
+	// (l'ancien 'laser-btn' n'existe plus depuis la refonte du menu).
+	function getLaserBtn() {
+		return document.getElementById('disp-laser-btn') || document.getElementById('laser-btn');
+	}
 
 	function toggleLaser() {
 		isLaserMode = !isLaserMode;
-		const btn = document.getElementById('laser-btn');
+		const btn = getLaserBtn();
+		const laserDot = getLaserDot();
 		if (isLaserMode) {
-			btn.classList.add('active-tool');
+			if (btn) btn.classList.add('active-tool');
 			document.body.style.cursor = 'none';
 			laserDot.classList.add('active');
+			laserDot.style.display = 'block';
+			// Apparence par défaut si aucune règle CSS ne donne de taille au point
+			if (laserDot.offsetWidth === 0) {
+				laserDot.style.width        = '18px';
+				laserDot.style.height       = '18px';
+				laserDot.style.borderRadius = '50%';
+				laserDot.style.background   = 'radial-gradient(circle, #fff 0%, #ff2a2a 35%, rgba(255,0,0,0.6) 60%, rgba(255,0,0,0) 100%)';
+				laserDot.style.boxShadow    = '0 0 12px 4px rgba(255,0,0,0.7)';
+				laserDot.style.transform    = 'translate(-50%, -50%)';
+			}
+			// Placer le point sous le curseur dès l'activation
+			if (window._laserLastPos) {
+				laserDot.style.left = window._laserLastPos.x + 'px';
+				laserDot.style.top  = window._laserLastPos.y + 'px';
+			}
 			// Couvrir les iframes avec un overlay pour que le laser reste visible dessus
 			document.querySelectorAll('.widget iframe, .widget embed').forEach(el => {
 				const overlay = document.createElement('div');
@@ -755,15 +788,19 @@ function updateUndoRedoBtns() {
 				el.parentElement.appendChild(overlay);
 			});
 		} else {
-			btn.classList.remove('active-tool');
+			if (btn) btn.classList.remove('active-tool');
 			document.body.style.cursor = '';
 			laserDot.classList.remove('active');
+			laserDot.style.display = 'none';
 			document.querySelectorAll('.laser-iframe-overlay').forEach(el => el.remove());
 		}
 	}
 
-	document.addEventListener('mousemove', (e) => {
+	// pointermove (et non mousemove) : fonctionne aussi au stylet et au doigt sur TBI/VPI
+	document.addEventListener('pointermove', (e) => {
+		window._laserLastPos = { x: e.clientX, y: e.clientY };
 		if (!isLaserMode) return;
+		const laserDot = getLaserDot();
 		laserDot.style.left = e.clientX + 'px';
 		laserDot.style.top  = e.clientY + 'px';
 	});

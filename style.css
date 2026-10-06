@@ -1685,6 +1685,8 @@ body.presentation-mode #widgets-panel-tab { display: none !important; }
     transform: translateY(-2px);
 }
 .widgets-card-ico { font-size: 34px; line-height: 1; height: 100px; width: 100%; display: flex; align-items: center; justify-content: center; }
+.widgets-card-ico img { width: auto !important; height: auto !important; max-width: 100%; max-height: 100%; border: 1px solid #555; border-radius: 6px; box-sizing: border-box; }
+body.menu-light .widgets-card-ico img { border-color: #bbb; }
 .widgets-card-name { font-size: 11px; font-weight: 700; color: #ddd; line-height: 1.15; }
 .widgets-card-desc { font-size: 9px; color: rgba(255,255,255,0.4); line-height: 1.15; }
 

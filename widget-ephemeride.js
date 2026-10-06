@@ -450,6 +450,43 @@
             '<div class="ephem-sheet">' + buildSheet(cfg, sel) + '</div>' +
             (open ? buildSettings(cfg) : '');
         root.setAttribute('data-day', new Date().toDateString());
+        watchSize(root);
+        fitSheet(root);
+    }
+
+    /* ── Ajustement automatique : tout doit tenir sans scroller ──────
+       On cherche (par dichotomie) le plus grand facteur --ep-k ≤ 1 pour
+       lequel le contenu de la feuille tient dans sa hauteur. Le grand
+       chiffre du jour se réduit moitié moins vite que le texte. ────── */
+    const K_MIN = 0.45;
+    function fitSheet(root) {
+        const body = root.querySelector('.ephem-body');
+        if (!body || !root.offsetWidth || !root.offsetHeight) return;
+        const sheet = root.querySelector('.ephem-sheet');
+        const fits = k => {
+            root.style.setProperty('--ep-k', k.toFixed(3));
+            root.style.setProperty('--ep-kh', ((1 + k) / 2).toFixed(3));
+            return body.scrollHeight <= body.clientHeight && sheet.scrollHeight <= sheet.clientHeight;
+        };
+        if (fits(1)) return;
+        let lo = K_MIN, hi = 1;
+        if (!fits(lo)) return; // cas extrême : on garde le plus petit facteur (le scroll reste possible)
+        for (let i = 0; i < 8; i++) {
+            const mid = (lo + hi) / 2;
+            if (fits(mid)) lo = mid; else hi = mid;
+        }
+        fits(lo);
+    }
+
+    // Recalcule l'ajustement quand la taille change (redimensionnement, plein écran)
+    const sized = new WeakSet();
+    const ro = typeof ResizeObserver === 'function'
+        ? new ResizeObserver(entries => entries.forEach(en => fitSheet(en.target)))
+        : null;
+    function watchSize(root) {
+        if (!ro || sized.has(root)) return;
+        sized.add(root);
+        ro.observe(root);
     }
 
     // Met à jour seulement la feuille (sans recréer le champ date en cours de saisie)
@@ -462,6 +499,7 @@
         if (inp && document.activeElement !== inp) inp.value = toInputDate(sel);
         const t = root.querySelector('[data-ephem-action="today"]');
         if (t) t.classList.toggle('is-hidden', sameDay(sel, new Date()));
+        fitSheet(root);
     }
 
     /* ── Boutons fenêtre : réduire / plein écran / fermer ───────────── */
@@ -549,11 +587,92 @@
         if (e.target.closest && e.target.closest('.ephem-settings, .ephem-bar')) e.stopPropagation();
     }, true);
 
+    /* ── Redimensionnement proportionnel ──────────────────────────
+       La poignée du board (.custom-resize-handle) est interceptée pour
+       ce widget : la hauteur suit toujours la largeur (rapport 2:3,
+       celui du format d'origine 320 × 480). ──────────────────────── */
+    const RATIO = 480 / 320;
+    const MIN_W = 200, MAX_W = 2400;
+
+    function ephemBox(widget) {
+        const root = widget.querySelector('.ephem-root');
+        return root ? (root.closest('.editor-container') || root) : null;
+    }
+
+    // Écarts entre le widget et la feuille (si le widget a une taille en px)
+    function widgetExtra(widget, box) {
+        return {
+            w: /px$/.test(widget.style.width)  ? widget.offsetWidth  - box.offsetWidth  : null,
+            h: /px$/.test(widget.style.height) ? widget.offsetHeight - box.offsetHeight : null
+        };
+    }
+
+    function applySize(widget, box, w, extra) {
+        w = Math.round(Math.min(MAX_W, Math.max(MIN_W, w)));
+        const h = Math.round(w * RATIO);
+        box.style.width = w + 'px';
+        box.style.height = h + 'px';
+        if (extra.w !== null) widget.style.width  = (w + extra.w) + 'px';
+        if (extra.h !== null) widget.style.height = (h + extra.h) + 'px';
+    }
+
+    function startResize(e, widget) {
+        const box = ephemBox(widget);
+        if (!box) return;
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        const w0 = box.offsetWidth;
+        const extra = widgetExtra(widget, box);
+        const x0 = e.clientX, y0 = e.clientY;
+        const move = ev => {
+            // déplacement projeté sur la diagonale : largeur et hauteur bougent ensemble
+            const dx = ev.clientX - x0, dy = ev.clientY - y0;
+            applySize(widget, box, w0 + (dx + dy / RATIO) / 2, extra);
+        };
+        const up = () => {
+            window.removeEventListener('pointermove', move, true);
+            window.removeEventListener('pointerup', up, true);
+            window.removeEventListener('pointercancel', up, true);
+            document.body.style.cursor = '';
+            if (typeof saveBoard === 'function') saveBoard();
+        };
+        document.body.style.cursor = 'nwse-resize';
+        window.addEventListener('pointermove', move, true);
+        window.addEventListener('pointerup', up, true);
+        window.addEventListener('pointercancel', up, true);
+    }
+
+    function onResizeDown(e) {
+        const handle = e.target.closest && e.target.closest('.custom-resize-handle');
+        if (!handle) return;
+        const widget = handle.closest('.widget');
+        if (!widget || !widget.querySelector('.ephem-root')) return;
+        if (widget.classList.contains('ephem-is-full') || widget.querySelector('.wf-mini-bar')) return;
+        if (e.type === 'pointerdown') { startResize(e, widget); return; }
+        // on bloque aussi mousedown / touchstart pour que le redimensionnement libre du board ne démarre pas
+        e.stopPropagation(); e.stopImmediatePropagation();
+        if (e.cancelable) e.preventDefault();
+    }
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(t =>
+        document.addEventListener(t, onResizeDown, { capture: true, passive: false }));
+
+    // Corrige un widget déjà enregistré avec des proportions différentes
+    function fixRatio(root) {
+        requestAnimationFrame(() => {
+            const widget = root.closest('.widget');
+            if (!widget || widget.querySelector('.wf-mini-bar') || root.classList.contains('ephem-full')) return;
+            const box = ephemBox(widget);
+            if (!box || !box.offsetWidth) return;
+            if (Math.abs(box.offsetHeight - box.offsetWidth * RATIO) > 2) {
+                applySize(widget, box, box.offsetWidth, widgetExtra(widget, box));
+            }
+        });
+    }
+
     /* ── Hydratation : nouveaux widgets et boards rechargés ──────── */
     function hydrate(node) {
         if (!(node instanceof Element)) return;
-        if (node.matches('.ephem-root')) render(node);
-        node.querySelectorAll && node.querySelectorAll('.ephem-root').forEach(render);
+        const roots = node.matches('.ephem-root') ? [node] : Array.from(node.querySelectorAll('.ephem-root'));
+        roots.forEach(r => { render(r); fixRatio(r); });
     }
     const mo = new MutationObserver(muts => {
         for (const m of muts) m.addedNodes.forEach(n => {
@@ -608,23 +727,24 @@
 .ephem-gear:hover,.ephem-gear:focus-visible{color:var(--ep-ink);outline:1px solid var(--ep-line)}
 .ephem-bar :focus-visible{outline:2px solid var(--ep-red);outline-offset:1px}
 .ephem-sheet{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-.ephem-head{text-align:center;padding:1cqw 4cqw 2cqw;flex:none}
-.ephem-month{font-size:5cqw;letter-spacing:.04em;color:var(--ep-soft);font-style:italic}
+.ephem-head{text-align:center;padding:calc(1cqw * var(--ep-kh,1)) 4cqw calc(2cqw * var(--ep-kh,1));flex:none;line-height:1.15}
+.ephem-month{font-size:calc(5cqw * var(--ep-kh,1));letter-spacing:.04em;color:var(--ep-soft);font-style:italic}
 .ephem-num{font-family:Rockwell,"Roboto Slab","Clarendon","Bookman Old Style",Georgia,serif;font-weight:800;
-  font-size:34cqw;line-height:.95;letter-spacing:-.03em;font-variant-numeric:lining-nums}
-.ephem-wday{font-size:7.5cqw;font-weight:600;margin-top:-.5cqw}
+  font-size:calc(34cqw * var(--ep-kh,1));line-height:.95;letter-spacing:-.03em;font-variant-numeric:lining-nums}
+.ephem-wday{font-size:calc(7.5cqw * var(--ep-kh,1));font-weight:600;margin-top:-.5cqw}
 .ephem-wday::first-letter{text-transform:uppercase}
 .ephem-num.is-red,.ephem-wday.is-red{color:var(--ep-red)}
 .ephem-perf{flex:none;height:0;margin:0 3cqw;border-top:2px dotted var(--ep-line)}
-.ephem-body{flex:1;min-height:0;overflow-y:auto;padding:2.5cqw 5cqw 3cqw;font-size:4.3cqw;line-height:1.35}
-.ephem-row{display:flex;gap:3cqw;align-items:flex-start;padding:1.6cqw 0}
+/* Tailles en em : tout le corps suit le facteur --ep-k calculé par fitSheet() */
+.ephem-body{flex:1;min-height:0;overflow-y:auto;padding:.58em 5cqw .7em;font-size:calc(4.3cqw * var(--ep-k,1));line-height:1.35}
+.ephem-row{display:flex;gap:.7em;align-items:flex-start;padding:.37em 0}
 .ephem-row + .ephem-row{border-top:1px solid #efe9dd}
-.ephem-ico{flex:none;width:7cqw;text-align:center;font-size:5.4cqw;line-height:1.1}
+.ephem-ico{flex:none;width:1.3em;text-align:center;font-size:1.25em;line-height:1.1}
 .ephem-main{font-weight:600}
 .ephem-sub{color:var(--ep-soft);font-size:.86em}
-.ephem-dicton{margin:2.5cqw 0 1cqw;padding:2cqw 3cqw;border-left:3px solid var(--ep-red);font-style:italic;
+.ephem-dicton{margin:.58em 0 .23em;padding:.47em .7em;border-left:3px solid var(--ep-red);font-style:italic;
   color:#3d3830;background:#f6f2e8}
-.ephem-foot{display:flex;justify-content:space-between;gap:2cqw;flex-wrap:wrap;margin-top:2cqw;padding-top:2cqw;
+.ephem-foot{display:flex;justify-content:space-between;gap:.47em;flex-wrap:wrap;margin-top:.47em;padding-top:.47em;
   border-top:1px solid var(--ep-line);font-size:.82em;color:var(--ep-soft)}
 .ephem-settings{position:absolute;inset:0;z-index:4;background:#fff;padding:4cqw 5cqw;overflow-y:auto;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
   font-size:max(12px,3.8cqw);color:#222;user-select:auto}
@@ -756,6 +876,10 @@
         // Changement de jour (board resté ouvert la nuit, ou retour de veille)
         setInterval(() => renderAll(true), 60000);
         document.addEventListener('visibilitychange', () => { if (!document.hidden) renderAll(true); });
+        // Les polices changent la hauteur du texte : on réajuste une fois chargées
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => document.querySelectorAll('.ephem-root').forEach(fitSheet));
+        }
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

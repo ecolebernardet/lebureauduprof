@@ -1388,6 +1388,7 @@ function createSeyesWidget() {
 
     // ── Données d'annotation (strokes normalisés 0→1) ─────────────────────
     const _seyesAnnotLayer = { strokes: [], history: [], redoHistory: [] };
+    const _seyesFillCache  = new Map(); // images des remplissages pot de peinture
     let   _seyesIsDrawing  = false;
     let   _seyesCurStroke  = null;
     let   _seyesSnapshot   = null; // ImageData snapshot des strokes validés
@@ -1433,6 +1434,27 @@ function createSeyesWidget() {
         const ch = annotCanvas.height;
         const displayW = annotCanvas.getBoundingClientRect().width  || cw;
         const sizeScaled = stroke.size * cw / displayW;
+
+        // ── Remplissage pot de peinture (draw.js : fillPdfAt → addFillStroke) ──
+        // nx, ny, nw, nh normalisés sur la largeur / hauteur du canvas
+        if (stroke.tool === 'fill') {
+            if (!stroke.src) return;
+            let fimg = _seyesFillCache.get(stroke.src);
+            if (!fimg) {
+                fimg = new Image();
+                fimg.onload = () => _seyesRedrawAnnotations();
+                fimg.src = stroke.src;
+                _seyesFillCache.set(stroke.src, fimg);
+            }
+            if (!(fimg.complete && fimg.naturalWidth)) return;
+            const pos = _seyesFromNorm(stroke.nx, stroke.ny);
+            ctx.save();
+            ctx.globalAlpha = 1;
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.drawImage(fimg, pos.x, pos.y, stroke.nw * cw, stroke.nh * ch);
+            ctx.restore();
+            return;
+        }
 
         if (stroke.tool === 'text') {
             const pos = _seyesFromNorm(stroke.nx, stroke.ny);
@@ -1655,6 +1677,24 @@ function createSeyesWidget() {
                 actx.setLineDash([6, 4]);
             }
             actx.stroke(); actx.setLineDash([]); actx.restore();
+        },
+        // Pot de peinture (draw.js : fillPdfAt) — x, y, w, h en pixels canvas
+        addFillStroke(src, x, y, w, h, color) {
+            const W = annotCanvas.width || 1, H = annotCanvas.height || 1;
+            const stroke = {
+                tool: 'fill', color: color || '#000000', size: 1, src,
+                nx: x / W, ny: y / H, nw: w / W, nh: h / H
+            };
+            const pre = new Image();
+            pre.src = src;
+            _seyesFillCache.set(src, pre);
+            _seyesAnnotLayer.redoHistory = [];
+            _seyesAnnotLayer.history.push([..._seyesAnnotLayer.strokes]);
+            if (_seyesAnnotLayer.history.length > 30) _seyesAnnotLayer.history.shift();
+            _seyesAnnotLayer.strokes.push(stroke);
+            _seyesInvalidateSnapshot();
+            if (pre.complete && pre.naturalWidth) _seyesRedrawAnnotations();
+            else pre.onload = () => _seyesRedrawAnnotations();
         },
         addFigureStroke(color, size, pts, fillColor, fillOpacity) {
             const normPts = pts.map(p => _seyesToNorm(p.x, p.y));

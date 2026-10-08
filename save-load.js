@@ -387,6 +387,11 @@ function buildBoardState() {
         if (w.dataset.type === 'battle-synonymes' && typeof w._bsGetData === 'function') {
             bsData = w._bsGetData();
         }
+        // Données propres au widget Le correcteur fou
+        let jcfData = null;
+        if (w.dataset.type === 'jeu-correcteur-fou' && typeof w._jcfGetData === 'function') {
+            jcfData = w._jcfGetData();
+        }
         widgets.push({
 			type: w.dataset.subtype === 'seyes' ? 'seyes' : w.dataset.subtype === 'droite-num' ? 'droite-num' : w.dataset.type, topPercent: tP, leftPercent: lP, widthPercent: wP, contentHPercent: hP,
 			html, content: html, iframeSrc: iframe?.src || null,
@@ -450,7 +455,8 @@ function buildBoardState() {
 			jtmaData,
 			jscData,
 			jtfData,
-			bsData
+			bsData,
+			jcfData
 		});
     });
     const shapes = [];
@@ -968,6 +974,12 @@ function restoreBoardFromJSON(json) {
             // Réglages et liste d'élèves sont en localStorage : on restaure la fenêtre
             if (typeof createBattleSynonymesWidget === 'function') {
                 widget = createBattleSynonymesWidget(w.bsData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-correcteur-fou') {
+            if (typeof createJeuCorrecteurFouWidget === 'function') {
+                widget = createJeuCorrecteurFouWidget(w.jcfData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

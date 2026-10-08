@@ -372,6 +372,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-multi-run' && typeof w._jtmaGetData === 'function') {
             jtmaData = w._jtmaGetData();
         }
+        // Données propres au widget Le sujet commande (accord sujet-verbe)
+        let jscData = null;
+        if (w.dataset.type === 'jeu-sujet-commande' && typeof w._jscGetData === 'function') {
+            jscData = w._jscGetData();
+        }
         widgets.push({
 			type: w.dataset.subtype === 'seyes' ? 'seyes' : w.dataset.subtype === 'droite-num' ? 'droite-num' : w.dataset.type, topPercent: tP, leftPercent: lP, widthPercent: wP, contentHPercent: hP,
 			html, content: html, iframeSrc: iframe?.src || null,
@@ -432,7 +437,8 @@ function buildBoardState() {
 			nclData,
 			pixelartData,
 			jnmtData,
-			jtmaData
+			jtmaData,
+			jscData
 		});
     });
     const shapes = [];
@@ -932,6 +938,14 @@ function restoreBoardFromJSON(json) {
             window._jtmaNextPendingData = w.jtmaData || { _restored: true };
             widget = createWidget('jeu-multi-run', '100px', '100px', false);
             window._jtmaNextPendingData = null;
+        } else if (w.type === 'jeu-sujet-commande') {
+            // Un objet (même vide) signale une restauration : le widget garde
+            // sa position sauvegardée et réapplique niveau, score et taille.
+            if (typeof createJeuSujetCommandeWidget === 'function') {
+                widget = createJeuSujetCommandeWidget(w.jscData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
         } else if (w.type === 'pixelart') {
             if (typeof createPixelArtWidget === 'function') {
                 widget = createPixelArtWidget(w.pixelartData || null);

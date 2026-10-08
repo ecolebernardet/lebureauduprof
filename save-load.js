@@ -367,6 +367,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-nature-mots-texte' && typeof w._jnmtGetData === 'function') {
             jnmtData = w._jnmtGetData();
         }
+        // Données propres au widget Multi-Run (jeu des tables, coureur)
+        let jtmaData = null;
+        if (w.dataset.type === 'jeu-multi-run' && typeof w._jtmaGetData === 'function') {
+            jtmaData = w._jtmaGetData();
+        }
         widgets.push({
 			type: w.dataset.subtype === 'seyes' ? 'seyes' : w.dataset.subtype === 'droite-num' ? 'droite-num' : w.dataset.type, topPercent: tP, leftPercent: lP, widthPercent: wP, contentHPercent: hP,
 			html, content: html, iframeSrc: iframe?.src || null,
@@ -426,7 +431,8 @@ function buildBoardState() {
 			dnData,
 			nclData,
 			pixelartData,
-			jnmtData
+			jnmtData,
+			jtmaData
 		});
     });
     const shapes = [];
@@ -917,6 +923,15 @@ function restoreBoardFromJSON(json) {
             window._jnmtNextPendingData = w.jnmtData || null;
             widget = createWidget('jeu-nature-mots-texte', '100px', '100px', false);
             window._jnmtNextPendingData = null;
+        } else if (w.type === 'jeu-multi-run' || w.type === 'jeu-tables-mario') {
+            // ('jeu-tables-mario' = ancien nom du type, gardé pour relire les anciennes sauvegardes)
+            // Le hook de createWidget appelle initJeuMultiRunWidget de façon
+            // synchrone : on lui passe les données via window._jtmaNextPendingData.
+            // Un objet (même vide) signale une restauration : le widget garde
+            // alors sa position sauvegardée au lieu de se replacer à 100px.
+            window._jtmaNextPendingData = w.jtmaData || { _restored: true };
+            widget = createWidget('jeu-multi-run', '100px', '100px', false);
+            window._jtmaNextPendingData = null;
         } else if (w.type === 'pixelart') {
             if (typeof createPixelArtWidget === 'function') {
                 widget = createPixelArtWidget(w.pixelartData || null);

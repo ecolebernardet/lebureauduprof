@@ -420,6 +420,10 @@
 
 // ── Constante interne SVG ─────────────────────────────────────────────────
 const RQ_INTERNAL_SIZE = 600;
+// Marge blanche autour du quadrillage (unités SVG) : évite que les traits
+// posés sur le bord extérieur soient coupés à moitié (et donc plus fins).
+const RQ_PAD = 14;
+const RQ_VIEW_SIZE = RQ_INTERNAL_SIZE + 2 * RQ_PAD;
 
 // ── Création du widget ────────────────────────────────────────────────────
 function createReproQuadrillageWidget(savedData) {
@@ -533,7 +537,7 @@ function createReproQuadrillageWidget(savedData) {
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.classList.add('rq-svg');
-    svg.setAttribute('viewBox', `0 0 ${RQ_INTERNAL_SIZE} ${RQ_INTERNAL_SIZE}`);
+    svg.setAttribute('viewBox', `${-RQ_PAD} ${-RQ_PAD} ${RQ_VIEW_SIZE} ${RQ_VIEW_SIZE}`);
     svg.style.width  = '470px';
     svg.style.height = '470px';
     svgZone.appendChild(svg);
@@ -620,9 +624,13 @@ function createReproQuadrillageWidget(savedData) {
         const rect = svg.getBoundingClientRect();
         const clientX = e.clientX ?? (e.touches && e.touches[0].clientX);
         const clientY = e.clientY ?? (e.touches && e.touches[0].clientY);
+        // Conversion écran → coordonnées SVG (en tenant compte de la marge)
+        const rawX = ((clientX - rect.left) / rect.width)  * RQ_VIEW_SIZE - RQ_PAD;
+        const rawY = ((clientY - rect.top)  / rect.height) * RQ_VIEW_SIZE - RQ_PAD;
+        const clamp = v => Math.min(RQ_INTERNAL_SIZE, Math.max(0, v));
         return {
-            x: Math.round((((clientX - rect.left) / rect.width)  * RQ_INTERNAL_SIZE) / cell) * cell,
-            y: Math.round((((clientY - rect.top)  / rect.height) * RQ_INTERNAL_SIZE) / cell) * cell
+            x: clamp(Math.round(rawX / cell) * cell),
+            y: clamp(Math.round(rawY / cell) * cell)
         };
     }
 

@@ -17,6 +17,11 @@
 //                      la mini-barre affiche l'état et le nombre d'alertes)
 //   🟢 Plein écran  → le radar occupe tout l'écran (Échap pour sortir)
 //   🔴 Fermer       → coupe le micro et supprime le widget
+//
+// Niveaux de voix (rangée de 4 boutons sous le titre) :
+//   0 Silence · 1 Chuchoter · 2 En groupe · 3 Classe
+//   Chaque niveau a son propre seuil d'alerte. Le curseur « Seuil »
+//   règle le seuil du niveau sélectionné, qui est mémorisé.
 // =========================================================================
 
 (function () {
@@ -195,9 +200,9 @@
 
         position: relative;
         width:  340px;
-        height: 420px;
+        height: 470px;
         min-width:  220px;
-        min-height: 272px;
+        min-height: 304px;
         overflow: hidden;
         resize: none;
         box-sizing: border-box;
@@ -257,10 +262,10 @@
         z-index: 3;
     }
 
-    /* ── Widget intérieur (taille de référence 340×420) ── */
+    /* ── Widget intérieur (taille de référence 340×470) ── */
     .radar-widget {
         width: 340px;
-        height: 420px;
+        height: 470px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -316,6 +321,40 @@
     .radar-icon-btn:hover { background: rgba(234,240,250,0.08); color: var(--rd-ink); }
     .radar-icon-btn:focus-visible { outline: 2px solid var(--rd-accent); outline-offset: 2px; }
     .radar-toggle-controls.is-off { color: var(--rd-accent); border-color: rgba(142,197,255,0.35); }
+
+    /* ── Niveaux de voix ── */
+    .radar-voice {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        flex-shrink: 0;
+    }
+    .radar-voice-btn {
+        font-family: inherit;
+        background: rgba(234,240,250,0.05);
+        border: 1px solid var(--rd-line);
+        border-radius: 12px;
+        color: var(--rd-muted);
+        padding: 6px 2px 7px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        cursor: pointer;
+        transition: background .2s, color .2s, border-color .2s, transform .1s;
+    }
+    .radar-voice-btn:hover { background: rgba(234,240,250,0.10); color: var(--rd-ink); }
+    .radar-voice-btn:active { transform: scale(0.96); }
+    .radar-voice-btn:focus-visible { outline: 2px solid var(--rd-accent); outline-offset: 2px; }
+    .radar-voice-num  { font-size: 19px; font-weight: 700; line-height: 1; }
+    .radar-voice-name { font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+    .radar-voice-btn.is-active {
+        background: var(--rd-accent);
+        border-color: transparent;
+        color: var(--rd-deep);
+        box-shadow: 0 6px 16px -8px rgba(142,197,255,0.8);
+    }
 
     /* ── Zone radar ── */
     .radar-box-wrap {
@@ -585,6 +624,12 @@
               +           '</div>'
               +         '</div>'
               +       '</div>'
+              +       '<div class="radar-voice" role="group" aria-label="Niveau de voix attendu">'
+              +         '<button class="radar-voice-btn" data-voice="0" title="Silence : on ne parle pas"><span class="radar-voice-num">0</span><span class="radar-voice-name">Silence</span></button>'
+              +         '<button class="radar-voice-btn" data-voice="1" title="Chuchotement : seul mon voisin m\'entend"><span class="radar-voice-num">1</span><span class="radar-voice-name">Chuchoter</span></button>'
+              +         '<button class="radar-voice-btn" data-voice="2" title="Voix de groupe : seul mon groupe m\'entend"><span class="radar-voice-num">2</span><span class="radar-voice-name">En groupe</span></button>'
+              +         '<button class="radar-voice-btn" data-voice="3" title="Voix de classe : toute la classe m\'entend"><span class="radar-voice-num">3</span><span class="radar-voice-name">Classe</span></button>'
+              +       '</div>'
               +       '<div class="radar-box-wrap">'
               +         '<div class="radar-ring outer-ring"></div>'
               +         '<div class="radar-ring" style="transform:scale(0.25)"></div>'
@@ -617,11 +662,11 @@
               +         '</div>'
               +         '<div class="radar-slider-row">'
               +           '<span class="radar-slider-label">Seuil</span>'
-              +           '<input type="range" class="radar-slider radar-seuil-slider" min="10" max="100" step="5" value="75" aria-label="Seuil d\'alerte">'
-              +           '<span class="radar-slider-val radar-seuil-val">75%</span>'
+              +           '<input type="range" class="radar-slider radar-seuil-slider" min="10" max="100" step="5" value="85" aria-label="Seuil d\'alerte">'
+              +           '<span class="radar-slider-val radar-seuil-val">85%</span>'
               +         '</div>'
               +         '<div class="radar-slider-row">'
-              +           '<span class="radar-slider-label" title="Ignore les bruits courts (règle qui tombe, éternuement…)">Lissage</span>'
+              +           '<span class="radar-slider-label" title="Ignore les bruits courts et soudains (toux, règle qui tombe…). Plus la valeur est haute, plus le radar attend un brouhaha qui dure.">Lissage</span>'
               +           '<input type="range" class="radar-slider radar-smooth-slider" min="0" max="10" step="1" value="4" aria-label="Lissage">'
               +           '<span class="radar-slider-val radar-smooth-val">4</span>'
               +         '</div>'
@@ -655,6 +700,7 @@
             var wfMin          = widget.querySelector('[data-role="wf-min"]');
             var wfMax          = widget.querySelector('[data-role="wf-max"]');
             var wfClose        = widget.querySelector('[data-role="wf-close"]');
+            var voiceBtns      = widget.querySelectorAll('.radar-voice-btn');
 
             // ── État interne ──
             var isListening   = false;
@@ -665,13 +711,22 @@
             var canPlaySound  = true;
             var smoothedLevel = 0;
             var sensitivity   = 1.5;
-            var threshold     = 75;
+            var threshold     = 85;
+
+            // ── Niveaux de voix : seuil propre à chaque niveau ──
+            var VOICE_LEVELS = [
+                { name: 'Silence',   threshold: 20 },
+                { name: 'Chuchoter', threshold: 40 },
+                { name: 'En groupe', threshold: 60 },
+                { name: 'Classe',    threshold: 85 }
+            ];
+            var voiceLevel = 3;
 
             // ── Libellé de la mini-barre (widget réduit) ──
             var ZONE_LABELS = { calm: 'Calme', warn: 'Attention', alert: 'Trop fort' };
             var ZONE_EMOJI  = { calm: '🟢', warn: '🟠', alert: '🔴' };
             function miniLabelText() {
-                var txt = '📡 Radar de bruit';
+                var txt = '📡 Voix ' + voiceLevel + ' (' + VOICE_LEVELS[voiceLevel].name + ')';
                 if (isListening && outer.dataset.zone) {
                     txt += ' — ' + ZONE_EMOJI[outer.dataset.zone] + ' ' + ZONE_LABELS[outer.dataset.zone];
                 }
@@ -710,7 +765,7 @@
             }
 
             // ── Dimensions de référence ──
-            var REF_W = 340, REF_H = 420;
+            var REF_W = 340, REF_H = 470;
             var RATIO = REF_H / REF_W;
 
             function rescale() {
@@ -781,27 +836,63 @@
             rescale();
 
             // ── Lissage anti-pics courts ──
-            // smoothingStrength : 0 = désactivé, 1-10 = force croissante
+            // Objectif : ignorer les bruits courts et soudains (toux, règle qui
+            // tombe, chaise…) et ne réagir qu'au brouhaha qui monte peu à peu.
+            //
+            // Principe (basé sur le temps réel, pas sur un nombre d'images) :
+            //   1. On garde les N dernières secondes de mesures.
+            //   2. Le niveau ambiant = la MÉDIANE de cette fenêtre : un bruit qui
+            //      dure moins de la moitié de la fenêtre ne la fait pas bouger.
+            //   3. Le radar suit ce niveau ambiant en douceur (montée progressive).
+            //   4. L'alerte ne part que si le seuil est dépassé pendant un
+            //      certain temps sans interruption.
+            //
+            // smoothingStrength : 0 = désactivé, 1 à 10 = force croissante
             var smoothingStrength = 4;
-            var sampleBuffer = [];
-            var sustainFrames = 0;        // nb frames consécutives au-dessus du seuil
-            var sustainRequired = 0;      // nb frames requis avant déclenchement
+            var sampleBuffer   = [];   // { t: secondes, v: niveau 0..100 }
+            var aboveSince     = null; // instant où le seuil a commencé à être dépassé
+            var lastSampleTime = null;
 
-            function updateSmoothingParams() {
-                var bufSize = smoothingStrength === 0 ? 1 : Math.round(2 + smoothingStrength * 1.8);
-                sustainRequired = smoothingStrength === 0 ? 0 : Math.round(smoothingStrength * 1.4);
-                if (sampleBuffer.length > bufSize) sampleBuffer = sampleBuffer.slice(-bufSize);
-                return bufSize;
+            // Réglages déduits de la force du lissage (en secondes)
+            function smoothingParams() {
+                var k = smoothingStrength;
+                return {
+                    windowSec:  1 + k * 0.5,    // fenêtre de la médiane : 1,5 s → 6 s (défaut 3 s)
+                    riseTau:    0.3 + k * 0.17, // temps de montée du radar : ~0,5 s → 2 s
+                    fallTau:    1.0 + k * 0.1,  // temps de redescente : ~1,1 s → 2 s
+                    sustainSec: 0.3 + k * 0.17  // durée de dépassement avant alerte : ~0,5 s → 2 s
+                };
             }
-            updateSmoothingParams();
-
+            function resetSmoothing() {
+                sampleBuffer = [];
+                aboveSince = null;
+                lastSampleTime = null;
+            }
             // Seuil → taille du cercle pointillé
             function applyThreshold(val) {
                 threshold = parseInt(val);
                 threshRing.style.transform = 'scale(' + (threshold / 100) + ')';
                 seuilVal.textContent = threshold + '%';
             }
-            applyThreshold(75);
+
+            // Sélection d'un niveau de voix → applique son seuil
+            function setVoiceLevel(n) {
+                voiceLevel = n;
+                voiceBtns.forEach(function (b) {
+                    var on = parseInt(b.dataset.voice) === n;
+                    b.classList.toggle('is-active', on);
+                    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                });
+                var t = VOICE_LEVELS[n].threshold;
+                seuilSlider.value = t;
+                paintSlider(seuilSlider);
+                applyThreshold(t);
+                aboveSince = null;
+                if (smoothedLevel < threshold - 5) canTrigger = true;
+                if (isListening) setZone(smoothedLevel);
+                updateMiniLabel();
+            }
+            setVoiceLevel(3);
 
             // ── Audio ──
             var audioCtx        = null;
@@ -835,58 +926,67 @@
                 setTimeout(function () { canPlaySound = true; }, 1500);
             }
 
+            function nowSec() {
+                return (window.performance ? performance.now() : Date.now()) / 1000;
+            }
+
+            function setAlerting(on) {
+                blob.classList.toggle('is-alerting', on);
+                flashEl.classList.toggle('active', on);
+            }
+
+            function triggerAlert() {
+                alertsCount++; setCount(alertsCount); playAlert(); canTrigger = false;
+            }
+
             function render(value) {
                 var raw = Math.min(value * sensitivity, 100);
 
                 if (smoothingStrength === 0) {
-                    // Mode direct : comportement original
+                    // Mode direct : réagit à tout, y compris aux bruits courts
                     smoothedLevel += (raw - smoothedLevel) * 0.15;
                     blob.style.transform = 'scale(' + (smoothedLevel / 100) + ')';
                     setZone(smoothedLevel);
                     if (smoothedLevel > threshold) {
-                        blob.classList.add('is-alerting');
-                        flashEl.classList.add('active');
-                        if (canTrigger) { alertsCount++; setCount(alertsCount); playAlert(); canTrigger = false; }
+                        setAlerting(true);
+                        if (canTrigger) triggerAlert();
                     } else {
-                        blob.classList.remove('is-alerting'); flashEl.classList.remove('active');
+                        setAlerting(false);
                         if (smoothedLevel < threshold - 5) canTrigger = true;
                     }
                     return;
                 }
 
-                // ── Mode lissage : séparer le niveau ambiant soutenu des pics courts ──
+                // ── Mode lissage : on ne garde que le brouhaha soutenu ──
+                var p   = smoothingParams();
+                var now = nowSec();
+                var dt  = lastSampleTime === null ? 0.05 : Math.min(0.5, Math.max(0, now - lastSampleTime));
+                lastSampleTime = now;
 
-                // 1. Buffer circulaire de valeurs brutes
-                var bufSize = updateSmoothingParams();
-                sampleBuffer.push(raw);
-                if (sampleBuffer.length > bufSize) sampleBuffer.shift();
+                // 1. Fenêtre glissante des N dernières secondes
+                sampleBuffer.push({ t: now, v: raw });
+                while (sampleBuffer.length && now - sampleBuffer[0].t > p.windowSec) sampleBuffer.shift();
 
-                // 2. Percentile bas = niveau ambiant (ignore les pics hauts)
-                var sorted = sampleBuffer.slice().sort(function(a, b){ return a - b; });
-                var pctIdx = Math.floor(sorted.length * Math.max(0.2, 0.8 - smoothingStrength * 0.06));
-                var ambientLevel = sorted[pctIdx] || 0;
+                // 2. Niveau ambiant = médiane (les pics courts n'y entrent pas)
+                var sorted = sampleBuffer.map(function (s) { return s.v; }).sort(function (a, b) { return a - b; });
+                var ambient = sorted.length ? sorted[Math.floor((sorted.length - 1) / 2)] : 0;
 
-                // 3. Lissage exponentiel très lent sur ce niveau ambiant
-                var upAlpha   = Math.max(0.03, 0.12 - smoothingStrength * 0.008);
-                var downAlpha = Math.max(0.01, 0.06 - smoothingStrength * 0.004);
-                var alpha = ambientLevel > smoothedLevel ? upAlpha : downAlpha;
-                smoothedLevel += (ambientLevel - smoothedLevel) * alpha;
+                // 3. Suivi progressif du niveau ambiant (indépendant de la fréquence d'appel)
+                var tau   = ambient > smoothedLevel ? p.riseTau : p.fallTau;
+                var alpha = 1 - Math.exp(-dt / tau);
+                smoothedLevel += (ambient - smoothedLevel) * alpha;
 
-                // 4. Blob = niveau ambiant uniquement (les pics courts n'y apparaissent pas)
                 blob.style.transform = 'scale(' + (smoothedLevel / 100) + ')';
                 setZone(smoothedLevel);
 
-                // 5. Alerte si le niveau ambiant depasse le seuil de facon soutenue
+                // 4. Alerte seulement si le seuil est dépassé de façon continue
                 if (smoothedLevel > threshold) {
-                    blob.classList.add('is-alerting');
-                    flashEl.classList.add('active');
-                    sustainFrames++;
-                    if (canTrigger && sustainFrames >= sustainRequired) {
-                        alertsCount++; setCount(alertsCount); playAlert(); canTrigger = false;
-                    }
+                    setAlerting(true);
+                    if (aboveSince === null) aboveSince = now;
+                    if (canTrigger && now - aboveSince >= p.sustainSec) triggerAlert();
                 } else {
-                    blob.classList.remove('is-alerting'); flashEl.classList.remove('active');
-                    sustainFrames = 0;
+                    setAlerting(false);
+                    aboveSince = null;
                     if (smoothedLevel < threshold - 5) canTrigger = true;
                 }
             }
@@ -930,8 +1030,7 @@
                 scriptProcessor = null;
                 isListening = false;
                 smoothedLevel = 0;
-                sampleBuffer = [];
-                sustainFrames = 0;
+                resetSmoothing();
                 blob.style.transform = 'scale(0)';
                 blob.classList.remove('is-alerting');
                 flashEl.classList.remove('active');
@@ -969,16 +1068,22 @@
 
             seuilSlider.addEventListener('input', function () {
                 applyThreshold(this.value);
+                VOICE_LEVELS[voiceLevel].threshold = threshold; // mémorisé pour ce niveau
                 paintSlider(this);
+            });
+
+            voiceBtns.forEach(function (b) {
+                b.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    setVoiceLevel(parseInt(this.dataset.voice));
+                });
             });
 
             smoothSlider.addEventListener('input', function () {
                 smoothingStrength = parseInt(this.value);
                 smoothVal.textContent = smoothingStrength;
                 paintSlider(this);
-                sampleBuffer = [];
-                sustainFrames = 0;
-                updateSmoothingParams();
+                resetSmoothing();
             });
 
             // ── Toggle contrôles ──

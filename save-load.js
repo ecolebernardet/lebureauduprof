@@ -377,6 +377,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-sujet-commande' && typeof w._jscGetData === 'function') {
             jscData = w._jscGetData();
         }
+        // Données propres au widget Le tir aux fonctions
+        let jtfData = null;
+        if (w.dataset.type === 'jeu-tir-fonctions' && typeof w._jtfGetData === 'function') {
+            jtfData = w._jtfGetData();
+        }
         widgets.push({
 			type: w.dataset.subtype === 'seyes' ? 'seyes' : w.dataset.subtype === 'droite-num' ? 'droite-num' : w.dataset.type, topPercent: tP, leftPercent: lP, widthPercent: wP, contentHPercent: hP,
 			html, content: html, iframeSrc: iframe?.src || null,
@@ -438,7 +443,8 @@ function buildBoardState() {
 			pixelartData,
 			jnmtData,
 			jtmaData,
-			jscData
+			jscData,
+			jtfData
 		});
     });
     const shapes = [];
@@ -943,6 +949,12 @@ function restoreBoardFromJSON(json) {
             // sa position sauvegardée et réapplique niveau, score et taille.
             if (typeof createJeuSujetCommandeWidget === 'function') {
                 widget = createJeuSujetCommandeWidget(w.jscData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-tir-fonctions') {
+            if (typeof createJeuTirFonctionsWidget === 'function') {
+                widget = createJeuTirFonctionsWidget(w.jtfData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

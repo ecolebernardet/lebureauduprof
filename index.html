@@ -1090,6 +1090,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-tour-calcul.js"></script>
 <script src="widget-jeu-motsmeles.js"></script>
 <script src="widget-jeu-sujet-commande.js"></script>
+<script src="widget-jeu-tir-fonctions.js"></script>
 <script src="widget-de.js"></script>
 <script src="widget-fractions.js"></script>
 <script src="widget-minuteur-chrono.js"></script>
@@ -1278,6 +1279,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-sujet-commande.png" alt="Le sujet commande" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🚦'"></div>
                 <div class="act-card-name">Le sujet commande !</div>
                 <div class="act-card-desc">Aiguiller le train vers la bonne forme du verbe en trouvant son sujet</div>
+            </div>
+			<div class="act-card" onclick="createWidget('jeu-tir-fonctions');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-tir-fonctions.png" alt="Le tir aux fonctions" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎯'"></div>
+                <div class="act-card-name">Le tir aux fonctions</div>
+                <div class="act-card-desc">Tirer sur la cible qui porte la fonction du groupe surligné : sujet, COD, COI, CC…</div>
             </div>
 		</div>
 		<div class="act-section-label">🎮 Jeux divers</div>

@@ -382,6 +382,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-tir-fonctions' && typeof w._jtfGetData === 'function') {
             jtfData = w._jtfGetData();
         }
+        // Données propres au widget Battle synonymes / contraires (fenêtre)
+        let bsData = null;
+        if (w.dataset.type === 'battle-synonymes' && typeof w._bsGetData === 'function') {
+            bsData = w._bsGetData();
+        }
         widgets.push({
 			type: w.dataset.subtype === 'seyes' ? 'seyes' : w.dataset.subtype === 'droite-num' ? 'droite-num' : w.dataset.type, topPercent: tP, leftPercent: lP, widthPercent: wP, contentHPercent: hP,
 			html, content: html, iframeSrc: iframe?.src || null,
@@ -444,7 +449,8 @@ function buildBoardState() {
 			jnmtData,
 			jtmaData,
 			jscData,
-			jtfData
+			jtfData,
+			bsData
 		});
     });
     const shapes = [];
@@ -955,6 +961,13 @@ function restoreBoardFromJSON(json) {
         } else if (w.type === 'jeu-tir-fonctions') {
             if (typeof createJeuTirFonctionsWidget === 'function') {
                 widget = createJeuTirFonctionsWidget(w.jtfData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'battle-synonymes') {
+            // Réglages et liste d'élèves sont en localStorage : on restaure la fenêtre
+            if (typeof createBattleSynonymesWidget === 'function') {
+                widget = createBattleSynonymesWidget(w.bsData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

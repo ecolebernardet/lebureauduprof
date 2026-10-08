@@ -1086,6 +1086,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-plus-grand.js"></script>
 <script src="widget-jeu-battle-calculs.js"></script>
 <script src="widget-jeu-battle-nature-mots.js"></script>
+<script src="widget-jeu-battle-synonymes.js"></script>
 <script src="widget-jeu-phrase-desordre.js"></script>
 <script src="widget-jeu-tour-calcul.js"></script>
 <script src="widget-jeu-motsmeles.js"></script>
@@ -1269,6 +1270,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-battle-nature-mots.png" alt="Battle nature des mots" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle nature des mots</div>
                 <div class="act-card-desc">Duel à deux au TBI : trouver la nature du mot surligné avant l'adversaire</div>
+            </div>
+			<div class="act-card" onclick="createWidget('battle-synonymes');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-battle-synonymes.png" alt="Battle synonymes / contraires" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-name">Battle synonymes / contraires</div>
+                <div class="act-card-desc">Duel à deux au TBI : trouver le synonyme ou le contraire du mot avant l'adversaire</div>
             </div>
 			<div class="act-card" onclick="createWidget('jeu-motsmeles');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-mots-meles.png" alt="Mots mêlés" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔤'"></div>

@@ -4263,3 +4263,41 @@ body.menu-light .panel-close-strip:active {
 }
 body.menu-light .panel-close-strip:hover .pcs-ico,
 body.menu-light .panel-close-strip:active .pcs-ico { color: #e0443c; }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   BARRE DESSIN : FAB masqué quand la barre est ouverte
+   + bouton de fermeture bien visible
+══════════════════════════════════════════════════════════════════ */
+#draw-fab-btn.draw-open {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.6);
+}
+body #draw-toolbar #draw-toolbar-close {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    background: #ff5f57 !important;
+    border: 2px solid #ffffff !important;
+    color: #ffffff !important;
+    font-size: 15px !important;
+    font-weight: 900;
+    line-height: 1;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(255, 95, 87, 0.55);
+    transition: transform .12s, filter .12s, box-shadow .12s;
+    touch-action: manipulation;
+}
+body #draw-toolbar #draw-toolbar-close:hover {
+    filter: brightness(0.9);
+    transform: scale(1.12);
+    box-shadow: 0 3px 12px rgba(255, 95, 87, 0.75);
+}
+body #draw-toolbar #draw-toolbar-close:active { transform: scale(0.92); }
+body.menu-light #draw-toolbar #draw-toolbar-close { border-color: #c0392b !important; }

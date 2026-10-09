@@ -425,6 +425,13 @@
         min-width: 0;
         max-width: 260px;
     }
+    /* La règle .widget { touch-action: none } du tableau bloque aussi le
+       défilement au doigt : on le réautorise dans la liste des prénoms,
+       et on évite le délai / zoom du double-tap sur les boutons. */
+    .widget[data-type="tirage"] .tirage-body { touch-action: pan-y; }
+    .widget[data-type="tirage"] .tirage-pill,
+    .widget[data-type="tirage"] .tirage-inner button { touch-action: manipulation; }
+
     .widget.phone-fs[data-type="tirage"] .tirage-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -529,6 +536,19 @@
 
         // Bloquer la remontée mousedown depuis l'intérieur (sinon le drag se déclenche)
         outer.addEventListener('mousedown', e => e.stopPropagation());
+
+        // Même chose au doigt / au stylet : sans ça, le toucher sur un prénom
+        // remonte jusqu'au tableau, qui le prend pour un déplacement du widget
+        // et annule le clic. On laisse passer l'en-tête (il sert à déplacer).
+        if (!outer._touchGuard) {
+            outer._touchGuard = true;
+            const stopIfNotHeader = (e) => {
+                if (e.target.closest && e.target.closest('.tirage-header')) return;
+                e.stopPropagation();
+            };
+            outer.addEventListener('touchstart',  stopIfNotHeader, { passive: true });
+            outer.addEventListener('pointerdown', stopIfNotHeader);
+        }
 
         // ── Header draggable (une seule fois) ─────────────────────────────
         const tirageHeader = widget.querySelector('.tirage-header');
@@ -977,6 +997,32 @@
             return currentLevel === 'tous' ? allStudents : allStudents.filter(s => s.niveau === currentLevel);
         }
 
+        // Toucher fiable sur téléphone/tablette : un appui court (sans glisser,
+        // pour ne pas gêner le défilement de la liste) déclenche l'action dès
+        // que le doigt se lève. À la souris, on garde le clic habituel.
+        let lastTouchTap = 0;
+        function onTap(el, fn) {
+            let start = null;
+            el.addEventListener('pointerdown', (e) => {
+                if (e.pointerType === 'mouse') return;
+                start = { x: e.clientX, y: e.clientY };
+            });
+            el.addEventListener('pointerup', (e) => {
+                if (e.pointerType === 'mouse' || !start) return;
+                const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+                start = null;
+                if (moved > 10) return;            // c'était un défilement
+                lastTouchTap = Date.now();
+                e.preventDefault();
+                fn();
+            });
+            el.addEventListener('pointercancel', () => { start = null; });
+            el.addEventListener('click', () => {
+                if (Date.now() - lastTouchTap < 600) return; // déjà traité au toucher
+                fn();
+            });
+        }
+
         function hasDupPrenom(p) {
             return allStudents.filter(s => s.prenom.toLowerCase() === p.toLowerCase()).length > 1;
         }
@@ -1016,7 +1062,7 @@
                     if (pillCls) pill.classList.add(pillCls);
                     pill.textContent = displayName(s);
                     pill.title       = s.prenom + ' ' + s.nom + (isDrawn ? ' (tiré)' : '');
-                    pill.addEventListener('click', () => toggleStudent(s.id));
+                    onTap(pill, () => toggleStudent(s.id));
                     grid.appendChild(pill);
                 });
                 block.appendChild(grid);

@@ -392,6 +392,42 @@
         color: #374151;
         font-weight: 800;
     }
+
+    /* ── Téléphone : plein écran (classe .phone-fs posée par index.html) ──
+       Le cadre fait 800×600 px par défaut : en plein écran il doit
+       remplir tout l'écran du téléphone. */
+    .widget.phone-fs[data-type="tirage"] .tirage-outer {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        border-radius: 0 !important;
+    }
+    .widget.phone-fs[data-type="tirage"] .tirage-inner {
+        border-radius: 0 !important;
+        border: none !important;
+    }
+    .widget.phone-fs[data-type="tirage"] .tirage-header {
+        cursor: default;
+        padding-right: 56px; /* laisse la place au bouton ⤡ de sortie du plein écran */
+    }
+    .widget.phone-fs[data-type="tirage"] .tirage-body {
+        max-height: none;
+        flex: 1 1 auto;
+    }
+    .widget.phone-fs[data-type="tirage"] .tirage-result-card {
+        width: auto;
+        min-width: 0;
+        margin: 8px 12px;
+    }
+    .widget.phone-fs[data-type="tirage"] .tirage-reset-btn {
+        width: auto;
+        min-width: 0;
+        max-width: 260px;
+    }
+    .widget.phone-fs[data-type="tirage"] .tirage-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
     `;
 
     if (!document.getElementById('tirage-widget-style')) {
@@ -534,6 +570,10 @@
         let _isMax = false;
 
         function tirageCollapse() {
+            // En plein écran téléphone : on en sort d'abord pour retrouver la taille normale
+            if (widget.classList.contains('phone-fs') && typeof window.exitPhoneFullscreen === 'function') {
+                window.exitPhoneFullscreen(widget);
+            }
             const savedW = outer.offsetWidth  || parseFloat(widget.dataset.tirageW) || 800;
             const savedH = outer.offsetHeight || parseFloat(widget.dataset.tirageH) || 600;
             widget.dataset.tirageW = savedW;
@@ -1085,7 +1125,9 @@
             const w = outer.offsetWidth || 380;
             // On interpole la font-size et le padding entre 280px et 700px
             const minW = 280, maxW = 700;
-            const t = Math.max(0, Math.min(1, (w - minW) / (maxW - minW)));
+            let t = Math.max(0, Math.min(1, (w - minW) / (maxW - minW)));
+            // Plein écran téléphone : écran étroit mais prénoms lisibles au doigt
+            if (widget.classList.contains('phone-fs')) t = Math.max(t, 0.6);
             const fs  = (9  + t * 9).toFixed(1)  + 'px'; // 9px → 18px
             const pad = (4  + t * 6).toFixed(1)  + 'px'; // 4px → 10px
             const gap = (4  + t * 6).toFixed(1)  + 'px'; // 4px → 10px
@@ -1131,7 +1173,9 @@
         if (window.ResizeObserver) {
             const ro = new ResizeObserver(() => {
                 // Ne pas écraser les dimensions sauvegardées si le widget est réduit
-                if (outer.dataset.collapsed !== '1') {
+                // ni quand il est en plein écran sur téléphone (sinon, rouvert sur
+                // ordinateur, il garderait la taille de l'écran du téléphone)
+                if (outer.dataset.collapsed !== '1' && !widget.classList.contains('phone-fs')) {
                     if (outer.offsetWidth  > 0) widget.dataset.tirageW = outer.offsetWidth;
                     if (outer.offsetHeight > 0) widget.dataset.tirageH = outer.offsetHeight;
                 }
@@ -1181,6 +1225,11 @@
         bringToFront(widget);
         widget.focus();
         initTirageWidget(widget);
+        // Sur téléphone : ouverture directe en plein écran (fullboard).
+        // Appel explicite, pour ne pas dépendre de la façon dont le widget a été lancé.
+        if (typeof window.enterPhoneFullscreen === 'function' && typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) {
+            window.enterPhoneFullscreen(widget);
+        }
         saveBoard();
         return widget;
     };

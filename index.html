@@ -1154,7 +1154,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 <div id="jeux-panel">
     <div id="jeux-panel-resize-handle" title="Redimensionner le panneau"></div>
     <div id="jeux-panel-header">
-        <h3>🎮 Jeux</h3>
+        <h3>🎮 Jeux à la maison ou en classe</h3>
         <button id="jeux-panel-close" onclick="toggleJeuxPanel()" title="Fermer">✕</button>
     </div>
     <div id="jeux-panel-content">
@@ -1233,16 +1233,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">MathMaster</div>
                 <div class="act-card-desc">Calcul mental chronométré : enchaîner les bonnes réponses et grimper les paliers</div>
             </div>
-			<div class="act-card" onclick="createWidget('jeu-plus-grand');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-comparaison.png" alt="Plus grand / plus petit" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Battle comparaison</div>
-                <div class="act-card-desc">Comparer des nombres : mode solo ou duel</div>
-            </div>
-			<div class="act-card" onclick="createWidget('battle-calculs');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-calculs.png" alt="Battle de calculs" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
-                <div class="act-card-name">Battle de calculs</div>
-                <div class="act-card-desc">Calcul mental : mode solo ou duel</div>
-            </div>
             </div>
 		<div class="act-section-label">🎮 JEUX DE FRANÇAIS</div>
 		<div class="act-grid">
@@ -1316,17 +1306,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Le correcteur fou</div>
                 <div class="act-card-desc">Trouver et corriger les 5 fautes cachées dans le texte, sans fausse alerte</div>
             </div>
-			<div class="act-card" onclick="createWidget('battle-nature-mots');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-nature-mots.png" alt="Battle nature des mots" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
-                <div class="act-card-name">Battle nature des mots</div>
-                <div class="act-card-desc">Trouver la nature du mot surligné : mode solo ou duel</div>
-            </div>
-			<div class="act-card" onclick="createWidget('battle-synonymes');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-synonymes.png" alt="Battle synonymes / contraires" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
-                <div class="act-card-name">Battle synonymes / contraires</div>
-                <div class="act-card-desc">Trouver le synonyme ou le contraire du mot : mode solo ou duel</div>
-            </div>
-		</div>
+			</div>
 		<div class="act-section-label">🎮 JEUX DIVERS</div>
 		<div class="act-grid">
 			<div class="act-card" onclick="createWidget('jeu-memory');toggleJeuxPanel()">
@@ -1439,7 +1419,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 <div id="activities-panel">
     <div id="activities-panel-resize-handle" title="Redimensionner le panneau"></div>
     <div id="act-panel-header">
-        <h3>🎲Activités</h3>
+        <h3>🎲Activités en classe</h3>
         <button id="act-panel-close" onclick="toggleActivitiesPanel()" title="Fermer">✕</button>
     </div>
     <div id="act-panel-content">
@@ -1678,7 +1658,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 <div id="widgets-panel">
     <div id="widgets-panel-resize-handle" title="Redimensionner le panneau"></div>
     <div id="widgets-panel-header">
-        <h3>📦 Widgets</h3>
+        <h3>📦 Widgets pour le tableau</h3>
         <button id="widgets-panel-close" onclick="toggleWidgetsPanel()" title="Fermer">✕</button>
     </div>
     <div id="widgets-panel-content">
@@ -1821,7 +1801,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 <div id="tools-panel">
     <div id="tools-panel-resize-handle" title="Redimensionner le panneau"></div>
     <div id="tools-panel-header">
-        <h3>🛠️ Outils</h3>
+        <h3>🛠️ Outils pour la classe</h3>
         <button id="tools-panel-close" onclick="toggleToolsPanel()" title="Fermer">✕</button>
     </div>
     <div id="tools-panel-content">
@@ -3522,6 +3502,98 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('load', addCloseButtons);
     // Les panneaux PDF et Images peuvent être construits plus tard par leurs scripts
     setTimeout(addCloseButtons, 1500);
+})();
+</script>
+
+<script>
+// ── TÉLÉPHONE : les widgets ouverts depuis un panneau s'affichent en plein écran ──
+// Principe : quand l'utilisateur touche une vignette (Jeux, Activités, Outils,
+// Widgets) ou une entrée du menu rapide, on mémorise l'instant. Tout widget
+// ajouté au tableau dans les 2 secondes qui suivent passe en plein écran.
+// Les widgets restaurés au chargement d'un tableau ne sont donc pas concernés.
+(function() {
+    var PHONE_QUERY = '(max-width: 768px), (max-height: 500px) and (pointer: coarse)';
+    // Types qui restent à leur taille normale (petits éléments posés sur le tableau)
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time'];
+    var lastLaunch = 0;
+
+    function isPhone() {
+        return window.matchMedia && window.matchMedia(PHONE_QUERY).matches;
+    }
+
+    // Repérer le geste de lancement
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.act-card, .tools-card, .widgets-card, #board-quick-menu button')) {
+            lastLaunch = Date.now();
+        }
+    }, true);
+
+    function exitPhoneFullscreen(widget) {
+        widget.classList.remove('phone-fs');
+        var btn = widget.querySelector(':scope > .phone-fs-exit');
+        if (btn) btn.remove();
+        document.body.classList.toggle('has-phone-fs', !!document.querySelector('.widget.phone-fs'));
+        window.dispatchEvent(new Event('resize')); // laisse les widgets se recalculer
+    }
+
+    function enterPhoneFullscreen(widget) {
+        if (widget.classList.contains('phone-fs')) return;
+        widget.classList.add('phone-fs');
+        document.body.classList.add('has-phone-fs');
+
+        var btn = document.createElement('button');
+        btn.className = 'phone-fs-exit';
+        btn.type = 'button';
+        btn.title = 'Quitter le plein écran';
+        btn.textContent = '⤡';
+        btn.addEventListener('pointerdown', function(e) { e.stopPropagation(); });
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            exitPhoneFullscreen(widget);
+        });
+        widget.appendChild(btn);
+
+        // Laisse le temps au widget de se construire, puis force un recalcul
+        // des tailles (utile pour ceux qui s'adaptent à leur conteneur)
+        setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 100);
+    }
+
+    function shouldGoFullscreen(widget) {
+        if (!isPhone()) return false;
+        if (Date.now() - lastLaunch > 2000) return false;
+        if (!widget.classList || !widget.classList.contains('widget')) return false;
+        if (widget.hasAttribute('data-image-widget')) return false;
+        var type = widget.dataset.type || '';
+        return EXCLUDED_TYPES.indexOf(type) === -1;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var board = document.getElementById('board');
+        if (!board) return;
+        new MutationObserver(function(mutations) {
+            mutations.forEach(function(m) {
+                m.addedNodes.forEach(function(node) {
+                    if (node.nodeType !== 1) return;
+                    // Petit délai : data-type est parfois posé juste après l'insertion
+                    setTimeout(function() {
+                        if (shouldGoFullscreen(node)) enterPhoneFullscreen(node);
+                    }, 0);
+                });
+            });
+        }).observe(board, { childList: true });
+    });
+
+    // Si on repasse sur un grand écran (rotation tablette, fenêtre agrandie), on quitte le plein écran
+    window.addEventListener('resize', function() {
+        if (isPhone()) return;
+        document.querySelectorAll('.widget.phone-fs').forEach(exitPhoneFullscreen);
+    });
+
+    // Accessibles aux fichiers des widgets (ex. widget-tirage.js)
+    window.exitPhoneFullscreen  = exitPhoneFullscreen;
+    window.enterPhoneFullscreen = enterPhoneFullscreen;
+    window.isPhoneScreen        = isPhone;
 })();
 </script>
 </body>

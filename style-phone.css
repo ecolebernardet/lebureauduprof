@@ -220,20 +220,11 @@
         width: 88vw !important;
     }
 
-    /* Headers des panneaux : réduire le padding gauche
-       (les onglets prennent moins de place en mobile) */
-    #sticker-panel-header,
-    #sticker-mode-bar,
-    #sticker-panel-tabs,
-    #sticker-panel-search,
-    #sp-content {
-        padding-left: 14px !important;
-    }
-
-    #widgets-panel-header,
-    #widgets-panel-content {
-        padding-left: 14px !important;
-    }
+    /* (Les anciennes règles qui réduisaient le padding gauche des
+       panneaux Widgets et Visuels à 14px ont été supprimées : elles
+       faisaient passer le contenu sous la bande de fermeture et les
+       onglets. Ces panneaux gardent donc le même décalage de 50px
+       que les autres, défini dans style.css.) */
 
 
     /* ════════════════════════════════════════════════════════

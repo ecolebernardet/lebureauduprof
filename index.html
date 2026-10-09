@@ -2526,7 +2526,7 @@ document.addEventListener('pointerdown', function(e) {
         panel.classList.remove(cfg.openClass);
         if (tab) tab.classList.remove(cfg.tabClass);
     });
-});
+}, true); // phase de capture : fonctionne même si un widget arrête la propagation du toucher
 </script>
 
 <script>
@@ -3093,7 +3093,7 @@ function lancerTracesGeometriques() {
 
     document.addEventListener('pointerdown', function(e) {
         if (menu.style.display !== 'none' && !menu.contains(e.target)) closeQuickMenu();
-    });
+    }, true); // phase de capture : fonctionne même si un widget arrête la propagation du toucher
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeQuickMenu();
     });
@@ -3553,6 +3553,30 @@ document.addEventListener('DOMContentLoaded', function() {
             exitPhoneFullscreen(widget);
         });
         widget.appendChild(btn);
+
+        // ── Toucher au doigt dans le widget ──────────────────────────────
+        // Sans ça, un appui sur un bouton ou un prénom remonte jusqu'au
+        // tableau, qui le prend pour un déplacement du widget et annule le
+        // clic. On l'arrête au niveau des enfants directs du widget (les
+        // boutons et zones du widget ont déjà reçu l'événement à ce moment-là).
+        if (!widget._phoneFsGuard) {
+            widget._phoneFsGuard = true;
+            var stopInFs = function(e) {
+                if (widget.classList.contains('phone-fs')) e.stopPropagation();
+            };
+            Array.prototype.forEach.call(widget.children, function(child) {
+                if (child.classList.contains('phone-fs-exit')) return;
+                child.addEventListener('touchstart',  stopInFs, { passive: true });
+                child.addEventListener('pointerdown', stopInFs);
+                child.addEventListener('mousedown',   stopInFs);
+            });
+            // Le bouton jaune « Réduire » d'un widget : on sort d'abord du
+            // plein écran, puis le widget se réduit normalement.
+            widget.addEventListener('click', function(e) {
+                if (!widget.classList.contains('phone-fs')) return;
+                if (e.target.closest && e.target.closest('.wf-btn-min')) exitPhoneFullscreen(widget);
+            }, true);
+        }
 
         // Laisse le temps au widget de se construire, puis force un recalcul
         // des tailles (utile pour ceux qui s'adaptent à leur conteneur)

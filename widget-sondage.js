@@ -695,7 +695,12 @@ function _initSondageWidget(widget) {
     widget._sndGetData = () => {
         const c = widget.querySelector('.snd-container');
         const isFullboard = c ? c.classList.contains('snd-fullboard') : false;
-        return { poll, containerW: c ? c.offsetWidth : null, containerH: c ? c.offsetHeight : null, fullboard: isFullboard };
+        // En plein écran téléphone, on enregistre la taille normale du cadre
+        // (son style), pas la taille de l'écran du téléphone
+        const phoneFs = widget.classList.contains('phone-fs');
+        const cw = c ? (phoneFs ? (parseFloat(c.style.width)  || 800) : c.offsetWidth)  : null;
+        const ch = c ? (phoneFs ? (parseFloat(c.style.height) || 600) : c.offsetHeight) : null;
+        return { poll, containerW: cw, containerH: ch, fullboard: isFullboard };
     };
     widget._sndSetData = (data) => {
         if (!data) return;

@@ -619,7 +619,8 @@
             if (!window.ResizeObserver) return;
             const ro = new ResizeObserver(() => {
                 // Ne pas écraser les dimensions sauvegardées si le widget est réduit
-                if (widget.dataset.collapsed !== '1') {
+                // ni en plein écran téléphone (sinon il garderait la taille du téléphone)
+                if (widget.dataset.collapsed !== '1' && !widget.classList.contains('phone-fs')) {
                     if (outer.offsetWidth  > 0) widget.dataset.leditW = outer.offsetWidth;
                     if (outer.offsetHeight > 0) widget.dataset.leditH = outer.offsetHeight;
                 }

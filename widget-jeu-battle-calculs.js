@@ -1812,7 +1812,7 @@
                 <h3>${title}</h3>
                 <div class="bc-bigstars">${[1, 2, 3].map(i => `<span class="${i <= st ? 'on' : ''}">⭐</span>`).join('')}</div>
                 <p>${good} bonne${good > 1 ? 's' : ''} réponse${good > 1 ? 's' : ''} sur ${n} · ${score} points</p>
-                <p class="bc-sub">Temps moyen : ${avg} s${isRec ? ' · 🏆 Nouveau record !' : ''}</p>
+                <p class="bc-sub">${times.length ? `Temps moyen : ${avg} s` : 'Aucune bonne réponse'}${isRec ? ' · 🏆 Nouveau record !' : ''}</p>
                 <div class="bc-actions">
                     <button class="bc-btn bc-btn-go" data-act="again">🔄 Rejouer</button>
                     <button class="bc-btn" data-act="tosetup">⚙️ Réglages</button>
@@ -1820,7 +1820,7 @@
             ov.classList.add('show');
             if (st >= 2 || isRec) { sfx('win'); party(); }
             [1, 2, 3].forEach(i => { if (i <= st) setTimeout(() => sfx('star'), 200 * i); });
-            say(`🏁 Partie terminée : ${good} sur ${n}, temps moyen ${avg} s.${isRec ? ' Nouveau record 🏆 !' : ''}`, st >= 2 ? 'good' : '');
+            say(`🏁 Partie terminée : ${good} sur ${n}${times.length ? `, temps moyen ${avg} s` : ''}.${isRec ? ' Nouveau record 🏆 !' : ''}`, st >= 2 ? 'good' : '');
             ov.querySelector('[data-act="again"]').addEventListener('click', (e) => { e.stopPropagation(); start(); });
             ov.querySelector('[data-act="tosetup"]').addEventListener('click', (e) => { e.stopPropagation(); showSetup(); });
             updateButtons();

@@ -10,6 +10,9 @@
 //   • Si personne ne répond dans le temps imparti, la réponse est montrée.
 //   • À la fin de la série, le joueur qui a le plus de points gagne.
 //
+// 👤 Mode seul : N calculs chronométrés, 3 réponses possibles, points selon
+//   la rapidité, série 🔥 et record (mémorisé sur l'ordinateur).
+//
 // Réglages repris du Calcul flash : additions, soustractions (nombres min /
 // max de chaque terme), tables, compléments à 10 / 100, doubles, moitiés,
 // secondes par calcul, nombre de calculs, lecture à voix haute.
@@ -595,9 +598,42 @@
         .bc-card p { margin: calc(4px * var(--bc-s)) 0 calc(8px * var(--bc-s)); font-weight: 800; font-size: calc(15px * var(--bc-s)); }
         .bc-card .bc-final { font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: calc(36px * var(--bc-s)); margin: calc(2px * var(--bc-s)) 0; }
         .bc-card .bc-final .L { color: #1F6FB5; } .bc-card .bc-final .R { color: #E0620F; }
-        .bc-card .bc-sub { font-size: calc(12px * var(--bc-s)); color: #6A5E8E; margin-top: calc(-4px * var(--bc-s)); }
+        .bc-card .bc-sub { display: block; font-size: calc(12px * var(--bc-s)); color: #6A5E8E; margin-top: calc(-4px * var(--bc-s)); }
         .bc-medal { font-size: calc(54px * var(--bc-s)); line-height: 1; animation: bc-pop .5s ease-out; }
         .bc-card .bc-actions { margin-top: calc(4px * var(--bc-s)); }
+
+        /* ── Statistiques (mode seul) ── */
+        .bc-stats { display: flex; gap: calc(6px * var(--bc-s)); align-items: center; }
+        .bc-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: rgba(255,255,255,0.1); color: #fff;
+            border-radius: 999px; padding: calc(3px * var(--bc-s)) calc(10px * var(--bc-s));
+            font-weight: 900; font-size: calc(14px * var(--bc-s)); white-space: nowrap;
+        }
+        .bc-chip.hot { background: #FF7A1A; }
+        .bc-chip.bump { animation: bc-bump .4s ease; }
+        .bc-container.duel .bc-stats { display: none; }
+        .bc-container:not(.duel) [data-role="class"] { display: none; }
+
+        /* ── Mode seul ── */
+        .bc-field.solo { display: flex; }
+        .bc-half.S {
+            flex: 1; gap: calc(14px * var(--bc-s));
+            background: linear-gradient(160deg, #2E2270 0%, #4A3399 100%);
+        }
+        .bc-half.S .bc-choices { flex-direction: row; justify-content: center; gap: calc(16px * var(--bc-s)); }
+        .bc-half.S .bc-choice { width: calc(190px * var(--bc-s)); height: calc(110px * var(--bc-s)); font-size: calc(46px * var(--bc-s)); }
+        .bc-sprog {
+            color: #fff; font-weight: 900; font-size: calc(15px * var(--bc-s));
+            background: rgba(0,0,0,0.25); border-radius: 999px;
+            padding: calc(4px * var(--bc-s)) calc(16px * var(--bc-s));
+        }
+        .bc-sprog b { font-family: 'Lilita One', sans-serif; font-weight: 400; color: var(--or); }
+        .bc-bigstars { display: flex; justify-content: center; gap: calc(6px * var(--bc-s)); margin: calc(4px * var(--bc-s)) 0; }
+        .bc-bigstars span { font-size: calc(34px * var(--bc-s)); line-height: 1; opacity: 0.2; filter: grayscale(1); }
+        .bc-bigstars span.on { opacity: 1; filter: none; animation: bc-pop .35s ease-out both; }
+        .bc-bigstars span.on:nth-child(2) { animation-delay: .2s; }
+        .bc-bigstars span.on:nth-child(3) { animation-delay: .4s; }
 
         /* ── Aide ── */
         .bc-help {
@@ -641,7 +677,7 @@
     // RÉGLAGES MÉMORISÉS (même logique que le Calcul flash)
     // =========================================================================
     var ALL_TABLES = [2, 3, 4, 5, 6, 7, 8, 9, 10];
-    var DEFAULTS = { addMin: 1, addMax: 20, types: ['tables'], tables: ALL_TABLES.slice(), limit: 20, speed: 10, count: 10, mode: 'count', goal: 5, voice: false };
+    var DEFAULTS = { addMin: 1, addMax: 20, types: ['tables'], tables: ALL_TABLES.slice(), limit: 20, speed: 10, count: 10, mode: 'count', goal: 5, voice: false, players: 'duel' };
     function loadSettings() {
         try {
             var s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
@@ -649,6 +685,7 @@
                 var r = Object.assign({}, DEFAULTS, s);
                 r.types = Array.isArray(r.types) ? r.types.slice() : DEFAULTS.types.slice();
                 r.tables = Array.isArray(r.tables) ? r.tables.slice() : DEFAULTS.tables.slice();
+                if (r.players !== 'solo') r.players = 'duel';
                 return r;
             }
         } catch (e) {}
@@ -845,6 +882,8 @@
         } catch (e) { /* audio indisponible */ }
     }
     const SFX = {
+        good:  () => { tone(660, 0, 0.08, 'triangle', 0.09); tone(990, 0.06, 0.12, 'triangle', 0.08); },
+        star:  () => tone(1320, 0, 0.12, 'sine', 0.07),
         bad:   () => { tone(200, 0, 0.18, 'square', 0.05); tone(150, 0.16, 0.22, 'square', 0.05); },
         go:    () => tone(880, 0, 0.1, 'square', 0.05),
         tick:  () => tone(440, 0, 0.05, 'square', 0.03),
@@ -906,6 +945,11 @@
           <div class="bc-inner">
             <div class="bc-header">
                 <span class="bc-title">⚔️ Battle de calculs</span>
+                <div class="bc-stats">
+                    <span class="bc-chip" data-role="streak" title="Bonnes réponses d'affilée">🔥 0</span>
+                    <span class="bc-chip" data-role="record" title="Record pour ces réglages (sur cet ordinateur)">🏆 0</span>
+                    <span class="bc-chip" data-role="score" title="Points">⭐ 0</span>
+                </div>
                 <div class="wf-btns">
                     <button class="bc-icon-btn" data-role="sound" title="Couper le son">🔊</button>
                     <button class="bc-icon-btn" data-role="class" title="Élèves : charger une liste .txt et tirer au sort">📂</button>
@@ -933,12 +977,14 @@
 
             <div class="bc-help">
                 <h4>⚔️ Comment jouer ?</h4>
+                <p>👤 <b>Seul</b> : une série de calculs chronométrés, 3 réponses possibles. Plus tu es rapide, plus tu gagnes de points ! 🏆 Bats ton record.</p>
+                <p>👥 <b>À deux</b> :</p>
                 <p>Deux élèves au tableau, <b>un de chaque côté</b>. Un calcul apparaît en grand au milieu.</p>
                 <p>Chaque joueur a <b>3 réponses possibles</b> de son côté (pas dans le même ordre que l'adversaire). Le premier qui touche la bonne réponse marque <b>1 point</b>.</p>
                 <p>Une erreur <b>bloque ton côté 🔒</b> pour ce calcul : inutile de cliquer au hasard ! Si personne ne trouve à temps, la réponse est montrée.</p>
                 <p>Selon les réglages : celui qui a le plus de points à la fin de la série gagne, ou bien le <b>premier à atteindre</b> le nombre de points choisi.</p>
                 <p>📂 Chargez une liste d'élèves (.txt, une ligne <b>prénom;nom</b>) : deux élèves sont tirés au sort pour chaque duel et leurs scores s'affichent à côté de leur nom.</p>
-                <p style="margin:0">Clavier : joueur bleu <b>A</b> / <b>Z</b> / <b>E</b>, joueur orange <b>I</b> / <b>O</b> / <b>P</b>.</p>
+                <p style="margin:0">Clavier : seul <b>1</b> / <b>2</b> / <b>3</b> (ou ← / ↓ / →) · à deux : joueur bleu <b>A</b> / <b>Z</b> / <b>E</b>, joueur orange <b>I</b> / <b>O</b> / <b>P</b>.</p>
             </div>
             <div class="bc-side bc-side-L"><div class="bc-side-title">📂 Élèves</div><div class="bc-side-list"></div></div>
             <div class="bc-side bc-side-R"><div class="bc-side-title">📂 Élèves</div><div class="bc-side-list"></div></div>
@@ -983,6 +1029,9 @@
         const sideL = $('.bc-side-L'), sideR = $('.bc-side-R');
         const clBtn = (a) => classBox.querySelector(`[data-cl="${a}"]`);
         const btn = (a) => container.querySelector(`[data-act="${a}"]`);
+        const streakEl = $('[data-role="streak"]');
+        const recordEl = $('[data-role="record"]');
+        const scoreEl  = $('[data-role="score"]');
 
         // ── État ───────────────────────────────────────────────────────────
         let S = loadSettings();
@@ -995,6 +1044,27 @@
         let pair = null;              // { L: id, R: id } : élèves tirés au sort
         let rolling = false;          // animation de tirage en cours
         let soundOn = true;
+        // Mode seul
+        let good = 0, score = 0, streak = 0, times = [];
+        const RECORD_KEY = 'battle-calculs-records';
+        let records = {};
+        try { records = JSON.parse(localStorage.getItem(RECORD_KEY) || '{}'); } catch (e) { records = {}; }
+        const isSolo = () => S.players === 'solo';
+        // Un record par combinaison de réglages
+        const recKey = () => [
+            S.types.slice().sort().join('+'),
+            S.types.indexOf('tables') >= 0 ? 't' + S.tables.join('') : '',
+            (S.types.indexOf('add') >= 0 || S.types.indexOf('sub') >= 0) ? S.addMin + '-' + S.addMax : '',
+            (S.types.indexOf('doubles') >= 0 || S.types.indexOf('moities') >= 0) ? 'l' + S.limit : '',
+            S.speed + 's', S.count
+        ].join('|');
+        function updateStats(bump) {
+            streakEl.textContent = '🔥 ' + streak;
+            streakEl.classList.toggle('hot', streak >= 5);
+            scoreEl.textContent = '⭐ ' + score;
+            recordEl.textContent = '🏆 ' + (records[recKey()] || 0);
+            if (bump) { scoreEl.classList.remove('bump'); void scoreEl.offsetWidth; scoreEl.classList.add('bump'); }
+        }
         // Pause : une horloge qui s'arrête quand le jeu est en pause
         let paused = false, pauseStart = 0, pausedTotal = 0;
         const clock = () => performance.now() - pausedTotal - (paused ? performance.now() - pauseStart : 0);
@@ -1015,7 +1085,7 @@
         function applyScale() {
             const full = container.classList.contains('wf-fullboard');
             // Plein écran + liste chargée : la liste des élèves s'affiche à gauche et à droite
-            const sides = full && CL.students.length > 0;
+            const sides = full && !isSolo() && CL.students.length > 0;
             container.classList.toggle('bc-has-sides', sides);
             let reserve = 0;
             if (sides) {
@@ -1069,6 +1139,11 @@
                 </div>`;
             arena.innerHTML = `
               <div class="bc-setup">
+                <div class="bc-label">Nombre de joueurs</div>
+                <div class="bc-chips">
+                    <button class="bc-small bc-mode" data-players="solo">👤 Seul</button>
+                    <button class="bc-small bc-mode" data-players="duel">👥 À deux (duel au tableau)</button>
+                </div>
                 <div class="bc-label">Types de calculs</div>
                 <div class="bc-chips">
                     <button class="bc-type" data-type="add"><span class="bc-type-ico">+</span>Additions</button>
@@ -1101,10 +1176,12 @@
                     </div>
                 </div>
 
+                <div data-duelonly>
                 <div class="bc-label">Qui gagne le duel ?</div>
                 <div class="bc-chips">
                     <button class="bc-small bc-mode" data-mode="count" title="Le duel s'arrête après un nombre fixe de calculs">🔢 Le plus de points en N calculs</button>
                     <button class="bc-small bc-mode" data-mode="goal" title="Le duel s'arrête dès qu'un joueur atteint le nombre de points">🏁 Le premier à N points</button>
+                </div>
                 </div>
                 <div class="bc-params" style="margin-top:calc(6px * var(--bc-s))">
                     ${spinner('Secondes<br>par calcul', 'speed', 3, 60)}
@@ -1131,7 +1208,13 @@
                 setupEl.querySelector('[data-sub="limit"]').classList.toggle('visible', S.types.indexOf('doubles') >= 0 || S.types.indexOf('moities') >= 0);
                 setupEl.querySelectorAll('[data-key]').forEach(inp => { inp.value = S[inp.dataset.key]; });
                 setupEl.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === S.mode));
-                setupEl.querySelectorAll('[data-modebox]').forEach(el => el.classList.toggle('bc-hide', el.dataset.modebox !== S.mode));
+                const duel = S.players === 'duel';
+                setupEl.querySelectorAll('[data-players]').forEach(b => b.classList.toggle('on', b.dataset.players === S.players));
+                setupEl.querySelectorAll('[data-duelonly]').forEach(el => el.classList.toggle('bc-hide', !duel));
+                // En mode seul : uniquement « Nombre de calculs »
+                setupEl.querySelectorAll('[data-modebox]').forEach(el => el.classList.toggle('bc-hide', el.dataset.modebox !== (duel ? S.mode : 'count')));
+                container.classList.toggle('duel', duel);
+                updateStats(false);
                 setupEl.querySelector('.bc-warn').textContent = '';
             };
 
@@ -1151,6 +1234,14 @@
             }));
             setupEl.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
                 S.mode = b.dataset.mode; sync(); saveSettings(S);
+            }));
+            setupEl.querySelectorAll('[data-players]').forEach(b => b.addEventListener('click', () => {
+                if (S.players === b.dataset.players) return;
+                S.players = b.dataset.players; sync(); saveSettings(S);
+                if (isSolo()) classBox.classList.remove('show');
+                updateButtons();
+                say(setupMsg());
+                requestAnimationFrame(applyScale);
             }));
             setupEl.querySelectorAll('[data-limit]').forEach(b => b.addEventListener('click', () => {
                 S.limit = +b.dataset.limit; sync(); saveSettings(S);
@@ -1208,7 +1299,7 @@
         // =====================================================================
         // ÉLÈVES : liste, tirage au sort, scores
         // =====================================================================
-        const hasClass = () => CL.students.filter(st => !st.absent).length >= 2;
+        const hasClass = () => !isSolo() && CL.students.filter(st => !st.absent).length >= 2;
         const stById = (id) => CL.students.find(st => st.id === id);
         // Nom court pour le duel : « Prénom N. » (ou prénom seul)
         function shortName(st) {
@@ -1227,7 +1318,7 @@
             clBtn('draw').disabled = !hasClass() || playing || rolling;
             clBtn('reset').disabled = !CL.students.length;
             clBtn('clear').disabled = !CL.students.length;
-            const wantSides = container.classList.contains('wf-fullboard') && CL.students.length > 0;
+            const wantSides = container.classList.contains('wf-fullboard') && !isSolo() && CL.students.length > 0;
             if (wantSides !== container.classList.contains('bc-has-sides')) requestAnimationFrame(applyScale);
             if (!CL.students.length) {
                 classList.innerHTML = '<div class="bc-class-empty">Aucune liste chargée.<br>Cliquez sur <b>📂 Charger une liste .txt</b>.</div>';
@@ -1490,6 +1581,40 @@
                 });
             });
         }
+        // Arène du mode seul : le calcul en haut, 3 grandes réponses en dessous
+        function buildSolo() {
+            arena.innerHTML = `
+              <div class="bc-duel bc-solo">
+                <div class="bc-banner">
+                    <div class="bc-calc wait">?</div>
+                    <div class="bc-timebar"><i></i></div>
+                </div>
+                <div class="bc-field solo">
+                    <div class="bc-half S" data-side="S">
+                        <div class="bc-sprog" data-role="round">${roundLabel(0)}</div>
+                        <div class="bc-choices" data-side="S">
+                            <button class="bc-choice hidden" data-i="0">?</button>
+                            <button class="bc-choice hidden" data-i="1">?</button>
+                            <button class="bc-choice hidden" data-i="2">?</button>
+                        </div>
+                        <div class="bc-pkeys">clavier : 1 / 2 / 3</div>
+                    </div>
+                </div>
+              </div>
+              <div class="bc-ready"></div>
+              <div class="bc-pause"><div class="bc-pause-card">⏸<br>Pause<small>Touchez ici ou sur ▶ Reprendre pour continuer</small></div></div>
+              <div class="bc-overlay"><div class="bc-card"></div></div>`;
+            arena.querySelector('.bc-pause').addEventListener('pointerdown', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                if (paused) togglePause();
+            });
+            arena.querySelectorAll('.bc-choice').forEach(b => {
+                b.addEventListener('pointerdown', (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    answer('S', b);
+                });
+            });
+        }
         const choiceBtns = (side) => arena.querySelectorAll(`.bc-choices[data-side="${side}"] .bc-choice`);
         const allChoices = () => arena.querySelectorAll('.bc-choice');
         const calcEl = () => arena.querySelector('.bc-calc');
@@ -1542,7 +1667,7 @@
             c.innerHTML = calcHTML(it, false);
             fitCalc();
             // Mêmes 3 réponses de chaque côté, mais dans un ordre différent
-            ['L', 'R'].forEach(side => {
+            (isSolo() ? ['S'] : ['L', 'R']).forEach(side => {
                 const opts = shuffle(it.options.slice());
                 choiceBtns(side).forEach((b, i) => {
                     b.dataset.v = opts[i];
@@ -1573,12 +1698,18 @@
             state = 'result';
             revealAnswer();
             sfx('miss');
-            say(`⏱ Temps écoulé ! Personne ne marque. La réponse était <b>${fmtInt(series[idx].ans)}</b>.`);
+            if (isSolo()) {
+                streak = 0; updateStats(false);
+                say(`⏱ Trop tard ! La réponse était <b>${fmtInt(series[idx].ans)}</b>.`, 'bad');
+            } else {
+                say(`⏱ Temps écoulé ! Personne ne marque. La réponse était <b>${fmtInt(series[idx].ans)}</b>.`);
+            }
             await pwait(1800);
             if (id === runId) nextRound();
         }
-        const goalMode = () => S.mode === 'goal';
+        const goalMode = () => S.mode === 'goal' && !isSolo();
         function roundLabel(n) {
+            if (isSolo()) return `Calcul <b>${n}</b> / ${series.length}`;
             return goalMode() ? `${n}<small>1er à ${S.goal}</small>` : `${n}<small>/ ${series.length}</small>`;
         }
         function nextRound() {
@@ -1589,13 +1720,14 @@
                 newRound();
                 return;
             }
-            if (idx >= series.length) duelEnd();
+            if (idx >= series.length) { if (isSolo()) soloEnd(); else duelEnd(); }
             else newRound();
         }
 
         // ── Réponses ───────────────────────────────────────────────────────
         async function answer(side, b) {
             if (paused || state !== 'go' || locked[side] || b.dataset.v === undefined) return;
+            if (isSolo()) { soloAnswer(b); return; }
             const id = runId;
             const it = series[idx];
             const other = side === 'L' ? 'R' : 'L';
@@ -1632,6 +1764,66 @@
                     if (id === runId) nextRound();
                 }
             }
+        }
+
+        // ── Mode seul : réponse et fin de partie ───────────────────────────
+        async function soloAnswer(b) {
+            const id = runId, it = series[idx];
+            state = 'result';
+            stopSpeech();
+            const ms = clock() - t0;
+            const ok = +b.dataset.v === it.ans;
+            if (ok) {
+                good++; streak++;
+                const gain = 10 + Math.round(Math.max(0, 1 - ms / (S.speed * 1000)) * 10) + (streak >= 5 ? 3 : 0);
+                score += gain; times.push(ms);
+                b.classList.add('ok');
+                revealAnswer();
+                sfx('good');
+                say(`✅ ${pick(['Bravo', 'Exact', 'Super', 'Rapide', 'Bien vu'])} ! ${(ms / 1000).toFixed(2).replace('.', ',')} s · +${gain}${streak >= 5 ? ' 🔥' : ''}`, 'good');
+            } else {
+                streak = 0;
+                b.classList.add('ko');
+                revealAnswer();
+                sfx('bad');
+                say(`❌ Oups ! ${calcHTML(it, true).replace(/<[^>]+>/g, '')}`, 'bad');
+            }
+            updateStats(ok);
+            await pwait(ok ? 900 : 1900);
+            if (id === runId) nextRound();
+        }
+        function soloEnd() {
+            resetPause();
+            state = 'over';
+            runId++;
+            stopSpeech();
+            const n = series.length, ratio = n ? good / n : 0;
+            const st = ratio >= 0.95 ? 3 : ratio >= 0.75 ? 2 : ratio >= 0.5 ? 1 : 0;
+            const medal = st === 3 ? '🥇' : st === 2 ? '🥈' : st === 1 ? '🥉' : '🎈';
+            const title = st === 3 ? 'As du calcul !' : st === 2 ? 'Très bien joué !' : st === 1 ? 'Bien joué !' : 'On s\'entraîne encore ?';
+            const avg = times.length ? (times.reduce((a, b) => a + b, 0) / times.length / 1000).toFixed(2).replace('.', ',') : '—';
+            const k = recKey();
+            const isRec = score > 0 && score > (records[k] || 0);
+            if (isRec) { records[k] = score; try { localStorage.setItem(RECORD_KEY, JSON.stringify(records)); } catch (e) {} }
+            updateStats(false);
+            const ov = overlay();
+            ov.querySelector('.bc-card').innerHTML = `
+                <div class="bc-medal">${medal}</div>
+                <h3>${title}</h3>
+                <div class="bc-bigstars">${[1, 2, 3].map(i => `<span class="${i <= st ? 'on' : ''}">⭐</span>`).join('')}</div>
+                <p>${good} bonne${good > 1 ? 's' : ''} réponse${good > 1 ? 's' : ''} sur ${n} · ${score} points</p>
+                <p class="bc-sub">Temps moyen : ${avg} s${isRec ? ' · 🏆 Nouveau record !' : ''}</p>
+                <div class="bc-actions">
+                    <button class="bc-btn bc-btn-go" data-act="again">🔄 Rejouer</button>
+                    <button class="bc-btn" data-act="tosetup">⚙️ Réglages</button>
+                </div>`;
+            ov.classList.add('show');
+            if (st >= 2 || isRec) { sfx('win'); party(); }
+            [1, 2, 3].forEach(i => { if (i <= st) setTimeout(() => sfx('star'), 200 * i); });
+            say(`🏁 Partie terminée : ${good} sur ${n}, temps moyen ${avg} s.${isRec ? ' Nouveau record 🏆 !' : ''}`, st >= 2 ? 'good' : '');
+            ov.querySelector('[data-act="again"]').addEventListener('click', (e) => { e.stopPropagation(); start(); });
+            ov.querySelector('[data-act="tosetup"]').addEventListener('click', (e) => { e.stopPropagation(); showSetup(); });
+            updateButtons();
         }
 
         // ── Fin de duel ────────────────────────────────────────────────────
@@ -1687,7 +1879,7 @@
         // ── Démarrer / arrêter ─────────────────────────────────────────────
         function updateButtons() {
             const playing = state === 'wait' || state === 'go' || state === 'result';
-            btn('start').textContent = playing ? '🔄 Recommencer' : '▶ Lancer le duel';
+            btn('start').textContent = playing ? '🔄 Recommencer' : (isSolo() ? '▶ Jouer' : '▶ Lancer le duel');
             btn('stop').disabled = !playing;
             btn('setup').disabled = state === 'setup';
             // Pendant le duel : « Pause » à la place de « Réglages »
@@ -1714,12 +1906,13 @@
                 paused = true; pauseStart = performance.now();
                 stopSpeech();
                 if (p) p.classList.add('show');
-                say('⏸ Duel en pause. Cliquez sur <b>▶ Reprendre</b> pour continuer.');
+                say(isSolo() ? '⏸ Pause. Clique sur <b>▶ Reprendre</b> pour continuer.' : '⏸ Duel en pause. Cliquez sur <b>▶ Reprendre</b> pour continuer.');
             } else {
                 pausedTotal += performance.now() - pauseStart;
                 paused = false;
                 if (p) p.classList.remove('show');
-                say(`▶ C'est reparti ! (${esc(names.L)} ${pts.L} – ${pts.R} ${esc(names.R)})`);
+                say(isSolo() ? `▶ C'est reparti ! (calcul ${idx + 1} / ${series.length} · ${score} points)`
+                             : `▶ C'est reparti ! (${esc(names.L)} ${pts.L} – ${pts.R} ${esc(names.R)})`);
                 if (state === 'go' && S.voice && series[idx]) speak(series[idx].say);
             }
             updateButtons();
@@ -1740,20 +1933,23 @@
             idx = 0;
             pts = { L: 0, R: 0 };
             paused = false; pauseStart = 0; pausedTotal = 0;
-            buildDuel();
+            good = 0; score = 0; streak = 0; times = [];
+            if (isSolo()) buildSolo(); else buildDuel();
+            updateStats(false);
             applyScale();
             state = 'wait';
             updateButtons();
             const r = readyEl();
             const id = runId;
-            say(`⚡ ${goalMode() ? `Le premier à ${S.goal} point${S.goal > 1 ? 's' : ''} gagne !` : `${series.length} calculs.`} ${S.speed} s par calcul. Une erreur bloque ton côté : réfléchis avant de toucher !`);
+            if (isSolo()) say(`⚡ ${series.length} calculs, ${S.speed} s par calcul : sois rapide et précis !`);
+            else say(`⚡ ${goalMode() ? `Le premier à ${S.goal} point${S.goal > 1 ? 's' : ''} gagne !` : `${series.length} calculs.`} ${S.speed} s par calcul. Une erreur bloque ton côté : réfléchis avant de toucher !`);
             for (const t of ['3', '2', '1']) {
                 r.textContent = t; r.classList.remove('show'); void r.offsetWidth; r.classList.add('show');
                 sfx('tick');
                 await pwait(600);
                 if (id !== runId) return;
             }
-            r.textContent = 'Battle !'; r.classList.remove('show'); void r.offsetWidth; r.classList.add('show');
+            r.textContent = isSolo() ? 'Partez !' : 'Battle !'; r.classList.remove('show'); void r.offsetWidth; r.classList.add('show');
             await pwait(500);
             if (id !== runId) return;
             r.classList.remove('show');
@@ -1764,19 +1960,25 @@
             stopSpeech();
             resetPause();
             state = 'setup';
+            if (isSolo()) classBox.classList.remove('show');
             buildSetup();
             updateButtons();
             requestAnimationFrame(applyScale);
-            say(message || (hasClass()
+            say(message || setupMsg());
+        }
+        function setupMsg() {
+            if (isSolo()) return '⚔️ Choisis tes calculs, puis clique sur <b>▶ Jouer</b> : trouve la bonne réponse le plus vite possible !';
+            return hasClass()
                 ? `⚔️ Choisissez les calculs, puis cliquez sur <b>▶ Lancer le duel</b> : deux élèves de la liste 📂 seront tirés au sort.`
-                : '⚔️ Choisissez les calculs, puis cliquez sur <b>▶ Lancer le duel</b>. Un élève de chaque côté du tableau ! (📂 pour charger une liste d\'élèves)'));
+                : '⚔️ Choisissez les calculs, puis cliquez sur <b>▶ Lancer le duel</b>. Un élève de chaque côté du tableau ! (📂 pour charger une liste d\'élèves)';
         }
         btn('start').addEventListener('click', start);
         btn('setup').addEventListener('click', () => showSetup());
         btn('pause').addEventListener('click', (e) => { e.stopPropagation(); togglePause(); });
         btn('stop').addEventListener('click', () => {
             if (state !== 'wait' && state !== 'go' && state !== 'result') return;
-            showSetup(`⏹ Duel arrêté (${esc(names.L)} ${pts.L} – ${pts.R} ${esc(names.R)}).`);
+            showSetup(isSolo() ? `⏹ Partie arrêtée (${good} bonne${good > 1 ? 's' : ''} réponse${good > 1 ? 's' : ''}, ${score} points).`
+                               : `⏹ Duel arrêté (${esc(names.L)} ${pts.L} – ${pts.R} ${esc(names.R)}).`);
         });
 
         // ── Clavier ────────────────────────────────────────────────────────
@@ -1786,8 +1988,13 @@
             if (!ae || !widget.contains(ae) || ae.tagName === 'INPUT' || ae.tagName === 'SELECT') return;
             if (e.ctrlKey || e.metaKey || e.altKey) return;
             const k = e.key.toLowerCase();
-            if ((k === 'enter' || k === ' ') && (state === 'setup' || state === 'draw')) { e.preventDefault(); start(); return; }
+            if ((k === 'enter' || k === ' ') && (state === 'setup' || state === 'draw' || (state === 'over' && isSolo()))) { e.preventDefault(); start(); return; }
             if ((k === ' ' || k === 'escape') && (state === 'wait' || state === 'go' || state === 'result')) { e.preventDefault(); togglePause(); return; }
+            if (isSolo()) {
+                const i = ['1', '&', 'arrowleft'].indexOf(k) >= 0 ? 0 : ['2', 'é', 'arrowdown'].indexOf(k) >= 0 ? 1 : ['3', '"', 'arrowright'].indexOf(k) >= 0 ? 2 : -1;
+                if (i >= 0) { const b = choiceBtns('S')[i]; if (b) { e.preventDefault(); answer('S', b); } }
+                return;
+            }
             ['L', 'R'].forEach(side => {
                 const i = KEYS[side].indexOf(k);
                 if (i >= 0) { const b = choiceBtns(side)[i]; if (b) { e.preventDefault(); answer(side, b); } }

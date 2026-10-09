@@ -241,8 +241,14 @@
           Passer de 4 colonnes à 3
     ════════════════════════════════════════════════════════ */
 
-    .widgets-grid {
-        grid-template-columns: repeat(3, 1fr) !important;
+    /* 4 colonnes maximum dans les panneaux Jeux, Activités, Outils
+       et Widgets (le sélecteur avec #jeux-panel-content est repris
+       car il est plus spécifique dans style.css). */
+    .widgets-grid,
+    .tools-grid,
+    .act-grid,
+    #jeux-panel-content .act-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
         gap: 8px !important;
     }
 
@@ -548,10 +554,6 @@
     #pdf-library-panel,
     #image-panel {
         width: 95vw !important;
-    }
-
-    .widgets-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
     }
 
     .scene-tab {

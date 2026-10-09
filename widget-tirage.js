@@ -396,6 +396,16 @@
     /* ── Téléphone : plein écran (classe .phone-fs posée par index.html) ──
        Le cadre fait 800×600 px par défaut : en plein écran il doit
        remplir tout l'écran du téléphone. */
+    /* Décalage à gauche pour laisser les onglets latéraux visibles
+       (ils dépassent d'environ 34 px du bord), et passage sous les
+       onglets (z-index 50005) et sous les panneaux (50000) pour qu'on
+       puisse toujours les ouvrir. */
+    .widget.phone-fs[data-type="tirage"] {
+        left: 40px !important;
+        width: calc(100vw - 40px) !important;
+        max-width: calc(100vw - 40px) !important;
+        z-index: 49990 !important;
+    }
     .widget.phone-fs[data-type="tirage"] .tirage-outer {
         width: 100% !important;
         height: 100% !important;

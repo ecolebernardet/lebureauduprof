@@ -218,6 +218,18 @@
     #image-panel,
     #jeux-panel {
         width: 88vw !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Le contenu des panneaux ne doit jamais déborder horizontalement */
+    #jeux-panel-content,
+    #act-panel-content,
+    #tools-panel-content,
+    #widgets-panel-content {
+        overflow-x: hidden !important;
+        box-sizing: border-box !important;
+        padding-right: 8px !important;
     }
 
     /* (Les anciennes règles qui réduisaient le padding gauche des
@@ -234,17 +246,60 @@
 
     /* 4 colonnes maximum dans les panneaux Jeux, Activités, Outils
        et Widgets (le sélecteur avec #jeux-panel-content est repris
-       car il est plus spécifique dans style.css). */
+       car il est plus spécifique dans style.css).
+       minmax(0, 1fr) : colonnes strictement égales, même si un titre
+       ou une image est plus large (avec "1fr" seul, une colonne
+       s'élargissait et poussait le panneau hors de l'écran). */
     .widgets-grid,
     .tools-grid,
     .act-grid,
     #jeux-panel-content .act-grid {
-        grid-template-columns: repeat(4, 1fr) !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
         gap: 8px !important;
     }
 
+    /* Cartes : ne peuvent pas dépasser leur colonne */
+    .act-card,
+    .tools-card,
+    .widgets-card {
+        min-width: 0 !important;
+        overflow: hidden !important;
+        padding: 4px !important;
+    }
+
+    /* Zone image : carré identique pour toutes les cartes */
+    .act-card-ico,
+    .tools-card-ico,
+    .widgets-card-ico {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 1 / 1 !important;
+        overflow: hidden !important;
+    }
+
+    /* Image : remplit le carré sans déformation, quelle que soit sa taille
+       d'origine (remplace aussi la règle width/height:auto des widgets) */
+    .act-card-ico img,
+    .tools-card-ico img,
+    .widgets-card-ico img {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+        display: block !important;
+    }
+
+    /* Titres : retour à la ligne sur les mots longs pour ne rien élargir */
+    .act-card-name,
+    .tools-card-name,
+    .widgets-card-name {
+        font-size: 10px !important;
+        overflow-wrap: anywhere !important;
+        hyphens: auto !important;
+    }
+
     .widgets-card-ico { font-size: 36px !important; }
-    .widgets-card-name { font-size: 10px !important; }
 
     /* Sur téléphone : on masque les descriptions sous les vignettes
        des panneaux Jeux, Activités, Outils et Widgets — seul le titre

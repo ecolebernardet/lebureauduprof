@@ -764,7 +764,7 @@
         [2, 'adj', 'timide',     ['réservé'],           ['audacieux'], ['modeste', 'humble', 'peureux', 'orgueilleux', 'vaniteux']],
         [2, 'verbe', 'réparer',   ['arranger'],         ['casser', 'abîmer'], ['construire', 'bâtir', 'détruire']],
         [2, 'verbe', 'construire',['bâtir'],            ['détruire']],
-        [2, 'verbe', 'accepter',  [],                   ['refuser']],
+        [2, 'verbe', 'accepter',  ['admettre'],         ['refuser'], ['rejeter']],
         [2, 'verbe', 'augmenter', ['accroître'],        ['diminuer', 'baisser'], ['progresser', 'avancer', 'reculer', 'remplir', 'vider']],
         [2, 'verbe', 'cacher',    ['dissimuler'],       ['montrer']],
         [2, 'verbe', 'réussir',   [],                   ['échouer', 'rater']],
@@ -773,7 +773,7 @@
         [2, 'nom', 'joie',        ['bonheur'],          ['tristesse', 'chagrin'], ['richesse']],
         [2, 'nom', 'courage',     ['bravoure'],         ['peur', 'lâcheté']],
         [2, 'adv', 'souvent',     ['fréquemment'],      ['rarement']],
-        [2, 'adv', 'toujours',    [],                   ['jamais']],
+        [2, 'adv', 'toujours',    ['constamment'],      ['jamais'], ['souvent', 'fréquemment', 'parfois', 'rarement', 'longtemps']],
 
         // ── Difficile ──
         [3, 'adj', 'fragile',    ['délicat'],           ['solide', 'résistant']],
@@ -796,6 +796,193 @@
         [3, 'nom', 'vérité',       [],                  ['mensonge']],
         [3, 'nom', 'sagesse',      [],                  ['folie']],
         [3, 'adv', 'calmement',    ['tranquillement'],  ['nerveusement']],
+
+        // ══ Mots ajoutés (banque enrichie) ══
+        // ── Facile ──
+        [1, 'adj', 'doux',      ['tendre'],            ['dur'], ['moelleux', 'mou', 'lisse', 'rugueux', 'sucré', 'gentil', 'aimable', 'calme']],
+        [1, 'adj', 'long',      ['interminable'],      ['court'], ['grand', 'haut', 'bref']],
+        [1, 'adj', 'nouveau',   ['neuf'],              ['vieux', 'ancien'], ['moderne', 'récent', 'jeune', 'âgé', 'usé']],
+        [1, 'adj', 'vrai',      ['exact'],             ['faux'], ['juste', 'correct', 'précis', 'sincère', 'honnête']],
+        [1, 'adj', 'bon',       ['délicieux'],         ['mauvais'], ['savoureux', 'excellent', 'gentil', 'méchant']],
+        [1, 'adj', 'gai',       ['joyeux'],            ['triste'], ['content', 'heureux', 'malheureux', 'amusant']],
+        [1, 'adj', 'heureux',   ['ravi'],              ['malheureux', 'triste'], ['content', 'joyeux', 'gai', 'mécontent']],
+        [1, 'adj', 'triste',    ['malheureux'],        ['joyeux', 'gai'], ['content', 'heureux', 'mécontent', 'sombre']],
+        [1, 'adj', 'froid',     ['glacé'],             ['chaud'], ['gelé', 'frais', 'tiède', 'brûlant']],
+        [1, 'adj', 'petit',     ['minuscule'],         ['grand'], ['infime', 'court', 'mince', 'bas', 'gigantesque', 'immense', 'énorme', 'gros', 'haut']],
+        [1, 'adj', 'méchant',   ['cruel'],             ['gentil'], ['aimable', 'mauvais', 'dur', 'sévère', 'bon']],
+        [1, 'adj', 'lent',      ['lambin'],            ['rapide'], ['vif', 'calme']],
+        [1, 'adj', 'sale',      ['crasseux'],          ['propre'], ['net', 'boueux']],
+        [1, 'adj', 'joli',      ['mignon'],            ['laid', 'moche'], ['beau']],
+        [1, 'adj', 'haut',      ['élevé'],             ['bas'], ['grand', 'immense', 'petit', 'profond']],
+        [1, 'adj', 'vide',      ['désert'],            ['plein', 'rempli'], ['abondant']],
+        [1, 'adj', 'intelligent', ['malin'],           ['bête', 'stupide'], ['habile', 'adroit', 'sage', 'maladroit']],
+        [1, 'adj', 'sage',      ['obéissant'],         ['désobéissant', 'turbulent'], ['calme', 'tranquille', 'agité', 'gentil', 'poli', 'docile', 'intelligent']],
+        [1, 'adj', 'bavard',    ['causant'],           ['silencieux', 'muet'], ['bruyant', 'sonore', 'réservé', 'timide', 'discret', 'calme']],
+        [1, 'adj', 'jeune',     [],                    ['vieux', 'âgé'], ['nouveau', 'neuf', 'ancien', 'récent', 'moderne']],
+        [1, 'verbe', 'entrer',    ['pénétrer'],        ['sortir'], ['arriver', 'partir', 'quitter']],
+        [1, 'verbe', 'arriver',   ['venir'],           ['partir'], ['entrer', 'sortir', 'quitter', 'rester', "s'en aller"]],
+        [1, 'verbe', 'partir',    ["s'en aller"],      ['rester', 'arriver'], ['quitter', 'sortir', 'entrer', 'venir', 'fuir']],
+        [1, 'verbe', 'parler',    ['discuter'],        ['se taire'], ['bavarder', 'crier', 'hurler', 'chuchoter', 'murmurer', 'répondre']],
+        [1, 'verbe', 'trouver',   ['découvrir'],       ['perdre'], ['égarer', 'chercher', 'gagner']],
+        [1, 'verbe', 'perdre',    ['égarer'],          ['trouver', 'gagner'], ['découvrir', 'remporter', 'échouer', 'rater', 'gaspiller']],
+        [1, 'verbe', 'finir',     ['terminer', 'achever'], ['commencer', 'débuter'], ['arrêter', 'cesser']],
+        [1, 'verbe', 'tirer',     ['traîner'],         ['pousser']],
+        [1, 'verbe', 'nettoyer',  ['laver'],           ['salir'], ['ranger', 'tacher']],
+        [1, 'verbe', 'casser',    ['briser'],          ['réparer'], ['abîmer', 'détruire', 'arranger', 'déchirer']],
+        [1, 'verbe', 'aider',     ['secourir'],        ['gêner'], ['soutenir', 'encourager', 'déranger', 'protéger']],
+        [1, 'verbe', 'sauter',    ['bondir'],          []],
+        [1, 'verbe', 'naître',    [],                  ['mourir']],
+        [1, 'verbe', 'gonfler',   [],                  ['dégonfler'], ['grossir', 'enfler']],
+        [1, 'verbe', 'détester',  ['haïr'],            ['aimer', 'adorer'], ['mépriser', 'admirer']],
+        [1, 'nom', 'jour',        ['journée'],         ['nuit'], ['matin', 'soir']],
+        [1, 'nom', 'nuit',        [],                  ['jour', 'journée'], ['soir', 'soirée']],
+        [1, 'nom', 'matin',       ['matinée'],         ['soir', 'soirée'], ['jour', 'nuit']],
+        [1, 'nom', 'entrée',      ['accès'],           ['sortie']],
+        [1, 'nom', 'bruit',       ['vacarme'],         ['silence'], ['calme', 'son']],
+        [1, 'nom', 'silence',     [],                  ['bruit', 'vacarme'], ['calme']],
+        [1, 'nom', 'peur',        ['frayeur', 'crainte'], ['courage'], ['bravoure', 'lâcheté', 'angoisse']],
+        [1, 'nom', 'cadeau',      ['présent'],         []],
+        [1, 'nom', 'maison',      ['habitation'],      [], ['logement', 'demeure']],
+        [1, 'nom', 'ville',       ['cité'],            ['campagne']],
+        [1, 'nom', 'enfant',      ['gamin'],           ['adulte']],
+        [1, 'nom', 'voiture',     ['automobile'],      []],
+        [1, 'nom', 'professeur',  ['enseignant', 'maître'], [], ['élève']],
+        [1, 'nom', 'erreur',      ['faute'],           [], ['échec', 'défaut']],
+        [1, 'nom', 'hiver',       [],                  ['été']],
+        [1, 'adv', 'beaucoup',    ['énormément'],      ['peu']],
+        [1, 'adv', 'tôt',         [],                  ['tard']],
+        [1, 'adv', 'tard',        [],                  ['tôt']],
+        [1, 'adv', 'devant',      [],                  ['derrière'], ['avant', 'après']],
+        [1, 'adv', 'dessus',      [],                  ['dessous']],
+        [1, 'adv', 'dedans',      ["à l'intérieur"],   ['dehors']],
+        [1, 'adv', 'loin',        [],                  ['près']],
+        [1, 'adv', 'bien',        [],                  ['mal']],
+        [1, 'adv', 'avant',       [],                  ['après'], ['devant', 'derrière', 'tôt', 'tard']],
+        [1, 'adv', 'lentement',   [],                  ['vite', 'rapidement'], ['doucement', 'calmement', 'tranquillement']],
+
+        // ── Moyen ──
+        [2, 'adj', 'mou',        ['moelleux'],          ['dur'], ['doux', 'tendre', 'solide']],
+        [2, 'adj', 'dur',        ['solide'],            ['mou', 'tendre'], ['doux', 'moelleux', 'résistant', 'fragile', 'difficile', 'sévère']],
+        [2, 'adj', 'mince',      ['fin'],               ['gros', 'épais'], ['maigre', 'étroit', 'léger', 'énorme', 'large', 'petit']],
+        [2, 'adj', 'clair',      ['lumineux'],          ['sombre', 'obscur'], ['limpide', 'transparent', 'trouble', 'net']],
+        [2, 'adj', 'immense',    ['gigantesque'],       ['minuscule'], ['énorme', 'grand', 'haut', 'petit', 'infime', 'gros']],
+        [2, 'adj', 'sec',        ['aride'],             ['mouillé', 'humide'], ['trempé']],
+        [2, 'adj', 'humide',     ['mouillé'],           ['sec'], ['trempé', 'aride']],
+        [2, 'adj', 'malheureux', ['triste'],            ['heureux'], ['content', 'joyeux', 'gai', 'ravi', 'mécontent']],
+        [2, 'adj', 'utile',      ['pratique'],          ['inutile']],
+        [2, 'adj', 'possible',   ['faisable'],          ['impossible'], ['facile', 'difficile']],
+        [2, 'adj', 'célèbre',    ['connu', 'fameux'],   ['inconnu']],
+        [2, 'adj', 'ordonné',    ['rangé'],             ['désordonné'], ['propre', 'sale']],
+        [2, 'adj', 'patient',    [],                    ['impatient'], ['calme', 'nerveux']],
+        [2, 'adj', 'lisse',      ['uni'],               ['rugueux'], ['doux', 'dur']],
+        [2, 'adj', 'proche',     ['voisin'],            ['lointain', 'éloigné']],
+        [2, 'adj', 'cher',       ['coûteux'],           ['bon marché'], ['riche', 'pauvre']],
+        [2, 'adj', 'pareil',     ['identique', 'semblable'], ['différent']],
+        [2, 'adj', 'nerveux',    ['agité'],             ['calme', 'détendu'], ['paisible', 'serein', 'tranquille', 'furieux', 'enragé', 'impatient', 'patient']],
+        [2, 'adj', 'sucré',      [],                    ['salé'], ['doux', 'amer']],
+        [2, 'adj', 'stupide',    ['bête'],              ['intelligent'], ['malin', 'sage', 'maladroit']],
+        [2, 'adj', 'désobéissant', ['indiscipliné'],    ['obéissant'], ['sage', 'docile', 'turbulent']],
+        [2, 'verbe', 'acheter',   ['acquérir'],         ['vendre'], ['dépenser', 'économiser']],
+        [2, 'verbe', 'fermer',    ['clore'],            ['ouvrir'], ['allumer', 'éteindre']],
+        [2, 'verbe', 'descendre', ['dévaler'],          ['monter', 'grimper'], ['baisser', 'diminuer', 'reculer']],
+        [2, 'verbe', 'chuchoter', ['murmurer'],         ['crier', 'hurler'], ['parler', 'discuter', 'se taire']],
+        [2, 'verbe', 'pleurer',   ['sangloter'],        ['rire'], ['rigoler']],
+        [2, 'verbe', 'recevoir',  ['obtenir'],          ['donner', 'envoyer'], ['offrir', 'prendre', 'accepter', 'gagner', 'remporter', 'expédier']],
+        [2, 'verbe', 'envoyer',   ['expédier'],         ['recevoir'], ['donner', 'obtenir', 'lancer']],
+        [2, 'verbe', 'prêter',    [],                   ['emprunter'], ['donner', 'rendre']],
+        [2, 'verbe', 'ajouter',   ['additionner'],      ['retirer', 'enlever'], ['augmenter', 'diminuer', 'soustraire', 'mettre']],
+        [2, 'verbe', 'enlever',   ['retirer'],          ['mettre', 'ajouter'], ['ôter', 'additionner', 'prendre']],
+        [2, 'verbe', 'habiller',  ['vêtir'],            ['déshabiller']],
+        [2, 'verbe', 'refuser',   ['rejeter'],          ['accepter'], ['admettre', 'interdire', 'autoriser', 'permettre', 'jeter']],
+        [2, 'verbe', 'chauffer',  ['réchauffer'],       ['refroidir'], ['brûler', 'geler']],
+        [2, 'verbe', 'mouiller',  ['tremper'],          ['sécher']],
+        [2, 'verbe', 'agrandir',  ['élargir'],          ['réduire', 'rétrécir'], ['augmenter', 'accroître', 'diminuer', 'baisser', 'grossir']],
+        [2, 'verbe', 'diminuer',  ['réduire'],          ['augmenter'], ['baisser', 'accroître', 'agrandir', 'élargir', 'rétrécir', 'grossir', 'maigrir']],
+        [2, 'verbe', 'détruire',  ['démolir'],          ['construire', 'bâtir'], ['casser', 'briser', 'abîmer', 'réparer', 'arranger']],
+        [2, 'verbe', 'salir',     ['tacher'],           ['nettoyer', 'laver'], ['abîmer']],
+        [2, 'verbe', 'ranger',    ['classer'],          ['déranger'], ['nettoyer', 'trier', 'ordonner', 'mélanger']],
+        [2, 'verbe', 'arrêter',   ['stopper'],          ['continuer', 'poursuivre'], ['finir', 'terminer', 'cesser', 'commencer', 'débuter', 'achever']],
+        [2, 'verbe', 'continuer', ['poursuivre'],       ['arrêter', 'cesser'], ['stopper', 'finir', 'terminer', 'commencer', 'débuter', 'achever']],
+        [2, 'verbe', 'mélanger',  ['mêler'],            ['trier', 'séparer'], ['ranger', 'classer', 'réunir', 'unir', 'rassembler', 'disperser']],
+        [2, 'verbe', 'obéir',     [],                   ['désobéir'], ['commander', 'ordonner', 'écouter', 'respecter']],
+        [2, 'verbe', 'baisser',   ['diminuer'],         ['monter', 'augmenter'], ['réduire', 'descendre', 'lever', 'accroître', 'grimper']],
+        [2, 'verbe', 'garder',    ['conserver'],        ['jeter'], ['perdre', 'lâcher', 'économiser', 'protéger', 'lancer', 'rejeter']],
+        [2, 'verbe', 'lâcher',    ['relâcher'],         ['tenir', 'attraper'], ['saisir', 'jeter', 'garder', 'prendre', 'abandonner']],
+        [2, 'verbe', 'attraper',  ['saisir'],           ['lâcher'], ['prendre', 'tenir', 'jeter', 'lancer', 'ramasser', 'relâcher']],
+        [2, 'verbe', 'répondre',  ['répliquer'],        ['demander', 'questionner'], ['interroger', 'parler', 'discuter']],
+        [2, 'verbe', 'apparaître', ['surgir'],          ['disparaître'], ['montrer', 'cacher', 'arriver', 'venir', 'partir']],
+        [2, 'verbe', 'protéger',  ['défendre'],         ['attaquer'], ['aider', 'secourir', 'garder', 'interdire', 'soutenir', 'assaillir']],
+        [2, 'verbe', 'grossir',   ['enfler'],           ['maigrir', 'mincir'], ['gonfler', 'dégonfler', 'augmenter', 'diminuer', 'agrandir', 'rétrécir', 'accroître']],
+        [2, 'verbe', 'accélérer', [],                   ['ralentir'], ['avancer', 'freiner']],
+        [2, 'verbe', 'montrer',   ['présenter'],        ['cacher', 'dissimuler'], ['apparaître', 'disparaître']],
+        [2, 'nom', 'tristesse',   ['chagrin', 'peine'], ['joie', 'bonheur'], ['malheur']],
+        [2, 'nom', 'question',    ['interrogation'],    ['réponse'], ['demande']],
+        [2, 'nom', 'guerre',      ['conflit'],          ['paix'], ['combat', 'bataille', 'dispute']],
+        [2, 'nom', 'paix',        ['tranquillité'],     ['guerre', 'conflit'], ['calme', 'silence', 'sérénité']],
+        [2, 'nom', 'ennemi',      ['adversaire'],       ['ami', 'allié'], ['copain']],
+        [2, 'nom', 'force',       ['puissance'],        ['faiblesse'], ['courage', 'énergie']],
+        [2, 'nom', 'gentillesse', ['bonté'],            ['méchanceté'], ['générosité', 'politesse', 'courtoisie']],
+        [2, 'nom', 'santé',       [],                   ['maladie']],
+        [2, 'nom', 'chance',      ['veine'],            ['malchance'], ['succès', 'réussite']],
+        [2, 'nom', 'colère',      ['rage'],             ['calme'], ['fureur', 'tranquillité', 'sérénité', 'paix']],
+        [2, 'nom', 'échec',       ['défaite'],          ['réussite', 'succès'], ['victoire', 'erreur', 'faute']],
+        [2, 'nom', 'mensonge',    ['tromperie'],        ['vérité'], ['erreur', 'faute']],
+        [2, 'nom', 'arrivée',     [],                   ['départ'], ['entrée', 'sortie', 'fin', 'début']],
+        [2, 'adv', 'rapidement',  ['vite'],             ['lentement'], ['tôt', 'soudainement', 'aussitôt', 'immédiatement']],
+        [2, 'adv', 'rarement',    [],                   ['souvent', 'fréquemment'], ['parfois', 'quelquefois', 'jamais', 'toujours']],
+        [2, 'adv', 'gentiment',   ['aimablement'],      ['méchamment'], ['poliment', 'doucement', 'calmement']],
+        [2, 'adv', 'heureusement', [],                  ['malheureusement']],
+        [2, 'adv', 'ensemble',    [],                   ['séparément']],
+        [2, 'adv', 'parfois',     ['quelquefois'],      [], ['souvent', 'rarement', 'fréquemment', 'toujours', 'jamais']],
+
+        // ── Difficile ──
+        [3, 'adj', 'visible',    ['apparent'],          ['invisible'], ['clair', 'transparent', 'caché']],
+        [3, 'adj', 'profond',    [],                    ['superficiel'], ['bas', 'haut']],
+        [3, 'adj', 'obéissant',  ['docile'],            ['désobéissant'], ['sage', 'turbulent', 'indiscipliné', 'poli']],
+        [3, 'adj', 'fier',       ['orgueilleux'],       ['modeste', 'humble'], ['vaniteux', 'content', 'timide']],
+        [3, 'adj', 'sincère',    ['franc'],             ['hypocrite', 'menteur'], ['honnête', 'loyal', 'vrai', 'malhonnête']],
+        [3, 'adj', 'immobile',   ['figé'],              ['mobile'], ['calme', 'agité', 'tranquille']],
+        [3, 'adj', 'nombreux',   ['multiple'],          ['rare'], ['abondant', 'copieux', 'plein']],
+        [3, 'adj', 'certain',    ['sûr'],               ['incertain', 'douteux'], ['vrai', 'exact', 'confiant', 'précis']],
+        [3, 'adj', 'dangereux',  ['périlleux'],         ['inoffensif'], ['imprudent', 'téméraire', 'prudent', 'méchant']],
+        [3, 'adj', 'ennuyeux',   ['lassant'],           ['passionnant', 'amusant'], ['drôle', 'comique', 'intéressant']],
+        [3, 'adj', 'précis',     ['exact'],             ['approximatif', 'vague'], ['vrai', 'juste', 'correct', 'clair', 'net', 'faux', 'certain']],
+        [3, 'adj', 'droit',      ['rectiligne'],        ['tordu', 'courbe'], ['honnête', 'loyal', 'malhonnête']],
+        [3, 'adj', 'superflu',   ['inutile'],           ['indispensable', 'nécessaire'], ['utile', 'pratique']],
+        [3, 'adj', 'audacieux',  ['hardi'],             ['craintif'], ['courageux', 'brave', 'vaillant', 'téméraire', 'peureux', 'timide', 'réservé', 'lâche', 'imprudent']],
+        [3, 'adj', 'rusé',       ['malin'],             ['naïf'], ['intelligent', 'habile', 'bête', 'stupide']],
+        [3, 'verbe', 'affirmer',   ['assurer'],         ['nier'], ['dire', 'mentir']],
+        [3, 'verbe', 'gaspiller',  ['dilapider'],       ['économiser', 'épargner'], ['dépenser', 'perdre', 'garder', 'conserver']],
+        [3, 'verbe', 'économiser', ['épargner'],        ['dépenser', 'gaspiller'], ['garder', 'conserver', 'acheter', 'dilapider']],
+        [3, 'verbe', 'attaquer',   ['assaillir'],       ['défendre', 'protéger'], ['aider', 'secourir', 'interdire']],
+        [3, 'verbe', 'calmer',     ['apaiser'],         ['énerver', 'exciter'], ['rassurer', 'tranquilliser', 'inquiéter', 'effrayer']],
+        [3, 'verbe', 'rassurer',   ['tranquilliser'],   ['inquiéter', 'effrayer'], ['calmer', 'apaiser', 'énerver', 'encourager', 'terrifier', 'épouvanter']],
+        [3, 'verbe', 'effrayer',   ['terrifier', 'épouvanter'], ['rassurer', 'tranquilliser'], ['inquiéter', 'calmer', 'apaiser', 'énerver']],
+        [3, 'verbe', 'commander',  ['ordonner'],        ['obéir'], ['désobéir', 'diriger', 'demander', 'ranger', 'classer']],
+        [3, 'verbe', 'unir',       ['réunir'],          ['séparer', 'diviser'], ['rassembler', 'disperser', 'mélanger', 'trier', 'mêler']],
+        [3, 'verbe', 'fuir',       ["s'enfuir"],        ['affronter'], ['partir', 'quitter', "s'en aller", 'attaquer']],
+        [3, 'verbe', 'reculer',    ['régresser'],       ['avancer', 'progresser'], ['descendre', 'diminuer', 'baisser']],
+        [3, 'verbe', 'punir',      ['sanctionner'],     ['récompenser'], ['féliciter', 'encourager']],
+        [3, 'verbe', 'interdire',  ['défendre'],        ['autoriser', 'permettre'], ['refuser', 'accepter', 'protéger', 'attaquer']],
+        [3, 'verbe', 'disperser',  ['éparpiller'],      ['rassembler', 'réunir'], ['unir', 'séparer', 'diviser', 'mélanger', 'trier']],
+        [3, 'nom', 'beauté',       ['splendeur'],       ['laideur']],
+        [3, 'nom', 'politesse',    ['courtoisie'],      ['impolitesse', 'grossièreté'], ['gentillesse', 'bonté', 'méchanceté']],
+        [3, 'nom', 'défaut',       ['imperfection'],    ['qualité'], ['erreur', 'faute']],
+        [3, 'nom', 'danger',       ['péril'],           ['sécurité'], ['peur', 'risque']],
+        [3, 'nom', 'liberté',      ['indépendance'],    ['captivité'], ['paix']],
+        [3, 'nom', 'avantage',     ['atout'],           ['inconvénient'], ['qualité', 'défaut', 'chance']],
+        [3, 'nom', 'espoir',       ['espérance'],       ['désespoir'], ['confiance', 'peur', 'crainte']],
+        [3, 'nom', 'abondance',    ['profusion'],       ['pénurie', 'manque'], ['richesse', 'fortune', 'pauvreté', 'misère']],
+        [3, 'nom', 'travail',      ['labeur'],          ['repos', 'loisir']],
+        [3, 'nom', 'patience',     [],                  ['impatience'], ['calme', 'colère', 'sagesse']],
+        [3, 'nom', 'pauvreté',     ['misère'],          ['richesse', 'fortune'], ['abondance', 'pénurie', 'manque']],
+        [3, 'adv', 'facilement',   ['aisément'],        ['difficilement'], ['simplement']],
+        [3, 'adv', 'bruyamment',   [],                  ['silencieusement'], ['calmement', 'tranquillement', 'doucement']],
+        [3, 'adv', 'prudemment',   [],                  ['imprudemment'], ['calmement', 'doucement', 'lentement']],
+        [3, 'adv', 'soudainement', ['brusquement'],     ['progressivement'], ['rapidement', 'vite', 'aussitôt', 'immédiatement', 'lentement']],
+        [3, 'adv', 'longtemps',    [],                  ['brièvement'], ['toujours', 'souvent', 'rarement']],
+        [3, 'adv', 'aussitôt',     ['immédiatement'],   [], ['vite', 'rapidement', 'soudainement', 'tôt', 'tard']],
+        [3, 'adv', 'nerveusement', ['fébrilement'],     ['calmement', 'tranquillement'], ['rapidement', 'lentement', 'doucement']],
     ];
 
     function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
@@ -821,6 +1008,20 @@
         });
     });
     function isRelated(a, b) { return !!(RELATED[a] && RELATED[a][b]); }
+    // Lien « indirect » (2 sauts) : a et b partagent un mot lié.
+    // Ex. : diminuer ~ réduire ~ agrandir → « agrandir » ne doit pas être un
+    // intrus pour « contraire de diminuer ».
+    var RELATED2 = {};
+    function related2Set(a) {
+        if (RELATED2[a]) return RELATED2[a];
+        var out = {};
+        Object.keys(RELATED[a] || {}).forEach(function (x) {
+            out[x] = true;
+            Object.keys(RELATED[x] || {}).forEach(function (y) { out[y] = true; });
+        });
+        return (RELATED2[a] = out);
+    }
+    function isRelated2(a, b) { return !!related2Set(a)[b]; }
 
     // Un item : { kind, word, ans, options, say, key, entry }
     function makeItem(e, kind) {
@@ -832,20 +1033,29 @@
         // Intrus n°1 : le piège, un mot de l'autre famille (le contraire quand on
         // demande un synonyme, et inversement)
         if (other.length) opts.push(pick(other));
-        // Intrus suivants : mots de même nature, sans lien avec le mot ni la réponse
-        var pool = [];
-        WORDS.forEach(function (o) {
-            if (o === e || o[1] !== e[1]) return;
-            [o[2]].concat(o[3], o[4]).forEach(function (w) {
-                if (w === word || w === ans || opts.indexOf(w) >= 0) return;
-                if (isRelated(word, w) || isRelated(ans, w)) return;
-                pool.push(w);
+        // Intrus suivants : mots de même nature, sans lien (même indirect) avec
+        // le mot ni la réponse. Si la réserve est trop maigre, on assouplit.
+        var tries = [
+            { same: true,  rel: isRelated2 },
+            { same: true,  rel: isRelated },
+            { same: false, rel: isRelated2 },
+            { same: false, rel: isRelated }
+        ];
+        for (var t = 0; t < tries.length && opts.length < 2; t++) {
+            var tr = tries[t], pool = [];
+            WORDS.forEach(function (o) {
+                if (o === e || (tr.same && o[1] !== e[1])) return;
+                [o[2]].concat(o[3], o[4]).forEach(function (w) {
+                    if (w === word || w === ans || opts.indexOf(w) >= 0 || pool.indexOf(w) >= 0) return;
+                    if (tr.rel(word, w) || tr.rel(ans, w)) return;
+                    pool.push(w);
+                });
             });
-        });
-        shuffle(pool);
-        while (opts.length < 2 && pool.length) {
-            var w = pool.pop();
-            if (opts.indexOf(w) < 0 && !opts.some(function (x) { return isRelated(x, w); })) opts.push(w);
+            shuffle(pool);
+            while (opts.length < 2 && pool.length) {
+                var w = pool.pop();
+                if (!opts.some(function (x) { return isRelated(x, w); })) opts.push(w);
+            }
         }
         return {
             kind: kind, word: word, ans: ans, entry: e,

@@ -248,7 +248,15 @@
 
     .widgets-card-ico { font-size: 36px !important; }
     .widgets-card-name { font-size: 10px !important; }
-    .widgets-card-desc { font-size: 9px !important; }
+
+    /* Sur téléphone : on masque les descriptions sous les vignettes
+       des panneaux Jeux, Activités, Outils et Widgets — seul le titre
+       reste affiché (.act-card-desc couvre à la fois Jeux et Activités). */
+    .act-card-desc,
+    .tools-card-desc,
+    .widgets-card-desc {
+        display: none !important;
+    }
 
 
     /* ════════════════════════════════════════════════════════

@@ -1660,7 +1660,7 @@ body.presentation-mode #widgets-panel-tab { display: none !important; }
 #widgets-panel-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
 
 .widgets-section-label {
-    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    font-size: 14px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 1px; color: rgba(255,255,255,0.35);
     padding: 5px 0 5px; margin-bottom: 1px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -1801,7 +1801,7 @@ body.presentation-mode #tools-panel-tab { display: none !important; }
 #tools-panel-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
 
 .tools-section-label {
-    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    font-size: 14px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 1px; color: rgba(255,255,255,0.35);
     padding: 8px 0 8px; margin-bottom: 4px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -1994,7 +1994,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
 #jeux-panel-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
 
 .act-section-label {
-    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    font-size: 14px; font-weight: 700; 
     letter-spacing: 1px; color: rgba(255,255,255,0.35);
     padding: 0px 0 0px; margin-bottom: 4px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -2006,7 +2006,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
     margin-bottom: 8px;
 }
 #jeux-panel-content .act-grid {
-    grid-template-columns: repeat(9, 1fr);   /* nombre de colonnes propre au panneau Jeux */
+    grid-template-columns: repeat(10, 1fr);   /* nombre de colonnes propre au panneau Jeux */
 }
 .act-card {
     background: #1a1a1a;

@@ -528,6 +528,52 @@
     }
     .equipes-modal-input:focus { outline: none; border-color: #4a90e2; box-shadow: 0 0 0 2px #dbeafe; }
 
+    /* La règle .widget { touch-action: none } du tableau bloque aussi le
+       défilement au doigt : on le réautorise dans la liste des prénoms et
+       dans les résultats, et on évite le délai / zoom du double-tap. */
+    .widget[data-type="equipes"] .equipes-body,
+    .widget[data-type="equipes"] .equipes-results { touch-action: pan-y; }
+    .widget[data-type="equipes"] .equipes-pill,
+    .widget[data-type="equipes"] .equipes-inner button { touch-action: manipulation; }
+
+    /* ── Téléphone : plein écran (classe .phone-fs posée par index.html) ──
+       Le cadre fait 800×600 px par défaut : en plein écran il doit
+       remplir tout l'écran du téléphone. */
+    .widget.phone-fs[data-type="equipes"] .equipes-outer {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        border-radius: 0 !important;
+    }
+    .widget.phone-fs[data-type="equipes"] .equipes-inner {
+        border-radius: 0 !important;
+        border: none !important;
+    }
+    .widget.phone-fs[data-type="equipes"] .equipes-header {
+        cursor: default;
+        padding-right: 56px; /* laisse la place au bouton ⤡ de sortie du plein écran */
+    }
+    .widget.phone-fs[data-type="equipes"] .equipes-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .widget.phone-fs[data-type="equipes"] .equipes-generate-btn {
+        width: auto;
+        min-width: 0;
+        max-width: 260px;
+    }
+    /* Résultats : 2 équipes par ligne au maximum sur un écran étroit */
+    .widget.phone-fs[data-type="equipes"] .equipes-results-grid,
+    .widget.phone-fs[data-type="equipes"] .equipes-results-grid.cols-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .widget.phone-fs[data-type="equipes"] .equipes-results-grid.cols-4 .equipes-team-member {
+        font-size: 15px;
+    }
+    .widget.phone-fs[data-type="equipes"] .equipes-modal-overlay {
+        border-radius: 0;
+    }
+
     `;
 
     if (!document.getElementById('equipes-widget-style')) {
@@ -650,6 +696,19 @@
         // Bloquer la remontée mousedown depuis l'intérieur
         outer.addEventListener('mousedown', e => e.stopPropagation());
 
+        // Même chose au doigt / au stylet : sans ça, le toucher sur un prénom
+        // remonte jusqu'au tableau, qui le prend pour un déplacement du widget
+        // et annule le clic. On laisse passer l'en-tête (il sert à déplacer).
+        if (!outer._touchGuard) {
+            outer._touchGuard = true;
+            const stopIfNotHeader = (e) => {
+                if (e.target.closest && e.target.closest('.equipes-header')) return;
+                e.stopPropagation();
+            };
+            outer.addEventListener('touchstart',  stopIfNotHeader, { passive: true });
+            outer.addEventListener('pointerdown', stopIfNotHeader);
+        }
+
         // ── Header draggable (une seule fois) ─────────────────────────────
         const equipesHeader = widget.querySelector('.equipes-header');
         if (equipesHeader && !equipesHeader._dragInit) {
@@ -699,6 +758,10 @@
         let _isMax = false;
 
         function equipesCollapse() {
+            // En plein écran téléphone : on en sort d'abord pour retrouver la taille normale
+            if (widget.classList.contains('phone-fs') && typeof window.exitPhoneFullscreen === 'function') {
+                window.exitPhoneFullscreen(widget);
+            }
             const savedW = outer.offsetWidth  || parseFloat(widget.dataset.equipesW) || 800;
             const savedH = outer.offsetHeight || parseFloat(widget.dataset.equipesH) || 600;
             widget.dataset.equipesW = savedW;
@@ -1179,6 +1242,32 @@
             return hasDupPrenom(s.prenom) ? s.prenom + ' ' + (s.nom.charAt(0) || '') + '.' : s.prenom;
         }
 
+        // Toucher fiable sur téléphone/tablette : un appui court (sans glisser,
+        // pour ne pas gêner le défilement de la liste) déclenche l'action dès
+        // que le doigt se lève. À la souris, on garde le clic habituel.
+        let lastTouchTap = 0;
+        function onTap(el, fn) {
+            let start = null;
+            el.addEventListener('pointerdown', (e) => {
+                if (e.pointerType === 'mouse') return;
+                start = { x: e.clientX, y: e.clientY };
+            });
+            el.addEventListener('pointerup', (e) => {
+                if (e.pointerType === 'mouse' || !start) return;
+                const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+                start = null;
+                if (moved > 10) return;            // c'était un défilement
+                lastTouchTap = Date.now();
+                e.preventDefault();
+                fn();
+            });
+            el.addEventListener('pointercancel', () => { start = null; });
+            el.addEventListener('click', () => {
+                if (Date.now() - lastTouchTap < 600) return; // déjà traité au toucher
+                fn();
+            });
+        }
+
         function renderAttendance() {
             body.innerHTML = '';
             const students = getFiltered();
@@ -1214,7 +1303,7 @@
                     }
                     pill.textContent = displayName(s);
                     pill.title       = s.prenom + ' ' + s.nom + (isAbsent ? ' (absent)' : '');
-                    pill.addEventListener('click', () => toggleAbsent(s.id));
+                    onTap(pill, () => toggleAbsent(s.id));
                     grid.appendChild(pill);
                 });
                 block.appendChild(grid);
@@ -1806,7 +1895,9 @@
         function updatePillScale() {
             const w = outer.offsetWidth || 420;
             const minW = 300, maxW = 700;
-            const t = Math.max(0, Math.min(1, (w - minW) / (maxW - minW)));
+            let t = Math.max(0, Math.min(1, (w - minW) / (maxW - minW)));
+            // Plein écran téléphone : écran étroit mais prénoms lisibles au doigt
+            if (widget.classList.contains('phone-fs')) t = Math.max(t, 0.6);
             const fs  = (9  + t * 7).toFixed(1)  + 'px';
             const pad = (4  + t * 5).toFixed(1)  + 'px';
             const gap = (4  + t * 5).toFixed(1)  + 'px';
@@ -1851,7 +1942,9 @@
         // ── Sauvegarder la taille via ResizeObserver ──────────────────────
         if (window.ResizeObserver) {
             const ro = new ResizeObserver(() => {
-                if (outer.dataset.collapsed !== '1') {
+                // Ne pas mémoriser la taille plein écran du téléphone (sinon, rouvert
+                // sur ordinateur, le widget garderait la taille de l'écran du téléphone)
+                if (outer.dataset.collapsed !== '1' && !widget.classList.contains('phone-fs')) {
                     if (outer.offsetWidth  > 0) widget.dataset.equipesW = outer.offsetWidth;
                     if (outer.offsetHeight > 0) widget.dataset.equipesH = outer.offsetHeight;
                 }
@@ -1901,6 +1994,11 @@
         bringToFront(widget);
         widget.focus();
         initEquipesWidget(widget);
+        // Sur téléphone : ouverture directe en plein écran (fullboard).
+        // Appel explicite, pour ne pas dépendre de la façon dont le widget a été lancé.
+        if (typeof window.enterPhoneFullscreen === 'function' && typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) {
+            window.enterPhoneFullscreen(widget);
+        }
         saveBoard();
         return widget;
     };

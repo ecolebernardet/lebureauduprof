@@ -2426,7 +2426,7 @@
             container.focus({ preventScroll: true });
             if (restoring) {
                 if (savedData.fullboard) setMax(true);
-            } else if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) {
+            } else if ((typeof isPhoneScreen === 'function' && isPhoneScreen()) || (window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches) || (typeof isMobileBoardMode === 'function' && isMobileBoardMode())) {
                 setMax(true);
             } else {
                 const curW = window.innerWidth;

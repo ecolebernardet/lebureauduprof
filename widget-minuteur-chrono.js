@@ -235,6 +235,23 @@
         height: 24px; padding: 0 8px;
         display: flex; align-items: center; justify-content: flex-end;
         box-sizing: border-box; z-index: 3;
+    }
+
+    /* ── Téléphone : plein écran du bouton vert (classe .mc-max) ──
+       Décalé de 40 px à gauche pour laisser les onglets latéraux
+       visibles, et hauteur réelle de l'écran (barres du navigateur
+       déduites). */
+    @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        .widget[data-type="minuteur"] .mc-outer.mc-max {
+            left: 40px !important;
+            width: calc(100vw - 40px) !important;
+            height: 100dvh !important;
+            outline: none !important;
+        }
+        .widget[data-type="minuteur"] .mc-outer.mc-max .mc-header { height: 36px; }
+        .widget[data-type="minuteur"] .mc-outer.mc-max .wf-btn {
+            width: 22px; height: 22px;
+        }
     }`;
         document.head.appendChild(s);
     }
@@ -454,19 +471,24 @@
         // est un élément interactif (bouton, input, label, checkbox).
         const INTERACTIVE = 'button, input, label, select, textarea, .mc-num-btn, .mc-tab, .mc-tt-dial';
         outer.addEventListener('mousedown', function(e) {
-            if (e.target.closest(INTERACTIVE)) { e.stopPropagation(); return; }
+            if (_isMax || e.target.closest(INTERACTIVE)) { e.stopPropagation(); return; }
             // Bloquer aussi le drag si on est dans le coin resize
             const r = outer.getBoundingClientRect();
             const nearCorner = (r.right - e.clientX) < RESIZE_ZONE && (r.bottom - e.clientY) < RESIZE_ZONE;
             if (nearCorner) e.stopPropagation();
         });
         outer.addEventListener('touchstart', function(e) {
-            if (e.target.closest(INTERACTIVE)) e.stopPropagation();
+            if (_isMax || e.target.closest(INTERACTIVE)) e.stopPropagation();
         }, { passive: true });
+        // En plein écran, aucun appui ne doit déplacer le widget (resté dessous)
+        outer.addEventListener('pointerdown', function(e) {
+            if (_isMax) e.stopPropagation();
+        });
 
         // ── Curseur move sauf sur la zone resize (coin bas-droit ~20px) ──────
         const RESIZE_ZONE = 20;
         outer.addEventListener('mousemove', function(e) {
+            if (_isMax) { outer.style.cursor = ''; return; }
             if (e.target.closest(INTERACTIVE)) return;
             const r = outer.getBoundingClientRect();
             const nearCorner = (r.right - e.clientX) < RESIZE_ZONE && (r.bottom - e.clientY) < RESIZE_ZONE;
@@ -529,12 +551,31 @@
             if (mb) mb.style.display = 'none';
         }
 
+        function mcEnterMax() {
+            if (_isMax) return;
+            _isMax = true;
+            _outerStyleBeforeMax = outer.style.cssText;
+            outer.style.position     = 'fixed';
+            outer.style.inset        = '0';
+            outer.style.width        = '100%';
+            outer.style.height       = '100%';
+            outer.style.zIndex       = '9999';
+            outer.style.borderRadius = '0';
+            outer.style.background   = '#fff';
+            outer.style.resize       = 'none';
+            outer.classList.add('mc-max');
+            applyScale();
+        }
+
         function mcExitMax() {
             if (!_isMax) return;
             _isMax = false;
+            outer.classList.remove('mc-max');
             outer.style.cssText = _outerStyleBeforeMax;
             applyScale();
         }
+        // Utilisé à l'ouverture sur téléphone (voir le hook createWidget)
+        widget._mcEnterMax = mcEnterMax;
 
         function mcCollapse() {
             if (widget.dataset.collapsed === '1') return;
@@ -631,21 +672,8 @@
         if (wfMax) {
             wfMax.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (!_isMax) {
-                    _isMax = true;
-                    _outerStyleBeforeMax = outer.style.cssText;
-                    outer.style.position     = 'fixed';
-                    outer.style.inset        = '0';
-                    outer.style.width        = '100%';
-                    outer.style.height       = '100%';
-                    outer.style.zIndex       = '9999';
-                    outer.style.borderRadius = '0';
-                    outer.style.background   = '#fff';
-                    outer.style.resize       = 'none';
-                    applyScale();
-                } else {
-                    mcExitMax();
-                }
+                if (!_isMax) mcEnterMax();
+                else mcExitMax();
             });
         }
         if (wfClose) {
@@ -1281,11 +1309,19 @@
     // =========================================================================
     // HOOK dans createWidget
     // =========================================================================
+    // Sur téléphone : ouverture directe en plein écran (bouton vert)
+    function openMaxOnPhone(widget) {
+        var phone = typeof window.isPhoneScreen === 'function'
+            ? window.isPhoneScreen()
+            : !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        if (phone && widget._mcEnterMax) widget._mcEnterMax();
+    }
+
     var _orig = window.createWidget;
     if (typeof _orig === 'function') {
         window.createWidget = function (type) {
             var widget = _orig.apply(this, arguments);
-            if (type === 'minuteur') initMinuteurWidget(widget);
+            if (type === 'minuteur' && widget) { initMinuteurWidget(widget); openMaxOnPhone(widget); }
             return widget;
         };
     } else {
@@ -1294,7 +1330,7 @@
             if (typeof orig === 'function') {
                 window.createWidget = function (type) {
                     var widget = orig.apply(this, arguments);
-                    if (type === 'minuteur') initMinuteurWidget(widget);
+                    if (type === 'minuteur' && widget) { initMinuteurWidget(widget); openMaxOnPhone(widget); }
                     return widget;
                 };
             }

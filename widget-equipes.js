@@ -14,6 +14,11 @@
 
 (function () {
 
+    function isPhoneNow() {
+        if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
     // ── CSS injecté une seule fois ────────────────────────────────────────
     const STYLE = `
     /* ── Widget transparent ── */
@@ -584,6 +589,42 @@
         border-radius: 0;
     }
 
+
+    /* ── Téléphone : plein écran du bouton vert (classe .wf-max) ──
+       Décalé de 40 px à gauche pour laisser les onglets latéraux
+       visibles, et hauteur réelle de l'écran (barres du navigateur
+       déduites). */
+    @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        .widget.wf-max[data-type="equipes"] .equipes-inner {
+            left: 40px !important;
+            width: calc(100vw - 40px) !important;
+            height: 100dvh !important;
+            border: none !important;
+            border-radius: 0 !important;
+        }
+        .widget.wf-max[data-type="equipes"] .equipes-header {
+            cursor: default;
+        }
+        .widget.wf-max[data-type="equipes"] .equipes-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .widget.wf-max[data-type="equipes"] .equipes-generate-btn {
+            width: auto;
+            min-width: 0;
+            max-width: 260px;
+        }
+        .widget.wf-max[data-type="equipes"] .equipes-results-grid,
+        .widget.wf-max[data-type="equipes"] .equipes-results-grid.cols-4 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .widget.wf-max[data-type="equipes"] .equipes-results-grid.cols-4 .equipes-team-member {
+            font-size: 15px;
+        }
+        .widget.wf-max[data-type="equipes"] .equipes-modal-overlay {
+            border-radius: 0;
+        }
+    }
+
     `;
 
     if (!document.getElementById('equipes-widget-style')) {
@@ -768,6 +809,8 @@
         let _isMax = false;
 
         function equipesCollapse() {
+            // En plein écran (bouton vert) : on en sort d'abord
+            if (_isMax) setMax(false);
             // En plein écran téléphone : on en sort d'abord pour retrouver la taille normale
             if (widget.classList.contains('phone-fs') && typeof window.exitPhoneFullscreen === 'function') {
                 window.exitPhoneFullscreen(widget);
@@ -899,27 +942,45 @@
             wfMin.addEventListener('mousedown',   (e) => { e.stopPropagation(); });
             wfMin.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); equipesCollapse(); });
         }
+        // Plein écran (bouton vert). Sur téléphone, il est activé dès
+        // l'ouverture du widget (voir createEquipesWidget).
+        function setMax(on) {
+            _isMax = !!on;
+            const inner = widget.querySelector('.equipes-inner');
+            if (!inner) return;
+            widget.classList.toggle('wf-max', _isMax);
+            if (_isMax) {
+                inner.style.position = 'fixed';
+                inner.style.inset = '0';
+                inner.style.width = '100%';
+                inner.style.height = '100%';
+                inner.style.zIndex = '9999';
+                inner.style.borderRadius = '0';
+            } else {
+                inner.style.position = '';
+                inner.style.inset = '';
+                inner.style.width = '';
+                inner.style.height = '';
+                inner.style.zIndex = '';
+                inner.style.borderRadius = '';
+            }
+            requestAnimationFrame(() => { if (typeof updatePillScale === 'function') updatePillScale(); });
+        }
+        widget._wfSetMax = setMax;
         if (wfMax) {
             wfMax.addEventListener('click', (e) => {
                 e.stopPropagation();
-                _isMax = !_isMax;
-                const inner = widget.querySelector('.equipes-inner');
-                if (_isMax) {
-                    inner.style.position = 'fixed';
-                    inner.style.inset = '0';
-                    inner.style.width = '100%';
-                    inner.style.height = '100%';
-                    inner.style.zIndex = '9999';
-                    inner.style.borderRadius = '0';
-                } else {
-                    inner.style.position = '';
-                    inner.style.inset = '';
-                    inner.style.width = '';
-                    inner.style.height = '';
-                    inner.style.zIndex = '';
-                    inner.style.borderRadius = '';
-                }
+                setMax(!_isMax);
             });
+        }
+        // Au doigt, en plein écran : un appui dans le widget ne doit pas remonter
+        // jusqu'au tableau (qui le prendrait pour un déplacement et annulerait le clic)
+        const _maxInner = widget.querySelector('.equipes-inner');
+        if (_maxInner) {
+            const stopInMax = (e) => { if (_isMax) e.stopPropagation(); };
+            _maxInner.addEventListener('touchstart',  stopInMax, { passive: true });
+            _maxInner.addEventListener('pointerdown', stopInMax);
+            _maxInner.addEventListener('mousedown',   stopInMax);
         }
         if (wfClose) {
             wfClose.addEventListener('click', (e) => {
@@ -1903,11 +1964,12 @@
 
         // ── Mise à l'échelle des pills selon la largeur du widget ─────────
         function updatePillScale() {
-            const w = outer.offsetWidth || 420;
+            const _inner = widget.querySelector('.equipes-inner');
+            const w = (_isMax && _inner ? _inner.offsetWidth : outer.offsetWidth) || 420;
             const minW = 300, maxW = 700;
             let t = Math.max(0, Math.min(1, (w - minW) / (maxW - minW)));
             // Plein écran téléphone : écran étroit mais prénoms lisibles au doigt
-            if (widget.classList.contains('phone-fs')) t = Math.max(t, 0.6);
+            if (widget.classList.contains('phone-fs') || (_isMax && isPhoneNow())) t = Math.max(t, 0.6);
             const fs  = (9  + t * 7).toFixed(1)  + 'px';
             const pad = (4  + t * 5).toFixed(1)  + 'px';
             const gap = (4  + t * 5).toFixed(1)  + 'px';
@@ -2004,11 +2066,8 @@
         bringToFront(widget);
         widget.focus();
         initEquipesWidget(widget);
-        // Sur téléphone : ouverture directe en plein écran (fullboard).
-        // Appel explicite, pour ne pas dépendre de la façon dont le widget a été lancé.
-        if (typeof window.enterPhoneFullscreen === 'function' && typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) {
-            window.enterPhoneFullscreen(widget);
-        }
+        // Sur téléphone : ouverture directe en plein écran (bouton vert).
+        if (isPhoneNow() && widget._wfSetMax) widget._wfSetMax(true);
         saveBoard();
         return widget;
     };

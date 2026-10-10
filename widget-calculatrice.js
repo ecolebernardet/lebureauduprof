@@ -264,6 +264,19 @@
     .calc-outer.calc-fullboard .calc-resize-handle { display: none; }
     .calc-outer.calc-fullboard .calc-body { left: 6%; right: 6%; bottom: 4%; }
 
+    /* Plein écran sur téléphone : hauteur réelle de l'écran (barres du
+       navigateur déduites) et marge à gauche pour laisser visibles les
+       onglets latéraux, qui dépassent d'environ 34 px du bord. */
+    @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        .widget[data-type="calculatrice"] .calc-outer.calc-fullboard {
+            height: 100dvh !important;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right)
+                     env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        .calc-outer.calc-fullboard .calc-header { padding-left: 44px; }
+        .calc-outer.calc-fullboard .calc-body { left: 44px; right: 10px; bottom: 10px; }
+    }
+
     /* ── En-tête ── */
     .calc-header {
         position: absolute;
@@ -1678,9 +1691,13 @@
             renderHistory();
             setHistoryVisible(!!d.showHistory);
             render();
-            if (d.fullboard) setMax(true);
+            // (setMax dans les deux sens : un widget ouvert en plein écran sur
+            //  téléphone revient à l'état sauvegardé lors d'une restauration)
+            if (!!d.fullboard !== isMax) setMax(!!d.fullboard);
             if (d.collapsed) setTimeout(function () { if (alive) collapse(); }, 150);
         };
+
+        widget._calcSetMax = setMax;
 
         // ── Démarrage ──
         outer.style.width  = DEFAULT_W + 'px';
@@ -1695,10 +1712,18 @@
     // =========================================================================
     // HOOK dans createWidget
     // =========================================================================
+    function isPhone() {
+        if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
     function installHook(orig) {
         window.createWidget = function (type) {
             var widget = orig.apply(this, arguments);
-            if (type === 'calculatrice' && widget) initCalculatriceWidget(widget);
+            if (type === 'calculatrice' && widget) {
+                initCalculatriceWidget(widget);
+                // Sur téléphone : ouverture directe en plein écran (bouton vert)
+                if (isPhone() && widget._calcSetMax) widget._calcSetMax(true);
+            }
             return widget;
         };
     }

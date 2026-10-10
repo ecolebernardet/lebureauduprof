@@ -12,6 +12,14 @@
 //      </div>
 // =========================================================================
 
+// Sur téléphone, un widget ouvert par l'utilisateur démarre en plein écran
+// (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+function _wfIsPhoneLaunch() {
+    if (window.isInitialLoading || window.isRestoringState) return false;
+    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 (function () {
 
     // ── CSS injecté une seule fois ────────────────────────────────────────
@@ -368,6 +376,19 @@
         font-weight: 900;
     }
     .se-help-popup li { margin-bottom: 5px; }
+
+    /* ── Téléphone : plein écran du bouton vert, décalé de 40 px à gauche
+       pour laisser les onglets latéraux visibles, hauteur réelle de l'écran ── */
+    @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        .widget.wf-max[data-type="structure-ecole"] .se-inner {
+            left: 40px !important;
+            width: calc(100vw - 40px) !important;
+            height: 100dvh !important;
+            border: none !important;
+            border-radius: 0 !important;
+        }
+        .widget.wf-max[data-type="structure-ecole"] .se-resize-handle { display: none; }
+    }
     `;
 
     if (!document.getElementById('se-widget-style')) {
@@ -787,6 +808,7 @@
         if (seHeader && !seHeader._dragInit) {
             seHeader._dragInit = true;
             const onHeaderDown = (e) => {
+                if (widget.classList.contains('wf-max')) return;
                 if (typeof isDrawMode !== 'undefined' && (isDrawMode || isEraserMode)) return;
                 if (e.target.closest('button')) return;
                 if (typeof bringToFront === 'function') bringToFront(widget);
@@ -822,6 +844,7 @@
 
         // ── Boutons fenêtre wf ────────────────────────────────────────────
         function seCollapse() {
+            if (_isMax) setMax(false);   // sortir d'abord du plein écran
             const savedW = outer.offsetWidth  || parseFloat(widget.dataset.seW) || 580;
             const savedH = outer.offsetHeight || parseFloat(widget.dataset.seH) || 700;
             widget.dataset.seW = savedW;
@@ -936,27 +959,41 @@
             wfMin.addEventListener('mousedown',   e => e.stopPropagation());
             wfMin.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); seCollapse(); });
         }
+        // Plein écran (bouton vert) — utilisé aussi à l'ouverture sur téléphone
+        function setMax(on) {
+            _isMax = !!on;
+            const inner = widget.querySelector('.se-inner');
+            if (!inner) return;
+            widget.classList.toggle('wf-max', _isMax);
+            if (_isMax) {
+                inner.style.position = 'fixed';
+                inner.style.inset = '0';
+                inner.style.width = '100%';
+                inner.style.height = '100%';
+                inner.style.zIndex = '9999';
+                inner.style.borderRadius = '0';
+            } else {
+                inner.style.position = '';
+                inner.style.inset = '';
+                inner.style.width = '';
+                inner.style.height = '';
+                inner.style.zIndex = '';
+                inner.style.borderRadius = '';
+            }
+        }
+        widget._wfSetMax = setMax;
         if (wfMax) {
             wfMax.addEventListener('click', e => {
                 e.stopPropagation();
-                _isMax = !_isMax;
-                const inner = widget.querySelector('.se-inner');
-                if (_isMax) {
-                    inner.style.position = 'fixed';
-                    inner.style.inset = '0';
-                    inner.style.width = '100%';
-                    inner.style.height = '100%';
-                    inner.style.zIndex = '9999';
-                    inner.style.borderRadius = '0';
-                } else {
-                    inner.style.position = '';
-                    inner.style.inset = '';
-                    inner.style.width = '';
-                    inner.style.height = '';
-                    inner.style.zIndex = '';
-                    inner.style.borderRadius = '';
-                }
+                setMax(!_isMax);
             });
+        }
+        // Au doigt, en plein écran : un appui dans le widget ne doit pas remonter
+        // jusqu'au tableau (qui le prendrait pour un déplacement et annulerait le clic)
+        {
+            const stopInMax = (e) => { if (_isMax) e.stopPropagation(); };
+            outer.addEventListener('touchstart',  stopInMax, { passive: true });
+            outer.addEventListener('pointerdown', stopInMax);
         }
         if (wfClose) {
             wfClose.addEventListener('click', e => {
@@ -1166,6 +1203,8 @@
         bringToFront(widget);
         widget.focus();
         initStructureEcoleWidget(widget);
+        // Sur téléphone : ouverture directe en plein écran (bouton vert)
+        if (_wfIsPhoneLaunch() && widget._wfSetMax) widget._wfSetMax(true);
         if (typeof saveBoard === 'function') saveBoard();
         return widget;
     };

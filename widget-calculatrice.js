@@ -12,7 +12,8 @@
 //
 // 📌 Sauvegarde (save-load.js) :
 //   • widget._calcGetData() → taille, plein écran, réduit, couleur,
-//     mode devinette, historique, calcul en cours
+//     mode devinette, historique, calcul en cours, mode scientifique,
+//     degrés / radians
 //   • widget._calcSetData(data) → restauration après actualisation
 //
 // Fonctionnement :
@@ -25,6 +26,10 @@
 //     sur l'écran pour le révéler (les élèves cherchent d'abord).
 //   • Clavier : chiffres, + − * / (ou x et :), virgule ou point,
 //     Entrée ou = pour calculer, Retour arrière, Suppr / Échap pour effacer.
+//   • Mode scientifique (bouton « ƒx » de l'en-tête) : sin, cos, tan
+//     (et leurs réciproques avec « 2nde »), √, ∛, x², x³, xʸ, x⁻¹, π, e,
+//     ln, log, eˣ, 10ˣ, n!, %, et bascule degrés / radians.
+//     Clavier en plus : ^ (puissance), ! (factorielle), % (pourcentage).
 //
 // Boutons fenêtre (comme les autres widgets) :
 //   🟡 Réduire      → mini-barre en haut du tableau
@@ -420,6 +425,47 @@
     .calc-key.k-op { background: var(--calc-op); color: #fff; }
     .calc-key.k-eq { background: var(--calc-ink); color: #fff; }
     .calc-key svg { width: 0.9em; height: 0.9em; }
+    .calc-key sup { font-size: 0.6em; line-height: 0; position: relative; top: -0.15em; margin-left: 1px; }
+
+    /* ── Mode scientifique ── */
+    .calc-fx { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 700; font-size: 16px; letter-spacing: -0.5px; }
+    .calc-sci-keys {
+        display: none;
+        min-height: 0;
+        grid-template-columns: repeat(5, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        gap: clamp(5px, 1.4cqmin, 12px);
+    }
+    .calc-outer.is-sci .calc-sci-keys { display: grid; flex: 3; }
+    .calc-outer.is-sci .calc-keys { flex: 5; }
+    .calc-outer.is-sci .calc-screen { height: 20%; }
+    .calc-sci-keys .calc-key {
+        font-size: clamp(13px, 3.6cqmin, 38px);
+        background: rgba(255,255,255,0.6);
+        border-radius: clamp(8px, 2cqmin, 18px);
+    }
+    .calc-sci-keys .calc-key.k-second { background: rgba(20,32,46,0.14); }
+    .calc-sci-keys .calc-key.k-second.is-on { background: var(--calc-op); color: #fff; }
+    .calc-sci-keys .calc-key.k-angle { background: rgba(20,32,46,0.14); font-size: clamp(11px, 3cqmin, 30px); }
+    .calc-screen { position: relative; }
+    .calc-badges {
+        position: absolute;
+        top: 8px; left: 14px;
+        display: none;
+        gap: 5px;
+        pointer-events: none;
+    }
+    .calc-outer.is-sci .calc-badges { display: flex; }
+    .calc-badge {
+        font-size: clamp(10px, 2.2cqmin, 16px);
+        font-weight: 700;
+        padding: 1px 7px;
+        border-radius: 999px;
+        background: rgba(20,32,46,0.08);
+        color: rgba(20,32,46,0.65);
+    }
+    .calc-badge.b-second { display: none; background: var(--calc-op); color: #fff; }
+    .calc-badge.b-second.is-on { display: inline-block; }
 
     /* Historique */
     .calc-history {
@@ -620,8 +666,15 @@
     var DEFAULT_W = 460, DEFAULT_H = 640, MIN_W = 280, MIN_H = 400;
 
     // ── Calcul : analyse sûre de l'expression (pas d'eval) ───────────────
-    // Expression interne : chiffres, '.', + - * /, parenthèses, 'e' (notation scientifique)
+    // Expression interne : chiffres, '.', + - * / ^, parenthèses, 'e' (notation scientifique)
+    // Mode scientifique — une lettre par fonction, toujours suivie de '(' :
+    //   S sin · C cos · T tan · s sin⁻¹ · c cos⁻¹ · t tan⁻¹
+    //   R √ · Q ∛ · L ln · G log
+    // Constantes : p = π · E = e      Suffixes : ! factorielle · % pourcentage
     var NUM_RE = /^(\d+\.?\d*|\.\d+)(e[+\-]?\d+)?/;
+    var FUNC_CH  = 'SCTscRQLG';
+    var VALID_RE = /^[0-9.+\-*/^()e!%SCTscRQLGpE]*$/;   // contrôle à la restauration
+    var CALC_RE  = /[+\-*/^()!%SCTscRQLGpE]/;           // « c'est un vrai calcul »
 
     function tokenize(s) {
         var t = [], i = 0;
@@ -632,10 +685,18 @@
                 if (!m) throw { calc: 'incomplete' };
                 t.push({ type: 'num', v: parseFloat(m[0]) });
                 i += m[0].length;
-            } else if ('+-*/'.indexOf(ch) >= 0) {
+            } else if ('+-*/^'.indexOf(ch) >= 0) {
                 t.push({ type: 'op', v: ch }); i++;
             } else if (ch === '(' || ch === ')') {
                 t.push({ type: ch }); i++;
+            } else if (FUNC_CH.indexOf(ch) >= 0) {
+                t.push({ type: 'fn', v: ch }); i++;
+            } else if (ch === 'p') {
+                t.push({ type: 'num', v: Math.PI }); i++;
+            } else if (ch === 'E') {
+                t.push({ type: 'num', v: Math.E }); i++;
+            } else if (ch === '!' || ch === '%') {
+                t.push({ type: 'post', v: ch }); i++;
             } else {
                 throw { calc: 'incomplete' };
             }
@@ -643,7 +704,38 @@
         return t;
     }
 
-    function evaluate(s) {
+    function factorial(n) {
+        if (n < 0 || Math.abs(n - Math.round(n)) > 1e-9) throw { calc: 'fact' };
+        n = Math.round(n);
+        if (n > 170) throw { calc: 'overflow' };
+        var r = 1;
+        for (var k = 2; k <= n; k++) r *= k;
+        return r;
+    }
+
+    function applyFn(f, x, deg) {
+        var D = Math.PI / 180, v;
+        function clean(y) { return Math.abs(y) < 1e-14 ? 0 : y; }
+        switch (f) {
+            case 'S': v = clean(Math.sin(deg ? x * D : x)); break;
+            case 'C': v = clean(Math.cos(deg ? x * D : x)); break;
+            case 'T':
+                if (deg && Math.abs((((x % 180) + 180) % 180) - 90) < 1e-10) throw { calc: 'domain' };
+                v = clean(Math.tan(deg ? x * D : x)); break;
+            case 's': if (x < -1 || x > 1) throw { calc: 'domain' }; v = Math.asin(x) / (deg ? D : 1); break;
+            case 'c': if (x < -1 || x > 1) throw { calc: 'domain' }; v = Math.acos(x) / (deg ? D : 1); break;
+            case 't': v = Math.atan(x) / (deg ? D : 1); break;
+            case 'R': if (x < 0) throw { calc: 'sqrt' }; v = Math.sqrt(x); break;
+            case 'Q': v = Math.cbrt(x); break;
+            case 'L': if (x <= 0) throw { calc: 'log' }; v = Math.log(x); break;
+            case 'G': if (x <= 0) throw { calc: 'log' }; v = Math.log10(x); break;
+        }
+        return v;
+    }
+
+    // deg = true → angles en degrés (par défaut), false → radians
+    function evaluate(s, deg) {
+        if (deg === undefined) deg = true;
         var toks = tokenize(s), pos = 0;
         function peek() { return toks[pos]; }
         function isOp(tk, list) { return tk && tk.type === 'op' && list.indexOf(tk.v) >= 0; }
@@ -656,9 +748,9 @@
             return v;
         }
         function term() {
-            var v = factor();
+            var v = unary();
             while (isOp(peek(), '*/')) {
-                var op = toks[pos++].v, r = factor();
+                var op = toks[pos++].v, r = unary();
                 if (op === '/') {
                     if (r === 0) throw { calc: 'div0' };
                     v = v / r;
@@ -666,11 +758,41 @@
             }
             return v;
         }
-        function factor() {
+        // −2² = −4 : le signe s'applique après la puissance
+        function unary() {
+            var tk = peek();
+            if (isOp(tk, '+-')) { pos++; var f = unary(); return tk.v === '-' ? -f : f; }
+            return power();
+        }
+        // puissance associative à droite : 2^3^2 = 2^9
+        function power() {
+            var b = postfix();
+            if (isOp(peek(), '^')) {
+                pos++;
+                var ex = unary();
+                if (b === 0 && ex < 0) throw { calc: 'div0' };
+                var r = Math.pow(b, ex);
+                if (isNaN(r)) throw { calc: 'domain' };
+                return r;
+            }
+            return b;
+        }
+        function postfix() {
+            var v = primary();
+            while (peek() && peek().type === 'post') {
+                v = toks[pos++].v === '!' ? factorial(v) : v / 100;
+            }
+            return v;
+        }
+        function primary() {
             var tk = peek();
             if (!tk) throw { calc: 'incomplete' };
-            if (isOp(tk, '+-')) { pos++; var f = factor(); return tk.v === '-' ? -f : f; }
             if (tk.type === 'num') { pos++; return tk.v; }
+            if (tk.type === 'fn') {
+                pos++;
+                if (!peek() || peek().type !== '(') throw { calc: 'incomplete' };
+                return applyFn(tk.v, primary(), deg);
+            }
             if (tk.type === '(') {
                 pos++;
                 var v = expr();
@@ -682,6 +804,7 @@
         }
         var v = expr();
         if (pos < toks.length) throw { calc: 'incomplete' };
+        if (isNaN(v)) throw { calc: 'domain' };
         if (!isFinite(v)) throw { calc: 'overflow' };
         return parseFloat(v.toPrecision(12)); // supprime les 0,30000000000000004
     }
@@ -695,7 +818,11 @@
     var ERRORS = {
         div0:       'Division par zéro impossible',
         incomplete: 'Calcul incomplet',
-        overflow:   'Nombre trop grand'
+        overflow:   'Nombre trop grand',
+        domain:     'Calcul impossible',
+        sqrt:       'Pas de racine carrée d\'un nombre négatif',
+        log:        'ln et log : nombre strictement positif',
+        fact:       'n! : nombre entier positif uniquement'
     };
 
     // ── Mise en forme française ───────────────────────────────────────────
@@ -742,10 +869,24 @@
 
     // Expression interne → affichée (× ÷ −, espaces, virgules)
     var SYM = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+    var FN_LABEL = { S: 'sin', C: 'cos', T: 'tan', s: 'sin⁻¹', c: 'cos⁻¹', t: 'tan⁻¹',
+                     R: '√', Q: '∛', L: 'ln', G: 'log' };
     function prettyExpr(s) {
         var out = '', i = 0, prev = null;
         while (i < s.length) {
             var ch = s[i];
+            if (FN_LABEL[ch]) { out += FN_LABEL[ch]; prev = 'fn'; i++; continue; }
+            if (ch === 'p' || ch === 'E') { out += ch === 'p' ? 'π' : 'e'; prev = 'num'; i++; continue; }
+            if (ch === '!' || ch === '%') { out += ch; prev = 'num'; i++; continue; }
+            if (ch === '^') {
+                if (s.substr(i, 6) === '^(-1)') { out += '⁻¹'; prev = 'num'; i += 6; continue; }
+                // ^2 et ^3 isolés s'affichent ² et ³
+                var nx = s[i + 1], after = s[i + 2];
+                if ((nx === '2' || nx === '3') && !(after && /[0-9.]/.test(after))) {
+                    out += nx === '2' ? '²' : '³'; prev = 'num'; i += 2; continue;
+                }
+                out += '^'; prev = 'op'; i++; continue;
+            }
             if (/[0-9.]/.test(ch)) {
                 var numStr = s.slice(i).match(/^[0-9.]+(e[+\-]?\d+)?/)[0];
                 // un nombre en cours de saisie peut se terminer par '.' → « 3, »
@@ -792,10 +933,32 @@
             { k: ',', label: ',', title: 'Virgule (, ou .)' },
             { k: '=', label: '=', cls: 'k-eq', title: 'Calculer (Entrée)' }
         ];
-        var keysHTML = KEYS.map(function (key) {
+        function keyHTML(key) {
             return '<button class="calc-key ' + (key.cls || '') + '" data-k="' + key.k + '"'
                  + (key.title ? ' title="' + key.title + '"' : '') + '>' + key.label + '</button>';
-        }).join('');
+        }
+        var keysHTML = KEYS.map(keyHTML).join('');
+
+        // ── Touches scientifiques (grille 5 × 3) ──
+        // label2 = fonction obtenue après « 2nde »
+        var SCI_KEYS = [
+            { k: 'second', label: '2nde', cls: 'k-second', title: 'Fonctions secondes (sin⁻¹, ∛, x³, eˣ, 10ˣ)' },
+            { k: 'sin', label: 'sin', label2: 'sin<sup>−1</sup>', title: 'Sinus', title2: 'Arc sinus' },
+            { k: 'cos', label: 'cos', label2: 'cos<sup>−1</sup>', title: 'Cosinus', title2: 'Arc cosinus' },
+            { k: 'tan', label: 'tan', label2: 'tan<sup>−1</sup>', title: 'Tangente', title2: 'Arc tangente' },
+            { k: 'angle', label: 'DEG', cls: 'k-angle', title: 'Basculer degrés / radians' },
+            { k: 'sqrt', label: '√', label2: '∛', title: 'Racine carrée', title2: 'Racine cubique' },
+            { k: 'sq', label: 'x<sup>2</sup>', label2: 'x<sup>3</sup>', title: 'Au carré', title2: 'Au cube' },
+            { k: 'pow', label: 'x<sup>y</sup>', title: 'Puissance (^)' },
+            { k: 'inv', label: 'x<sup>−1</sup>', title: 'Inverse (1 ÷ x)' },
+            { k: 'pi', label: 'π', title: 'Pi' },
+            { k: 'ln', label: 'ln', label2: 'e<sup>x</sup>', title: 'Logarithme népérien', title2: 'Exponentielle' },
+            { k: 'log', label: 'log', label2: '10<sup>x</sup>', title: 'Logarithme décimal', title2: 'Puissance de 10' },
+            { k: 'e', label: 'e', title: 'Nombre e (≈ 2,718)' },
+            { k: 'fact', label: 'n!', title: 'Factorielle (!)' },
+            { k: 'pct', label: '%', title: 'Pourcentage (%) : 20 % = 0,2' }
+        ];
+        var sciKeysHTML = SCI_KEYS.map(keyHTML).join('');
 
         var swatchesHTML = Object.keys(THEMES).map(function (id) {
             return '<button class="calc-swatch" data-theme="' + id + '" title="' + THEMES[id].name
@@ -810,6 +973,7 @@
           +   '<div class="calc-header">'
           +     '<div class="calc-title">' + ICON_CALC + '<span>Calculatrice</span></div>'
           +     '<div class="calc-tools">'
+          +       '<button class="calc-icon-btn calc-sci-btn" title="Calculatrice scientifique" aria-pressed="false"><span class="calc-fx">ƒx</span></button>'
           +       '<button class="calc-icon-btn calc-history-btn" title="Historique">' + ICON_HISTORY + '</button>'
           +       '<button class="calc-icon-btn calc-settings-btn" title="Réglages">' + ICON_SLIDERS + '</button>'
           +       '<button class="calc-icon-btn calc-help-btn" title="Aide">' + ICON_HELP + '</button>'
@@ -824,9 +988,11 @@
           +   '<div class="calc-body">'
           +     '<div class="calc-main">'
           +       '<div class="calc-screen" aria-live="polite">'
+          +         '<div class="calc-badges"><span class="calc-badge b-angle">DEG</span><span class="calc-badge b-second">2nde</span></div>'
           +         '<div class="calc-line1"></div>'
           +         '<div class="calc-line2">0</div>'
           +       '</div>'
+          +       '<div class="calc-sci-keys">' + sciKeysHTML + '</div>'
           +       '<div class="calc-keys">' + keysHTML + '</div>'
           +     '</div>'
           +     '<div class="calc-history">'
@@ -859,6 +1025,9 @@
           +       '<li><kbd>Entrée</kbd> ou <kbd>=</kbd> calculer</li>'
           +       '<li><kbd>⌫</kbd> efface le dernier caractère · <kbd>Suppr</kbd> ou <kbd>Échap</kbd> efface tout</li>'
           +       '<li>Les priorités sont respectées : 2 + 3 × 4 = 14.</li>'
+          +       '<li><b>Mode scientifique</b> (bouton <b><i>ƒx</i></b>) : sin, cos, tan, √, x², xʸ, π, ln, log, n!, %… '
+          +         '<b>2nde</b> donne les fonctions réciproques (sin⁻¹, ∛, x³, eˣ, 10ˣ). '
+          +         '<b>DEG/RAD</b> choisit l\'unité des angles. Clavier : <kbd>^</kbd> <kbd>!</kbd> <kbd>%</kbd>.</li>'
           +       '<li><b>Historique</b> : cliquez sur un calcul pour réutiliser son résultat.</li>'
           +       '<li><b>Mode devinette</b> (Réglages) : le résultat reste caché jusqu\'au clic sur l\'écran.</li>'
           +       '<li>Poignée en bas à droite pour redimensionner. Pastilles : réduire, plein écran (<kbd>Échap</kbd> pour sortir), fermer.</li>'
@@ -873,6 +1042,10 @@
         var line1        = widget.querySelector('.calc-line1');
         var line2        = widget.querySelector('.calc-line2');
         var keysEl       = widget.querySelector('.calc-keys');
+        var sciKeysEl    = widget.querySelector('.calc-sci-keys');
+        var sciBtn       = widget.querySelector('.calc-sci-btn');
+        var badgeAngle   = widget.querySelector('.b-angle');
+        var badgeSecond  = widget.querySelector('.b-second');
         var historyBtn   = widget.querySelector('.calc-history-btn');
         var settingsBtn  = widget.querySelector('.calc-settings-btn');
         var helpBtn      = widget.querySelector('.calc-help-btn');
@@ -901,6 +1074,10 @@
         var revealed      = true;
         var errorMsg      = '';
         var saveTimer     = null;
+        var sciMode       = false;
+        var angleDeg      = true;    // degrés par défaut (collège / lycée)
+        var second        = false;   // touche « 2nde » active
+        var hBeforeSci    = null;    // hauteur avant agrandissement auto
 
         function scheduleSave() {
             clearTimeout(saveTimer);
@@ -921,8 +1098,11 @@
 
         // ── Saisie ──
         function lastChar() { return expr.slice(-1); }
-        function isOpCh(c) { return c !== '' && '+-*/'.indexOf(c) >= 0; }
+        function isOpCh(c) { return c !== '' && '+-*/^'.indexOf(c) >= 0; }
         function isNumEnd(c) { return c !== '' && /[0-9.]/.test(c); }
+        // fin d'une valeur complète : nombre, ')', π, e, !, %
+        function isValueEnd(c) { return c !== '' && /[0-9.)pE!%]/.test(c); }
+        function afterValue(c) { return c !== '' && /[)pE!%]/.test(c); }
         function currentNumber() { var m = expr.match(/[0-9.]+(e[+\-]?\d+)?$/); return m ? m[0] : ''; }
         function resetIfDone() {
             if (justEvaluated || errorMsg) { expr = ''; justEvaluated = false; errorMsg = ''; shownExpr = ''; }
@@ -930,7 +1110,7 @@
 
         function inputDigit(d) {
             resetIfDone();
-            if (lastChar() === ')') expr += '*';
+            if (afterValue(lastChar())) expr += '*';
             var cur = currentNumber();
             if (cur.indexOf('e') >= 0) return;
             if (cur === '0') expr = expr.slice(0, -1);           // pas de « 007 »
@@ -939,7 +1119,7 @@
         }
         function inputComma() {
             resetIfDone();
-            if (lastChar() === ')') expr += '*';
+            if (afterValue(lastChar())) expr += '*';
             var cur = currentNumber();
             if (cur) {
                 if (cur.indexOf('.') >= 0 || cur.indexOf('e') >= 0) return;
@@ -957,8 +1137,8 @@
             if (expr === '') { expr = op === '-' ? '-' : '0' + op; return; }
             if (lc === '(') { if (op === '-') expr += '-'; return; }
             if (isOpCh(lc)) {
-                if (op === '-' && (lc === '*' || lc === '/')) { expr += '-'; return; }
-                expr = expr.replace(/[+\-*/]+$/, '');
+                if (op === '-' && (lc === '*' || lc === '/' || lc === '^')) { expr += '-'; return; }
+                expr = expr.replace(/[+\-*/^]+$/, '');
                 if (expr === '' || lastChar() === '(') { if (op === '-') expr += '-'; return; }
             }
             expr += op;
@@ -968,7 +1148,7 @@
                 resetIfDone();
                 if (lastChar() === '.') expr = expr.slice(0, -1);
                 var lc = lastChar();
-                if (isNumEnd(lc) || lc === ')') expr += '*';
+                if (isValueEnd(lc)) expr += '*';
                 expr += '(';
             } else {
                 if (justEvaluated || errorMsg) return;
@@ -982,7 +1162,103 @@
         }
         function backspace() {
             if (justEvaluated || errorMsg) { clearAll(); return; }
-            expr = expr.slice(0, -1);
+            // « sin( » s'efface d'un seul coup
+            if (/[SCTscRQLG]\($/.test(expr)) expr = expr.slice(0, -2);
+            else expr = expr.slice(0, -1);
+        }
+
+        // ── Saisie scientifique ──
+        // Préfixe : fonction « sin( », « √( », ou « e^( », « 10^( »
+        function inputPrefix(str) {
+            resetIfDone();
+            if (lastChar() === '.') expr = expr.slice(0, -1);
+            if (isValueEnd(lastChar())) expr += '*';
+            expr += str;
+        }
+        // Constante : π ou e
+        function inputConst(c) {
+            resetIfDone();
+            if (lastChar() === '.') expr = expr.slice(0, -1);
+            if (isValueEnd(lastChar())) expr += '*';
+            expr += c;
+        }
+        // Suffixe appliqué à la valeur précédente : ², ³, ⁻¹, !, %
+        function inputPostfix(str) {
+            if (errorMsg) return;
+            if (justEvaluated) {
+                if (lastResult === null) return;
+                expr = rawFromNumber(lastResult);
+                if (expr.charAt(0) === '-') expr = '(' + expr + ')';  // (−3)² = 9
+                justEvaluated = false; shownExpr = '';
+            }
+            if (lastChar() === '.') expr = expr.slice(0, -1);
+            if (!isValueEnd(lastChar())) return;
+            expr += str;
+        }
+        function pressSci(k) {
+            var s2 = second;
+            if (k !== 'second' && k !== 'angle') second = false;
+            switch (k) {
+                case 'second': second = !second; break;
+                case 'angle':  angleDeg = !angleDeg; break;
+                case 'sin':  inputPrefix((s2 ? 's' : 'S') + '('); break;
+                case 'cos':  inputPrefix((s2 ? 'c' : 'C') + '('); break;
+                case 'tan':  inputPrefix((s2 ? 't' : 'T') + '('); break;
+                case 'sqrt': inputPrefix((s2 ? 'Q' : 'R') + '('); break;
+                case 'ln':   inputPrefix(s2 ? 'E^(' : 'L('); break;
+                case 'log':  inputPrefix(s2 ? '10^(' : 'G('); break;
+                case 'sq':   inputPostfix(s2 ? '^3' : '^2'); break;
+                case 'inv':  inputPostfix('^(-1)'); break;
+                case 'pow':  inputOp('^'); break;
+                case 'pi':   inputConst('p'); break;
+                case 'e':    inputConst('E'); break;
+                case 'fact': inputPostfix('!'); break;
+                case 'pct':  inputPostfix('%'); break;
+            }
+            updateSciKeys();
+        }
+        var SCI_K = {};
+        SCI_KEYS.forEach(function (key) { SCI_K[key.k] = key; });
+        function updateSciKeys() {
+            sciKeysEl.querySelectorAll('.calc-key').forEach(function (b) {
+                var key = SCI_K[b.dataset.k];
+                if (!key) return;
+                if (key.k === 'second') { b.classList.toggle('is-on', second); return; }
+                if (key.k === 'angle') {
+                    b.textContent = angleDeg ? 'DEG' : 'RAD';
+                    b.title = angleDeg ? 'Angles en degrés — cliquer pour passer en radians'
+                                       : 'Angles en radians — cliquer pour passer en degrés';
+                    return;
+                }
+                if (key.label2) {
+                    b.innerHTML = second ? key.label2 : key.label;
+                    b.title = second ? key.title2 : key.title;
+                }
+            });
+            badgeAngle.textContent = angleDeg ? 'DEG' : 'RAD';
+            badgeSecond.classList.toggle('is-on', second);
+        }
+        function setSci(on, resize) {
+            sciMode = !!on;
+            outer.classList.toggle('is-sci', sciMode);
+            sciBtn.classList.toggle('is-on', sciMode);
+            sciBtn.setAttribute('aria-pressed', sciMode ? 'true' : 'false');
+            sciBtn.title = sciMode ? 'Revenir à la calculatrice simple' : 'Calculatrice scientifique';
+            if (!sciMode) second = false;
+            // Agrandir un peu pour garder de grandes touches (puis rétablir)
+            if (resize && !isMax) {
+                var h = outer.offsetHeight;
+                if (sciMode) {
+                    var target = Math.min(820, Math.max(MIN_H, window.innerHeight - 40));
+                    if (h < target) { hBeforeSci = h; outer.style.height = target + 'px'; }
+                    else hBeforeSci = null;
+                } else if (hBeforeSci !== null) {
+                    outer.style.height = hBeforeSci + 'px';
+                    hBeforeSci = null;
+                }
+            }
+            updateSciKeys();
+            requestAnimationFrame(render);
         }
         function clearAll() {
             expr = ''; justEvaluated = false; errorMsg = ''; shownExpr = ''; revealed = true;
@@ -991,14 +1267,14 @@
             if (errorMsg || justEvaluated || expr === '') return;
             var e = closeParens(expr.replace(/\.$/, ''));
             try {
-                var v = evaluate(e);
+                var v = evaluate(e, angleDeg);
                 lastResult = v;
                 shownExpr = prettyExpr(e) + ' =';
                 justEvaluated = true;
                 revealed = !guessMode;
                 expr = e;
                 // un nombre seul (« 12 = 12 ») ne va pas dans l'historique
-                if (/[+\-*/()]/.test(e.replace(/^-/, ''))) {
+                if (CALC_RE.test(e.replace(/^-/, ''))) {
                     history.unshift({ e: e, r: v, revealed: revealed });
                     if (history.length > 50) history.length = 50;
                     renderHistory();
@@ -1023,7 +1299,8 @@
             } else {
                 if (lastChar() === '.') expr = expr.slice(0, -1);
                 var lc = lastChar();
-                if (isNumEnd(lc) || lc === ')') expr += '*';
+                if (isValueEnd(lc)) expr += '*';
+                if (raw.charAt(0) === '-' && lc === '^') raw = '(' + raw + ')';
                 expr += raw;
             }
             render(); scheduleSave();
@@ -1037,6 +1314,7 @@
             else if (k === 'back') backspace();
             else if (k === 'C') clearAll();
             else if (k === '=') equals();
+            else if (SCI_K[k]) { if (!sciMode) return; pressSci(k); }
             render();
             scheduleSave();
         }
@@ -1074,8 +1352,8 @@
             } else {
                 line2.textContent = expr === '' ? '0' : prettyExpr(expr);
                 var preview = '';
-                if (!guessMode && /[+\-*/]/.test(expr.replace(/^-/, '')) && !isOpCh(lastChar()) && lastChar() !== '(') {
-                    try { preview = '= ' + fmtNumber(evaluate(closeParens(expr.replace(/\.$/, '')))); } catch (e) {}
+                if (!guessMode && CALC_RE.test(expr.replace(/^-/, '')) && !isOpCh(lastChar()) && lastChar() !== '(') {
+                    try { preview = '= ' + fmtNumber(evaluate(closeParens(expr.replace(/\.$/, '')), angleDeg)); } catch (e) {}
                 }
                 line1.textContent = preview;
             }
@@ -1157,6 +1435,18 @@
             press(b.dataset.k);
         });
 
+        sciKeysEl.addEventListener('click', function (e) {
+            var b = e.target.closest('.calc-key');
+            if (!b) return;
+            e.stopPropagation();
+            press(b.dataset.k);
+        });
+        sciBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            setSci(!sciMode, true);
+            if (typeof saveBoard === 'function') saveBoard();
+        });
+
         screenEl.addEventListener('click', function (e) {
             if (justEvaluated && !revealed) { e.stopPropagation(); reveal(); }
         });
@@ -1184,10 +1474,11 @@
         var KEYMAP = {
             '.': ',', ',': ',', '+': '+', '-': '-', '*': '*', 'x': '*', 'X': '*',
             '/': '/', ':': '/', '(': '(', ')': ')', 'Enter': '=', '=': '=',
-            'Backspace': 'back', 'Delete': 'C'
+            'Backspace': 'back', 'Delete': 'C',
+            '^': 'pow', '!': 'fact', '%': 'pct'      // mode scientifique uniquement
         };
         function flashKey(k) {
-            var b = keysEl.querySelector('.calc-key[data-k="' + (k === ',' ? ',' : k) + '"]');
+            var b = outer.querySelector('.calc-key[data-k="' + k + '"]');
             if (!b) return;
             b.classList.add('is-pressed');
             setTimeout(function () { b.classList.remove('is-pressed'); }, 120);
@@ -1206,6 +1497,7 @@
             }
             var k = /^[0-9]$/.test(key) ? key : KEYMAP[key];
             if (!k) return;
+            if (SCI_K[k] && !sciMode) return;
             e.preventDefault();
             e.stopPropagation();                // évite la suppression du widget par le tableau
             flashKey(k);
@@ -1360,7 +1652,9 @@
                 justEvaluated: justEvaluated,
                 lastResult: lastResult,
                 shownExpr: shownExpr,
-                revealed: revealed
+                revealed: revealed,
+                sci: sciMode,
+                angle: angleDeg ? 'deg' : 'rad'
             };
         };
 
@@ -1371,9 +1665,11 @@
             setTheme(d.theme);
             setGuess(!!d.guess);
             history = Array.isArray(d.history) ? d.history.filter(function (h) {
-                return h && typeof h.e === 'string' && /^[0-9.+\-*/()e]*$/.test(h.e) && typeof h.r === 'number' && isFinite(h.r);
+                return h && typeof h.e === 'string' && VALID_RE.test(h.e) && typeof h.r === 'number' && isFinite(h.r);
             }).slice(0, 50).map(function (h) { return { e: h.e, r: h.r, revealed: h.revealed !== false }; }) : [];
-            expr = (typeof d.expr === 'string' && /^[0-9.+\-*/()e]*$/.test(d.expr)) ? d.expr : '';
+            expr = (typeof d.expr === 'string' && VALID_RE.test(d.expr)) ? d.expr : '';
+            angleDeg = d.angle !== 'rad';
+            setSci(!!d.sci, false);
             lastResult = (typeof d.lastResult === 'number' && isFinite(d.lastResult)) ? d.lastResult : null;
             justEvaluated = !!d.justEvaluated && lastResult !== null;
             shownExpr = justEvaluated && typeof d.shownExpr === 'string' ? d.shownExpr : '';
@@ -1390,6 +1686,7 @@
         outer.style.width  = DEFAULT_W + 'px';
         outer.style.height = DEFAULT_H + 'px';
         setTheme('bleu');
+        updateSciKeys();
         renderHistory();
         render();
         if (savedData) widget._calcSetData(savedData);

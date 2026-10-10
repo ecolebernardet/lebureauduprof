@@ -3524,8 +3524,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Types qui restent à leur taille normale (petits éléments posés sur le tableau)
     // Ces widgets gèrent eux-mêmes leur plein écran (bouton vert) sur téléphone :
     // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
-    // 'couleurs-bruit', 'liste-edition', 'classe', 'de'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de'];
+    // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
+    // 'radar', 'sonometre', 'pause-calme'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme'];
     var lastLaunch = 0;
 
     function isPhone() {

@@ -611,6 +611,13 @@ if (!document.getElementById('wf-btns-style')) {
             margin: auto 0;
         }
         .dc-container.wf-fullboard .dc-resize-handle { display: none; }
+
+        /* ── Téléphone : plein écran du bouton vert à la hauteur réelle de l'écran (la marge gauche laisse déjà les onglets visibles) ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .dc-container.wf-fullboard {
+                height: 100dvh !important;
+            }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -632,6 +639,14 @@ const DC_CONFIG = {
 };
 
 // ── Création du widget ────────────────────────────────────────────────────
+// Sur téléphone, un widget ouvert par l'utilisateur démarre en plein écran
+// (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+function _wfIsPhoneLaunch() {
+    if (window.isInitialLoading || window.isRestoringState) return false;
+    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 function createDeficalmeWidget() {
     snapshotNow();
     const pos = findFreePosition();
@@ -2072,6 +2087,15 @@ function createDeficalmeWidget() {
         wfMax.title = _isMax ? 'Quitter le plein écran' : 'Plein écran';
         requestAnimationFrame(() => { fitFullboard(); updateUI(); });
     });
+
+    // Au doigt, en plein écran : un appui dans le widget ne doit pas remonter
+    // jusqu'au tableau (qui le prendrait pour un déplacement et annulerait le clic)
+    {
+        const stopInMax = (e) => { if (_isMax) e.stopPropagation(); };
+        container.addEventListener('touchstart',  stopInMax, { passive: true });
+        container.addEventListener('pointerdown', stopInMax);
+        container.addEventListener('mousedown',   stopInMax);
+    }
     wfClose.addEventListener('click', (e) => {
         e.stopPropagation();
         if (isPlaying) stopDefi();
@@ -2234,6 +2258,8 @@ function createDeficalmeWidget() {
     makeDraggableRotate(widget);
 
     generateGrid();
+    // Sur téléphone : ouverture directe en plein écran (bouton vert)
+    if (_wfIsPhoneLaunch() && !_isMax) wfMax.click();
     saveBoard();
     return widget;
 }

@@ -24,6 +24,14 @@
 //   règle le seuil du niveau sélectionné, qui est mémorisé.
 // =========================================================================
 
+// Sur téléphone, un widget ouvert par l'utilisateur démarre en plein écran
+// (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+function _wfIsPhoneLaunch() {
+    if (window.isInitialLoading || window.isRestoringState) return false;
+    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 (function () {
 
     // ── Mini-barre « réduire » partagée (injectée une seule fois) ─────────
@@ -237,6 +245,15 @@
     }
     .radar-outer.radar-fullboard .radar-alert-flash { border-radius: 0; }
     .radar-outer.radar-fullboard .radar-resize-handle { display: none; }
+
+    /* ── Téléphone : plein écran du bouton vert à la hauteur réelle de l'écran, décalé de 40 px à gauche pour laisser les onglets latéraux visibles ── */
+    @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        .widget[data-type="radar"] .radar-outer.radar-fullboard {
+            left: 40px !important;
+            width: calc(100vw - 40px) !important;
+            height: 100dvh !important;
+        }
+    }
 
     /* Poignée de resize proportionnel */
     .radar-resize-handle {
@@ -1104,6 +1121,7 @@
                 rescale();
             }
 
+            widget._wfSetMax = setMax;   // utilisé à l'ouverture sur téléphone
             function onWinResize() { if (isMax) rescale(); }
             function onKey(e) { if (isMax && e.key === 'Escape') setMax(false); }
             window.addEventListener('resize', onWinResize);
@@ -1147,6 +1165,10 @@
                     e.stopPropagation();
                 }
             }, { passive: true });
+            // En plein écran, aucun appui ne doit déplacer le widget (resté dessous)
+            outer.addEventListener('pointerdown', function (e) {
+                if (isMax) e.stopPropagation();
+            });
 
             // ── Curseur move sauf sur éléments interactifs et coin resize ──
             outer.addEventListener('mousemove', function (e) {
@@ -1180,7 +1202,11 @@
     if (typeof _orig === 'function') {
         window.createWidget = function (type) {
             var widget = _orig.apply(this, arguments);
-            if (type === 'radar') initRadarWidget(widget);
+            if (type === 'radar' && widget) {
+                    initRadarWidget(widget);
+                    // Sur téléphone : ouverture directe en plein écran (bouton vert)
+                    if (_wfIsPhoneLaunch() && widget._wfSetMax) { widget._wfSetMax(true); requestAnimationFrame(function () { window.dispatchEvent(new Event('resize')); }); }
+                }
             return widget;
         };
     } else {
@@ -1189,7 +1215,11 @@
             if (typeof orig === 'function') {
                 window.createWidget = function (type) {
                     var widget = orig.apply(this, arguments);
-                    if (type === 'radar') initRadarWidget(widget);
+                    if (type === 'radar' && widget) {
+                    initRadarWidget(widget);
+                    // Sur téléphone : ouverture directe en plein écran (bouton vert)
+                    if (_wfIsPhoneLaunch() && widget._wfSetMax) { widget._wfSetMax(true); requestAnimationFrame(function () { window.dispatchEvent(new Event('resize')); }); }
+                }
                     return widget;
                 };
             }

@@ -191,6 +191,13 @@
         }
         .wpc-container.wf-fullboard .wpc-settings { border-radius: 0; }
 
+        /* ── Téléphone : plein écran du bouton vert à la hauteur réelle de l'écran (la marge gauche laisse déjà les onglets visibles) ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .wpc-container.wf-fullboard {
+                height: 100dvh !important;
+            }
+        }
+
         /* ── En-tête ── */
         .wpc-header {
             display: flex;
@@ -523,6 +530,14 @@ const WPC_MODES = {
 };
 
 // ── Créer le widget ───────────────────────────────────────────────────────
+// Sur téléphone, un widget ouvert par l'utilisateur démarre en plein écran
+// (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+function _wfIsPhoneLaunch() {
+    if (window.isInitialLoading || window.isRestoringState) return false;
+    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 function createPauseCalmWidget() {
     // ── DOM widget ────────────────────────────────────────────────────────
     const widget = document.createElement('div');
@@ -972,6 +987,15 @@ function createPauseCalmWidget() {
         });
     }
 
+    // Au doigt, en plein écran : un appui dans le widget ne doit pas remonter
+    // jusqu'au tableau (qui le prendrait pour un déplacement et annulerait le clic)
+    {
+        const stopInMax = (e) => { if (_isMax) e.stopPropagation(); };
+        container.addEventListener('touchstart',  stopInMax, { passive: true });
+        container.addEventListener('pointerdown', stopInMax);
+        container.addEventListener('mousedown',   stopInMax);
+    }
+
     if (wfClose) {
         wfClose.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -985,8 +1009,9 @@ function createPauseCalmWidget() {
     // ── Getter/Setter pour save-load ──────────────────────────────────────
     widget._wpcGetData = function() {
         return {
-            containerW: container.offsetWidth,
-            containerH: container.offsetHeight,
+            // En plein écran, on enregistre la taille normale du cadre (pas celle de l'écran)
+            containerW: _isMax ? (parseFloat(_savedW) || 420) : container.offsetWidth,
+            containerH: _isMax ? (parseFloat(_savedH) || container.offsetHeight) : container.offsetHeight,
             mode: selectType.value,
             duree: parseFloat(inputDuree.value),
             musicOn: toggleMusic.checked,
@@ -1016,6 +1041,9 @@ function createPauseCalmWidget() {
     if (typeof bringToFront  === 'function') bringToFront(widget);
     if (typeof makeDraggable === 'function') makeDraggable(widget);
     if (typeof makeDraggableRotate === 'function') makeDraggableRotate(widget);
+
+    // Sur téléphone : ouverture directe en plein écran (bouton vert)
+    if (_wfIsPhoneLaunch() && !_isMax) wfMax.click();
 
     if (typeof saveBoard === 'function') saveBoard();
     return widget;

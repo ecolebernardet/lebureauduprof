@@ -1102,6 +1102,7 @@ function setVisuelsMode(mode) {
 <script src="widget-sonometre.js"></script>
 <script src="widget-radar.js"></script>
 <script src="widget-couleurs-bruit.js"></script>
+<script src="widget-calculatrice.js"></script>
 <script src="widget-geometrie.js"></script>
 <script src="widget-liste-de-classe.js"></script>
 <script src="widget-liste-edition.js"></script>
@@ -1902,6 +1903,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="tools-card-ico"><img src="pics/outils-de.jpeg" alt="Lancer un dé" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="tools-card-name">Lancer un dé</div>
                 <div class="tools-card-desc">Simuler un dé de 2 à 30 faces</div>
+			</div>
+			<div class="tools-card" onclick="createWidget('calculatrice');toggleToolsPanel()">
+                <div class="tools-card-ico"><img src="pics/outils-calculatrice.jpeg" alt="Calculatrice" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧮'"></div>
+                <div class="tools-card-name">Calculatrice</div>
+                <div class="tools-card-desc">Calculer en grand au tableau, avec historique et mode devinette</div>
 			</div>
 			<div class="tools-card" onclick="createStructureEcoleWidget();toggleToolsPanel()">
                 <div class="tools-card-ico"><img src="pics/outils-structure-ecole.jpeg" alt="Structure école" style="width:100%;height:100%;object-fit:contain;"></div>
@@ -3227,6 +3233,8 @@ function lancerTracesGeometriques() {
 
 <!-- Template vide pour que createWidget('page-garde') ne produise pas "Type inconnu" -->
 <template id="template-page-garde"></template>
+<!-- Template vide pour que createWidget('calculatrice') ne produise pas "Type inconnu" (contenu injecté par widget-calculatrice.js) -->
+<template id="template-calculatrice"></template>
 
 <script>
 // ── Widget Calendrier : purge des événements orphelins dans IndexedDB ─────────

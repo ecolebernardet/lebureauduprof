@@ -3600,6 +3600,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (Date.now() - lastLaunch > 2000) return false;
         if (!widget.classList || !widget.classList.contains('widget')) return false;
         if (widget.hasAttribute('data-image-widget')) return false;
+        // Écriture Seyes (type 'pdf', sous-type 'seyes') s'ouvre déjà dans son
+        // propre plein écran (bouton vert) : pas de second plein écran par-dessus
+        if (widget.dataset.subtype === 'seyes') return false;
         var type = widget.dataset.type || '';
         return EXCLUDED_TYPES.indexOf(type) === -1;
     }

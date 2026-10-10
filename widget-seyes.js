@@ -461,6 +461,15 @@
         .seyes-container.wf-fullboard .seyes-writing-area { flex: 1; min-height: unset; overflow-y: auto; }
         .seyes-container.wf-fullboard .seyes-editor { min-height: unset; }
         .seyes-container.wf-fullboard .seyes-footer { flex-shrink: 0; }
+        /* ── Téléphone : plein écran à la hauteur réelle de l'écran (barres du
+           navigateur déduites) ; la marge gauche laisse déjà les onglets visibles ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .seyes-container.wf-fullboard {
+                left: 40px !important;
+                width: calc(100% - 40px) !important;
+                height: 100dvh !important;
+            }
+        }
 
         /* ── Modale confirmation effacement ─────────────── */
         .seyes-modal-overlay {
@@ -2694,6 +2703,14 @@ function createSeyesWidget() {
                 container.classList.remove('wf-fullboard');
             }
         });
+    }
+
+    // Au doigt, en plein écran : un appui dans le widget ne doit pas remonter
+    // jusqu'au tableau (qui le prendrait pour un déplacement et annulerait le clic)
+    {
+        const stopInMax = (e) => { if (_isMax) e.stopPropagation(); };
+        container.addEventListener('touchstart',  stopInMax, { passive: true });
+        container.addEventListener('pointerdown', stopInMax);
     }
 
     if (wfClose) {

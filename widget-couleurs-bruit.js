@@ -32,6 +32,14 @@
 //   🔴 Fermer       → coupe le micro et supprime le widget
 // =========================================================================
 
+// Sur téléphone, un widget ouvert par l'utilisateur démarre en plein écran
+// (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+function _wfIsPhoneLaunch() {
+    if (window.isInitialLoading || window.isRestoringState) return false;
+    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 (function () {
 
     // ── Mini-barre « réduire » partagée (injectée une seule fois) ─────────
@@ -263,6 +271,18 @@
         cursor: default !important;
     }
     .cb-outer.cb-fullboard .cb-resize-handle { display: none; }
+
+    /* ── Téléphone : plein écran du bouton vert, décalé de 40 px à gauche
+       pour laisser les onglets latéraux visibles, hauteur réelle de l'écran ── */
+    @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        .widget[data-type="couleurs-bruit"] .cb-outer.cb-fullboard {
+            left: 40px !important;
+            width: calc(100vw - 40px) !important;
+            height: 100dvh !important;
+            border: none !important;
+            border-radius: 0 !important;
+        }
+    }
 
     /* ── En-tête ── */
     .cb-header {
@@ -980,6 +1000,7 @@
                 outer.style.cursor = '';
                 sizeCanvas();
             }
+            widget._cbSetMax = setMax;   // utilisé à l'ouverture sur téléphone
             function onKey(e) { if (isMax && e.key === 'Escape') setMax(false); }
             document.addEventListener('keydown', onKey);
 
@@ -1027,6 +1048,10 @@
             outer.addEventListener('touchstart', function (e) {
                 if (isMax || e.target.closest(INTERACTIVE)) e.stopPropagation();
             }, { passive: true });
+            // En plein écran, aucun appui ne doit déplacer le widget (resté dessous)
+            outer.addEventListener('pointerdown', function (e) {
+                if (isMax) e.stopPropagation();
+            });
 
             // ── Curseur « déplacer » sur le fond ──
             outer.addEventListener('mousemove', function (e) {
@@ -1056,7 +1081,11 @@
     if (typeof _orig === 'function') {
         window.createWidget = function (type) {
             var widget = _orig.apply(this, arguments);
-            if (type === 'couleurs-bruit') initCouleursBruitWidget(widget);
+            if (type === 'couleurs-bruit' && widget) {
+                    initCouleursBruitWidget(widget);
+                    // Sur téléphone : ouverture directe en plein écran (bouton vert)
+                    if (_wfIsPhoneLaunch() && widget._cbSetMax) widget._cbSetMax(true);
+                }
             return widget;
         };
     } else {
@@ -1065,7 +1094,11 @@
             if (typeof orig === 'function') {
                 window.createWidget = function (type) {
                     var widget = orig.apply(this, arguments);
-                    if (type === 'couleurs-bruit') initCouleursBruitWidget(widget);
+                    if (type === 'couleurs-bruit' && widget) {
+                    initCouleursBruitWidget(widget);
+                    // Sur téléphone : ouverture directe en plein écran (bouton vert)
+                    if (_wfIsPhoneLaunch() && widget._cbSetMax) widget._cbSetMax(true);
+                }
                     return widget;
                 };
             }

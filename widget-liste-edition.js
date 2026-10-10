@@ -26,6 +26,14 @@
 //    cdnjs au premier usage ; connexion Internet requise).
 // =========================================================================
 
+// Sur téléphone, un widget ouvert par l'utilisateur démarre en plein écran
+// (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+function _wfIsPhoneLaunch() {
+    if (window.isInitialLoading || window.isRestoringState) return false;
+    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 (function () {
 
     // ── CSS injecté une seule fois ────────────────────────────────────────
@@ -251,6 +259,19 @@
     }
     .ledit-help-popup.show { display: block; }
     .ledit-help-popup h4 { margin: 0 0 8px; font-size: 12px; color: #374151; font-weight: 800; }
+
+    /* ── Téléphone : plein écran du bouton vert, décalé de 40 px à gauche
+       pour laisser les onglets latéraux visibles, hauteur réelle de l'écran ── */
+    @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        .widget.wf-max[data-type="liste-edition"] .ledit-inner {
+            left: 40px !important;
+            width: calc(100vw - 40px) !important;
+            height: 100dvh !important;
+            border: none !important;
+            border-radius: 0 !important;
+        }
+    }
+
     `;
 
     if (!document.getElementById('ledit-widget-style')) {
@@ -448,6 +469,7 @@
         if (header && !header._dragInit) {
             header._dragInit = true;
             const onHeaderDown = (e) => {
+                if (_isMax) return;
                 if (typeof isDrawMode !== 'undefined' && (isDrawMode || isEraserMode)) return;
                 if (e.target.closest('button')) return;
                 if (typeof bringToFront === 'function') bringToFront(widget);
@@ -478,6 +500,7 @@
 
         // ── Boutons fenêtre wf-btns ───────────────────────────────────────
         function leditCollapse() {
+            if (_isMax) toggleMax();   // sortir d'abord du plein écran
             const savedW = outer.offsetWidth  || parseFloat(widget.dataset.leditW) || LE_DEFAULT_W;
             const savedH = outer.offsetHeight || parseFloat(widget.dataset.leditH) || LE_DEFAULT_H;
             widget.dataset.leditW = savedW;
@@ -533,6 +556,7 @@
         function toggleMax() {
             _isMax = !_isMax;
             const inner = widget.querySelector('.ledit-inner');
+            widget.classList.toggle('wf-max', _isMax);
             if (_isMax) {
                 inner.style.position     = 'fixed';
                 inner.style.inset        = '0';
@@ -555,7 +579,21 @@
             wfMin.addEventListener('mousedown',   (e) => { e.stopPropagation(); });
             wfMin.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); leditCollapse(); });
         }
+        // Plein écran (bouton vert) — utilisé aussi à l'ouverture sur téléphone
+        widget._wfSetMax = (on) => { if (!!on !== _isMax) toggleMax(); };
         if (wfMax) wfMax.addEventListener('click', (e) => { e.stopPropagation(); toggleMax(); });
+        // Au doigt, en plein écran : un appui dans le widget ne doit pas remonter
+        // jusqu'au tableau (qui le prendrait pour un déplacement et annulerait le clic)
+        {
+            const _el = widget.querySelector('.ledit-inner');
+            const stopInMax = (e) => { if (_isMax) e.stopPropagation(); };
+            if (_el) {
+                _el.addEventListener('touchstart',  stopInMax, { passive: true });
+                _el.addEventListener('pointerdown', stopInMax);
+                _el.addEventListener('mousedown',   stopInMax);
+            }
+        }
+
         if (wfClose) {
             wfClose.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -769,6 +807,8 @@
         bringToFront(widget);
         widget.focus();
         initListeEditionWidget(widget);
+        // Sur téléphone : ouverture directe en plein écran (bouton vert)
+        if (_wfIsPhoneLaunch() && widget._wfSetMax) widget._wfSetMax(true);
         saveBoard();
         return widget;
     };

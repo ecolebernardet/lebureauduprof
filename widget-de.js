@@ -13,6 +13,14 @@
 //      </div>
 // =========================================================================
 
+// Sur téléphone, un widget ouvert par l'utilisateur démarre en plein écran
+// (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+function _wfIsPhoneLaunch() {
+    if (window.isInitialLoading || window.isRestoringState) return false;
+    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 (function () {
 
     // Fonction utilitaire mini-barre collapse (injectée une seule fois)
@@ -217,6 +225,18 @@
         .de-container.wf-fullboard .de-dice-svg {
             width: min(55vw, 55vh);
             max-width: none;
+        }
+
+        /* ── Téléphone : plein écran du bouton vert, décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, hauteur réelle de l'écran ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .de-container.wf-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                height: 100dvh !important;
+                border: none !important;
+                border-radius: 0 !important;
+            }
         }
         .de-dice-svg:hover {
             filter: drop-shadow(0 6px 20px rgba(99,102,241,0.50));
@@ -557,31 +577,45 @@
 
         let _savedW = null, _savedH = null, _isMax = false;
 
+        // Plein écran (bouton vert) — utilisé aussi à l'ouverture sur téléphone
+        function setMax(on) {
+            on = !!on;
+            if (on === _isMax) return;
+            _isMax = on;
+            if (_isMax) {
+                _savedW = container.style.width;
+                _savedH = container.style.height;
+                container.classList.add('wf-fullboard');
+            } else {
+                container.classList.remove('wf-fullboard');
+                if (_savedW) container.style.width  = _savedW;
+                if (_savedH) container.style.height = _savedH;
+            }
+        }
+        widget._deSetMax = setMax;
+
         if (wfMin) {
             makeTap(wfMin, () => {
-                if (_isMax) {
-                    _isMax = false;
-                    container.classList.remove('wf-fullboard');
-                    if (_savedW) container.style.width  = _savedW;
-                    if (_savedH) container.style.height = _savedH;
-                }
+                setMax(false);
                 window._wfMiniBarCollapse(widget, '🎲 Lancer un dé', {});
             });
         }
         if (wfMax) {
             makeTap(wfMax, () => {
-                _isMax = !_isMax;
-                if (_isMax) {
-                    _savedW = container.style.width;
-                    _savedH = container.style.height;
-                    container.classList.add('wf-fullboard');
-                } else {
-                    container.classList.remove('wf-fullboard');
-                    if (_savedW) container.style.width  = _savedW;
-                    if (_savedH) container.style.height = _savedH;
-                }
+                setMax(!_isMax);
                 if (typeof saveBoard === 'function') saveBoard();
             });
+        }
+        // Au doigt, en plein écran : un appui dans le widget ne doit pas remonter
+        // jusqu'au tableau (qui le prendrait pour un déplacement et annulerait le clic)
+        {
+            const _el = container;
+            const stopInMax = (e) => { if (_isMax) e.stopPropagation(); };
+            if (_el) {
+                _el.addEventListener('touchstart',  stopInMax, { passive: true });
+                _el.addEventListener('pointerdown', stopInMax);
+                _el.addEventListener('mousedown',   stopInMax);
+            }
         }
         if (wfClose) {
             makeTap(wfClose, () => {
@@ -639,7 +673,11 @@
     if (typeof _orig === 'function') {
         window.createWidget = function (type) {
             var widget = _orig.apply(this, arguments);
-            if (type === 'de') initDeWidget(widget);
+            if (type === 'de' && widget) {
+                    initDeWidget(widget);
+                    // Sur téléphone : ouverture directe en plein écran (bouton vert)
+                    if (_wfIsPhoneLaunch() && widget._deSetMax) widget._deSetMax(true);
+                }
             return widget;
         };
     } else {
@@ -648,7 +686,11 @@
             if (typeof orig === 'function') {
                 window.createWidget = function (type) {
                     var widget = orig.apply(this, arguments);
-                    if (type === 'de') initDeWidget(widget);
+                    if (type === 'de' && widget) {
+                    initDeWidget(widget);
+                    // Sur téléphone : ouverture directe en plein écran (bouton vert)
+                    if (_wfIsPhoneLaunch() && widget._deSetMax) widget._deSetMax(true);
+                }
                     return widget;
                 };
             }

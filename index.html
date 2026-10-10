@@ -3522,9 +3522,10 @@ document.addEventListener('DOMContentLoaded', function() {
 (function() {
     var PHONE_QUERY = '(max-width: 768px), (max-height: 500px) and (pointer: coarse)';
     // Types qui restent à leur taille normale (petits éléments posés sur le tableau)
-    // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan' :
-    // gèrent eux-mêmes leur plein écran (bouton vert) sur téléphone
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan'];
+    // Ces widgets gèrent eux-mêmes leur plein écran (bouton vert) sur téléphone :
+    // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
+    // 'couleurs-bruit', 'liste-edition', 'classe', 'de'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de'];
     var lastLaunch = 0;
 
     function isPhone() {

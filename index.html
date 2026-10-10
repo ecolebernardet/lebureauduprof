@@ -225,6 +225,45 @@
         body:not(.menu-light) #widgets-panel .widgets-section .widgets-section-label { color: #eee; }
         #text-size-label { color: #fff; }
         body.menu-light #text-size-label { color: #000; }
+
+        /* ── Panneau Jeux : toutes les cartes visibles sans scroll (écrans larges) ──
+           Battles + Divers côte à côte, Maths sur 1 rangée, Français sur 2 rangées de 7.
+           La hauteur des vignettes (--jeux-ico-h) est calculée par fitJeuxPanel(). */
+        @media (min-width: 769px) {
+            #jeux-panel-content {
+                display: grid;
+                grid-template-columns: minmax(0, 5fr) minmax(0, 4fr);
+                gap: 10px;
+                align-content: start;
+            }
+            #jeux-panel .jeux-section { margin-bottom: 0; min-width: 0; }
+            #jeux-panel .jeux-section-battle   { grid-column: 1;      grid-row: 1; }
+            #jeux-panel .jeux-section-divers   { grid-column: 2;      grid-row: 1; }
+            #jeux-panel .jeux-section-maths    { grid-column: 1 / -1; grid-row: 2; }
+            #jeux-panel .jeux-section-francais { grid-column: 1 / -1; grid-row: 3; }
+
+            #jeux-panel-content .jeux-section-battle   .act-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+            #jeux-panel-content .jeux-section-divers   .act-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            #jeux-panel-content .jeux-section-maths    .act-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+            #jeux-panel-content .jeux-section-francais .act-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+
+            #jeux-panel .act-card-ico { height: var(--jeux-ico-h, 100px); }
+            #jeux-panel .act-grid { margin-bottom: 0; }
+            /* Les colonnes ne s'élargissent jamais selon le contenu */
+            #jeux-panel .act-card { min-width: 0; overflow: hidden; }
+            #jeux-panel .act-card-ico img { max-width: 100%; max-height: 100%; }
+
+            /* Description limitée à 2 lignes */
+            #jeux-panel .act-card-desc {
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            /* Mode compact quand la place manque : on garde les titres */
+            #jeux-panel.jeux-compact .act-card-desc { display: none; }
+            #jeux-panel.jeux-compact .act-card { padding: 4px; }
+        }
     </style>
 
     <script>
@@ -1428,6 +1467,61 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         }
     }
     window.toggleJeuxPanel = toggleJeuxPanel;
+
+    // ── Ajustement auto de la taille des vignettes : tout tient sans scroller ──
+    var ICO_MAX = 110, ICO_MIN = 48, ICO_STEP = 4, ICO_COMPACT = 72;
+    function fitJeuxPanel() {
+        var panel   = document.getElementById('jeux-panel');
+        var content = document.getElementById('jeux-panel-content');
+        if (!panel || !content) return;
+        // Sur téléphone, on garde le défilement normal
+        if (window.matchMedia('(max-width: 768px)').matches) {
+            content.style.removeProperty('--jeux-ico-h');
+            panel.classList.remove('jeux-compact');
+            return;
+        }
+        var h = ICO_MAX;
+        panel.classList.remove('jeux-compact');
+        content.style.setProperty('--jeux-ico-h', h + 'px');
+        while (content.scrollHeight > content.clientHeight && h > ICO_MIN) {
+            h -= ICO_STEP;
+            if (h < ICO_COMPACT) panel.classList.add('jeux-compact');
+            content.style.setProperty('--jeux-ico-h', h + 'px');
+        }
+        // En mode compact, les descriptions masquées libèrent de la place :
+        // on regrandit les vignettes tant que ça tient
+        if (panel.classList.contains('jeux-compact')) {
+            while (h + ICO_STEP <= ICO_MAX) {
+                content.style.setProperty('--jeux-ico-h', (h + ICO_STEP) + 'px');
+                if (content.scrollHeight > content.clientHeight) {
+                    content.style.setProperty('--jeux-ico-h', h + 'px');
+                    break;
+                }
+                h += ICO_STEP;
+            }
+        }
+    }
+    window.fitJeuxPanel = fitJeuxPanel;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var panel = document.getElementById('jeux-panel');
+        if (!panel) return;
+        // Recalcul à l'ouverture du panneau
+        // (on ne réagit qu'au passage fermé → ouvert, pas à la classe jeux-compact
+        //  posée par fitJeuxPanel elle-même, sinon boucle infinie)
+        var wasOpen = panel.classList.contains('jeux-panel-open');
+        new MutationObserver(function() {
+            var isOpen = panel.classList.contains('jeux-panel-open');
+            if (isOpen && !wasOpen) requestAnimationFrame(fitJeuxPanel);
+            wasOpen = isOpen;
+        }).observe(panel, { attributes: true, attributeFilter: ['class'] });
+        // Recalcul quand la fenêtre ou le panneau (poignée) change de taille
+        if (window.ResizeObserver) new ResizeObserver(function() { fitJeuxPanel(); }).observe(panel);
+        else window.addEventListener('resize', fitJeuxPanel);
+        // Recalcul une fois les images chargées (leur taille influe sur la hauteur)
+        window.addEventListener('load', fitJeuxPanel);
+        fitJeuxPanel();
+    });
 
     // Resize du panneau
     document.addEventListener('DOMContentLoaded', function() {

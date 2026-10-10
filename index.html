@@ -189,11 +189,13 @@
         }
         #activities-panel .act-section-maths    { background: #ffe6cc; }
         #activities-panel .act-section-francais { background: #ece0fb; }
-        #activities-panel .act-section-divers   { background: #dcf5dc; }
+        #activities-panel .act-section-hgs      { background: #dcf5dc; }
+        #activities-panel .act-section-divers   { background: #ffe0ef; }
         #activities-panel .act-section .act-section-label { color: #333; }
         body:not(.menu-light) #activities-panel .act-section-maths    { background: rgba(255,150,50,0.18); }
         body:not(.menu-light) #activities-panel .act-section-francais { background: rgba(170,110,255,0.18); }
-        body:not(.menu-light) #activities-panel .act-section-divers   { background: rgba(90,200,90,0.18); }
+        body:not(.menu-light) #activities-panel .act-section-hgs      { background: rgba(90,200,90,0.18); }
+        body:not(.menu-light) #activities-panel .act-section-divers   { background: rgba(255,110,170,0.18); }
         body:not(.menu-light) #activities-panel .act-section .act-section-label { color: #eee; }
         /* ── Panneau Outils : fond coloré par section ── */
         #tools-panel .tools-section {
@@ -227,12 +229,12 @@
         body.menu-light #text-size-label { color: #000; }
 
         /* ── Panneau Jeux : toutes les cartes visibles sans scroll (écrans larges) ──
-           Battles + Divers côte à côte, Maths sur 1 rangée, Français sur 2 rangées de 7.
+           Battles (7) + Divers (5) côte à côte, Maths sur 1 rangée, Français sur 2 rangées de 7.
            La hauteur des vignettes (--jeux-ico-h) est calculée par fitJeuxPanel(). */
         @media (min-width: 769px) {
             #jeux-panel-content {
                 display: grid;
-                grid-template-columns: minmax(0, 5fr) minmax(0, 4fr);
+                grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
                 gap: 10px;
                 align-content: start;
             }
@@ -242,8 +244,8 @@
             #jeux-panel .jeux-section-maths    { grid-column: 1 / -1; grid-row: 2; }
             #jeux-panel .jeux-section-francais { grid-column: 1 / -1; grid-row: 3; }
 
-            #jeux-panel-content .jeux-section-battle   .act-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-            #jeux-panel-content .jeux-section-divers   .act-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            #jeux-panel-content .jeux-section-battle   .act-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+            #jeux-panel-content .jeux-section-divers   .act-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
             #jeux-panel-content .jeux-section-maths    .act-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); }
             #jeux-panel-content .jeux-section-francais .act-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 
@@ -263,6 +265,46 @@
             /* Mode compact quand la place manque : on garde les titres */
             #jeux-panel.jeux-compact .act-card-desc { display: none; }
             #jeux-panel.jeux-compact .act-card { padding: 4px; }
+        }
+
+        /* ── Panneau Activités : toutes les cartes visibles sans scroll (écrans larges) ──
+           Français + Divers côte à côte, Maths sur 2 rangées de 8,
+           Histoire-géo-sciences sur 1 rangée de 7.
+           La hauteur des vignettes (--act-ico-h) est calculée par fitActivitiesPanel(). */
+        @media (min-width: 769px) {
+            #act-panel-content {
+                display: grid;
+                grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
+                gap: 10px;
+                align-content: start;
+            }
+            #activities-panel .act-section { margin-bottom: 0; min-width: 0; }
+            #activities-panel .act-section-francais { grid-column: 1;      grid-row: 1; }
+            #activities-panel .act-section-divers   { grid-column: 2;      grid-row: 1; }
+            #activities-panel .act-section-maths    { grid-column: 1 / -1; grid-row: 2; }
+            #activities-panel .act-section-hgs      { grid-column: 1 / -1; grid-row: 3; }
+
+            #act-panel-content .act-section-francais .act-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+            #act-panel-content .act-section-divers   .act-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            #act-panel-content .act-section-maths    .act-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+            #act-panel-content .act-section-hgs      .act-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+
+            #activities-panel .act-card-ico { height: var(--act-ico-h, 100px); }
+            #activities-panel .act-grid { margin-bottom: 0; }
+            /* Les colonnes ne s'élargissent jamais selon le contenu */
+            #activities-panel .act-card { min-width: 0; overflow: hidden; }
+            #activities-panel .act-card-ico img { max-width: 100%; max-height: 100%; }
+
+            /* Description limitée à 2 lignes */
+            #activities-panel .act-card-desc {
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            /* Mode compact quand la place manque : on garde les titres */
+            #activities-panel.act-compact .act-card-desc { display: none; }
+            #activities-panel.act-compact .act-card { padding: 4px; }
         }
     </style>
 
@@ -1195,6 +1237,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-tir-fonctions.js"></script>
 <script src="widget-jeu-tir-natures.js"></script>
 <script src="widget-jeu-correcteur-fou.js"></script>
+<script src="widget-jeu-rush-hour.js"></script>
 <script src="widget-de.js"></script>
 <script src="widget-fractions.js"></script>
 <script src="widget-minuteur-chrono.js"></script>
@@ -1453,6 +1496,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Simon</div>
                 <div class="act-card-desc">Mémoriser et répéter une suite</div>
             </div>
+            <div class="act-card" onclick="createWidget('jeu-rush-hour');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-rush-hour.png" alt="Rush Hour" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🚗'"></div>
+                <div class="act-card-name">Rush Hour</div>
+                <div class="act-card-desc">Libérer la voiture rouge du parking</div>
+            </div>
 		</div>
 		</div>
     </div>
@@ -1603,15 +1651,45 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         <button id="act-panel-close" onclick="toggleActivitiesPanel()" title="Fermer">✕</button>
     </div>
     <div id="act-panel-content">
+		<div class="act-section act-section-francais">
+		<div class="act-section-label">📖 ACTIVITÉS DE FRANÇAIS</div>
+		<div class="act-grid">
+            <div class="act-card" onclick="createWidget('mots-alpha');toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-ordrealpha6.jpeg" alt="Ordre alphabétique" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Ordre alphabétique</div>
+                <div class="act-card-desc">Classer des mots dans l'ordre alphabétique</div>
+            </div>
+            <div class="act-card" onclick="createConjugaisonWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-conjugaison6.jpeg" alt="Conjugaison" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Conjugaison</div>
+                <div class="act-card-desc">Test de conjugaison (présent, imparfait, futur)</div>
+            </div>
+            <div class="act-card" onclick="createWidget('nature-gramm');toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-nature-gramm6.jpeg" alt="Nature grammaticale" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Nature grammaticale</div>
+                <div class="act-card-desc">Classer les mots selon leur nature grammaticale</div>
+            </div>
+            <div class="act-card" onclick="createMotsMelesWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-motsmeles6.jpeg" alt="Mots mêlés" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Mots Mêlés</div>
+                <div class="act-card-desc">Générer et jouer à une grille interactive de mots mêlés</div>
+            </div>
+            <div class="act-card" onclick="createMotLePlusLongWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-mot-le-plus-long.jpeg" alt="Le mot le plus long" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔤'"></div>
+                <div class="act-card-name">Le mot le plus long</div>
+                <div class="act-card-desc">Former le mot le plus long avec 9 lettres tirées au sort</div>
+            </div>
+		</div>
+		</div>
 		<div class="act-section act-section-maths">
-        <div class="act-section-label">🎲 ACTIVITÉS DE MATHÉMATIQUES</div>
-        <div class="act-grid">
-			<div class="act-card" onclick="createWidget('calcul');toggleActivitiesPanel()">
+		<div class="act-section-label">🔢 ACTIVITÉS DE MATHÉMATIQUES</div>
+		<div class="act-grid">
+            <div class="act-card" onclick="createWidget('calcul');toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-calcul-mental6.png" alt="Calcul mental" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Calcul mental</div>
                 <div class="act-card-desc">S'entraîner au calcul mental</div>
             </div>
-			<div class="act-card" onclick="createWidget('calcul-flash');toggleActivitiesPanel()">
+            <div class="act-card" onclick="createWidget('calcul-flash');toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-calculs-flash.jpeg" alt="Calculs flash" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Calcul flash</div>
                 <div class="act-card-desc">Faire défiler des calculs au rythme de la classe</div>
@@ -1621,7 +1699,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Le compte est bon</div>
                 <div class="act-card-desc">Viser un nombre cible avec les opérations</div>
             </div>
-			<div class="act-card" onclick="createTableauNumWidget();toggleActivitiesPanel()">
+            <div class="act-card" onclick="createTableauNumWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-tableau-numeration6.png" alt="Tableau de numération" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Tableau de numération</div>
                 <div class="act-card-desc">Manipuler le tableau de numération décimale</div>
@@ -1631,22 +1709,22 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Nombres en chiffres/lettres</div>
                 <div class="act-card-desc">Écrire un nombre en lettres ou en chiffres</div>
             </div>
-			<div class="act-card" onclick="createWidget('loto-multi');toggleActivitiesPanel()">
+            <div class="act-card" onclick="createWidget('loto-multi');toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-loto6.jpeg" alt="Fractions" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Loto des Multiplications</div>
                 <div class="act-card-desc">Jeu de loto pour mémoriser les tables de multiplication</div>
             </div>
-			<div class="act-card" onclick="createMonnaieWidget();toggleActivitiesPanel()">
+            <div class="act-card" onclick="createMonnaieWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-monnaie6.jpeg" alt="La monnaie" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Monnaie</div>
                 <div class="act-card-desc">Calculer avec les pièces et les billets</div>
             </div>
-			<div class="act-card" onclick="createHeureWidget();toggleActivitiesPanel()">
+            <div class="act-card" onclick="createHeureWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-horloge6.jpeg" alt="Heures et durées" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Heures et durées</div>
                 <div class="act-card-desc">Lire l'heure ou calculer une durée</div>
             </div>
-			<div class="act-card" onclick="createHorlogeWidget();toggleActivitiesPanel()">
+            <div class="act-card" onclick="createHorlogeWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-horloge-interactive6.jpeg" alt="Horloge interactive" style="width:100%;height:100%;object-fit:contain;">️</div>
                 <div class="act-card-name">Horloge interactive</div>
                 <div class="act-card-desc">Manipuler les aiguilles pour régler l'heure</div>
@@ -1671,57 +1749,27 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Solides 3D</div>
                 <div class="act-card-desc">Manipuler les solides en 3 dimensions</div>
             </div>
-			<div class="act-card" onclick="lancerTracesGeometriques();toggleActivitiesPanel()">
+            <div class="act-card" onclick="lancerTracesGeometriques();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-traces-geom6.jpeg" alt="Tracés géométriques" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Tracés géométriques</div>
                 <div class="act-card-desc">Utiliser la règle, l'équerre et le compas</div>
             </div>
-			<div class="act-card" onclick="createReproQuadrillageWidget();toggleActivitiesPanel()">
+            <div class="act-card" onclick="createReproQuadrillageWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-repro6.jpeg" alt="Tracés géométriques" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Reproduction quadrillage</div>
                 <div class="act-card-desc">Dessiner un modèle à reproduire sur un quadrillage</div>
             </div>
-			<div class="act-card" onclick="createSymetrieAxialeWidget();toggleActivitiesPanel()">
+            <div class="act-card" onclick="createSymetrieAxialeWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-symetrie6.jpeg" alt="Symétrie axiale" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Symétrie axiale</div>
                 <div class="act-card-desc">Dessiner une figure et son symétrique par rapport à un axe</div>
             </div>
 		</div>
 		</div>
-		<div class="act-section act-section-francais">
-		<div class="act-section-label">🎲 ACTIVITÉS DE FRANÇAIS</div>
-        <div class="act-grid">
-            <div class="act-card" onclick="createWidget('mots-alpha');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-ordrealpha6.jpeg" alt="Ordre alphabétique" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Ordre alphabétique</div>
-                <div class="act-card-desc">Classer des mots dans l'ordre alphabétique</div>
-            </div>
-            <div class="act-card" onclick="createConjugaisonWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-conjugaison6.jpeg" alt="Conjugaison" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Conjugaison</div>
-                <div class="act-card-desc">Test de conjugaison (présent, imparfait, futur)</div>
-            </div>
-			<div class="act-card" onclick="createWidget('nature-gramm');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-nature-gramm6.jpeg" alt="Nature grammaticale" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Nature grammaticale</div>
-                <div class="act-card-desc">Classer les mots selon leur nature grammaticale</div>
-            </div>
-            <div class="act-card" onclick="createMotsMelesWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-motsmeles6.jpeg" alt="Mots mêlés" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Mots Mêlés</div>
-                <div class="act-card-desc">Générer et jouer à une grille interactive de mots mêlés</div>
-            </div>
-            <div class="act-card" onclick="createMotLePlusLongWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-mot-le-plus-long.jpeg" alt="Le mot le plus long" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔤'"></div>
-                <div class="act-card-name">Le mot le plus long</div>
-                <div class="act-card-desc">Former le mot le plus long avec 9 lettres tirées au sort</div>
-            </div>
-        </div>
-		</div>
-		<div class="act-section act-section-divers">
-		<div class="act-section-label">🎨 AUTRES ACTIVITÉS</div>
-        <div class="act-grid">
-			<div class="act-card" onclick="createFriseHistoriqueWidget();toggleActivitiesPanel()">
+		<div class="act-section act-section-hgs">
+		<div class="act-section-label">🌍 HISTOIRE, GÉOGRAPHIE, SCIENCES</div>
+		<div class="act-grid">
+            <div class="act-card" onclick="createFriseHistoriqueWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-frise-historique.jpeg" alt="Frise historique" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='📜'"></div>
                 <div class="act-card-name">Frise historique</div>
                 <div class="act-card-desc">Les 5 grandes périodes de l'histoire, de la Préhistoire à nos jours</div>
@@ -1756,7 +1804,12 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Le système solaire</div>
                 <div class="act-card-desc">Voir les planètes tourner autour du Soleil et comparer leurs tailles</div>
             </div>
-			<div class="act-card" onclick="createPixelArtWidget();toggleActivitiesPanel()">
+		</div>
+		</div>
+		<div class="act-section act-section-divers">
+		<div class="act-section-label">🎨 ACTIVITÉS DIVERSES</div>
+		<div class="act-grid">
+            <div class="act-card" onclick="createPixelArtWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-pixelart2.jpeg" alt="Pixel Art" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎨'"></div>
                 <div class="act-card-name">Pixel Art</div>
                 <div class="act-card-desc">Colorier une grille de pixels</div>
@@ -1771,7 +1824,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Clavier de piano</div>
                 <div class="act-card-desc">Jouer les notes sur 3 octaves pour découvrir les sons</div>
             </div>
-        </div>
+		</div>
 		</div>
     </div>
 </div>
@@ -1797,6 +1850,61 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         }
     }
     window.toggleActivitiesPanel = toggleActivitiesPanel;
+
+    // ── Ajustement auto de la taille des vignettes : tout tient sans scroller ──
+    var ICO_MAX = 110, ICO_MIN = 48, ICO_STEP = 4, ICO_COMPACT = 72;
+    function fitActivitiesPanel() {
+        var panel   = document.getElementById('activities-panel');
+        var content = document.getElementById('act-panel-content');
+        if (!panel || !content) return;
+        // Sur téléphone, on garde le défilement normal
+        if (window.matchMedia('(max-width: 768px)').matches) {
+            content.style.removeProperty('--act-ico-h');
+            panel.classList.remove('act-compact');
+            return;
+        }
+        var h = ICO_MAX;
+        panel.classList.remove('act-compact');
+        content.style.setProperty('--act-ico-h', h + 'px');
+        while (content.scrollHeight > content.clientHeight && h > ICO_MIN) {
+            h -= ICO_STEP;
+            if (h < ICO_COMPACT) panel.classList.add('act-compact');
+            content.style.setProperty('--act-ico-h', h + 'px');
+        }
+        // En mode compact, les descriptions masquées libèrent de la place :
+        // on regrandit les vignettes tant que ça tient
+        if (panel.classList.contains('act-compact')) {
+            while (h + ICO_STEP <= ICO_MAX) {
+                content.style.setProperty('--act-ico-h', (h + ICO_STEP) + 'px');
+                if (content.scrollHeight > content.clientHeight) {
+                    content.style.setProperty('--act-ico-h', h + 'px');
+                    break;
+                }
+                h += ICO_STEP;
+            }
+        }
+    }
+    window.fitActivitiesPanel = fitActivitiesPanel;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var panel = document.getElementById('activities-panel');
+        if (!panel) return;
+        // Recalcul à l'ouverture du panneau
+        // (on ne réagit qu'au passage fermé → ouvert, pas à la classe act-compact
+        //  posée par fitActivitiesPanel elle-même, sinon boucle infinie)
+        var wasOpen = panel.classList.contains('act-panel-open');
+        new MutationObserver(function() {
+            var isOpen = panel.classList.contains('act-panel-open');
+            if (isOpen && !wasOpen) requestAnimationFrame(fitActivitiesPanel);
+            wasOpen = isOpen;
+        }).observe(panel, { attributes: true, attributeFilter: ['class'] });
+        // Recalcul quand la fenêtre ou le panneau (poignée) change de taille
+        if (window.ResizeObserver) new ResizeObserver(function() { fitActivitiesPanel(); }).observe(panel);
+        else window.addEventListener('resize', fitActivitiesPanel);
+        // Recalcul une fois les images chargées (leur taille influe sur la hauteur)
+        window.addEventListener('load', fitActivitiesPanel);
+        fitActivitiesPanel();
+    });
 
     // Resize du panneau
     document.addEventListener('DOMContentLoaded', function() {
@@ -3432,6 +3540,8 @@ function lancerTracesGeometriques() {
 <template id="template-page-garde"></template>
 <!-- Template vide pour que createWidget('calculatrice') ne produise pas "Type inconnu" (contenu injecté par widget-calculatrice.js) -->
 <template id="template-calculatrice"></template>
+<!-- Template vide pour que createWidget('jeu-rush-hour') ne produise pas "Type inconnu" (contenu injecté par widget-jeu-rush-hour.js) -->
+<template id="template-jeu-rush-hour"></template>
 
 <script>
 // ── Widget Calendrier : purge des événements orphelins dans IndexedDB ─────────

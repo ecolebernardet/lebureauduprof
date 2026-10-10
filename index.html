@@ -1186,6 +1186,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-battle-nature-mots.js"></script>
 <script src="widget-jeu-battle-synonymes.js"></script>
 <script src="widget-jeu-battle-homophones.js"></script>
+<script src="widget-jeu-battle-temps-verbes.js"></script>
 <script src="widget-jeu-phrase-desordre.js"></script>
 <script src="widget-jeu-tour-calcul.js"></script>
 <script src="widget-jeu-motsmeles.js"></script>
@@ -1285,6 +1286,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-battle-homophones.png" alt="Battle homophones" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle homophones</div>
                 <div class="act-card-desc">Compléter avec le bon homophone</div>
+            </div>
+			<div class="act-card" onclick="createWidget('battle-temps-verbes');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-battle-temps-verbes.png" alt="Battle temps des verbes" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-name">Battle temps des verbes</div>
+                <div class="act-card-desc">Trouver le temps du verbe</div>
             </div>
 			</div>
 		</div>
@@ -3711,8 +3717,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
-    // ainsi que les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones'];
+    // ainsi que les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes'];
     var lastLaunch = 0;
 
     function isPhone() {

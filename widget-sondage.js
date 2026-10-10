@@ -2,6 +2,14 @@
 //  widget-sondage.js  —  Sondage express interactif
 // ══════════════════════════════════════════════════════════════════
 
+// Sur téléphone, un widget ouvert par l'utilisateur démarre en plein écran
+// (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+function _wfIsPhoneLaunch() {
+    if (window.isInitialLoading || window.isRestoringState) return false;
+    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 function createSondageWidget() {
 
     // ── CSS (injecté une seule fois) ──────────────────────────────
@@ -40,6 +48,17 @@ function createSondageWidget() {
             align-items: center !important;
             overflow-y: auto !important;
         }
+        /* ── Téléphone : plein écran décalé de 40 px à gauche pour laisser
+           les onglets latéraux visibles, hauteur réelle de l'écran ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .snd-container.snd-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                height: 100dvh !important;
+                border: none !important;
+            }
+        }
+
         .snd-container.snd-fullboard .snd-header {
             width: 100% !important;
             box-sizing: border-box !important;
@@ -415,11 +434,13 @@ function createSondageWidget() {
     const sndHeader = widget.querySelector('.snd-header');
     if (sndHeader && typeof startWidgetDrag === 'function') {
         sndHeader.addEventListener('mousedown', (e) => {
+            if (_isMax) return;
             if (e.target.closest('button')) return;
             e.stopPropagation(); widget.focus();
             startWidgetDrag(e, widget);
         });
         sndHeader.addEventListener('touchstart', (e) => {
+            if (_isMax) return;
             if (e.target.closest('button')) return;
             e.stopPropagation();
             startWidgetDrag({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY, target: e.target }, widget);
@@ -458,6 +479,15 @@ function createSondageWidget() {
             }
         });
     }
+
+    // Au doigt, en plein écran : un appui dans le widget ne doit pas remonter
+    // jusqu'au tableau (qui le prendrait pour un déplacement et annulerait le clic)
+    {
+        const stopInMax = (e) => { if (_isMax) e.stopPropagation(); };
+        cont.addEventListener('touchstart',  stopInMax, { passive: true });
+        cont.addEventListener('pointerdown', stopInMax);
+        cont.addEventListener('mousedown',   stopInMax);
+    }
     if (wfClose) {
         wfClose.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -492,6 +522,9 @@ function createSondageWidget() {
 
     // ── Logique sondage ───────────────────────────────────────────
     _initSondageWidget(widget);
+
+    // Sur téléphone : ouverture directe en plein écran (bouton vert)
+    if (_wfIsPhoneLaunch() && wfMax && !_isMax) wfMax.click();
 
     if (typeof saveBoard === 'function' && !window.isInitialLoading && !window.isRestoringState) saveBoard();
     return widget;
@@ -695,9 +728,9 @@ function _initSondageWidget(widget) {
     widget._sndGetData = () => {
         const c = widget.querySelector('.snd-container');
         const isFullboard = c ? c.classList.contains('snd-fullboard') : false;
-        // En plein écran téléphone, on enregistre la taille normale du cadre
+        // En plein écran (téléphone ou bouton vert), on enregistre la taille normale du cadre
         // (son style), pas la taille de l'écran du téléphone
-        const phoneFs = widget.classList.contains('phone-fs');
+        const phoneFs = widget.classList.contains('phone-fs') || isFullboard;
         const cw = c ? (phoneFs ? (parseFloat(c.style.width)  || 800) : c.offsetWidth)  : null;
         const ch = c ? (phoneFs ? (parseFloat(c.style.height) || 600) : c.offsetHeight) : null;
         return { poll, containerW: cw, containerH: ch, fullboard: isFullboard };

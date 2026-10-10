@@ -607,6 +607,17 @@
             z-index: 9999 !important;
             border-radius: 0 !important;
         }
+
+        /* ── Téléphone : plein écran décalé de 40 px à gauche pour laisser
+           les onglets latéraux visibles, hauteur réelle de l'écran ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .edt-container.wf-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                height: 100dvh !important;
+                border: none !important;
+            }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -702,6 +713,14 @@ function edtLayoutOverlaps(courses) {
 }
 
 // ── Création du widget ────────────────────────────────────────────────────
+// Sur téléphone, un widget ouvert par l'utilisateur démarre en plein écran
+// (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+function _wfIsPhoneLaunch() {
+    if (window.isInitialLoading || window.isRestoringState) return false;
+    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 function createEdtWidget() {
     snapshotNow();
     const pos = findFreePosition();
@@ -1598,7 +1617,17 @@ function createEdtWidget() {
                 if (_savedW) container.style.width  = _savedW;
                 if (_savedH) container.style.height = _savedH;
             }
+            requestAnimationFrame(() => { if (typeof drawEdt === 'function') drawEdt(); });
         });
+    }
+
+    // Au doigt, en plein écran : un appui dans le widget ne doit pas remonter
+    // jusqu'au tableau (qui le prendrait pour un déplacement et annulerait le clic)
+    {
+        const stopInMax = (e) => { if (_isMax) e.stopPropagation(); };
+        container.addEventListener('touchstart',  stopInMax, { passive: true });
+        container.addEventListener('pointerdown', stopInMax);
+        container.addEventListener('mousedown',   stopInMax);
     }
 
     if (wfClose) {
@@ -1624,6 +1653,8 @@ function createEdtWidget() {
     bringToFront(widget);
     makeDraggable(widget);
     makeDraggableRotate(widget);
+    // Sur téléphone : ouverture directe en plein écran (bouton vert)
+    if (_wfIsPhoneLaunch() && wfMax && !_isMax) wfMax.click();
 
     // Premier rendu
     requestAnimationFrame(() => requestAnimationFrame(() => {

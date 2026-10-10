@@ -2152,7 +2152,7 @@
             showSetup();
             applyScale();
             container.focus({ preventScroll: true });
-            if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) {
+            if ((typeof isPhoneScreen === 'function' && isPhoneScreen()) || (window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches) || (typeof isMobileBoardMode === 'function' && isMobileBoardMode())) {
                 wfMax.click();
             } else {
                 const curW = window.innerWidth;

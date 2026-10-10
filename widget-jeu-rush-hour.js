@@ -312,7 +312,12 @@
 '.jrh-root.jrh-narrow .jrh-lvlword{display:none}',
 '.jrh-root.jrh-narrow .jrh-icon{width:24px;height:24px;font-size:12px}',
 '.jrh-root.jrh-narrow .jrh-help{display:none}',
-'.jrh-root.jrh-fullboard .jrh-grip,.widget.phone-fs .jrh-grip{display:none}'
+'.jrh-root.jrh-fullboard .jrh-grip,.widget.phone-fs .jrh-grip{display:none}',
+// Téléphone : plein écran (bouton vert) en laissant 40 px à gauche pour les onglets latéraux
+'@media (max-width: 768px), (max-height: 500px) and (pointer: coarse){',
+'  .jrh-root.jrh-fullboard{left:40px!important;width:calc(100vw - 40px)!important;height:100vh!important;height:100dvh!important;',
+'    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) 0}',
+'}'
         ].join('\n');
         document.head.appendChild(s);
     }
@@ -973,6 +978,17 @@
         requestAnimationFrame(layout);
         setTimeout(layout, 120);
 
+        // Sur téléphone, une partie lancée depuis le panneau s'ouvre directement
+        // en plein écran (bouton vert), comme le jeu Simon
+        if (!data.level && data.level !== 0 && isPhone() && !S.fullboard) {
+            requestAnimationFrame(function () { $('.wf-btn-max').click(); });
+        }
+
+        function isPhone() {
+            if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
+            if (typeof window.isPhoneScreen === 'function') return !!window.isPhoneScreen();
+            return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        }
         function firstUnsolved() {
             for (var i = 0; i < LEVELS.length; i++) if (!prog.stars[i]) return i;
             return 0;

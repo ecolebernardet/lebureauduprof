@@ -164,6 +164,65 @@
 
         /* CSS du widget calendrier injecté dynamiquement par widget-calendrier.js */
 
+        /* ── Panneau Jeux : fond coloré par section ── */
+        #jeux-panel .jeux-section {
+            border-radius: 14px;
+            padding: 6px 12px 12px;
+            margin-bottom: 14px;
+        }
+        #jeux-panel .jeux-section-battle   { background: #dceeff; }
+        #jeux-panel .jeux-section-maths    { background: #ffe6cc; }
+        #jeux-panel .jeux-section-francais { background: #ece0fb; }
+        #jeux-panel .jeux-section-divers   { background: #dcf5dc; }
+        #jeux-panel .jeux-section .act-section-label { color: #333; }
+        /* Mode sombre : teintes translucides pour garder le texte lisible */
+        body:not(.menu-light) #jeux-panel .jeux-section-battle   { background: rgba(80,160,255,0.18); }
+        body:not(.menu-light) #jeux-panel .jeux-section-maths    { background: rgba(255,150,50,0.18); }
+        body:not(.menu-light) #jeux-panel .jeux-section-francais { background: rgba(170,110,255,0.18); }
+        body:not(.menu-light) #jeux-panel .jeux-section-divers   { background: rgba(90,200,90,0.18); }
+        body:not(.menu-light) #jeux-panel .jeux-section .act-section-label { color: #eee; }
+        /* ── Panneau Activités : fond coloré par section ── */
+        #activities-panel .act-section {
+            border-radius: 14px;
+            padding: 6px 12px 12px;
+            margin-bottom: 14px;
+        }
+        #activities-panel .act-section-maths    { background: #ffe6cc; }
+        #activities-panel .act-section-francais { background: #ece0fb; }
+        #activities-panel .act-section-divers   { background: #dcf5dc; }
+        #activities-panel .act-section .act-section-label { color: #333; }
+        body:not(.menu-light) #activities-panel .act-section-maths    { background: rgba(255,150,50,0.18); }
+        body:not(.menu-light) #activities-panel .act-section-francais { background: rgba(170,110,255,0.18); }
+        body:not(.menu-light) #activities-panel .act-section-divers   { background: rgba(90,200,90,0.18); }
+        body:not(.menu-light) #activities-panel .act-section .act-section-label { color: #eee; }
+        /* ── Panneau Outils : fond coloré par section ── */
+        #tools-panel .tools-section {
+            border-radius: 14px;
+            padding: 6px 12px 12px;
+            margin-bottom: 14px;
+        }
+        #tools-panel .tools-section-classe { background: #dceeff; }
+        #tools-panel .tools-section-bruit  { background: #ffdcdc; }
+        #tools-panel .tools-section-divers { background: #dcf5dc; }
+        #tools-panel .tools-section .tools-section-label { color: #333; }
+        body:not(.menu-light) #tools-panel .tools-section-classe { background: rgba(80,160,255,0.18); }
+        body:not(.menu-light) #tools-panel .tools-section-bruit  { background: rgba(255,80,80,0.18); }
+        body:not(.menu-light) #tools-panel .tools-section-divers { background: rgba(90,200,90,0.18); }
+        body:not(.menu-light) #tools-panel .tools-section .tools-section-label { color: #eee; }
+        /* ── Panneau Widgets : fond coloré par section ── */
+        #widgets-panel .widgets-section {
+            border-radius: 14px;
+            padding: 6px 12px 12px;
+            margin-bottom: 14px;
+        }
+        #widgets-panel .widgets-section-media { background: #ffdcdc; }
+        #widgets-panel .widgets-section-temps { background: #fff5c2; }
+        #widgets-panel .widgets-section-orga  { background: #dceeff; }
+        #widgets-panel .widgets-section .widgets-section-label { color: #333; }
+        body:not(.menu-light) #widgets-panel .widgets-section-media { background: rgba(255,80,80,0.18); }
+        body:not(.menu-light) #widgets-panel .widgets-section-temps { background: rgba(255,210,50,0.18); }
+        body:not(.menu-light) #widgets-panel .widgets-section-orga  { background: rgba(80,160,255,0.18); }
+        body:not(.menu-light) #widgets-panel .widgets-section .widgets-section-label { color: #eee; }
         #text-size-label { color: #fff; }
         body.menu-light #text-size-label { color: #000; }
     </style>
@@ -1160,6 +1219,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         <button id="jeux-panel-close" onclick="toggleJeuxPanel()" title="Fermer">✕</button>
     </div>
     <div id="jeux-panel-content">
+		<div class="jeux-section jeux-section-battle">
 		<div class="act-section-label">⚔️ BATTLES (jeux en modes solo ou duel)</div>
 		<div class="act-grid">
 			<div class="act-card" onclick="createWidget('jeu-plus-grand');toggleJeuxPanel()">
@@ -1188,6 +1248,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-desc">Compléter la phrase avec le bon homophone (a / à, et / est…)</div>
             </div>
 			</div>
+		</div>
+		<div class="jeux-section jeux-section-maths">
         <div class="act-section-label">🎮 JEUX DE MATHS</div>
         <div class="act-grid">
             <div class="act-card" onclick="createWidget('jeu-tables-multi');toggleJeuxPanel()">
@@ -1202,7 +1264,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             </div>
             <div class="act-card" onclick="createWidget('jeu-tables-pacman');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-tables-pacman.png" alt="Pac-Multi" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Pac-Multi</div>
+                <div class="act-card-name">Multi Glouton !</div>
                 <div class="act-card-desc">Diriger Pac-Man vers le bon résultat</div>
             </div>
             <div class="act-card" onclick="createWidget('jeu-tables-serpent');toggleJeuxPanel()">
@@ -1241,6 +1303,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-desc">Calcul mental chronométré : enchaîner les bonnes réponses et grimper les paliers</div>
             </div>
             </div>
+		</div>
+		<div class="jeux-section jeux-section-francais">
 		<div class="act-section-label">🎮 JEUX DE FRANÇAIS</div>
 		<div class="act-grid">
 			<div class="act-card" onclick="createWidget('jeu-mot-alpha');toggleJeuxPanel()">
@@ -1314,6 +1378,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-desc">Trouver et corriger les 5 fautes cachées dans le texte, sans fausse alerte</div>
             </div>
 			</div>
+		</div>
+		<div class="jeux-section jeux-section-divers">
 		<div class="act-section-label">🎮 JEUX DIVERS</div>
 		<div class="act-grid">
 			<div class="act-card" onclick="createWidget('jeu-memory');toggleJeuxPanel()">
@@ -1336,6 +1402,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Simon</div>
                 <div class="act-card-desc">Mémoriser et répéter une suite de couleurs, de notes ou d'animaux</div>
             </div>
+		</div>
 		</div>
     </div>
 </div>
@@ -1430,6 +1497,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         <button id="act-panel-close" onclick="toggleActivitiesPanel()" title="Fermer">✕</button>
     </div>
     <div id="act-panel-content">
+		<div class="act-section act-section-maths">
         <div class="act-section-label">🎲 ACTIVITÉS DE MATHÉMATIQUES</div>
         <div class="act-grid">
 			<div class="act-card" onclick="createWidget('calcul');toggleActivitiesPanel()">
@@ -1513,6 +1581,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-desc">Dessiner une figure et son symétrique par rapport à un axe</div>
             </div>
 		</div>
+		</div>
+		<div class="act-section act-section-francais">
 		<div class="act-section-label">🎲 ACTIVITÉS DE FRANÇAIS</div>
         <div class="act-grid">
             <div class="act-card" onclick="createWidget('mots-alpha');toggleActivitiesPanel()">
@@ -1541,6 +1611,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-desc">Former le mot le plus long avec 9 lettres tirées au sort</div>
             </div>
         </div>
+		</div>
+		<div class="act-section act-section-divers">
 		<div class="act-section-label">🎨 AUTRES ACTIVITÉS</div>
         <div class="act-grid">
 			<div class="act-card" onclick="createFriseHistoriqueWidget();toggleActivitiesPanel()">
@@ -1594,6 +1666,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-desc">Jouer les notes sur 3 octaves pour découvrir les sons</div>
             </div>
         </div>
+		</div>
     </div>
 </div>
 <!-- Onglet déclencheur sur le bord gauche -->
@@ -1669,6 +1742,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         <button id="widgets-panel-close" onclick="toggleWidgetsPanel()" title="Fermer">✕</button>
     </div>
     <div id="widgets-panel-content">
+		<div class="widgets-section widgets-section-media">
         <div class="widgets-section-label">📦 Médias & Info</div>
         <div class="widgets-grid">
             <div class="widgets-card" onclick="createWidget('pdf');toggleWidgetsPanel()">
@@ -1692,6 +1766,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="widgets-card-desc">Ouvrir Google Maps</div>
             </div>
         </div>
+		</div>
+		<div class="widgets-section widgets-section-temps">
         <div class="widgets-section-label">🕒 Temps & Météo</div>
         <div class="widgets-grid">
             <div class="widgets-card" onclick="createWidget('date');toggleWidgetsPanel()">
@@ -1720,6 +1796,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="widgets-card-desc">Fête, soleil, lune et saison du jour</div>
             </div>
         </div>
+		</div>
+		<div class="widgets-section widgets-section-orga">
         <div class="widgets-section-label">📋 Organisation & Annotation</div>
         <div class="widgets-grid">
             <div class="widgets-card" onclick="window._nextTextOpenCreate=true;createWidget('text');toggleWidgetsPanel()">
@@ -1737,6 +1815,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="widgets-card-name">Planning de la journée</div>
                 <div class="widgets-card-desc">Afficher le programme de la journée</div>
             </div>
+		</div>
 		</div>
 	</div>
 </div>
@@ -1812,6 +1891,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         <button id="tools-panel-close" onclick="toggleToolsPanel()" title="Fermer">✕</button>
     </div>
     <div id="tools-panel-content">
+		<div class="tools-section tools-section-classe">
         <div class="tools-section-label">🚸 Gestion de la classe</div>
         <div class="tools-grid">
             <div class="tools-card" onclick="createClasseWidget();toggleToolsPanel()">
@@ -1855,6 +1935,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="tools-card-desc">Créer l'emploi du temps de la classe</div>
             </div>
 		</div>
+		</div>
+		<div class="tools-section tools-section-bruit">
 		<div class="tools-section-label">📢 Gestion du bruit</div>
 		<div class="tools-grid">
          	<div class="tools-card" onclick="createDeficalmeWidget();toggleToolsPanel()">
@@ -1888,6 +1970,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="tools-card-desc">L'écran change de couleur quand le bruit monte</div>
             </div>
 		</div>
+		</div>
+		<div class="tools-section tools-section-divers">
 		<div class="tools-section-label">🪛 Outils divers</div>
         <div class="tools-grid">
 			<div class="tools-card" onclick="createSeyesWidget();toggleToolsPanel()">
@@ -1930,6 +2014,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="tools-card-name">OutilsProfs</div>
                 <div class="tools-card-desc">Accès aux outils pédagogiques en ligne</div>
 			</div>
+		</div>
 		</div>
 	</div>
 </div>

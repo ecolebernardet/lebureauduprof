@@ -405,6 +405,11 @@ function buildBoardState() {
         if (w.dataset.type === 'battle-droite-graduee' && typeof w._bdgGetData === 'function') {
             bdgData = w._bdgGetData();
         }
+        // Données propres au widget Battle décomposition (fenêtre)
+        let bdcData = null;
+        if (w.dataset.type === 'battle-decomposition' && typeof w._bdcGetData === 'function') {
+            bdcData = w._bdcGetData();
+        }
         // Données propres au widget Le correcteur fou
         let jcfData = null;
         if (w.dataset.type === 'jeu-correcteur-fou' && typeof w._jcfGetData === 'function') {
@@ -481,6 +486,7 @@ function buildBoardState() {
 			bsData,
 			bhData,
 			bdgData,
+			bdcData,
 			jcfData,
 			calcData
 		});
@@ -1012,6 +1018,12 @@ function restoreBoardFromJSON(json) {
         } else if (w.type === 'battle-droite-graduee') {
             if (typeof createBattleDroiteGradueeWidget === 'function') {
                 widget = createBattleDroiteGradueeWidget(w.bdgData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'battle-decomposition') {
+            if (typeof createBattleDecompositionWidget === 'function') {
+                widget = createBattleDecompositionWidget(w.bdcData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

@@ -415,6 +415,11 @@ function buildBoardState() {
         if (w.dataset.type === 'battle-orthographe' && typeof w._borGetData === 'function') {
             borData = w._borGetData();
         }
+        // Données propres au widget Battle nombres en lettres (fenêtre)
+        let bnlData = null;
+        if (w.dataset.type === 'battle-nombre-lettres' && typeof w._bnlGetData === 'function') {
+            bnlData = w._bnlGetData();
+        }
         // Données propres au widget Le correcteur fou
         let jcfData = null;
         if (w.dataset.type === 'jeu-correcteur-fou' && typeof w._jcfGetData === 'function') {
@@ -493,6 +498,7 @@ function buildBoardState() {
 			bdgData,
 			bdcData,
 			borData,
+			bnlData,
 			jcfData,
 			calcData
 		});
@@ -1036,6 +1042,12 @@ function restoreBoardFromJSON(json) {
         } else if (w.type === 'battle-orthographe') {
             if (typeof createBattleOrthographeWidget === 'function') {
                 widget = createBattleOrthographeWidget(w.borData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'battle-nombre-lettres') {
+            if (typeof createBattleNombreLettresWidget === 'function') {
+                widget = createBattleNombreLettresWidget(w.bnlData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

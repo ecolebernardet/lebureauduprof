@@ -1233,6 +1233,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-battle-droite-graduee.js"></script>
 <script src="widget-jeu-battle-decomposition.js"></script>
 <script src="widget-jeu-battle-orthographe.js"></script>
+<script src="widget-jeu-battle-nombre-lettres.js"></script>
 <script src="widget-jeu-phrase-desordre.js"></script>
 <script src="widget-jeu-tour-calcul.js"></script>
 <script src="widget-jeu-motsmeles.js"></script>
@@ -1328,6 +1329,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-battle-decomposition.png" alt="Battle décomposition" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle décomposition</div>
                 <div class="act-card-desc">Décomposer des nombres</div>
+            </div>
+			<div class="act-card" onclick="createWidget('battle-nombre-lettres');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-battle-nombre-lettres.png" alt="Battle nombres en lettres" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-name">Battle nombres en lettres</div>
+                <div class="act-card-desc">Lire et écrire les nombres</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-nature-mots');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-battle-nature-mots.png" alt="Battle nature des mots" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
@@ -3851,8 +3857,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
-    // ainsi que les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'jeu-rush-hour', 'battle-droite-graduee', 'battle-decomposition', 'battle-orthographe'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'jeu-rush-hour', 'battle-droite-graduee', 'battle-decomposition', 'battle-orthographe'];
+    // ainsi que les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'jeu-rush-hour', 'battle-droite-graduee', 'battle-decomposition', 'battle-orthographe', 'battle-nombre-lettres'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'jeu-rush-hour', 'battle-droite-graduee', 'battle-decomposition', 'battle-orthographe', 'battle-nombre-lettres'];
     var lastLaunch = 0;
 
     function isPhone() {

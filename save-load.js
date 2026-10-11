@@ -400,6 +400,11 @@ function buildBoardState() {
         if (w.dataset.type === 'battle-homophones' && typeof w._bhGetData === 'function') {
             bhData = w._bhGetData();
         }
+        // Données propres au widget Battle droite graduée (fenêtre)
+        let bdgData = null;
+        if (w.dataset.type === 'battle-droite-graduee' && typeof w._bdgGetData === 'function') {
+            bdgData = w._bdgGetData();
+        }
         // Données propres au widget Le correcteur fou
         let jcfData = null;
         if (w.dataset.type === 'jeu-correcteur-fou' && typeof w._jcfGetData === 'function') {
@@ -475,6 +480,7 @@ function buildBoardState() {
 			jtfData,
 			bsData,
 			bhData,
+			bdgData,
 			jcfData,
 			calcData
 		});
@@ -1000,6 +1006,12 @@ function restoreBoardFromJSON(json) {
         } else if (w.type === 'battle-homophones') {
             if (typeof createBattleHomophonesWidget === 'function') {
                 widget = createBattleHomophonesWidget(w.bhData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'battle-droite-graduee') {
+            if (typeof createBattleDroiteGradueeWidget === 'function') {
+                widget = createBattleDroiteGradueeWidget(w.bdgData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

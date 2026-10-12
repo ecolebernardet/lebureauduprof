@@ -181,6 +181,28 @@
         body:not(.menu-light) #jeux-panel .jeux-section-francais { background: rgba(170,110,255,0.18); }
         body:not(.menu-light) #jeux-panel .jeux-section-divers   { background: rgba(90,200,90,0.18); }
         body:not(.menu-light) #jeux-panel .jeux-section .act-section-label { color: #eee; }
+        /* ── Panneaux Jeux et Activités : description masquée, affichée au survol ──
+           Uniquement sur les appareils avec survol (souris) ; sur téléphone
+           et tablette, les descriptions restent visibles en permanence. */
+        @media (hover: hover) {
+            #jeux-panel .act-card .act-card-desc,
+            #activities-panel .act-card .act-card-desc {
+                max-height: 0;
+                opacity: 0;
+                overflow: hidden;
+                margin-top: 0;
+                margin-bottom: 0;
+                transition: max-height .25s ease, opacity .2s ease, margin .25s ease;
+            }
+            #jeux-panel .act-card:hover .act-card-desc,
+            #jeux-panel .act-card:focus-within .act-card-desc,
+            #activities-panel .act-card:hover .act-card-desc,
+            #activities-panel .act-card:focus-within .act-card-desc {
+                max-height: 4em;
+                opacity: 1;
+                margin-top: 2px;
+            }
+        }
         /* ── Panneau Activités : fond coloré par section ── */
         #activities-panel .act-section {
             border-radius: 14px;
@@ -1325,7 +1347,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             <div class="act-card" onclick="createWidget('jeu-nombre');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-nombres.png" alt="Jeu des nombres" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Le Jeu des Nombres</div>
-                <div class="act-card-desc">Écrire le nombre en chiffres ou en lettre</div>
+                <div class="act-card-desc">Écrire le nombre en chiffres ou en lettres</div>
             </div>
             <div class="act-card" onclick="createWidget('jeu-caisse-marchand');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-caisse-marchand.png" alt="La caisse du marchand" style="width:100%;height:100%;object-fit:contain;"></div>
@@ -1399,7 +1421,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             </div>
 			<div class="act-card" onclick="createWidget('jeu-sujet-commande');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-sujet-commande.png" alt="Le sujet commande" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🚦'"></div>
-                <div class="act-card-name">Le sujet commande !</div>
+                <div class="act-card-name">Le sujet commande</div>
                 <div class="act-card-desc">Aiguiller le train vers le bon verbe</div>
             </div>
 			<div class="act-card" onclick="createWidget('jeu-tir-fonctions');toggleJeuxPanel()">

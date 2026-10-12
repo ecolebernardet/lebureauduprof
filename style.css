@@ -2006,7 +2006,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
     margin-bottom: 0px;
 }
 #jeux-panel-content .act-grid {
-    grid-template-columns: repeat(10, 1fr);   /* nombre de colonnes propre au panneau Jeux */
+    grid-template-columns: repeat(11, 1fr);   /* nombre de colonnes propre au panneau Jeux */
 }
 .act-card {
     background: #1a1a1a;

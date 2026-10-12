@@ -400,30 +400,20 @@ function buildBoardState() {
         if (w.dataset.type === 'battle-homophones' && typeof w._bhGetData === 'function') {
             bhData = w._bhGetData();
         }
-        // Données propres au widget Battle droite graduée (fenêtre)
-        let bdgData = null;
-        if (w.dataset.type === 'battle-droite-graduee' && typeof w._bdgGetData === 'function') {
-            bdgData = w._bdgGetData();
-        }
-        // Données propres au widget Battle décomposition (fenêtre)
-        let bdcData = null;
-        if (w.dataset.type === 'battle-decomposition' && typeof w._bdcGetData === 'function') {
-            bdcData = w._bdcGetData();
-        }
-        // Données propres au widget Battle orthographe (fenêtre)
-        let borData = null;
-        if (w.dataset.type === 'battle-orthographe' && typeof w._borGetData === 'function') {
-            borData = w._borGetData();
-        }
-        // Données propres au widget Battle nombres en lettres (fenêtre)
-        let bnlData = null;
-        if (w.dataset.type === 'battle-nombre-lettres' && typeof w._bnlGetData === 'function') {
-            bnlData = w._bnlGetData();
-        }
         // Données propres au widget Le correcteur fou
         let jcfData = null;
         if (w.dataset.type === 'jeu-correcteur-fou' && typeof w._jcfGetData === 'function') {
             jcfData = w._jcfGetData();
+        }
+        // Données propres au widget Rush Hour (niveau, véhicules, coups, taille)
+        let jrhData = null;
+        if (w.dataset.type === 'jeu-rush-hour' && typeof w._jrhGetData === 'function') {
+            jrhData = w._jrhGetData();
+        }
+        // Données propres au widget Taquin (niveau, image, pièces, coups, temps, taille)
+        let jtqData = null;
+        if (w.dataset.type === 'jeu-taquin' && typeof w._jtqGetData === 'function') {
+            jtqData = w._jtqGetData();
         }
         // Données propres au widget calculatrice
         let calcData = null;
@@ -495,11 +485,9 @@ function buildBoardState() {
 			jtfData,
 			bsData,
 			bhData,
-			bdgData,
-			bdcData,
-			borData,
-			bnlData,
 			jcfData,
+			jrhData,
+			jtqData,
 			calcData
 		});
     });
@@ -1027,33 +1015,23 @@ function restoreBoardFromJSON(json) {
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }
-        } else if (w.type === 'battle-droite-graduee') {
-            if (typeof createBattleDroiteGradueeWidget === 'function') {
-                widget = createBattleDroiteGradueeWidget(w.bdgData || { _restored: true });
-            } else {
-                widget = createWidget(w.type, '100px', '100px', false);
-            }
-        } else if (w.type === 'battle-decomposition') {
-            if (typeof createBattleDecompositionWidget === 'function') {
-                widget = createBattleDecompositionWidget(w.bdcData || { _restored: true });
-            } else {
-                widget = createWidget(w.type, '100px', '100px', false);
-            }
-        } else if (w.type === 'battle-orthographe') {
-            if (typeof createBattleOrthographeWidget === 'function') {
-                widget = createBattleOrthographeWidget(w.borData || { _restored: true });
-            } else {
-                widget = createWidget(w.type, '100px', '100px', false);
-            }
-        } else if (w.type === 'battle-nombre-lettres') {
-            if (typeof createBattleNombreLettresWidget === 'function') {
-                widget = createBattleNombreLettresWidget(w.bnlData || { _restored: true });
-            } else {
-                widget = createWidget(w.type, '100px', '100px', false);
-            }
         } else if (w.type === 'jeu-correcteur-fou') {
             if (typeof createJeuCorrecteurFouWidget === 'function') {
                 widget = createJeuCorrecteurFouWidget(w.jcfData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-rush-hour') {
+            // Niveau, position des véhicules, coups, taille et plein écran
+            if (typeof createJeuRushHourWidget === 'function') {
+                widget = createJeuRushHourWidget(w.jrhData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-taquin') {
+            // Niveau, image (et photo perso), pièces, coups, temps, taille et plein écran
+            if (typeof createJeuTaquinWidget === 'function') {
+                widget = createJeuTaquinWidget(w.jtqData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

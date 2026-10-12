@@ -167,8 +167,8 @@
         /* ── Panneau Jeux : fond coloré par section ── */
         #jeux-panel .jeux-section {
             border-radius: 14px;
-            padding: 6px 12px 6px;
-            margin-bottom: 14px;
+            padding: 6px 6px 4px;
+            margin-bottom: 6px;
         }
         #jeux-panel .jeux-section-battle   { background: #dceeff; }
         #jeux-panel .jeux-section-maths    { background: #ffe6cc; }
@@ -184,8 +184,8 @@
         /* ── Panneau Activités : fond coloré par section ── */
         #activities-panel .act-section {
             border-radius: 14px;
-            padding: 6px 12px 6px;
-            margin-bottom: 14px;
+            padding: 6px 6px 4px;
+            margin-bottom: 6px;
         }
         #activities-panel .act-section-maths    { background: #ffe6cc; }
         #activities-panel .act-section-francais { background: #ece0fb; }
@@ -200,24 +200,24 @@
         /* ── Panneau Outils : fond coloré par section ── */
         #tools-panel .tools-section {
             border-radius: 14px;
-            padding: 6px 12px 6px;
-            margin-bottom: 14px;
+            padding: 6px 6px 4px;
+            margin-bottom: 6px;
         }
         #tools-panel .tools-section-classe { background: #dceeff; }
-        #tools-panel .tools-section-bruit  { background: #ece0fb; }
+        #tools-panel .tools-section-bruit  { background: #ffdcdc; }
         #tools-panel .tools-section-divers { background: #dcf5dc; }
         #tools-panel .tools-section .tools-section-label { color: #333; }
         body:not(.menu-light) #tools-panel .tools-section-classe { background: rgba(80,160,255,0.18); }
-        body:not(.menu-light) #tools-panel .tools-section-bruit  { background: rgba(255,150,50,0.18); }
+        body:not(.menu-light) #tools-panel .tools-section-bruit  { background: rgba(255,80,80,0.18); }
         body:not(.menu-light) #tools-panel .tools-section-divers { background: rgba(90,200,90,0.18); }
         body:not(.menu-light) #tools-panel .tools-section .tools-section-label { color: #eee; }
         /* ── Panneau Widgets : fond coloré par section ── */
         #widgets-panel .widgets-section {
             border-radius: 14px;
-            padding: 6px 12px 6px;
-            margin-bottom: 14px;
+            padding: 6px 6px 4px;
+            margin-bottom: 6px;
         }
-        #widgets-panel .widgets-section-media { background: #ece0fb; }
+        #widgets-panel .widgets-section-media { background: #ffdcdc; }
         #widgets-panel .widgets-section-temps { background: #fff5c2; }
         #widgets-panel .widgets-section-orga  { background: #dceeff; }
         #widgets-panel .widgets-section .widgets-section-label { color: #333; }
@@ -227,85 +227,6 @@
         body:not(.menu-light) #widgets-panel .widgets-section .widgets-section-label { color: #eee; }
         #text-size-label { color: #fff; }
         body.menu-light #text-size-label { color: #000; }
-
-        /* ── Panneau Jeux : toutes les cartes visibles sans scroll (écrans larges) ──
-           Battles (7) + Divers (5) côte à côte, Maths sur 1 rangée, Français sur 2 rangées de 7.
-           La hauteur des vignettes (--jeux-ico-h) est calculée par fitJeuxPanel(). */
-        @media (min-width: 769px) {
-            #jeux-panel-content {
-                display: grid;
-                grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-                gap: 10px;
-                align-content: start;
-            }
-            #jeux-panel .jeux-section { margin-bottom: 0; min-width: 0; }
-            #jeux-panel .jeux-section-battle   { grid-column: 1;      grid-row: 1; }
-            #jeux-panel .jeux-section-divers   { grid-column: 2;      grid-row: 1; }
-            #jeux-panel .jeux-section-maths    { grid-column: 1 / -1; grid-row: 2; }
-            #jeux-panel .jeux-section-francais { grid-column: 1 / -1; grid-row: 3; }
-
-            #jeux-panel-content .jeux-section-battle   .act-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
-            #jeux-panel-content .jeux-section-divers   .act-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-            #jeux-panel-content .jeux-section-maths    .act-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); }
-            #jeux-panel-content .jeux-section-francais .act-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
-
-            #jeux-panel .act-card-ico { height: var(--jeux-ico-h, 100px); }
-            #jeux-panel .act-grid { margin-bottom: 0; }
-            /* Les colonnes ne s'élargissent jamais selon le contenu */
-            #jeux-panel .act-card { min-width: 0; overflow: hidden; }
-            #jeux-panel .act-card-ico img { max-width: 100%; max-height: 100%; }
-
-            /* Description limitée à 2 lignes */
-            #jeux-panel .act-card-desc {
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-            }
-            /* Mode compact quand la place manque : on garde les titres */
-            #jeux-panel.jeux-compact .act-card-desc { display: none; }
-            #jeux-panel.jeux-compact .act-card { padding: 4px; }
-        }
-
-        /* ── Panneau Activités : toutes les cartes visibles sans scroll (écrans larges) ──
-           Français + Divers côte à côte, Maths sur 2 rangées de 8,
-           Histoire-géo-sciences sur 1 rangée de 7.
-           La hauteur des vignettes (--act-ico-h) est calculée par fitActivitiesPanel(). */
-        @media (min-width: 769px) {
-            #act-panel-content {
-                display: grid;
-                grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
-                gap: 10px;
-                align-content: start;
-            }
-            #activities-panel .act-section { margin-bottom: 0; min-width: 0; }
-            #activities-panel .act-section-francais { grid-column: 1;      grid-row: 1; }
-            #activities-panel .act-section-divers   { grid-column: 2;      grid-row: 1; }
-            #activities-panel .act-section-maths    { grid-column: 1 / -1; grid-row: 2; }
-            #activities-panel .act-section-hgs      { grid-column: 1 / -1; grid-row: 3; }
-
-            #act-panel-content .act-section-francais .act-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-            #act-panel-content .act-section-divers   .act-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-            #act-panel-content .act-section-maths    .act-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
-            #act-panel-content .act-section-hgs      .act-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
-
-            #activities-panel .act-card-ico { height: var(--act-ico-h, 100px); }
-            #activities-panel .act-grid { margin-bottom: 0; }
-            /* Les colonnes ne s'élargissent jamais selon le contenu */
-            #activities-panel .act-card { min-width: 0; overflow: hidden; }
-            #activities-panel .act-card-ico img { max-width: 100%; max-height: 100%; }
-
-            /* Description limitée à 2 lignes */
-            #activities-panel .act-card-desc {
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-            }
-            /* Mode compact quand la place manque : on garde les titres */
-            #activities-panel.act-compact .act-card-desc { display: none; }
-            #activities-panel.act-compact .act-card { padding: 4px; }
-        }
     </style>
 
     <script>
@@ -1230,10 +1151,6 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-battle-homophones.js"></script>
 <script src="widget-jeu-battle-temps-verbes.js"></script>
 <script src="widget-jeu-battle-fonctions.js"></script>
-<script src="widget-jeu-battle-droite-graduee.js"></script>
-<script src="widget-jeu-battle-decomposition.js"></script>
-<script src="widget-jeu-battle-orthographe.js"></script>
-<script src="widget-jeu-battle-nombre-lettres.js"></script>
 <script src="widget-jeu-phrase-desordre.js"></script>
 <script src="widget-jeu-tour-calcul.js"></script>
 <script src="widget-jeu-motsmeles.js"></script>
@@ -1241,7 +1158,6 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-tir-fonctions.js"></script>
 <script src="widget-jeu-tir-natures.js"></script>
 <script src="widget-jeu-correcteur-fou.js"></script>
-<script src="widget-jeu-rush-hour.js"></script>
 <script src="widget-de.js"></script>
 <script src="widget-fractions.js"></script>
 <script src="widget-minuteur-chrono.js"></script>
@@ -1308,7 +1224,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
     </div>
     <div id="jeux-panel-content">
 		<div class="jeux-section jeux-section-battle">
-		<div class="act-section-label">⚔️ BATTLES (jeux solo ou duels)</div>
+		<div class="act-section-label">⚔️ BATTLES (jeux en modes solo ou duel)</div>
 		<div class="act-grid">
 			<div class="act-card" onclick="createWidget('jeu-plus-grand');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-battle-comparaison.png" alt="Plus grand / plus petit" style="width:100%;height:100%;object-fit:contain;"></div>
@@ -1320,30 +1236,10 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Battle de calculs</div>
                 <div class="act-card-desc">Calcul mental</div>
             </div>
-			<div class="act-card" onclick="createWidget('battle-droite-graduee');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-droite-graduee.png" alt="Battle droite graduée" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
-                <div class="act-card-name">Battle droite graduée</div>
-                <div class="act-card-desc">Lire une droite graduée</div>
-            </div>
-			<div class="act-card" onclick="createWidget('battle-decomposition');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-decomposition.png" alt="Battle décomposition" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
-                <div class="act-card-name">Battle décomposition</div>
-                <div class="act-card-desc">Décomposer des nombres</div>
-            </div>
-			<div class="act-card" onclick="createWidget('battle-nombre-lettres');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-nombre-lettres.png" alt="Battle nombres en lettres" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
-                <div class="act-card-name">Battle nombres en lettres</div>
-                <div class="act-card-desc">Lire et écrire les nombres</div>
-            </div>
 			<div class="act-card" onclick="createWidget('battle-nature-mots');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-battle-nature-mots.png" alt="Battle nature des mots" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle nature des mots</div>
                 <div class="act-card-desc">Trouver la nature d'un mot</div>
-            </div>
-			<div class="act-card" onclick="createWidget('battle-fonctions');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-fonctions.png" alt="Battle fonctions" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
-                <div class="act-card-name">Battle fonctions</div>
-                <div class="act-card-desc">Trouver la fonction du groupe</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-synonymes');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-battle-synonymes.png" alt="Battle synonymes / contraires" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
@@ -1355,15 +1251,15 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Battle homophones</div>
                 <div class="act-card-desc">Compléter avec le bon homophone</div>
             </div>
-			<div class="act-card" onclick="createWidget('battle-orthographe');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-orthographe.png" alt="Battle orthographe" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
-                <div class="act-card-name">Battle orthographe</div>
-                <div class="act-card-desc">Trouver la bonne orthographe</div>
-            </div>
 			<div class="act-card" onclick="createWidget('battle-temps-verbes');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-battle-temps-verbes.png" alt="Battle temps des verbes" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle temps des verbes</div>
                 <div class="act-card-desc">Trouver le temps du verbe</div>
+            </div>
+			<div class="act-card" onclick="createWidget('battle-fonctions');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-battle-fonctions.png" alt="Battle fonctions" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-name">Battle fonctions</div>
+                <div class="act-card-desc">Trouver la fonction du groupe</div>
             </div>
 			</div>
 		</div>
@@ -1502,7 +1398,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 		<div class="act-grid">
 			<div class="act-card" onclick="createWidget('jeu-memory');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeux-memory.png" alt="Memory" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Memory</div>
+                <div class="act-card-name">Jeu de memory</div>
                 <div class="act-card-desc">Retrouver les paires</div>
             </div>
             <div class="act-card" onclick="createWidget('jeu-sudoku');toggleJeuxPanel()">
@@ -1519,11 +1415,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeux-simon.png" alt="Simon" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Simon</div>
                 <div class="act-card-desc">Mémoriser et répéter une suite</div>
-            </div>
-            <div class="act-card" onclick="createWidget('jeu-rush-hour');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-rush-hour.png" alt="Rush Hour" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🚗'"></div>
-                <div class="act-card-name">Rush Hour</div>
-                <div class="act-card-desc">Libérer la voiture rouge</div>
             </div>
 		</div>
 		</div>
@@ -1551,61 +1442,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         }
     }
     window.toggleJeuxPanel = toggleJeuxPanel;
-
-    // ── Ajustement auto de la taille des vignettes : tout tient sans scroller ──
-    var ICO_MAX = 110, ICO_MIN = 48, ICO_STEP = 4, ICO_COMPACT = 72;
-    function fitJeuxPanel() {
-        var panel   = document.getElementById('jeux-panel');
-        var content = document.getElementById('jeux-panel-content');
-        if (!panel || !content) return;
-        // Sur téléphone, on garde le défilement normal
-        if (window.matchMedia('(max-width: 768px)').matches) {
-            content.style.removeProperty('--jeux-ico-h');
-            panel.classList.remove('jeux-compact');
-            return;
-        }
-        var h = ICO_MAX;
-        panel.classList.remove('jeux-compact');
-        content.style.setProperty('--jeux-ico-h', h + 'px');
-        while (content.scrollHeight > content.clientHeight && h > ICO_MIN) {
-            h -= ICO_STEP;
-            if (h < ICO_COMPACT) panel.classList.add('jeux-compact');
-            content.style.setProperty('--jeux-ico-h', h + 'px');
-        }
-        // En mode compact, les descriptions masquées libèrent de la place :
-        // on regrandit les vignettes tant que ça tient
-        if (panel.classList.contains('jeux-compact')) {
-            while (h + ICO_STEP <= ICO_MAX) {
-                content.style.setProperty('--jeux-ico-h', (h + ICO_STEP) + 'px');
-                if (content.scrollHeight > content.clientHeight) {
-                    content.style.setProperty('--jeux-ico-h', h + 'px');
-                    break;
-                }
-                h += ICO_STEP;
-            }
-        }
-    }
-    window.fitJeuxPanel = fitJeuxPanel;
-
-    document.addEventListener('DOMContentLoaded', function() {
-        var panel = document.getElementById('jeux-panel');
-        if (!panel) return;
-        // Recalcul à l'ouverture du panneau
-        // (on ne réagit qu'au passage fermé → ouvert, pas à la classe jeux-compact
-        //  posée par fitJeuxPanel elle-même, sinon boucle infinie)
-        var wasOpen = panel.classList.contains('jeux-panel-open');
-        new MutationObserver(function() {
-            var isOpen = panel.classList.contains('jeux-panel-open');
-            if (isOpen && !wasOpen) requestAnimationFrame(fitJeuxPanel);
-            wasOpen = isOpen;
-        }).observe(panel, { attributes: true, attributeFilter: ['class'] });
-        // Recalcul quand la fenêtre ou le panneau (poignée) change de taille
-        if (window.ResizeObserver) new ResizeObserver(function() { fitJeuxPanel(); }).observe(panel);
-        else window.addEventListener('resize', fitJeuxPanel);
-        // Recalcul une fois les images chargées (leur taille influe sur la hauteur)
-        window.addEventListener('load', fitJeuxPanel);
-        fitJeuxPanel();
-    });
 
     // Resize du panneau
     document.addEventListener('DOMContentLoaded', function() {
@@ -1874,61 +1710,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         }
     }
     window.toggleActivitiesPanel = toggleActivitiesPanel;
-
-    // ── Ajustement auto de la taille des vignettes : tout tient sans scroller ──
-    var ICO_MAX = 110, ICO_MIN = 48, ICO_STEP = 4, ICO_COMPACT = 72;
-    function fitActivitiesPanel() {
-        var panel   = document.getElementById('activities-panel');
-        var content = document.getElementById('act-panel-content');
-        if (!panel || !content) return;
-        // Sur téléphone, on garde le défilement normal
-        if (window.matchMedia('(max-width: 768px)').matches) {
-            content.style.removeProperty('--act-ico-h');
-            panel.classList.remove('act-compact');
-            return;
-        }
-        var h = ICO_MAX;
-        panel.classList.remove('act-compact');
-        content.style.setProperty('--act-ico-h', h + 'px');
-        while (content.scrollHeight > content.clientHeight && h > ICO_MIN) {
-            h -= ICO_STEP;
-            if (h < ICO_COMPACT) panel.classList.add('act-compact');
-            content.style.setProperty('--act-ico-h', h + 'px');
-        }
-        // En mode compact, les descriptions masquées libèrent de la place :
-        // on regrandit les vignettes tant que ça tient
-        if (panel.classList.contains('act-compact')) {
-            while (h + ICO_STEP <= ICO_MAX) {
-                content.style.setProperty('--act-ico-h', (h + ICO_STEP) + 'px');
-                if (content.scrollHeight > content.clientHeight) {
-                    content.style.setProperty('--act-ico-h', h + 'px');
-                    break;
-                }
-                h += ICO_STEP;
-            }
-        }
-    }
-    window.fitActivitiesPanel = fitActivitiesPanel;
-
-    document.addEventListener('DOMContentLoaded', function() {
-        var panel = document.getElementById('activities-panel');
-        if (!panel) return;
-        // Recalcul à l'ouverture du panneau
-        // (on ne réagit qu'au passage fermé → ouvert, pas à la classe act-compact
-        //  posée par fitActivitiesPanel elle-même, sinon boucle infinie)
-        var wasOpen = panel.classList.contains('act-panel-open');
-        new MutationObserver(function() {
-            var isOpen = panel.classList.contains('act-panel-open');
-            if (isOpen && !wasOpen) requestAnimationFrame(fitActivitiesPanel);
-            wasOpen = isOpen;
-        }).observe(panel, { attributes: true, attributeFilter: ['class'] });
-        // Recalcul quand la fenêtre ou le panneau (poignée) change de taille
-        if (window.ResizeObserver) new ResizeObserver(function() { fitActivitiesPanel(); }).observe(panel);
-        else window.addEventListener('resize', fitActivitiesPanel);
-        // Recalcul une fois les images chargées (leur taille influe sur la hauteur)
-        window.addEventListener('load', fitActivitiesPanel);
-        fitActivitiesPanel();
-    });
 
     // Resize du panneau
     document.addEventListener('DOMContentLoaded', function() {
@@ -3564,8 +3345,6 @@ function lancerTracesGeometriques() {
 <template id="template-page-garde"></template>
 <!-- Template vide pour que createWidget('calculatrice') ne produise pas "Type inconnu" (contenu injecté par widget-calculatrice.js) -->
 <template id="template-calculatrice"></template>
-<!-- Template vide pour que createWidget('jeu-rush-hour') ne produise pas "Type inconnu" (contenu injecté par widget-jeu-rush-hour.js) -->
-<template id="template-jeu-rush-hour"></template>
 
 <script>
 // ── Widget Calendrier : purge des événements orphelins dans IndexedDB ─────────
@@ -3857,8 +3636,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
-    // ainsi que les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'jeu-rush-hour', 'battle-droite-graduee', 'battle-decomposition', 'battle-orthographe', 'battle-nombre-lettres'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'jeu-rush-hour', 'battle-droite-graduee', 'battle-decomposition', 'battle-orthographe', 'battle-nombre-lettres'];
+    // ainsi que les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions'];
     var lastLaunch = 0;
 
     function isPhone() {

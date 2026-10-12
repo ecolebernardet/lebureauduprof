@@ -1439,7 +1439,7 @@ body.presentation-mode #sticker-panel-tab { display: none !important; }
 		}
 		#sticker-panel-header h3 {
 			margin: 0;
-			font-size: 14px;
+			font-size: 18px;
 			font-weight: 700;
 			color: #ddd;
 		}
@@ -1642,7 +1642,7 @@ body.presentation-mode #widgets-panel-tab { display: none !important; }
     flex-shrink: 0;
 }
 #widgets-panel-header h3 {
-    margin: 0; font-size: 14px; font-weight: 700; color: #ddd;
+    margin: 0; font-size: 18px; font-weight: 700; color: #ddd;
 }
 #widgets-panel-close {
     background: none; border: none; color: #aaa;
@@ -1662,15 +1662,15 @@ body.presentation-mode #widgets-panel-tab { display: none !important; }
 .widgets-section-label {
     font-size: 14px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 1px; color: rgba(255,255,255,0.35);
-    padding: 5px 0 5px; margin-bottom: 1px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 0px 0 4px; margin-bottom: 0px;
+    border-bottom: 0px solid rgba(255,255,255,0.06);
 }
 .widgets-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 8px;
     margin-bottom: 10px;
-    padding-top: 6px;
+    padding-top: 0px;
 }
 .widgets-card {
     background: #1a1a1a;
@@ -1782,7 +1782,7 @@ body.presentation-mode #tools-panel-tab { display: none !important; }
     flex-shrink: 0;
 }
 #tools-panel-header h3 {
-    margin: 0; font-size: 14px; font-weight: 700; color: #ddd;
+    margin: 0; font-size: 18px; font-weight: 700; color: #ddd;
 }
 #tools-panel-close {
     background: none; border: none; color: #aaa;
@@ -1803,15 +1803,15 @@ body.presentation-mode #tools-panel-tab { display: none !important; }
 .tools-section-label {
     font-size: 14px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 1px; color: rgba(255,255,255,0.35);
-    padding: 8px 0 8px; margin-bottom: 4px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 0px 0 4px; margin-bottom: 0px;
+    border-bottom: 0px solid rgba(255,255,255,0.06);
 }
 .tools-grid {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     gap: 8px;
     margin-bottom: 10px;
-    padding-top: 6px;
+    padding-top: 0px;
 }
 .tools-card {
     background: #1a1a1a;
@@ -1969,7 +1969,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
 }
 #act-panel-header h3,
 #jeux-panel-header h3 {
-    margin: 0; font-size: 14px; font-weight: 700; color: #ddd;
+    margin: 0; font-size: 18px; font-weight: 700; color: #ddd;
 }
 #act-panel-close,
 #jeux-panel-close {
@@ -1996,14 +1996,14 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
 .act-section-label {
     font-size: 14px; font-weight: 700; 
     letter-spacing: 1px; color: rgba(255,255,255,0.35);
-    padding: 0px 0 0px; margin-bottom: 4px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 0px 0 4px; margin-bottom: 0px;
+    border-bottom: 0px solid rgba(255,255,255,0.06);
 }
 .act-grid {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 0px;
 }
 #jeux-panel-content .act-grid {
     grid-template-columns: repeat(10, 1fr);   /* nombre de colonnes propre au panneau Jeux */
@@ -2610,7 +2610,7 @@ body.presentation-mode #history-panel { display: none !important; }
     flex-shrink: 0;
 }
 #display-panel-header h3, #history-panel-header h3 {
-    margin: 0; font-size: 14px; font-weight: 700; color: #ddd;
+    margin: 0; font-size: 18px; font-weight: 700; color: #ddd;
 }
 #display-panel-close, #history-panel-close {
     background: none; border: none; color: #aaa;
@@ -2980,7 +2980,7 @@ body.presentation-mode #image-panel-tab { display: none !important; }
 
 #image-panel-header h3 {
     margin: 0;
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 700;
     color: #ddd;
 }

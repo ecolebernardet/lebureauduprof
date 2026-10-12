@@ -395,6 +395,11 @@ function buildBoardState() {
         if (w.dataset.type === 'battle-synonymes' && typeof w._bsGetData === 'function') {
             bsData = w._bsGetData();
         }
+        // Données propres au widget Battle arrondis / encadrements (fenêtre)
+        let baData = null;
+        if (w.dataset.type === 'battle-arrondis' && typeof w._baGetData === 'function') {
+            baData = w._baGetData();
+        }
         // Données propres au widget Battle homophones (fenêtre)
         let bhData = null;
         if (w.dataset.type === 'battle-homophones' && typeof w._bhGetData === 'function') {
@@ -484,6 +489,7 @@ function buildBoardState() {
 			jscData,
 			jtfData,
 			bsData,
+			baData,
 			bhData,
 			jcfData,
 			jrhData,
@@ -1006,6 +1012,13 @@ function restoreBoardFromJSON(json) {
             // Réglages et liste d'élèves sont en localStorage : on restaure la fenêtre
             if (typeof createBattleSynonymesWidget === 'function') {
                 widget = createBattleSynonymesWidget(w.bsData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'battle-arrondis') {
+            // Réglages et liste d'élèves sont en localStorage : on restaure la fenêtre
+            if (typeof createBattleArrondisWidget === 'function') {
+                widget = createBattleArrondisWidget(w.baData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

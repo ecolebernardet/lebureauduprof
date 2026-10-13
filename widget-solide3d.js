@@ -286,6 +286,10 @@ function createSolide3DWidget() {
                             <input type="checkbox" class="s3d-aretes-chk" checked>
                             Arêtes
                         </label>
+                        <label class="s3d-toggle" title="Faces transparentes, arêtes cachées en pointillés">
+                            <input type="checkbox" class="s3d-transp-chk">
+                            Transparent
+                        </label>
                         <label class="s3d-toggle">
                             <input type="checkbox" class="s3d-anim-chk">
                             Auto-rotation
@@ -383,7 +387,14 @@ function _initSolide3D(widget) {
 
     const canvasWrap = widget.querySelector('.s3d-canvas-wrap');
     const canvas     = widget.querySelector('.s3d-canvas');
-    const ctx        = canvas.getContext('2d');
+    const mainCtx    = canvas.getContext('2d');
+    let   ctx        = mainCtx;   // peut pointer temporairement sur un calque
+
+    // Calque hors écran : chaque groupe de faces y est peint opaque puis
+    // reporté en semi-transparence d'un seul bloc → pas de liserés ni de
+    // surépaisseurs entre faces adjacentes en mode transparent.
+    const layer    = document.createElement('canvas');
+    const layerCtx = layer.getContext('2d');
 
     // ── État ──────────────────────────────────────────────────────
     let rotX = 30 * Math.PI / 180;
@@ -391,6 +402,7 @@ function _initSolide3D(widget) {
     let rotZ = 0;
     let zoom = parseInt(widget.querySelector('.s3d-zoom-slider').value) / 100;
     let showEdges  = true;
+    let transparent = false;
     let autoRotate = false;
     let currentShape = 'cube';
     let animId = null;
@@ -648,6 +660,42 @@ function _initSolide3D(widget) {
         return isLight ? `rgba(20,40,60,${alpha*0.85})` : `rgba(235,245,255,${alpha})`;
     }
 
+    // Peint fn() sur le calque (opaque), puis le reporte avec l'opacité alpha
+    function withLayer(alpha, fn) {
+        if (layer.width !== canvas.width || layer.height !== canvas.height) {
+            layer.width = canvas.width; layer.height = canvas.height;
+        }
+        layerCtx.setTransform(1, 0, 0, 1, 0, 0);
+        layerCtx.clearRect(0, 0, layer.width, layer.height);
+        layerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        layerCtx.lineJoin = 'round';
+        layerCtx.lineCap  = 'round';
+        ctx = layerCtx;
+        try { fn(); } finally { ctx = mainCtx; }
+        mainCtx.save();
+        mainCtx.setTransform(1, 0, 0, 1, 0, 0);
+        mainCtx.globalAlpha = alpha;
+        mainCtx.drawImage(layer, 0, 0);
+        mainCtx.restore();
+    }
+
+    // Opacités du mode transparent
+    const ALPHA_BACK = 0.22, ALPHA_FRONT = 0.38;
+
+    // Trait des arêtes cachées (pointillés)
+    function setHiddenStyle(isLight) {
+        ctx.strokeStyle = edgeStyle(isLight, 0.50);
+        ctx.lineWidth = 1.3;
+        ctx.lineCap = 'butt';
+        ctx.setLineDash([6, 5]);
+    }
+    function setVisibleStyle(isLight) {
+        ctx.strokeStyle = edgeStyle(isLight, 0.55);
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = 'round';
+        ctx.setLineDash([]);
+    }
+
     // ── Rendu ─────────────────────────────────────────────────────
     function draw() {
         syncCanvasSize();
@@ -658,6 +706,7 @@ function _initSolide3D(widget) {
         ctx.clearRect(0, 0, W, H);
         ctx.lineJoin = 'round';
         ctx.lineCap  = 'round';
+        ctx.setLineDash([]);
 
         const isLight = document.body.classList.contains('menu-light');
         const bg = ctx.createRadialGradient(W/2, H/2, 8, W/2, H/2, Math.max(W,H)*0.7);
@@ -679,9 +728,17 @@ function _initSolide3D(widget) {
         if (shape.isRound) { drawRound(shape, P, RN, isLight); return; }
 
         // ── Polyèdres (convexes → élimination des faces arrière suffit) ──
-        for (let fi=0; fi<faces.length; fi++) {
-            if (RN[fi][2] <= 1e-6) continue;
-            fillPoly(faces[fi].idx.map(i => P[i]), shade(getFaceColor(currentShape, fi), RN[fi]));
+        const paintFaces = (front) => {
+            for (let fi=0; fi<faces.length; fi++) {
+                if ((RN[fi][2] > 1e-6) !== front) continue;
+                fillPoly(faces[fi].idx.map(i => P[i]), shade(getFaceColor(currentShape, fi), RN[fi]));
+            }
+        };
+        if (transparent) {
+            withLayer(ALPHA_BACK,  () => paintFaces(false));   // faces arrière, vues à travers
+            withLayer(ALPHA_FRONT, () => paintFaces(true));    // faces avant
+        } else {
+            paintFaces(true);
         }
 
         if (showEdges) {
@@ -697,9 +754,19 @@ function _initSolide3D(widget) {
                     edgeMap.set(key, e);
                 }
             }
+            // Arêtes cachées (deux faces arrière) en pointillés, d'abord
+            if (transparent) {
+                setHiddenStyle(isLight);
+                ctx.beginPath();
+                for (const e of edgeMap.values()) {
+                    if (e.vis !== 0) continue;
+                    ctx.moveTo(P[e.a][0], P[e.a][1]);
+                    ctx.lineTo(P[e.b][0], P[e.b][1]);
+                }
+                ctx.stroke();
+            }
             // Épaisseur uniforme → plus de « saut » d'épaisseur quand une face bascule
-            ctx.strokeStyle = edgeStyle(isLight, 0.55);
-            ctx.lineWidth = 1.6;
+            setVisibleStyle(isLight);
             ctx.beginPath();
             for (const e of edgeMap.values()) {
                 if (e.vis === 0) continue;
@@ -719,36 +786,51 @@ function _initSolide3D(widget) {
         const caps = [{off:0, rn:applyRot([0,-1,0]), color:baseColors[0]}];
         if (type === 'cylinder') caps.push({off:N, rn:applyRot([0,1,0]), color:baseColors[1 % baseColors.length]});
 
-        // Bases visibles
-        for (const cap of caps) {
-            if (cap.rn[2] <= 1e-6) continue;
-            fillPoly(P.slice(cap.off, cap.off + N), shade(cap.color, cap.rn));
-        }
-        // Surface latérale : bandes fines ombrées individuellement → rendu lisse
-        for (let i=0;i<N;i++) {
-            if (RN[i][2] <= 1e-6) continue;
-            fillPoly(faces[i].idx.map(k => P[k]), shade(sideColor, RN[i]));
+        const paintRound = (front) => {
+            // Bases
+            for (const cap of caps) {
+                if ((cap.rn[2] > 1e-6) !== front) continue;
+                fillPoly(P.slice(cap.off, cap.off + N), shade(cap.color, cap.rn));
+            }
+            // Surface latérale : bandes fines ombrées individuellement → rendu lisse
+            for (let i=0;i<N;i++) {
+                if ((RN[i][2] > 1e-6) !== front) continue;
+                fillPoly(faces[i].idx.map(k => P[k]), shade(sideColor, RN[i]));
+            }
+        };
+        if (transparent) {
+            withLayer(ALPHA_BACK,  () => paintRound(false));
+            withLayer(ALPHA_FRONT, () => paintRound(true));
+        } else {
+            paintRound(true);
         }
 
         if (!showEdges) return;
-        ctx.strokeStyle = edgeStyle(isLight, 0.55);
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
 
         // Cercles des bases : en entier si la base est visible,
-        // sinon seulement l'arc avant (bord de la surface latérale visible)
-        for (const cap of caps) {
-            const capVis = cap.rn[2] > 1e-6;
-            let pen = false;
-            for (let i=0;i<N;i++) {
-                const drawSeg = capVis || RN[i][2] > 1e-6;
-                const p0 = P[cap.off + i], p1 = P[cap.off + (i+1)%N];
-                if (drawSeg) {
-                    if (!pen) { ctx.moveTo(p0[0], p0[1]); pen = true; }
-                    ctx.lineTo(p1[0], p1[1]);
-                } else pen = false;
+        // sinon seulement l'arc avant (bord de la surface latérale visible).
+        // En mode transparent, la partie cachée est tracée en pointillés.
+        const traceCaps = (wantVisible) => {
+            ctx.beginPath();
+            for (const cap of caps) {
+                const capVis = cap.rn[2] > 1e-6;
+                let pen = false;
+                for (let i=0;i<N;i++) {
+                    const segVis = capVis || RN[i][2] > 1e-6;
+                    const p0 = P[cap.off + i], p1 = P[cap.off + (i+1)%N];
+                    if (segVis === wantVisible) {
+                        if (!pen) { ctx.moveTo(p0[0], p0[1]); pen = true; }
+                        ctx.lineTo(p1[0], p1[1]);
+                    } else pen = false;
+                }
             }
-        }
+            ctx.stroke();
+        };
+        if (transparent) { setHiddenStyle(isLight); traceCaps(false); }
+        setVisibleStyle(isLight);
+        traceCaps(true);
+
+        ctx.beginPath();
         // Génératrices de silhouette (contour latéral)
         for (let i=0;i<N;i++) {
             const prev = (i - 1 + N) % N;
@@ -774,14 +856,18 @@ function _initSolide3D(widget) {
         g.addColorStop(0.45, colorAt(base, 0.92));
         g.addColorStop(0.85, colorAt(base, 0.72));
         g.addColorStop(1.00, colorAt(base, 0.62));
+        ctx.save();
+        if (transparent) ctx.globalAlpha = 0.42;
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, 2*Math.PI);
         ctx.fillStyle = g;
         ctx.fill();
+        ctx.restore();
 
         const NLat = 12, NLon = 24, NS = 96;
 
         // Bandes de latitude alternées (léger voile) → la rotation reste lisible
+        if (!transparent) {
         ctx.save();
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, 2*Math.PI);
@@ -823,37 +909,50 @@ function _initSolide3D(widget) {
         ctx.fillStyle = isLight ? 'rgba(255,255,255,0.10)' : 'rgba(10,30,50,0.10)';
         ctx.fill();
         ctx.restore();
+        }
 
         if (!showEdges) return;
 
-        // Grille : parallèles + méridiens, uniquement sur l'hémisphère visible
+        // Grille : parallèles + méridiens. Hémisphère visible en trait plein ;
+        // en mode transparent, hémisphère arrière en pointillés.
+        const traceGrid = (front) => {
+            ctx.beginPath();
+            const traceCurve = (fn) => {
+                let pen = false;
+                for (let k=0;k<=NS;k++) {
+                    const p = applyRot(fn(k/NS));
+                    if ((p[2] >= 0) === front) {
+                        const s = project(p);
+                        if (!pen) { ctx.moveTo(s[0], s[1]); pen = true; }
+                        else ctx.lineTo(s[0], s[1]);
+                    } else pen = false;
+                }
+            };
+            for (let lat=1; lat<NLat; lat++) {
+                const phi = Math.PI*(lat/NLat - 0.5), cp = Math.cos(phi), sp = Math.sin(phi);
+                traceCurve(t => [cp*Math.cos(2*Math.PI*t), sp, cp*Math.sin(2*Math.PI*t)]);
+            }
+            for (let lon=0; lon<NLon; lon++) {
+                const th = 2*Math.PI*lon/NLon, ct = Math.cos(th), st = Math.sin(th);
+                traceCurve(t => { const phi = Math.PI*(t - 0.5); return [Math.cos(phi)*ct, Math.sin(phi), Math.cos(phi)*st]; });
+            }
+            ctx.stroke();
+        };
+        if (transparent) {
+            ctx.strokeStyle = edgeStyle(isLight, 0.22);
+            ctx.lineWidth = 1;
+            ctx.lineCap = 'butt';
+            ctx.setLineDash([4, 4]);
+            traceGrid(false);
+            ctx.setLineDash([]);
+            ctx.lineCap = 'round';
+        }
         ctx.strokeStyle = edgeStyle(isLight, 0.28);
         ctx.lineWidth = 1;
-        ctx.beginPath();
-        const traceCurve = (fn) => {
-            let pen = false;
-            for (let k=0;k<=NS;k++) {
-                const p = applyRot(fn(k/NS));
-                if (p[2] >= 0) {
-                    const s = project(p);
-                    if (!pen) { ctx.moveTo(s[0], s[1]); pen = true; }
-                    else ctx.lineTo(s[0], s[1]);
-                } else pen = false;
-            }
-        };
-        for (let lat=1; lat<NLat; lat++) {
-            const phi = Math.PI*(lat/NLat - 0.5), cp = Math.cos(phi), sp = Math.sin(phi);
-            traceCurve(t => [cp*Math.cos(2*Math.PI*t), sp, cp*Math.sin(2*Math.PI*t)]);
-        }
-        for (let lon=0; lon<NLon; lon++) {
-            const th = 2*Math.PI*lon/NLon, ct = Math.cos(th), st = Math.sin(th);
-            traceCurve(t => { const phi = Math.PI*(t - 0.5); return [Math.cos(phi)*ct, Math.sin(phi), Math.cos(phi)*st]; });
-        }
-        ctx.stroke();
+        traceGrid(true);
 
         // Contour
-        ctx.strokeStyle = edgeStyle(isLight, 0.55);
-        ctx.lineWidth = 1.6;
+        setVisibleStyle(isLight);
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, 2*Math.PI);
         ctx.stroke();
@@ -987,6 +1086,9 @@ function _initSolide3D(widget) {
     // ── Cases à cocher ────────────────────────────────────────────
     widget.querySelector('.s3d-aretes-chk').addEventListener('change', function() {
         showEdges = this.checked; requestDraw();
+    });
+    widget.querySelector('.s3d-transp-chk').addEventListener('change', function() {
+        transparent = this.checked; requestDraw();
     });
     widget.querySelector('.s3d-anim-chk').addEventListener('change', function() {
         autoRotate = this.checked;

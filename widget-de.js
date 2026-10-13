@@ -252,6 +252,13 @@ function _wfIsPhoneLaunch() {
             transform-origin: 50% 100%;
             will-change: transform;
         }
+        .de-poly {
+            position: absolute; left: -35%; top: -35%;
+            width: 170%; height: 170%;
+            display: none; pointer-events: none;
+        }
+        .de-stage.is-poly .de-cube { display: none; }
+        .de-stage.is-poly .de-poly { display: block; }
         .de-cube {
             position: absolute; inset: 0;
             transform-style: preserve-3d;
@@ -326,6 +333,7 @@ function _wfIsPhoneLaunch() {
         }
         .de-history-item.lit { color: #fff !important; border-color: transparent !important; }
         /* Résultat : petite pulsation lumineuse de la face avant */
+        .de-poly.win,
         .de-f-front.win {
             animation: de-win 0.7s ease-out;
         }
@@ -453,6 +461,7 @@ function _wfIsPhoneLaunch() {
           <div class="de-face de-f-top"></div>
           <div class="de-face de-f-bottom"></div>
         </div>
+        <canvas class="de-poly"></canvas>
       </div>
     </div>
     <div class="de-result-hint">Clique sur le dé ou sur « Lancer »</div>
@@ -473,7 +482,7 @@ function _wfIsPhoneLaunch() {
   <!-- Popup aide -->
   <div class="de-help-popup">
     <h4>💡 Comment utiliser ce widget ?</h4>
-    <p><b>Nombre de faces</b> — Utilise le curseur pour choisir entre 2 et 30 faces (d2, d6, d20…). Avec 6 faces, le dé affiche des points comme un vrai dé.</p>
+    <p><b>Nombre de faces</b> — Utilise le curseur pour choisir entre 2 et 30 faces (d2, d6, d20…). La forme du dé s'adapte : pièce (2), tétraèdre (4), cube à points (6), octaèdre (8), toupie (10 et autres nombres pairs), dodécaèdre (12), icosaèdre (20) et dé long pour les nombres impairs.</p>
     <p><b>Lancer</b> — Clique sur <b>🎲 Lancer</b> ou directement sur le dé pour obtenir un résultat aléatoire.</p>
     <p><b>Historique</b> — Les 20 derniers lancers s'affichent. Le plus récent est en violet.</p>
     <p><b>🗑</b> — Efface l'historique des lancers.</p>
@@ -485,6 +494,301 @@ function _wfIsPhoneLaunch() {
 </div>`;
         document.body.appendChild(tpl);
     }
+
+    // =========================================================================
+    // MOTEUR 3D (canvas) — dés autres que le d6
+    //   2 → pièce · 4 → tétraèdre · 8 → octaèdre · 12 → dodécaèdre
+    //   20 → icosaèdre · autres pairs → toupie (trapézoèdre, comme le d10)
+    //   impairs → dé long (prisme à bouts pointus qui roule sur ses côtés)
+    // =========================================================================
+    const DePoly = (function () {
+        const add = (a, b) => [a[0]+b[0], a[1]+b[1], a[2]+b[2]];
+        const sub = (a, b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+        const mul = (a, s) => [a[0]*s, a[1]*s, a[2]*s];
+        const dot = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+        const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+        const len = (a) => Math.sqrt(dot(a, a));
+        const norm = (a) => { const l = len(a) || 1; return [a[0]/l, a[1]/l, a[2]/l]; };
+        // Matrices 3×3 (tableau de 9, ligne par ligne)
+        const mm = (A, B) => {
+            const C = new Array(9);
+            for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++)
+                C[i*3+j] = A[i*3]*B[j] + A[i*3+1]*B[3+j] + A[i*3+2]*B[6+j];
+            return C;
+        };
+        const mv = (M, p) => [
+            M[0]*p[0] + M[1]*p[1] + M[2]*p[2],
+            M[3]*p[0] + M[4]*p[1] + M[5]*p[2],
+            M[6]*p[0] + M[7]*p[1] + M[8]*p[2]];
+        const rx = (a) => { const c = Math.cos(a), s = Math.sin(a); return [1,0,0, 0,c,-s, 0,s,c]; };
+        const ry = (a) => { const c = Math.cos(a), s = Math.sin(a); return [c,0,s, 0,1,0, -s,0,c]; };
+        const rz = (a) => { const c = Math.cos(a), s = Math.sin(a); return [c,-s,0, s,c,0, 0,0,1]; };
+        const raxis = (u, a) => {
+            const [x, y, z] = u, c = Math.cos(a), s = Math.sin(a), t = 1 - c;
+            return [t*x*x+c, t*x*y-s*z, t*x*z+s*y,
+                    t*x*y+s*z, t*y*y+c, t*y*z-s*x,
+                    t*x*z-s*y, t*y*z+s*x, t*z*z+c];
+        };
+
+        // Ordonne les sommets d'une face autour de son axe
+        function orderAround(idx, verts, axis) {
+            axis = norm(axis);
+            let ref = Math.abs(axis[0]) < 0.9 ? [1,0,0] : [0,1,0];
+            const e1 = norm(sub(ref, mul(axis, dot(ref, axis)))), e2 = cross(axis, e1);
+            const c = mul(idx.reduce((s, i) => add(s, verts[i]), [0,0,0]), 1 / idx.length);
+            return idx.slice().sort((i, j) => {
+                const a = sub(verts[i], c), b = sub(verts[j], c);
+                return Math.atan2(dot(a, e2), dot(a, e1)) - Math.atan2(dot(b, e2), dot(b, e1));
+            });
+        }
+
+        // Calcule normales, centres, repères de lecture et place disponible
+        function finalize(verts, faces) {
+            const m = Math.max(...verts.map(len));
+            verts = verts.map(p => mul(p, 1 / m));
+            faces.forEach(f => {
+                const upV = f.upV != null ? f.upV : f.idx[0];
+                const pts = f.idx.map(i => verts[i]);
+                const c = mul(pts.reduce((s, p) => add(s, p), [0,0,0]), 1 / pts.length);
+                let n = [0,0,0];
+                for (let i = 0; i < pts.length; i++) {
+                    const a = pts[i], b = pts[(i + 1) % pts.length];
+                    n[0] += (a[1]-b[1]) * (a[2]+b[2]);
+                    n[1] += (a[2]-b[2]) * (a[0]+b[0]);
+                    n[2] += (a[0]-b[0]) * (a[1]+b[1]);
+                }
+                n = norm(n);
+                if (dot(n, c) < 0) { n = mul(n, -1); f.idx.reverse(); }
+                let up = f.axisUp ? cross(n, f.axisUp) : (f.upDir || sub(verts[upV], c));
+                up = norm(sub(up, mul(n, dot(up, n))));
+                let inr = Infinity;
+                const P = f.idx.map(i => verts[i]);
+                for (let i = 0; i < P.length; i++) {
+                    const a = P[i], b = P[(i + 1) % P.length];
+                    inr = Math.min(inr, len(cross(sub(b, a), sub(c, a))) / len(sub(b, a)));
+                }
+                f.c = c; f.n = n; f.up = up; f.right = cross(up, n); f.inr = inr;
+            });
+            return { verts, faces };
+        }
+
+        // Numérotation fixe mais mélangée (comme un vrai dé)
+        function label(faces, n) {
+            const nums = Array.from({ length: n }, (_, i) => i + 1);
+            let seed = n * 7919 + 13;
+            const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+            for (let i = nums.length - 1; i > 0; i--) {
+                const j = Math.floor(rnd() * (i + 1));
+                [nums[i], nums[j]] = [nums[j], nums[i]];
+            }
+            let k = 0;
+            faces.forEach(f => { if (f.numbered) f.label = nums[k++]; });
+        }
+
+        function tetra() {
+            const v = [[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]];
+            const f = [[0,1,2],[0,3,1],[0,2,3],[1,3,2]].map(idx => ({ idx, numbered: true }));
+            return finalize(v, f);
+        }
+        function octa() {
+            const v = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+            const f = [];
+            for (const a of [0,1]) for (const b of [2,3]) for (const c of [4,5])
+                f.push({ idx: [a, b, c], numbered: true });
+            return finalize(v, f);
+        }
+        function icosaRaw() {
+            const p = (1 + Math.sqrt(5)) / 2, v = [];
+            for (const a of [-1,1]) for (const b of [-p,p]) { v.push([0,a,b]); v.push([a,b,0]); v.push([b,0,a]); }
+            const f = [];
+            const d = (i, j) => len(sub(v[i], v[j]));
+            for (let i = 0; i < 12; i++) for (let j = i+1; j < 12; j++) for (let k = j+1; k < 12; k++)
+                if (Math.abs(d(i,j)-2) < 1e-6 && Math.abs(d(j,k)-2) < 1e-6 && Math.abs(d(i,k)-2) < 1e-6)
+                    f.push([i, j, k]);
+            return { v, f };
+        }
+        function icosa() {
+            const { v, f } = icosaRaw();
+            return finalize(v, f.map(idx => ({ idx, numbered: true })));
+        }
+        function dodeca() {
+            // Dual de l'icosaèdre : centres des 20 triangles = 20 sommets
+            const { v, f } = icosaRaw();
+            const verts = f.map(t => mul(add(add(v[t[0]], v[t[1]]), v[t[2]]), 1/3));
+            const faces = [];
+            for (let i = 0; i < 12; i++) {
+                const around = [];
+                f.forEach((t, k) => { if (t.includes(i)) around.push(k); });
+                faces.push({ idx: orderAround(around, verts, v[i]), numbered: true });
+            }
+            return finalize(verts, faces);
+        }
+        function trapezo(k) {
+            // Toupie à 2k faces en losange (le d10 pour k = 5)
+            // hauteur des pointes fixée (≈ celle d'un vrai d10) ; l'écart entre
+            // les deux anneaux en découle pour que chaque losange reste plan
+            const cq = Math.cos(Math.PI / k);
+            const h = 1.05 * (1 - cq) / (1 + cq), v = [], faces = [];
+            for (let i = 0; i < k; i++) {
+                const a = 2 * Math.PI * i / k, b = a + Math.PI / k;
+                v.push([Math.cos(a), Math.sin(a), h]);      // anneau haut : 0..k-1
+                v.push([Math.cos(b), Math.sin(b), -h]);     // anneau bas  : décalé
+            }
+            const U = (i) => 2 * (i % k), L = (i) => 2 * (i % k) + 1;
+            const n0 = cross(sub(v[L(0)], v[U(0)]), sub(v[U(1)], v[U(0)]));
+            const apex = dot(n0, v[U(0)]) / n0[2];            // rend chaque losange bien plan
+            const T = v.length; v.push([0, 0, Math.abs(apex)]);
+            const B = v.length; v.push([0, 0, -Math.abs(apex)]);
+            for (let i = 0; i < k; i++) {
+                faces.push({ idx: [T, U(i), L(i), U(i+1)], upV: T, numbered: true });
+                faces.push({ idx: [B, L(i), U(i+1), L(i+1)], upV: B, numbered: true });
+            }
+            return finalize(v, faces);
+        }
+        function longDie(n) {
+            // Prisme à n côtés numérotés + deux bouts pointus (non numérotés)
+            const r = 0.5 + n * 0.012, hl = 0.95, tip = 1.22, v = [], faces = [];
+            for (let i = 0; i < n; i++) {
+                const a = 2 * Math.PI * i / n;
+                v.push([-hl, r * Math.cos(a), r * Math.sin(a)]);
+                v.push([ hl, r * Math.cos(a), r * Math.sin(a)]);
+            }
+            const A = (i) => 2 * (i % n), Bv = (i) => 2 * (i % n) + 1;
+            const tA = v.length; v.push([-tip, 0, 0]);
+            const tB = v.length; v.push([ tip, 0, 0]);
+            for (let i = 0; i < n; i++) {
+                faces.push({ idx: [A(i), A(i+1), Bv(i+1), Bv(i)], axisUp: [1,0,0], numbered: true, wide: true });
+                faces.push({ idx: [tA, A(i+1), A(i)] });
+                faces.push({ idx: [tB, Bv(i), Bv(i+1)] });
+            }
+            return finalize(v, faces);
+        }
+        function coin() {
+            // Pièce : deux faces numérotées (1 et 2) + tranche
+            const N = 40, t = 0.13, v = [], faces = [];
+            for (let i = 0; i < N; i++) {
+                const a = 2 * Math.PI * i / N;
+                v.push([Math.cos(a), Math.sin(a),  t]);
+                v.push([Math.cos(a), Math.sin(a), -t]);
+            }
+            const top = [], bot = [];
+            for (let i = 0; i < N; i++) { top.push(2*i); bot.push(2*i+1); }
+            faces.push({ idx: top, upDir: [0,1,0], numbered: true, coin: true });
+            faces.push({ idx: bot, upDir: [0,1,0], numbered: true, coin: true });
+            for (let i = 0; i < N; i++) {
+                const j = (i + 1) % N;
+                faces.push({ idx: [2*i, 2*j, 2*j+1, 2*i+1], rim: true });
+            }
+            return finalize(v, faces);
+        }
+
+        const cache = {};
+        function geometry(n) {
+            if (cache[n]) return cache[n];
+            let g;
+            if (n === 2) g = coin();
+            else if (n === 4) g = tetra();
+            else if (n === 8) g = octa();
+            else if (n === 12) g = dodeca();
+            else if (n === 20) g = icosa();
+            else if (n % 2 === 0) g = trapezo(n / 2);
+            else g = longDie(n);
+            g.long = (n % 2 === 1);
+            label(g.faces, n);
+            return (cache[n] = g);
+        }
+
+        // Orientation où la face « val » regarde le spectateur, lisible à l'endroit,
+        // légèrement inclinée pour qu'on voie le relief.
+        function restFor(g, val, roll) {
+            const f = g.faces.find(x => x.label === val) || g.faces.find(x => x.numbered);
+            const align = [...f.right, ...f.up, ...f.n];
+            const tilt = g.long ? mm(rx(0.38), ry(-0.30))
+                       : g.faces.length === 4 ? mm(rx(0.55), ry(-0.62))
+                       : mm(rx(0.36), ry(-0.40));
+            return mm(rz(roll || 0), mm(tilt, align));
+        }
+
+        const hexRgb = (h) => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+        const LIGHT = norm([-0.45, 0.65, 0.62]);
+        const HALF  = norm(add(LIGHT, [0, 0, 1]));
+        const FOCAL = 7;
+
+        function draw(ctx, W, H, g, R, opts) {
+            const radius = opts.radius, n = opts.n;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, W, H);
+            const cx = W / 2, cy = H / 2;
+            const proj = (p) => { const s = FOCAL / (FOCAL - p[2]); return [cx + p[0] * radius * s, cy - p[1] * radius * s]; };
+            const cam = [0, 0, FOCAL];
+            const base = hexRgb(opts.base || '#6366f1');
+            const rimC = hexRgb('#4338ca');
+            const litC = opts.litColor ? hexRgb(opts.litColor) : null;
+            ctx.lineJoin = 'round';
+
+            for (const f of g.faces) {
+                const nn = mv(R, f.n), c = mv(R, f.c);
+                const toCam = sub(cam, c);
+                const facing = dot(nn, norm(toCam));
+                if (facing <= 0) continue;
+                const pts = f.idx.map(i => proj(mv(R, g.verts[i])));
+
+                // Couleur + éclairage (diffus + reflet)
+                let col = f.numbered ? base : rimC;
+                if (f.numbered && litC && f.label === opts.lit) col = litC;
+                const diff = Math.max(0, dot(nn, LIGHT));
+                const spec = Math.pow(Math.max(0, dot(nn, HALF)), 28) * 0.45;
+                const k = 0.46 + 0.66 * diff;
+                const rgb = col.map(x => Math.round(Math.min(255, x * k + (255 - x * k) * spec)));
+
+                ctx.beginPath();
+                pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+                ctx.closePath();
+                ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+                ctx.fill();
+                if (!f.rim) {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.26)';
+                    ctx.lineWidth = opts.dpr;
+                    ctx.stroke();
+                } else {
+                    ctx.strokeStyle = ctx.fillStyle;   // tranche de pièce sans jointures
+                    ctx.lineWidth = opts.dpr * 0.6;
+                    ctx.stroke();
+                }
+
+                // Numéro posé à plat sur la face (suit la perspective)
+                if (f.label != null) {
+                    const alpha = Math.max(0, Math.min(1, (facing - 0.12) * 3));
+                    if (alpha <= 0) continue;
+                    const s = f.inr;
+                    const p0 = proj(c);
+                    const pr = proj(add(c, mul(mv(R, f.right), s)));
+                    const pu = proj(add(c, mul(mv(R, f.up), s)));
+                    ctx.setTransform(
+                        (pr[0] - p0[0]) / 100, (pr[1] - p0[1]) / 100,
+                        -(pu[0] - p0[0]) / 100, -(pu[1] - p0[1]) / 100,
+                        p0[0], p0[1]);
+                    let txt = String(f.label);
+                    if (n >= 9 && (f.label === 6 || f.label === 9)) txt += '.';
+                    let fs = f.coin ? 95 : (txt.length > 1 ? 105 : 125);
+                    ctx.font = `900 ${fs}px 'Segoe UI', system-ui, sans-serif`;
+                    const maxW = f.wide ? 320 : (f.coin ? 150 : 165);
+                    const w = ctx.measureText(txt).width;
+                    if (w > maxW) { fs *= maxW / w; ctx.font = `900 ${fs}px 'Segoe UI', system-ui, sans-serif`; }
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const dy = 0;
+                    ctx.fillStyle = `rgba(30,27,75,${0.35 * alpha})`;
+                    ctx.fillText(txt, 3, 7 + dy);
+                    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+                    ctx.fillText(txt, 0, 4 + dy);
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                }
+            }
+        }
+
+        return { geometry, restFor, draw, mm, rx, raxis, norm };
+    })();
 
     // =========================================================================
     // INITIALISATION DU WIDGET
@@ -501,6 +805,9 @@ function _wfIsPhoneLaunch() {
         const floorEl      = widget.querySelector('.de-floor');
         const toss         = widget.querySelector('.de-toss');
         const cube         = widget.querySelector('.de-cube');
+        const polyCanvas   = widget.querySelector('.de-poly');
+        const polyCtx      = polyCanvas.getContext('2d');
+        let polyR = null, polyLit = null, polyRoll = 0;
         const faceEls = {
             front:  widget.querySelector('.de-f-front'),
             back:   widget.querySelector('.de-f-back'),
@@ -589,7 +896,30 @@ function _wfIsPhoneLaunch() {
         ];
         const colorOf = (val) => COLORS[(val - 1) % COLORS.length];
 
+        // ── Dés non cubiques (canvas) ─────────────────────────────────────
+        const isPoly = () => nbFaces !== 6;
+        function polyDraw() {
+            if (!isPoly() || !polyR) return;
+            const g = DePoly.geometry(nbFaces);
+            const S = parseFloat(stage.style.getPropertyValue('--de-size')) || 110;
+            const dpr = Math.min(3, window.devicePixelRatio || 1);
+            const W = Math.round(S * 1.7 * dpr);
+            if (polyCanvas.width !== W) { polyCanvas.width = W; polyCanvas.height = W; }
+            DePoly.draw(polyCtx, W, W, g, polyR, {
+                radius: S * 0.62 * dpr, dpr, n: nbFaces,
+                lit: polyLit, litColor: polyLit != null ? colorOf(polyLit)[1] : null
+            });
+        }
+        function polyShow(val, lit) {
+            const g = DePoly.geometry(nbFaces);
+            polyR = DePoly.restFor(g, val == null ? 1 : val, polyRoll);
+            polyLit = lit ? val : null;
+            polyDraw();
+        }
+        function setMode() { stage.classList.toggle('is-poly', isPoly()); }
+
         function lightFace(el, val) {
+            if (isPoly() && el === faceEls.front) { polyShow(val, true); return; }
             const [c1, c2, c3] = colorOf(val);
             el.style.setProperty('--c1', c1);
             el.style.setProperty('--c2', c2);
@@ -619,6 +949,8 @@ function _wfIsPhoneLaunch() {
 
         // Remplit les 6 faces ; `front` = valeur visible à l'arrêt (null → « ? »)
         function paintAll(front) {
+            setMode();
+            if (isPoly()) { polyShow(front, false); return; }
             const f = front == null ? rndInt(nbFaces) : front;
             let v;
             if (nbFaces === 6) {
@@ -652,6 +984,7 @@ function _wfIsPhoneLaunch() {
             size = Math.round(Math.max(70, Math.min(size, 360)));
             if (stage.style.getPropertyValue('--de-size') !== size + 'px')
                 stage.style.setProperty('--de-size', size + 'px');
+            polyDraw();
         }
         updateSize();
         if (typeof ResizeObserver === 'function') {
@@ -688,13 +1021,36 @@ function _wfIsPhoneLaunch() {
                 `rotateX(${REST_X + tiltX + (spinX + offX) * k}deg) rotateY(${REST_Y + (spinY + offY) * k}deg) rotateZ(${newZ + (spinZ + offZ) * k}deg)`;
 
             // Rotation : tourne vite en l'air, ralentit à chaque rebond, bascule un peu à l'arrêt
-            const cubeAnim = cube.animate([
-                { transform: rot(1),          offset: 0,    easing: 'cubic-bezier(.25,.6,.45,1)' },
-                { transform: rot(0.16),       offset: 0.48, easing: 'cubic-bezier(.3,.5,.5,1)' },
-                { transform: rot(0.02, 10),   offset: 0.72, easing: 'ease-out' },
-                { transform: rot(0, -4),      offset: 0.86, easing: 'ease-in-out' },
-                { transform: rot(0),          offset: 1 }
-            ], { duration: D, fill: 'forwards' });
+            let cubeAnim = null;
+            if (!isPoly()) {
+                cubeAnim = cube.animate([
+                    { transform: rot(1),          offset: 0,    easing: 'cubic-bezier(.25,.6,.45,1)' },
+                    { transform: rot(0.16),       offset: 0.48, easing: 'cubic-bezier(.3,.5,.5,1)' },
+                    { transform: rot(0.02, 10),   offset: 0.72, easing: 'ease-out' },
+                    { transform: rot(0, -4),      offset: 0.86, easing: 'ease-in-out' },
+                    { transform: rot(0),          offset: 1 }
+                ], { duration: D, fill: 'forwards' });
+            } else {
+                // Polyèdre : tourne autour d'un axe au hasard, de moins en moins vite,
+                // puis se pose sur la face tirée avec un petit balancement.
+                const g = DePoly.geometry(nbFaces);
+                polyRoll = newZ * Math.PI / 180;
+                const Rf = DePoly.restFor(g, result, polyRoll);
+                const axis = DePoly.norm([rndReal(-1, 1), rndReal(-1, 1), rndReal(-1, 1)]);
+                const total = (2.4 + Math.random()) * 2 * Math.PI * sgn();
+                polyLit = null;
+                const t0 = performance.now();
+                const tick = (now) => {
+                    const t = Math.min(1, (now - t0) / D);
+                    const x = Math.min(1, t / 0.86), k = Math.pow(1 - x, 3);
+                    const w = t > 0.62 ? 0.16 * Math.sin((t - 0.62) / 0.38 * 2 * Math.PI) * (1 - (t - 0.62) / 0.38) : 0;
+                    polyR = DePoly.mm(DePoly.rx(w), DePoly.mm(Rf, DePoly.raxis(axis, total * k)));
+                    polyDraw();
+                    if (t < 1) requestAnimationFrame(tick);
+                    else { polyR = Rf; finish(); }
+                };
+                requestAnimationFrame(tick);
+            }
 
             // Trajectoire : chute en arc + 3 rebonds de plus en plus petits, avec écrasement à l'impact
             const fallIn  = 'cubic-bezier(.55,0,1,.55)';   // accélère en tombant
@@ -728,14 +1084,20 @@ function _wfIsPhoneLaunch() {
                 };
             }), { duration: D, fill: 'forwards' });
 
-            cubeAnim.onfinish = () => {
-                restZ = newZ;
-                cube.style.transform = restTransform(restZ);
-                cubeAnim.cancel(); tossAnim.cancel(); floorAnim.cancel();
-
-                const front = faceEls.front;
-                lightFace(front, result);
-                front.classList.remove('win'); void front.offsetWidth; front.classList.add('win');
+            function finish() {
+                tossAnim.cancel(); floorAnim.cancel();
+                if (cubeAnim) {
+                    restZ = newZ;
+                    cube.style.transform = restTransform(restZ);
+                    cubeAnim.cancel();
+                    const front = faceEls.front;
+                    lightFace(front, result);
+                    front.classList.remove('win'); void front.offsetWidth; front.classList.add('win');
+                } else {
+                    polyLit = result;
+                    polyDraw();
+                    polyCanvas.classList.remove('win'); void polyCanvas.offsetWidth; polyCanvas.classList.add('win');
+                }
 
                 resultHint.textContent = `Résultat : ${result}  (sur ${nbFaces})`;
                 _rolling = false;
@@ -745,7 +1107,8 @@ function _wfIsPhoneLaunch() {
                 widget.dataset.deHistory = JSON.stringify(history);
                 renderHistory();
                 if (typeof saveBoard === 'function') saveBoard();
-            };
+            }
+            if (cubeAnim) cubeAnim.onfinish = finish;
         }
 
         // ── Rendu de l'historique ─────────────────────────────────────────

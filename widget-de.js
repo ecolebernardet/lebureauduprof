@@ -165,6 +165,19 @@ function _wfIsPhoneLaunch() {
         .de-container.wf-fullboard .de-title {
             display: block;
         }
+        /* Plein écran : la barre de titre ne doit pas recouvrir le curseur */
+        .de-container.wf-fullboard {
+            padding: 56px 16px 20px !important;
+            box-sizing: border-box !important;
+        }
+        .de-container.wf-fullboard .de-header { pointer-events: none; z-index: 30; }
+        .de-container.wf-fullboard .de-header .wf-btns { pointer-events: auto; }
+        .de-container.wf-fullboard .de-faces-row,
+        .de-container.wf-fullboard .de-history-row,
+        .de-container.wf-fullboard .de-controls {
+            width: min(460px, 100%);
+            position: relative; z-index: 31;
+        }
         .de-header {
             display: flex; align-items: center; gap: 8px;
             cursor: move; user-select: none; flex-shrink: 0;
@@ -210,21 +223,126 @@ function _wfIsPhoneLaunch() {
             gap: 6px; min-height: 150px;
             width: 100%;
         }
-        .de-dice-svg {
+        /* ── Scène 3D : le dé est un vrai cube CSS (6 faces) ── */
+        .de-stage {
+            --de-size: 110px;
+            position: relative;
+            width: 100%;
+            height: calc(var(--de-size) * 1.75);
+            perspective: calc(var(--de-size) * 6);
+            perspective-origin: 50% 25%;
             cursor: pointer;
-            filter: drop-shadow(0 4px 14px rgba(99,102,241,0.30));
-            transition: filter .2s;
-            width: 80%;
-            min-width: 90px;
-            height: auto;
-            display: block;
+            touch-action: manipulation;
+        }
+        .de-floor {
+            position: absolute; left: 50%; bottom: calc(var(--de-size) * 0.12);
+            width: calc(var(--de-size) * 1.35); height: calc(var(--de-size) * 0.32);
+            margin-left: calc(var(--de-size) * -0.675);
+            border-radius: 50%;
+            background: radial-gradient(ellipse at center,
+                rgba(30,27,75,0.38) 0%, rgba(30,27,75,0.16) 45%, rgba(30,27,75,0) 72%);
+            pointer-events: none;
+            will-change: transform, opacity;
+        }
+        .de-toss {
+            position: absolute; left: 50%; bottom: calc(var(--de-size) * 0.28);
+            width: var(--de-size); height: var(--de-size);
+            margin-left: calc(var(--de-size) * -0.5);
+            transform-style: preserve-3d;
+            transform-origin: 50% 100%;
+            will-change: transform;
+        }
+        .de-cube {
+            position: absolute; inset: 0;
+            transform-style: preserve-3d;
+            transform: rotateX(-22deg) rotateY(-28deg) rotateZ(0deg);
+            will-change: transform;
+        }
+        .de-face {
+            position: absolute; inset: 0;
+            box-sizing: border-box;
+            border-radius: 0;
+            background:
+                radial-gradient(circle at 30% 22%, rgba(255,255,255,0.30), rgba(255,255,255,0) 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(30,27,75,0) 60%, rgba(30,27,75,0.14) 100%),
+                linear-gradient(145deg, var(--c1, #8b93fb) 0%, var(--c2, #6366f1) 55%, var(--c3, #4f46e5) 100%);
+            /* Arête fine et douce : un simple filet clair d'un pixel */
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22);
+            outline: 1px solid transparent;      /* anticrénelage des bords en 3D (Chrome) */
+            -webkit-font-smoothing: antialiased;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-weight: 900;
+            font-size: calc(var(--de-size) * 0.48);
+            line-height: 1;
+            text-shadow: 0 calc(var(--de-size) * 0.02) calc(var(--de-size) * 0.04) rgba(30,27,75,0.45);
+            backface-visibility: hidden;
+        }
+        /* Coque intérieure fermée (cache les micro-jointures entre faces) */
+        .de-core {
+            position: absolute; inset: 1%;
+            background: #4f46e5;
+        }
+        .de-c-front  { transform: translateZ(calc(var(--de-size) * 0.49)); }
+        .de-c-back   { transform: rotateY(180deg) translateZ(calc(var(--de-size) * 0.49)); }
+        .de-c-right  { transform: rotateY(90deg)  translateZ(calc(var(--de-size) * 0.49)); }
+        .de-c-left   { transform: rotateY(-90deg) translateZ(calc(var(--de-size) * 0.49)); }
+        .de-c-top    { transform: rotateX(90deg)  translateZ(calc(var(--de-size) * 0.49)); }
+        .de-c-bottom { transform: rotateX(-90deg) translateZ(calc(var(--de-size) * 0.49)); }
+        .de-face.two-digits { font-size: calc(var(--de-size) * 0.40); letter-spacing: -0.03em; }
+        .de-face.is-unknown { font-size: calc(var(--de-size) * 0.42); opacity: 1; }
+        /* Éclairage fixe par face (lumière venant d'en haut à gauche) */
+        .de-face::after {
+            content: ''; position: absolute; inset: 0; border-radius: inherit;
+            pointer-events: none; background: #1e1b4b;
+        }
+        .de-f-front::after  { opacity: 0;    }
+        .de-f-top::after    { background: #fff; opacity: 0.18; }
+        .de-f-right::after  { opacity: 0.28; }
+        .de-f-left::after   { opacity: 0.12; }
+        .de-f-back::after   { opacity: 0.35; }
+        .de-f-bottom::after { opacity: 0.45; }
+        .de-f-front  { transform: translateZ(calc(var(--de-size) * 0.5)); }
+        .de-f-back   { transform: rotateY(180deg) translateZ(calc(var(--de-size) * 0.5)); }
+        .de-f-right  { transform: rotateY(90deg)  translateZ(calc(var(--de-size) * 0.5)); }
+        .de-f-left   { transform: rotateY(-90deg) translateZ(calc(var(--de-size) * 0.5)); }
+        .de-f-top    { transform: rotateX(90deg)  translateZ(calc(var(--de-size) * 0.5)); }
+        .de-f-bottom { transform: rotateX(-90deg) translateZ(calc(var(--de-size) * 0.5)); }
+        /* Points (pips) pour le d6 */
+        .de-pips {
+            position: absolute; inset: 14%;
+            display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+        }
+        .de-pip {
+            width: 62%; height: 62%; margin: auto; border-radius: 50%;
+            background: radial-gradient(circle at 40% 35%, #ffffff 0%, #eef0ff 55%, #c7d2fe 100%);
+            box-shadow: inset 0 calc(var(--de-size) * 0.012) calc(var(--de-size) * 0.02) rgba(30,27,75,0.35);
+        }
+        .de-pip.off { visibility: hidden; }
+        /* Face du résultat : prend une couleur propre au numéro tiré */
+        .de-face.lit .de-pip {
+            background: radial-gradient(circle at 40% 35%, #ffffff 0%, #fffaf0 60%, #f1f1f1 100%);
+        }
+        .de-history-item.lit { color: #fff !important; border-color: transparent !important; }
+        /* Résultat : petite pulsation lumineuse de la face avant */
+        .de-f-front.win {
+            animation: de-win 0.7s ease-out;
+        }
+        @keyframes de-win {
+            0%   { filter: brightness(1.6) saturate(1.2); }
+            100% { filter: brightness(1)   saturate(1); }
         }
         .de-container.wf-fullboard .de-dice-zone {
-            flex: 1;
+            flex: 1; width: 100%;
         }
-        .de-container.wf-fullboard .de-dice-svg {
-            width: min(55vw, 55vh);
-            max-width: none;
+
+        /* Le widget qui contient le dé en plein écran : aucune transformation
+           (sinon position:fixed se cale sur le widget et non sur l'écran),
+           et passe sous les onglets latéraux (50005) et les panneaux (50000). */
+        .widget.de-max-host {
+            transform: none !important;
+            z-index: 49990 !important;
         }
 
         /* ── Téléphone : plein écran du bouton vert, décalé de 40 px à gauche
@@ -236,29 +354,13 @@ function _wfIsPhoneLaunch() {
                 height: 100dvh !important;
                 border: none !important;
                 border-radius: 0 !important;
+                padding-top: calc(56px + env(safe-area-inset-top)) !important;
+                padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
             }
+            /* Le bouton dessin passerait par-dessus le dé sans être utilisable */
+            body.de-has-max #draw-fab-btn { display: none !important; }
         }
-        .de-dice-svg:hover {
-            filter: drop-shadow(0 6px 20px rgba(99,102,241,0.50));
-        }
-        .de-dice-svg.rolling {
-            animation: de-roll 0.55s cubic-bezier(.36,.07,.19,.97);
-        }
-        @keyframes de-roll {
-            0%   { transform: rotate(0deg)   scale(1); }
-            15%  { transform: rotate(-18deg) scale(0.88); }
-            35%  { transform: rotate(14deg)  scale(1.10); }
-            55%  { transform: rotate(-9deg)  scale(0.95); }
-            75%  { transform: rotate(5deg)   scale(1.03); }
-            100% { transform: rotate(0deg)   scale(1); }
-        }
-        .de-dice-main-txt.flash {
-            animation: de-flash 0.15s ease-out;
-        }
-        @keyframes de-flash {
-            0%   { opacity: 0.15; }
-            100% { opacity: 1; }
-        }
+        .de-btn-roll.busy { opacity: .65; pointer-events: none; }
         .de-result-hint {
             font-size: 11px; color: #9ca3af; text-align: center;
             font-style: italic; min-height: 16px;
@@ -334,52 +436,25 @@ function _wfIsPhoneLaunch() {
 
   <!-- Zone principale du dé -->
   <div class="de-dice-zone">
-    <svg class="de-dice-svg" viewBox="0 0 160 170"
-         xmlns="http://www.w3.org/2000/svg" role="button" aria-label="Lancer le dé">
-      <defs>
-        <!-- Face frontale -->
-        <linearGradient id="de-front" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%"   stop-color="#818cf8"/>
-          <stop offset="100%" stop-color="#6366f1"/>
-        </linearGradient>
-        <!-- Face du dessus -->
-        <linearGradient id="de-top" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%"   stop-color="#a5b4fc"/>
-          <stop offset="100%" stop-color="#c7d2fe"/>
-        </linearGradient>
-        <!-- Face droite -->
-        <linearGradient id="de-right" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%"   stop-color="#4338ca"/>
-          <stop offset="100%" stop-color="#3730a3"/>
-        </linearGradient>
-        <!-- Ombre portée -->
-        <filter id="de-shadow" x="-15%" y="-10%" width="145%" height="150%">
-          <feDropShadow dx="2" dy="8" stdDeviation="7" flood-color="#1e1b4b" flood-opacity="0.40"/>
-        </filter>
-      </defs>
-
-      <g filter="url(#de-shadow)">
-        <!-- Face frontale (grande, carrée, angles droits) -->
-        <polygon points="10,35  120,35  120,145  10,145" fill="url(#de-front)"/>
-        <!-- Face du dessus -->
-        <polygon points="10,35  40,10  150,10  120,35" fill="url(#de-top)"/>
-        <!-- Face droite -->
-        <polygon points="120,35  150,10  150,120  120,145" fill="url(#de-right)"/>
-        <!-- Arêtes -->
-        <polygon points="10,35  120,35  120,145  10,145"
-              fill="none" stroke="#3730a3" stroke-width="1.5" stroke-linejoin="round"/>
-        <polygon points="10,35  40,10  150,10  120,35"
-              fill="none" stroke="#3730a3" stroke-width="1.5" stroke-linejoin="round"/>
-        <polygon points="120,35  150,10  150,120  120,145"
-              fill="none" stroke="#3730a3" stroke-width="1.5" stroke-linejoin="round"/>
-      </g>
-
-      <!-- Résultat centré sur la face frontale -->
-      <text class="de-dice-main-txt" x="65" y="92" text-anchor="middle"
-            dominant-baseline="central"
-            font-family="'Segoe UI',system-ui,sans-serif" font-size="64" font-weight="900"
-            fill="white">—</text>
-    </svg>
+    <div class="de-stage" role="button" aria-label="Lancer le dé">
+      <div class="de-floor"></div>
+      <div class="de-toss">
+        <div class="de-cube">
+          <div class="de-core de-c-front"></div>
+          <div class="de-core de-c-back"></div>
+          <div class="de-core de-c-right"></div>
+          <div class="de-core de-c-left"></div>
+          <div class="de-core de-c-top"></div>
+          <div class="de-core de-c-bottom"></div>
+          <div class="de-face de-f-front"></div>
+          <div class="de-face de-f-back"></div>
+          <div class="de-face de-f-right"></div>
+          <div class="de-face de-f-left"></div>
+          <div class="de-face de-f-top"></div>
+          <div class="de-face de-f-bottom"></div>
+        </div>
+      </div>
+    </div>
     <div class="de-result-hint">Clique sur le dé ou sur « Lancer »</div>
   </div>
 
@@ -398,7 +473,7 @@ function _wfIsPhoneLaunch() {
   <!-- Popup aide -->
   <div class="de-help-popup">
     <h4>💡 Comment utiliser ce widget ?</h4>
-    <p><b>Nombre de faces</b> — Utilise le curseur pour choisir entre 2 et 30 faces (d2, d6, d20…).</p>
+    <p><b>Nombre de faces</b> — Utilise le curseur pour choisir entre 2 et 30 faces (d2, d6, d20…). Avec 6 faces, le dé affiche des points comme un vrai dé.</p>
     <p><b>Lancer</b> — Clique sur <b>🎲 Lancer</b> ou directement sur le dé pour obtenir un résultat aléatoire.</p>
     <p><b>Historique</b> — Les 20 derniers lancers s'affichent. Le plus récent est en violet.</p>
     <p><b>🗑</b> — Efface l'historique des lancers.</p>
@@ -421,8 +496,19 @@ function _wfIsPhoneLaunch() {
         const helpPopup    = widget.querySelector('.de-help-popup');
         const facesSlider  = widget.querySelector('.de-faces-slider');
         const facesValue   = widget.querySelector('.de-faces-value');
-        const diceSvg      = widget.querySelector('.de-dice-svg');
-        const diceMainTxt  = widget.querySelector('.de-dice-main-txt');
+        const diceZone     = widget.querySelector('.de-dice-zone');
+        const stage        = widget.querySelector('.de-stage');
+        const floorEl      = widget.querySelector('.de-floor');
+        const toss         = widget.querySelector('.de-toss');
+        const cube         = widget.querySelector('.de-cube');
+        const faceEls = {
+            front:  widget.querySelector('.de-f-front'),
+            back:   widget.querySelector('.de-f-back'),
+            right:  widget.querySelector('.de-f-right'),
+            left:   widget.querySelector('.de-f-left'),
+            top:    widget.querySelector('.de-f-top'),
+            bottom: widget.querySelector('.de-f-bottom'),
+        };
         const resultHint   = widget.querySelector('.de-result-hint');
         const historyEl    = widget.querySelector('.de-history');
         const rollBtn      = widget.querySelector('.de-btn-roll');
@@ -472,10 +558,106 @@ function _wfIsPhoneLaunch() {
             if (typeof saveBoard === 'function') saveBoard();
         });
 
-        // ── Nettoyage automatique de la classe rolling à la fin de l'anim ──
-        diceSvg.addEventListener('animationend', () => {
-            diceSvg.classList.remove('rolling');
-        });
+        // =================================================================
+        // DÉ 3D
+        // =================================================================
+        // Orientation de repos : face avant visible + dessus + côté droit
+        const REST_X = -22, REST_Y = -28;
+        let restZ = 0;
+        const restTransform = (z) => `rotateX(${REST_X}deg) rotateY(${REST_Y}deg) rotateZ(${z}deg)`;
+        cube.style.transform = restTransform(restZ);
+
+        const rndInt  = (n) => Math.floor(Math.random() * n) + 1;
+        const rndReal = (a, b) => a + Math.random() * (b - a);
+        const pick    = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+        // Disposition des points (grille 3×3) pour le d6
+        const PIPS = { 1:[4], 2:[2,6], 3:[2,4,6], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] };
+
+        // Une couleur par numéro (le même numéro garde toujours la même couleur)
+        const COLORS = [
+            ['#fb7185','#e11d48','#be123c'],  // rouge
+            ['#fdba74','#f97316','#c2410c'],  // orange
+            ['#fcd34d','#f59e0b','#b45309'],  // ambre
+            ['#86efac','#22c55e','#15803d'],  // vert
+            ['#5eead4','#14b8a6','#0f766e'],  // turquoise
+            ['#7dd3fc','#0ea5e9','#0369a1'],  // bleu ciel
+            ['#c4b5fd','#8b5cf6','#6d28d9'],  // violet
+            ['#f9a8d4','#ec4899','#be185d'],  // rose
+            ['#a3e635','#65a30d','#3f6212'],  // vert pomme
+            ['#93c5fd','#3b82f6','#1d4ed8'],  // bleu
+        ];
+        const colorOf = (val) => COLORS[(val - 1) % COLORS.length];
+
+        function lightFace(el, val) {
+            const [c1, c2, c3] = colorOf(val);
+            el.style.setProperty('--c1', c1);
+            el.style.setProperty('--c2', c2);
+            el.style.setProperty('--c3', c3);
+            el.classList.add('lit');
+        }
+
+        function paintFace(el, val) {
+            el.classList.remove('two-digits', 'is-unknown', 'win', 'lit');
+            el.style.removeProperty('--c1'); el.style.removeProperty('--c2'); el.style.removeProperty('--c3');
+            el.textContent = '';
+            if (val == null) { el.textContent = '?'; el.classList.add('is-unknown'); return; }
+            if (nbFaces === 6 && val >= 1 && val <= 6) {
+                const grid = document.createElement('div');
+                grid.className = 'de-pips';
+                for (let i = 0; i < 9; i++) {
+                    const pip = document.createElement('span');
+                    pip.className = 'de-pip' + (PIPS[val].includes(i) ? '' : ' off');
+                    grid.appendChild(pip);
+                }
+                el.appendChild(grid);
+            } else {
+                el.textContent = val;
+                if (String(val).length > 1) el.classList.add('two-digits');
+            }
+        }
+
+        // Remplit les 6 faces ; `front` = valeur visible à l'arrêt (null → « ? »)
+        function paintAll(front) {
+            const f = front == null ? rndInt(nbFaces) : front;
+            let v;
+            if (nbFaces === 6) {
+                // Vrai dé : les faces opposées font toujours 7
+                const pool = [1,2,3,4,5,6].filter(x => x !== f && x !== 7 - f);
+                const t = pick(pool);
+                const r = pick(pool.filter(x => x !== t && x !== 7 - t));
+                v = { front: f, back: 7 - f, top: t, bottom: 7 - t, right: r, left: 7 - r };
+            } else {
+                const used = new Set([f]), others = [];
+                for (let i = 0; i < 5; i++) {
+                    let x, tries = 0;
+                    do { x = rndInt(nbFaces); } while (used.has(x) && used.size < nbFaces && tries++ < 60);
+                    used.add(x); others.push(x);
+                }
+                v = { front: f, back: others[0], right: others[1], left: others[2], top: others[3], bottom: others[4] };
+            }
+            Object.keys(faceEls).forEach(k => paintFace(faceEls[k], v[k]));
+            if (front == null) paintFace(faceEls.front, null);
+        }
+
+        // Taille du dé selon la place disponible
+        function updateSize() {
+            let size;
+            if (container.classList.contains('wf-fullboard')) {
+                size = Math.min(window.innerWidth, window.innerHeight) * 0.26;
+            } else {
+                size = stage.clientWidth * 0.42;
+                if (container.style.height) size = Math.min(size, (diceZone.clientHeight - 26) / 1.75);
+            }
+            size = Math.round(Math.max(70, Math.min(size, 360)));
+            if (stage.style.getPropertyValue('--de-size') !== size + 'px')
+                stage.style.setProperty('--de-size', size + 'px');
+        }
+        updateSize();
+        if (typeof ResizeObserver === 'function') {
+            new ResizeObserver(() => updateSize()).observe(container);
+        }
+        window.addEventListener('resize', updateSize);
 
         // ── Lancer le dé ─────────────────────────────────────────────────
         let _rolling = false;
@@ -483,51 +665,87 @@ function _wfIsPhoneLaunch() {
         function roll() {
             if (_rolling) return;
             _rolling = true;
+            rollBtn.classList.add('busy');
 
-            const result = Math.floor(Math.random() * nbFaces) + 1;
-
-            // Animation rotation du dé
-            diceSvg.classList.remove('rolling');
-            requestAnimationFrame(() => requestAnimationFrame(() => diceSvg.classList.add('rolling')));
-
+            const result = rndInt(nbFaces);
+            paintAll(result);
             resultHint.textContent = '…';
 
-            // Séquence de délais croissants : rapide → lent → résultat
-            // 12 chiffres intermédiaires, intervalles de 60ms→80→110→150→200→résultat
-            const delays = [60, 60, 80, 80, 100, 100, 130, 130, 160, 180, 200, 220, 300];
-            let elapsed = 0;
+            const S      = parseFloat(stage.style.getPropertyValue('--de-size')) || 110;
+            const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const D      = reduce ? 450 : 1500;
+            const dir    = Math.random() < 0.5 ? -1 : 1;     // arrive par la gauche ou par la droite
+            const sgn    = () => (Math.random() < 0.5 ? -1 : 1);
+            const newZ   = rndReal(-9, 9);                    // petite inclinaison finale naturelle
 
-            delays.forEach((delay, i) => {
-                elapsed += delay;
-                const isFinal = (i === delays.length - 1);
-                // Taille progressive : de 20px (premier) à 42px (avant-dernier), puis saut à 64px pour le résultat
-                const fontSize = isFinal ? 64 : Math.round(20 + (i / (delays.length - 2)) * 22);
-                setTimeout(() => {
-                    if (isFinal) {
-                        diceMainTxt.classList.remove('flash');
-                        void diceMainTxt.getBoundingClientRect();
-                        diceMainTxt.setAttribute('font-size', 64);
-                        diceMainTxt.textContent = result;
-                        diceMainTxt.classList.add('flash');
-                        resultHint.textContent  = `Résultat : ${result}  (sur ${nbFaces})`;
-                        _rolling = false;
-                        history.unshift(result);
-                        if (history.length > 20) history = history.slice(0, 20);
-                        widget.dataset.deHistory = JSON.stringify(history);
-                        renderHistory();
-                        if (typeof saveBoard === 'function') saveBoard();
-                    } else {
-                        let rnd;
-                        do { rnd = Math.floor(Math.random() * nbFaces) + 1; }
-                        while (String(rnd) === diceMainTxt.textContent && nbFaces > 1);
-                        diceMainTxt.classList.remove('flash');
-                        void diceMainTxt.getBoundingClientRect();
-                        diceMainTxt.setAttribute('font-size', fontSize);
-                        diceMainTxt.textContent = rnd;
-                        diceMainTxt.classList.add('flash');
-                    }
-                }, elapsed);
-            });
+            // Nombre de tours sur chaque axe (le dé tourne de moins en moins vite)
+            const spinX = (2 + Math.floor(Math.random() * 2)) * 360 * sgn();
+            const spinY = (1 + Math.floor(Math.random() * 2)) * 360 * dir;
+            const spinZ = 360 * sgn();
+            const offX = rndReal(-50, 50), offY = rndReal(-50, 50), offZ = rndReal(-50, 50);
+
+            const rot = (k, tiltX = 0) =>
+                `rotateX(${REST_X + tiltX + (spinX + offX) * k}deg) rotateY(${REST_Y + (spinY + offY) * k}deg) rotateZ(${newZ + (spinZ + offZ) * k}deg)`;
+
+            // Rotation : tourne vite en l'air, ralentit à chaque rebond, bascule un peu à l'arrêt
+            const cubeAnim = cube.animate([
+                { transform: rot(1),          offset: 0,    easing: 'cubic-bezier(.25,.6,.45,1)' },
+                { transform: rot(0.16),       offset: 0.48, easing: 'cubic-bezier(.3,.5,.5,1)' },
+                { transform: rot(0.02, 10),   offset: 0.72, easing: 'ease-out' },
+                { transform: rot(0, -4),      offset: 0.86, easing: 'ease-in-out' },
+                { transform: rot(0),          offset: 1 }
+            ], { duration: D, fill: 'forwards' });
+
+            // Trajectoire : chute en arc + 3 rebonds de plus en plus petits, avec écrasement à l'impact
+            const fallIn  = 'cubic-bezier(.55,0,1,.55)';   // accélère en tombant
+            const riseOut = 'cubic-bezier(0,.45,.45,1)';   // ralentit en montant
+            const P = [
+                // offset, x (× taille), y (× taille), scaleX, scaleY, easing du segment suivant
+                [0,    -1.15, -1.45, 1,    1,    fallIn ],
+                [0.30, -0.50,  0,    1.10, 0.86, 'linear'],
+                [0.33, -0.44,  0,    1,    1,    riseOut],
+                [0.46, -0.24, -0.50, 1,    1,    fallIn ],
+                [0.59, -0.08,  0,    1.06, 0.92, 'linear'],
+                [0.61, -0.06,  0,    1,    1,    riseOut],
+                [0.69, -0.02, -0.14, 1,    1,    fallIn ],
+                [0.77,  0,     0,    1.03, 0.97, 'ease-out'],
+                [0.82,  0,     0,    1,    1,    'linear'],
+                [1,     0,     0,    1,    1,    'linear'],
+            ];
+            const tossAnim = toss.animate(P.map(([o, x, y, sx, sy, e]) => ({
+                offset: o, easing: e,
+                transform: `translate(${x * dir * S}px, ${y * S}px) scale(${sx}, ${sy})`,
+                opacity: o === 0 ? 0 : 1
+            })), { duration: D, fill: 'forwards' });
+
+            // Ombre au sol : petite et pâle quand le dé est haut, nette quand il touche
+            const floorAnim = floorEl.animate(P.map(([o, x, y, , , e]) => {
+                const h = Math.min(1, -y / 1.45);
+                return {
+                    offset: o, easing: e,
+                    transform: `translateX(${x * dir * S}px) scale(${1 - 0.5 * h})`,
+                    opacity: o === 0 ? 0 : 1 - 0.65 * h
+                };
+            }), { duration: D, fill: 'forwards' });
+
+            cubeAnim.onfinish = () => {
+                restZ = newZ;
+                cube.style.transform = restTransform(restZ);
+                cubeAnim.cancel(); tossAnim.cancel(); floorAnim.cancel();
+
+                const front = faceEls.front;
+                lightFace(front, result);
+                front.classList.remove('win'); void front.offsetWidth; front.classList.add('win');
+
+                resultHint.textContent = `Résultat : ${result}  (sur ${nbFaces})`;
+                _rolling = false;
+                rollBtn.classList.remove('busy');
+                history.unshift(result);
+                if (history.length > 20) history = history.slice(0, 20);
+                widget.dataset.deHistory = JSON.stringify(history);
+                renderHistory();
+                if (typeof saveBoard === 'function') saveBoard();
+            };
         }
 
         // ── Rendu de l'historique ─────────────────────────────────────────
@@ -537,28 +755,44 @@ function _wfIsPhoneLaunch() {
                 const item = document.createElement('span');
                 item.className = 'de-history-item';
                 item.textContent = val;
-                if (i === 0) item.title = 'Dernier lancer';
+                if (i === 0) {
+                    item.title = 'Dernier lancer';
+                    item.classList.add('lit');
+                    item.style.background = colorOf(val)[1];
+                }
                 historyEl.appendChild(item);
             });
         }
 
         // Afficher l'historique restauré + dernier résultat
         renderHistory();
-        if (history.length > 0) {
+        if (history.length > 0 && history[0] <= nbFaces) {
             const last = history[0];
-            diceMainTxt.textContent = last;
+            paintAll(last);
+            lightFace(faceEls.front, last);
             resultHint.textContent  = `Dernier résultat : ${last}  (sur ${nbFaces})`;
+        } else {
+            paintAll(null);
         }
 
+        // Changement du nombre de faces : on repeint le dé au repos
+        facesSlider.addEventListener('input', () => {
+            if (_rolling) return;
+            const last = history.length && history[0] <= nbFaces ? history[0] : null;
+            paintAll(last);
+            if (last != null) lightFace(faceEls.front, last);
+        });
+
         // ── Boutons principaux ────────────────────────────────────────────
-        makeTap(rollBtn,  roll);
-        makeTap(diceSvg,  roll);
+        makeTap(rollBtn, roll);
+        makeTap(stage,   roll);
 
         makeTap(clearBtn, () => {
+            if (_rolling) return;
             history = [];
             widget.dataset.deHistory = '[]';
             renderHistory();
-            diceMainTxt.textContent = '—';
+            paintAll(null);
             resultHint.textContent = 'Clique sur le dé ou sur « Lancer »';
             if (typeof saveBoard === 'function') saveBoard();
         });
@@ -580,18 +814,49 @@ function _wfIsPhoneLaunch() {
         // Plein écran (bouton vert) — utilisé aussi à l'ouverture sur téléphone
         function setMax(on) {
             on = !!on;
+            if (on && _isMax) {
+                // déjà en plein écran : on s'assure seulement que les classes sont en place
+                container.classList.add('wf-fullboard');
+                widget.classList.add('de-max-host');
+                document.body.classList.add('de-has-max');
+                return;
+            }
             if (on === _isMax) return;
             _isMax = on;
             if (_isMax) {
                 _savedW = container.style.width;
                 _savedH = container.style.height;
                 container.classList.add('wf-fullboard');
+                widget.classList.add('de-max-host');
+                document.body.classList.add('de-has-max');
             } else {
                 container.classList.remove('wf-fullboard');
+                widget.classList.remove('de-max-host');
+                if (!document.querySelector('.widget.de-max-host'))
+                    document.body.classList.remove('de-has-max');
                 if (_savedW) container.style.width  = _savedW;
                 if (_savedH) container.style.height = _savedH;
             }
+            updateSize();
         }
+
+        // Sur téléphone, le script général d'index.html peut poser son propre
+        // plein écran (.phone-fs + bouton ⤡). Pour le dé, on le remplace par
+        // le plein écran du bouton vert.
+        function refusePhoneFs() {
+            if (!widget.classList.contains('phone-fs')) return;
+            widget.classList.remove('phone-fs');
+            if (!document.querySelector('.widget.phone-fs')) {
+                document.body.classList.remove('has-phone-fs');
+                document.querySelectorAll('.phone-fs-exit').forEach(b => b.remove());
+            }
+            setMax(true);
+        }
+        if (typeof MutationObserver === 'function') {
+            new MutationObserver(refusePhoneFs)
+                .observe(widget, { attributes: true, attributeFilter: ['class'] });
+        }
+        refusePhoneFs();
         widget._deSetMax = setMax;
 
         if (wfMin) {
@@ -676,7 +941,11 @@ function _wfIsPhoneLaunch() {
             if (type === 'de' && widget) {
                     initDeWidget(widget);
                     // Sur téléphone : ouverture directe en plein écran (bouton vert)
-                    if (_wfIsPhoneLaunch() && widget._deSetMax) widget._deSetMax(true);
+                    if (_wfIsPhoneLaunch() && widget._deSetMax) {
+                        widget._deSetMax(true);
+                        // une seconde fois après les réglages éventuels de createWidget
+                        requestAnimationFrame(() => requestAnimationFrame(() => widget._deSetMax(true)));
+                    }
                 }
             return widget;
         };
@@ -689,7 +958,11 @@ function _wfIsPhoneLaunch() {
                     if (type === 'de' && widget) {
                     initDeWidget(widget);
                     // Sur téléphone : ouverture directe en plein écran (bouton vert)
-                    if (_wfIsPhoneLaunch() && widget._deSetMax) widget._deSetMax(true);
+                    if (_wfIsPhoneLaunch() && widget._deSetMax) {
+                        widget._deSetMax(true);
+                        // une seconde fois après les réglages éventuels de createWidget
+                        requestAnimationFrame(() => requestAnimationFrame(() => widget._deSetMax(true)));
+                    }
                 }
                     return widget;
                 };

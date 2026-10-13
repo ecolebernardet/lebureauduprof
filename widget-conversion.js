@@ -234,7 +234,9 @@
         .wconv-table td { background: #fff; height: 50px; color: #6b7280; }
         .wconv-exos-zone {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            /* minmax(0,1fr) : les colonnes ne s'élargissent plus selon le contenu
+               (c'est la police qui rétrécit, cf. _fitRow) */
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             overflow-y: auto;
             min-height: 80px;
             border: 1px solid #e5e7eb;
@@ -256,6 +258,7 @@
             border-bottom: 1px solid #e5e7eb;
             counter-increment: exo-counter;
             flex-wrap: nowrap;
+            min-width: 0;
         }
         .wconv-exo-row:nth-last-child(-n+4) { border-bottom: none; }
         .wconv-exo-row::before {
@@ -273,7 +276,7 @@
             color: #374151;
             font-size: 23px;
             font-family: 'MarelleBaton', 'Segoe UI', system-ui, sans-serif !important;
-            flex-shrink: 1;
+            flex-shrink: 0;
 			padding: 0px 0px 0px 10px;
         }
         .wconv-exo-input {
@@ -289,7 +292,7 @@
             font-size: 23px;
             font-family: 'MarelleBaton', 'Segoe UI', system-ui, sans-serif !important;
             outline: none;
-            transition: border-color .15s, width .1s ease;
+            transition: border-color .15s;
             flex-shrink: 0;
             user-select: text;
             -webkit-user-select: text;
@@ -631,18 +634,68 @@ function createConversionWidget(opts) {
         tableWrap.innerHTML = _convBuildTable(currentType);
     }
 
-    // ── Auto-resize input selon le contenu ───────────────────────────────
-    function autoResizeInput(inp) {
+    // ── Auto-resize input + police adaptative ────────────────────────────
+    // Chaque ligne démarre à 23px ; si elle déborde de sa colonne,
+    // la police de la ligne (valeur, réponse, unité) diminue jusqu'à 11px.
+    const CONV_FONT_MAX = 23, CONV_FONT_MIN = 11;
+
+    function measureInputWidth(inp, size) {
         const ghost = document.createElement('span');
         const computedFont = window.getComputedStyle(inp).font;
-        ghost.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font-size:23px;font-weight:700;padding:0 8px;';
-        ghost.style.font = computedFont || "700 23px 'MarelleBaton', 'Segoe UI', system-ui, sans-serif";
+        ghost.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font-weight:700;padding:0 8px;';
+        ghost.style.font = computedFont || `700 ${size}px 'MarelleBaton', 'Segoe UI', system-ui, sans-serif`;
         ghost.textContent = inp.value || inp.placeholder || '?';
         document.body.appendChild(ghost);
-        const newW = Math.max(60, ghost.offsetWidth + 12);
+        const minW = Math.round(size * 60 / CONV_FONT_MAX);
+        const newW = Math.max(minW, ghost.offsetWidth + 12);
         ghost.remove();
-        inp.style.width = newW + 'px';
+        return { minW, newW };
     }
+
+    function applyRowFont(row, size) {
+        row.querySelectorAll('.wconv-exo-val, .wconv-exo-input, .wconv-exo-unit')
+            .forEach(el => { el.style.fontSize = size + 'px'; });
+        const inp = row.querySelector('.wconv-exo-input');
+        if (inp) {
+            const { minW, newW } = measureInputWidth(inp, size);
+            inp.style.minWidth = minW + 'px';
+            inp.style.width    = newW + 'px';
+        }
+    }
+
+    function fitRow(row) {
+        if (!row) return;
+        let size = CONV_FONT_MAX;
+        applyRowFont(row, size);
+        if (!row.clientWidth) return; // ligne non affichée
+        while (row.scrollWidth > row.clientWidth + 1 && size > CONV_FONT_MIN) {
+            size--;
+            applyRowFont(row, size);
+        }
+    }
+
+    function fitAllRows() {
+        exosZone.querySelectorAll('.wconv-exo-row').forEach(fitRow);
+    }
+
+    function autoResizeInput(inp) {
+        fitRow(inp.closest('.wconv-exo-row'));
+    }
+
+    // Réajuster quand la largeur de la zone change (redimensionnement,
+    // plein écran, rotation de la tablette, fenêtre plus petite…)
+    let _lastZoneW = 0, _fitRaf = null;
+    if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(entries => {
+            const w = Math.round(entries[0].contentRect.width);
+            if (w === _lastZoneW) return;
+            _lastZoneW = w;
+            cancelAnimationFrame(_fitRaf);
+            _fitRaf = requestAnimationFrame(fitAllRows);
+        }).observe(exosZone);
+    }
+    // La police MarelleBaton se charge en différé : réajuster une fois prête
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAllRows);
 
     function generate() {
         const count = Math.max(2, Math.min(20, parseInt(nbInput.value) || 8));

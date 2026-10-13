@@ -1356,7 +1356,7 @@
 
 /* ── Panneau stickers ────────────────────────────────────────────── */
 
-		:root { --sticker-panel-w: 30vw; }
+		:root { --sticker-panel-w: 90vw; }
 		#sticker-panel {
 			display: flex;
 			position: fixed;
@@ -1558,7 +1558,7 @@ body.presentation-mode #sticker-panel-tab { display: none !important; }
 
 
 /* ── Panneau Widgets ──────────────────────────────────────────────────── */
-:root { --widgets-panel-w: 50vw; }
+:root { --widgets-panel-w: 90vw; }
 #widgets-panel {
     display: flex;
     position: fixed;
@@ -1695,7 +1695,7 @@ body.menu-light .widgets-card-ico img { border-color: #bbb; }
 
 
 /* ── Panneau Outils ──────────────────────────────────────────────────── */
-:root { --tools-panel-w: 50vw; }
+:root { --tools-panel-w: 90vw; }
 #tools-panel {
     display: flex;
     position: fixed;
@@ -1843,7 +1843,7 @@ body.presentation-mode #tools-panel-tab { display: none !important; }
 
 /* ── Panneau Activités ────────────────────────────────────────────── */
 
-:root { --act-panel-w: 70vw; }
+:root { --act-panel-w: 90vw; }
 #activities-panel {
     display: flex;
     position: fixed;
@@ -2006,7 +2006,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
     margin-bottom: 0px;
 }
 #jeux-panel-content .act-grid {
-    grid-template-columns: repeat(12, 1fr);   /* nombre de colonnes propre au panneau Jeux */
+    grid-template-columns: repeat(15, 1fr);   /* nombre de colonnes propre au panneau Jeux */
 }
 .act-card {
     background: #1a1a1a;
@@ -2042,7 +2042,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
    Réutilise les classes .act-* pour le contenu (grille,
    cartes...) ; seuls le conteneur et l'onglet sont propres.
 ══════════════════════════════════════════════════ */
-:root { --jeux-panel-w: 70vw; }
+:root { --jeux-panel-w: 90vw; }
 #jeux-panel {
     display: flex;
     position: fixed;
@@ -2123,7 +2123,7 @@ body.presentation-mode #jeux-panel-tab { display: none !important; }
 
 /* ── Panneau PDF Bibliothèque PDF ─────────────────────────────────────────────── */
 :root {
-    --pdf-lib-w: 30vw;
+    --pdf-lib-w: 90vw;
     --pdf-lib-bg: #111;
     --pdf-lib-border: rgba(255,255,255,0.1);
     --pdf-lib-hover: rgba(255,255,255,0.06);
@@ -2298,7 +2298,7 @@ body.presentation-mode #pdf-library-tab { display: none !important; }
 
 
 /* ── Panneau Projets ──────────────────────────────────────── */
-:root { --proj-panel-w: 30vw; }
+:root { --proj-panel-w: 90vw; }
 
 #projects-panel {
     position: fixed;
@@ -2543,8 +2543,8 @@ body.menu-light #history-panel-tab.history-panel-tab-open { display: none !impor
 
 /* ── Panneaux Affichage & Historique ───────────────────────── */
 :root {
-    --display-panel-w: 30vw;
-    --history-panel-w: 50vw;
+    --display-panel-w: 90vw;
+    --history-panel-w: 90vw;
 }
 #display-panel {
     position: fixed;
@@ -2898,8 +2898,8 @@ body.menu-light .disp-section-label, body.menu-light .hist-section-label {
 #image-panel {
     display: flex;
     position: fixed;
-    top: 0; left: calc(-10 * var(--image-panel-w, 380px));
-    width: var(--image-panel-w, 380px); height: calc(100vh);
+    top: 0; left: calc(-10 * var(--image-panel-w, 90vw));
+    width: var(--image-panel-w, 90vw); height: calc(100vh);
     background: #111;
     border-right: 1px solid #2e2e3a;
 	box-shadow: 0px 0px 50px rgba(0,0,0,1);

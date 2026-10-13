@@ -976,12 +976,20 @@ function _wfIsPhoneLaunch() {
         function updateSize() {
             let size;
             if (container.classList.contains('wf-fullboard')) {
-                size = Math.min(window.innerWidth, window.innerHeight) * 0.26;
+                // Plein écran : le dé prend toute la hauteur laissée libre par
+                // le curseur, l'historique et les boutons.
+                const cs = getComputedStyle(container);
+                const others = ['.de-faces-row', '.de-history-row', '.de-controls']
+                    .reduce((t, sel) => t + (container.querySelector(sel)?.offsetHeight || 0), 0);
+                const freeH = container.clientHeight
+                    - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+                    - others - 3 * 12 - (resultHint.offsetHeight || 16) - 6 - 10;
+                size = Math.min(stage.clientWidth * 0.62, freeH / 1.75);
             } else {
                 size = stage.clientWidth * 0.42;
                 if (container.style.height) size = Math.min(size, (diceZone.clientHeight - 26) / 1.75);
             }
-            size = Math.round(Math.max(70, Math.min(size, 360)));
+            size = Math.round(Math.max(70, Math.min(size, 700)));
             if (stage.style.getPropertyValue('--de-size') !== size + 'px')
                 stage.style.setProperty('--de-size', size + 'px');
             polyDraw();

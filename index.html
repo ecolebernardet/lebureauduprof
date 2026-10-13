@@ -293,6 +293,24 @@
 <body class="menu-light">
 
 <script>
+// ── Panneaux latéraux : toujours ouverts à 90 % du board au chargement ──
+// Les largeurs mémorisées après un redimensionnement à la poignée
+// (clés « …-panel-w », « pdf-lib-w »…) sont effacées à chaque chargement,
+// pour que chaque panneau reparte de sa largeur par défaut (90vw, style.css).
+// Le redimensionnement à la poignée reste possible pendant la session.
+(function() {
+    try {
+        var toRemove = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && /(panel|lib)-w$/i.test(k)) toRemove.push(k);
+        }
+        toRemove.forEach(function(k) { localStorage.removeItem(k); });
+    } catch(e) {}
+})();
+</script>
+
+<script>
 // ── État initial forcé uniquement à la première ouverture (pas au F5) ────
 // Board vide + fond tableau vert à la première ouverture d'une session
 (function() {
@@ -1188,6 +1206,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-rush-hour.js"></script>
 <script src="widget-jeu-taquin.js"></script>
 <script src="widget-jeu-repro-quadrillage.js"></script>
+<script src="widget-jeu-pixel-art.js"></script>
 <script src="widget-de.js"></script>
 <script src="widget-fractions.js"></script>
 <script src="widget-minuteur-chrono.js"></script>
@@ -1486,6 +1505,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Reproduction sur quadrillage</div>
                 <div class="act-card-desc">Reproduire un modèle en couleurs</div>
             </div>
+            <div class="act-card" onclick="createWidget('jeu-pixel-art');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeux-pixel-art.png" alt="Pixel art" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='👾'"></div>
+                <div class="act-card-name">Pixel art</div>
+                <div class="act-card-desc">Reproduire un dessin case par case</div>
+            </div>
 		</div>
 		</div>
     </div>
@@ -1536,7 +1560,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             // Garde-fou : si la valeur sauvegardée est absurde pour l'écran
             // actuel (ex. sauvegardée sur téléphone, rouverte sur PC), on
             // l'ignore et on repasse sur le comportement responsive par défaut.
-            var maxReasonableW = Math.round(window.innerWidth * 0.75);
+            var maxReasonableW = Math.round(window.innerWidth * 0.95);
             if (initW >= 260 && initW <= maxReasonableW) {
                 panel.style.width = initW + 'px';
                 document.documentElement.style.setProperty('--jeux-panel-w', initW + 'px');
@@ -1556,7 +1580,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.75);
+            var maxW = Math.round(window.innerWidth * 0.95);
             var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--jeux-panel-w', w + 'px');
@@ -1789,10 +1813,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         if (!handle || !panel) return;
 
         // Restaurer la largeur sauvegardée (en px), sinon utiliser 70% de la fenêtre
-        var savedW = localStorage.getItem(ACT_W_KEY);
-        var initW = savedW ? parseInt(savedW) : Math.round(window.innerWidth * 0.7);
-        panel.style.width = initW + 'px';
-        document.documentElement.style.setProperty('--act-panel-w', initW + 'px');
+        // Largeur par défaut : 90 % de l'écran (CSS --act-panel-w: 90vw)
 
         var dragging = false, startX = 0, startW = 0;
         handle.addEventListener('mousedown', function(e) {
@@ -1805,7 +1826,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.75);
+            var maxW = Math.round(window.innerWidth * 0.95);
             var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--act-panel-w', w + 'px');
@@ -1955,7 +1976,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.75);
+            var maxW = Math.round(window.innerWidth * 0.95);
             var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--widgets-panel-w', w + 'px');
@@ -2154,7 +2175,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.75);
+            var maxW = Math.round(window.innerWidth * 0.95);
             var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--tools-panel-w', w + 'px');
@@ -2216,10 +2237,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         var tab    = document.getElementById('projects-panel-tab');
         if (!handle || !panel) return;
 
-        var savedW = localStorage.getItem(PROJ_W_KEY);
-        var initW = savedW ? parseInt(savedW) : Math.round(window.innerWidth * 0.3);
-        panel.style.width = initW + 'px';
-        document.documentElement.style.setProperty('--proj-panel-w', initW + 'px');
+        // Largeur par défaut : 90 % de l'écran (CSS --proj-panel-w: 90vw)
 
         var dragging = false, startX = 0, startW = 0;
         handle.addEventListener('mousedown', function(e) {
@@ -2231,7 +2249,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.5);
+            var maxW = Math.round(window.innerWidth * 0.95);
             var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--proj-panel-w', w + 'px');
@@ -2463,7 +2481,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             });
             document.addEventListener('mousemove', function(e) {
                 if (!dragging) return;
-                var maxW = Math.round(window.innerWidth * 0.5);
+                var maxW = Math.round(window.innerWidth * 0.95);
                 var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
                 panel.style.width = w + 'px';
                 document.documentElement.style.setProperty('--display-panel-w', w + 'px');
@@ -2574,7 +2592,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             });
             document.addEventListener('mousemove', function(e) {
                 if (!dragging) return;
-                var maxW = Math.round(window.innerWidth * 0.5);
+                var maxW = Math.round(window.innerWidth * 0.95);
                 var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
                 panel.style.width = w + 'px';
                 document.documentElement.style.setProperty('--history-panel-w', w + 'px');
@@ -3419,6 +3437,7 @@ function lancerTracesGeometriques() {
 <template id="template-jeu-rush-hour"></template>
 <template id="template-jeu-taquin"></template>
 <template id="template-jeu-repro-quadrillage"></template>
+<template id="template-jeu-pixel-art"></template>
 
 <script>
 // ── Widget Calendrier : purge des événements orphelins dans IndexedDB ─────────
@@ -3710,8 +3729,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
-    // ainsi que les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage'];
+    // ainsi que les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art'];
     var lastLaunch = 0;
 
     function isPhone() {

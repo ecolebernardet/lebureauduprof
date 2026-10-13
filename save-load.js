@@ -425,6 +425,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-repro-quadrillage' && typeof w._jrqGetData === 'function') {
             jrqData = w._jrqGetData();
         }
+        // Données propres au jeu Pixel art (dessin choisi, cases coloriées, options, temps, taille)
+        let jpxData = null;
+        if (w.dataset.type === 'jeu-pixel-art' && typeof w._jpxGetData === 'function') {
+            jpxData = w._jpxGetData();
+        }
         // Données propres au widget calculatrice
         let calcData = null;
         if (w.dataset.type === 'calculatrice' && typeof w._calcGetData === 'function') {
@@ -500,6 +505,7 @@ function buildBoardState() {
 			jrhData,
 			jtqData,
 			jrqData,
+			jpxData,
 			calcData
 		});
     });
@@ -1058,6 +1064,13 @@ function restoreBoardFromJSON(json) {
             // Niveau, type, modèle (et modèle perso), grille de l'élève, options, temps, taille et plein écran
             if (typeof createJeuReproQuadrillageWidget === 'function') {
                 widget = createJeuReproQuadrillageWidget(w.jrqData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-pixel-art') {
+            // Dessin choisi, cases coloriées, palette, options, temps, taille et plein écran
+            if (typeof createJeuPixelArtWidget === 'function') {
+                widget = createJeuPixelArtWidget(w.jpxData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

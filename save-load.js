@@ -420,6 +420,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-taquin' && typeof w._jtqGetData === 'function') {
             jtqData = w._jtqGetData();
         }
+        // Données propres au jeu Reproduction sur quadrillage (modèle, grille de l'élève, options, temps, taille)
+        let jrqData = null;
+        if (w.dataset.type === 'jeu-repro-quadrillage' && typeof w._jrqGetData === 'function') {
+            jrqData = w._jrqGetData();
+        }
         // Données propres au widget calculatrice
         let calcData = null;
         if (w.dataset.type === 'calculatrice' && typeof w._calcGetData === 'function') {
@@ -494,6 +499,7 @@ function buildBoardState() {
 			jcfData,
 			jrhData,
 			jtqData,
+			jrqData,
 			calcData
 		});
     });
@@ -1045,6 +1051,13 @@ function restoreBoardFromJSON(json) {
             // Niveau, image (et photo perso), pièces, coups, temps, taille et plein écran
             if (typeof createJeuTaquinWidget === 'function') {
                 widget = createJeuTaquinWidget(w.jtqData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-repro-quadrillage') {
+            // Niveau, type, modèle (et modèle perso), grille de l'élève, options, temps, taille et plein écran
+            if (typeof createJeuReproQuadrillageWidget === 'function') {
+                widget = createJeuReproQuadrillageWidget(w.jrqData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

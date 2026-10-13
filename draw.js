@@ -3833,6 +3833,20 @@ function _pdfAnnotEndStroke(e) {
 // Le réglage est en pixels écran ; les strokes texte PDF utilisent une échelle
 // exponentielle relative à la largeur du canvas : px = 6 × 1.12^size × largeur / 600.
 // On convertit dans les deux sens (size peut être décimal, drawStroke le gère).
+// Distance (px) entre le haut d'un texte dessiné en textBaseline 'top' sur un canvas
+// et sa ligne de base, pour la police des annotations texte PDF à la taille donnée.
+function _pdfCanvasTopToBaseline(fontPx) {
+    const c = _pdfCanvasTopToBaseline._c || (_pdfCanvasTopToBaseline._c = document.createElement('canvas'));
+    const ctx = c.getContext('2d');
+    ctx.font = `${fontPx}px 'Segoe UI', sans-serif`;
+    ctx.textBaseline = 'alphabetic';
+    const a = ctx.measureText('H').actualBoundingBoxAscent;
+    ctx.textBaseline = 'top';
+    const t = ctx.measureText('H').actualBoundingBoxAscent;
+    const b = a - t;
+    return (isFinite(b) && b > 0) ? b : 0.8 * fontPx;
+}
+
 function _pdfTextGetPx() {
     const lbl = document.getElementById('text-size-label');
     return parseInt(lbl && lbl.textContent) || window._textWidgetSize || 40;
@@ -3872,9 +3886,16 @@ function _pdfAnnotInsertText(e) {
 
     _showPdfInlineTextEditor({
         clientX: screenX, clientY: screenY, color, size, fontSizePx,
-        onValidate(text, finalSize, finalColor) {
-            if (!text.trim()) return;
-            if (api.addTextStroke) api.addTextStroke(text, finalColor ?? color, finalSize ?? size, pos.x + 5 * scaleX, pos.y - 0.01305 * canvas.height);
+        onValidate(text, finalSize, finalColor, textScreenPos) {
+            if (!text.trim() || !api.addTextStroke) return;
+            // Convertir la position écran réelle du texte de l'éditeur en pixels canvas
+            // (rect relu ici : le PDF a pu défiler pendant la frappe)
+            const r  = canvas.getBoundingClientRect();
+            const sx = canvas.width  / r.width;
+            const sy = canvas.height / r.height;
+            const px = textScreenPos ? (textScreenPos.x - r.left) * sx : pos.x;
+            const py = textScreenPos ? (textScreenPos.y - r.top)  * sy : pos.y;
+            api.addTextStroke(text, finalColor ?? color, finalSize ?? size, px, py);
         }
     });
 }
@@ -4106,9 +4127,31 @@ function _showPdfInlineTextEditor({ clientX, clientY, color, size, fontSizePx, i
         validated = true;
         clearInterval(colorInterval);
         const text = editor.innerText;
+        // Position écran exacte du coin haut-gauche du texte, à reproduire sur le canvas.
+        // On mesure la vraie ligne de base de la 1re ligne dans l'éditeur (marqueur invisible),
+        // puis on remonte de l'écart « haut canvas (textBaseline 'top') → ligne de base »
+        // mesuré avec la même police → plus aucune estimation d'interligne.
+        let textScreenPos;
+        try {
+            const mk = document.createElement('span');
+            mk.style.cssText = 'display:inline-block;width:0;height:0;padding:0;margin:0;border:0;vertical-align:baseline;';
+            let host = editor;
+            while (host.firstChild && host.firstChild.nodeType === 1 &&
+                   getComputedStyle(host.firstChild).display === 'block') host = host.firstChild;
+            host.insertBefore(mk, host.firstChild);
+            const mr = mk.getBoundingClientRect();
+            mk.remove();
+            textScreenPos = { x: mr.left, y: mr.top - _pdfCanvasTopToBaseline(currentFontPx) };
+        } catch (_) {
+            // Secours : ancienne estimation
+            textScreenPos = {
+                x: parseFloat(wrap.style.left) + EDIT_OFF_X,
+                y: parseFloat(wrap.style.top)  + 1.5 + 2 + 0.15 * currentFontPx
+            };
+        }
         wrap.remove();
         document.removeEventListener('pointerdown', onOutsideClick, true);
-        onValidate(text, currentSize, currentColor);
+        onValidate(text, currentSize, currentColor, textScreenPos);
         if (onClose) onClose();
     }
     function cancel() {

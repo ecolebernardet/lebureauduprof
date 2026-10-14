@@ -1216,6 +1216,7 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-battle-arrondis.js"></script>
 <script src="widget-jeu-battle-orthographe.js"></script>
 <script src="widget-jeu-phrase-desordre.js"></script>
+<script src="widget-phrase-desordre.js"></script>
 <script src="widget-jeu-tour-calcul.js"></script>
 <script src="widget-jeu-motsmeles.js"></script>
 <script src="widget-jeu-sujet-commande.js"></script>
@@ -1706,6 +1707,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activites-motsmeles6.jpeg" alt="Mots mêlés" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Mots Mêlés</div>
                 <div class="act-card-desc">Générer et jouer à une grille interactive de mots mêlés</div>
+            </div>
+            <div class="act-card" onclick="createWidget('phrase-desordre');toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-phrase-desordre.jpeg" alt="Phrase en désordre" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔀'"></div>
+                <div class="act-card-name">Phrase en désordre</div>
+                <div class="act-card-desc">Remettre dans l'ordre les mots d'une phrase mélangée</div>
             </div>
             <div class="act-card" onclick="createMotLePlusLongWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-mot-le-plus-long.jpeg" alt="Le mot le plus long" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔤'"></div>
@@ -3808,8 +3814,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
-    // ainsi que les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art'];
+    // ainsi que l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'phrase-desordre'];
     var lastLaunch = 0;
 
     function isPhone() {

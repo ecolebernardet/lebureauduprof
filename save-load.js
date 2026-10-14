@@ -112,8 +112,9 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice') {
-            // Calculatrice : si elle est réduite (mini-barre), on garde sa position d'origine
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre') {
+            // Calculatrice / Phrase en désordre : si le widget est réduit (mini-barre),
+            // on garde sa position d'origine (ses dimensions sont gérées par le widget)
             const _calcMini = !!w.querySelector('.wf-mini-bar');
             const _cl = _calcMini ? parseFloat(w.dataset.wfMiniSavedLeft) : NaN;
             const _ct = _calcMini ? parseFloat(w.dataset.wfMiniSavedTop)  : NaN;
@@ -145,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -430,6 +431,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-pixel-art' && typeof w._jpxGetData === 'function') {
             jpxData = w._jpxGetData();
         }
+        // Données propres à l'activité Phrase en désordre (réglages, phrases perso, partie en cours, taille)
+        let pdsData = null;
+        if (w.dataset.type === 'phrase-desordre' && typeof w._pdsGetData === 'function') {
+            pdsData = w._pdsGetData();
+        }
         // Données propres au widget calculatrice
         let calcData = null;
         if (w.dataset.type === 'calculatrice' && typeof w._calcGetData === 'function') {
@@ -506,6 +512,7 @@ function buildBoardState() {
 			jtqData,
 			jrqData,
 			jpxData,
+			pdsData,
 			calcData
 		});
     });
@@ -1071,6 +1078,13 @@ function restoreBoardFromJSON(json) {
             // Dessin choisi, cases coloriées, palette, options, temps, taille et plein écran
             if (typeof createJeuPixelArtWidget === 'function') {
                 widget = createJeuPixelArtWidget(w.jpxData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'phrase-desordre') {
+            // Niveau, indices, phrases perso, partie en cours, taille, plein écran / réduit
+            if (typeof createPhraseDesordreWidget === 'function') {
+                widget = createPhraseDesordreWidget(w.pdsData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

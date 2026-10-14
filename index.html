@@ -181,28 +181,47 @@
         body:not(.menu-light) #jeux-panel .jeux-section-francais { background: rgba(170,110,255,0.18); }
         body:not(.menu-light) #jeux-panel .jeux-section-divers   { background: rgba(90,200,90,0.18); }
         body:not(.menu-light) #jeux-panel .jeux-section .act-section-label { color: #eee; }
-        /* ── Panneaux Jeux et Activités : description masquée, affichée au survol ──
+        /* ── Panneaux Jeux et Activités : description en info-bulle au survol ──
            Uniquement sur les appareils avec survol (souris) ; sur téléphone
-           et tablette, les descriptions restent visibles en permanence. */
+           et tablette, les descriptions restent visibles dans la carte.
+           La bulle elle-même est #card-tooltip (voir ci-dessous). */
         @media (hover: hover) {
             #jeux-panel .act-card .act-card-desc,
             #activities-panel .act-card .act-card-desc {
-                max-height: 0;
-                opacity: 0;
-                overflow: hidden;
-                margin-top: 0;
-                margin-bottom: 0;
-                transition: max-height .25s ease, opacity .2s ease, margin .25s ease;
-            }
-            #jeux-panel .act-card:hover .act-card-desc,
-            #jeux-panel .act-card:focus-within .act-card-desc,
-            #activities-panel .act-card:hover .act-card-desc,
-            #activities-panel .act-card:focus-within .act-card-desc {
-                max-height: 4em;
-                opacity: 1;
-                margin-top: 2px;
+                display: none;
             }
         }
+        /* ── Info-bulle des cartes du panneau Jeux ── */
+        #card-tooltip {
+            position: fixed;
+            z-index: 60000;
+            max-width: 240px;
+            padding: 7px 11px;
+            border-radius: 9px;
+            background: #2b2b33;
+            color: #fff;
+            font-size: 12.5px;
+            line-height: 1.35;
+            text-align: center;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity .15s ease, transform .15s ease;
+        }
+        #card-tooltip.visible { opacity: 1; transform: translateY(0); }
+        #card-tooltip::after {
+            content: '';
+            position: absolute;
+            left: var(--arrow-x, 50%);
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+        }
+        #card-tooltip.above::after { top: 100%;    border-top-color: #2b2b33; }
+        #card-tooltip.below::after { bottom: 100%; border-bottom-color: #2b2b33; }
+        body.menu-light #card-tooltip { background: #fffbe8; color: #333; border: 1px solid #e0d6a8; }
+        body.menu-light #card-tooltip.above::after { border-top-color: #fffbe8; }
+        body.menu-light #card-tooltip.below::after { border-bottom-color: #fffbe8; }
         /* ── Panneau Activités : fond coloré par section ── */
         #activities-panel .act-section {
             border-radius: 14px;
@@ -1516,6 +1535,66 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 </div>
 <!-- Onglet déclencheur sur le bord gauche -->
 <button id="jeux-panel-tab" onclick="toggleJeuxPanel()" title="Jeux"><span class="act-tab-lbl">Jeux</span><span class="act-tab-ico">🎮</span></button>
+
+<script>
+// ── Panneaux Jeux et Activités : description en info-bulle au survol de la carte ──
+// Uniquement avec une souris ; sur tactile la description reste dans la carte.
+// La bulle est en position fixe pour ne pas être coupée par le défilement du panneau.
+(function() {
+    if (!window.matchMedia || !window.matchMedia('(hover: hover)').matches) return;
+    var SHOW_DELAY = 100; // délai d'apparition de la bulle, en millisecondes
+    document.addEventListener('DOMContentLoaded', function() {
+        var panels = ['jeux-panel', 'activities-panel']
+            .map(function(id) { return document.getElementById(id); })
+            .filter(Boolean);
+        if (!panels.length) return;
+        var tip = document.createElement('div');
+        tip.id = 'card-tooltip';
+        document.body.appendChild(tip);
+        var current = null, showTimer = null;
+
+        function hide() {
+            clearTimeout(showTimer);
+            tip.classList.remove('visible');
+            current = null;
+        }
+
+        function show(card) {
+            var desc = card.querySelector('.act-card-desc');
+            if (!desc || !desc.textContent.trim()) return;
+            tip.textContent = desc.textContent.trim();
+            var r = card.getBoundingClientRect();
+            var tr = tip.getBoundingClientRect();
+            var GAP = 10, M = 8;
+            var left = r.left + r.width / 2 - tr.width / 2;
+            left = Math.max(M, Math.min(left, window.innerWidth - tr.width - M));
+            var top = r.top - tr.height - GAP;
+            var above = top >= M;
+            if (!above) top = r.bottom + GAP;
+            tip.classList.toggle('above', above);
+            tip.classList.toggle('below', !above);
+            tip.style.left = left + 'px';
+            tip.style.top  = top + 'px';
+            tip.style.setProperty('--arrow-x', (r.left + r.width / 2 - left) + 'px');
+            tip.classList.add('visible');
+        }
+
+        panels.forEach(function(panel) {
+            panel.addEventListener('mouseover', function(e) {
+                var card = e.target.closest('.act-card');
+                if (card === current) return;
+                hide();
+                if (!card) return;
+                current = card;
+                showTimer = setTimeout(function() { if (current === card) show(card); }, SHOW_DELAY);
+            });
+            panel.addEventListener('mouseleave', hide);
+            panel.addEventListener('scroll', hide, true);
+            panel.addEventListener('click', hide);
+        });
+    });
+})();
+</script>
 
 <script>
 // ── Panneau Jeux ─────────────────────────────────────────────────

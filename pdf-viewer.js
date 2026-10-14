@@ -463,6 +463,15 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
             // Invalide le snapshot (à appeler dès qu'on modifie layer.strokes)
             function _invalidateSnapshot() { _annotSnapshot = null; }
 
+            // Lecture des pixels du canvas d'annotations SANS planter.
+            // Si une image d'origine « non autorisée » (ex. images/… en file://) y a été dessinée,
+            // le navigateur interdit getImageData → on renvoie null et le code bascule
+            // sur un redessin complet (au lieu de planter et faire disparaître l'image).
+            function _safeGetAnnotPixels() {
+                try { return actx.getImageData(0, 0, annotCanvas.width, annotCanvas.height); }
+                catch (e) { return null; }
+            }
+
             // Construit le snapshot à partir des strokes validés de la page
             function _buildSnapshot(pageNum) {
                 actx.clearRect(0, 0, annotCanvas.width, annotCanvas.height);
@@ -473,7 +482,7 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 for (const stroke of layer.strokes) {
                     drawStroke(actx, stroke);
                 }
-                _annotSnapshot = actx.getImageData(0, 0, annotCanvas.width, annotCanvas.height);
+                _annotSnapshot = _safeGetAnnotPixels();
             }
 
             // Redessiner toutes les annotations de la page (avec le zoom courant)
@@ -1599,7 +1608,7 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 actx.clearRect(0, 0, annotCanvas.width, annotCanvas.height);
                 if (layer._snapshot) actx.putImageData(layer._snapshot, 0, 0);
                 layer.strokes.forEach((s, i) => { if (i !== _imgDragIndex) drawStroke(actx, s); });
-                _annotSnapshot = actx.getImageData(0, 0, annotCanvas.width, annotCanvas.height);
+                _annotSnapshot = _safeGetAnnotPixels();
                 drawStroke(actx, hit.stroke);
                 const pos = fromNorm(hit.stroke.nx, hit.stroke.ny);
                 const pw  = hit.stroke.nw * annotCanvas.width;
@@ -1802,15 +1811,23 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 actx.clearRect(0, 0, annotCanvas.width, annotCanvas.height);
                 if (layer._snapshot) actx.putImageData(layer._snapshot, 0, 0);
                 layer.strokes.forEach((st, j) => { if (j !== i) drawStroke(actx, st); });
-                _annotSnapshot = actx.getImageData(0, 0, annotCanvas.width, annotCanvas.height);
+                _annotSnapshot = _safeGetAnnotPixels();
                 drawStroke(actx, copy);
                 _pdfImgBusy = true;
                 _pdfSelImg = copy;
                 return copy;
             }
             function _pdfImgPaint(s) {
-                if (_annotSnapshot) actx.putImageData(_annotSnapshot, 0, 0);
-                drawStroke(actx, s);
+                if (_annotSnapshot) {
+                    actx.putImageData(_annotSnapshot, 0, 0);
+                    drawStroke(actx, s);
+                } else {
+                    // Pas de snapshot possible (canvas protégé) → tout redessiner
+                    actx.clearRect(0, 0, annotCanvas.width, annotCanvas.height);
+                    const layer = getLayer(currentPage);
+                    if (layer._snapshot) actx.putImageData(layer._snapshot, 0, 0);
+                    layer.strokes.forEach(st => drawStroke(actx, st));
+                }
                 _pdfImgUpdateFrame();
             }
             function _pdfImgEndGesture(changed) {
@@ -2334,7 +2351,8 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                     saveEraserSnapshot() {
                         // Stocker le canvas entier comme stroke spécial 'snapshot'
                         const layer = getLayer(currentPage);
-                        const imgData = actx.getImageData(0, 0, annotCanvas.width, annotCanvas.height);
+                        const imgData = _safeGetAnnotPixels();
+                        if (!imgData) return; // canvas protégé : on garde les traits tels quels
                         layer._snapshot = imgData;
                         // Nettoyer les strokes normaux car le snapshot les inclut
                         layer.strokes = [];
@@ -2589,7 +2607,7 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                         actx.clearRect(0, 0, annotCanvas.width, annotCanvas.height);
                         if (layer._snapshot) actx.putImageData(layer._snapshot, 0, 0);
                         layer.strokes.forEach((s, i) => { if (i !== index) drawStroke(actx, s); });
-                        _annotSnapshot = actx.getImageData(0, 0, annotCanvas.width, annotCanvas.height);
+                        _annotSnapshot = _safeGetAnnotPixels();
                     },
 
                     // Prépare un drag de texte : snapshot sans le texte draggé
@@ -2598,7 +2616,7 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                         actx.clearRect(0, 0, annotCanvas.width, annotCanvas.height);
                         if (layer._snapshot) actx.putImageData(layer._snapshot, 0, 0);
                         layer.strokes.forEach((s, i) => { if (i !== index) drawStroke(actx, s); });
-                        _annotSnapshot = actx.getImageData(0, 0, annotCanvas.width, annotCanvas.height);
+                        _annotSnapshot = _safeGetAnnotPixels();
                     },
 
                     // Déplace une figure (delta en pixels canvas normalisés)

@@ -761,6 +761,10 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 }
             }
 
+            function _isFileImageSrc(src) {
+                return !!src && !/^(data:|blob:)/i.test(src);
+            }
+
             function drawStroke(ctx, stroke) {
                 // Épaisseur proportionnelle à la taille courante du canvas
                 const canvasW = annotCanvas.width;
@@ -792,6 +796,10 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 // ── Image collée ──────────────────────────────────────────────────────
                 if (stroke.tool === 'image') {
                     if (!stroke.src) return;
+                    // Image de la bibliothèque (chemin « images/… ») : affichée en <img> HTML
+                    // sous le calque d'annotations (voir _pdfImgSync). La peindre sur le canvas
+                    // le verrouillerait en file:// (lecture des pixels interdite par le navigateur).
+                    if (_isFileImageSrc(stroke.src)) return;
                     // Récupérer (ou créer) l'objet Image mis en cache sur le stroke
                     if (!stroke._img) {
                         const img = new Image();
@@ -1697,7 +1705,13 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
             }
 
             // canvasWrap est cloné à chaque chargement : retirer une éventuelle ancienne couche (sans listeners)
-            (annotCanvas.parentNode || canvasWrap).querySelectorAll(':scope > .pdf-img-layer').forEach(el => el.remove());
+            (annotCanvas.parentNode || canvasWrap).querySelectorAll(':scope > .pdf-img-layer, :scope > .pdf-img-under').forEach(el => el.remove());
+            // Couche SOUS le calque d'annotations : images de la bibliothèque en <img> HTML
+            // (on peut dessiner / surligner par-dessus avec les outils d'annotation)
+            const imgUnder = document.createElement('div');
+            imgUnder.className = 'pdf-img-under';
+            imgUnder.style.cssText = 'position:absolute;pointer-events:none;overflow:hidden;';
+            annotCanvas.insertAdjacentElement('beforebegin', imgUnder);
             const imgLayer = document.createElement('div');
             imgLayer.className = 'pdf-img-layer';
             const imgHits  = document.createElement('div');   // conteneur des zones de prise
@@ -1754,8 +1768,24 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 imgLayer.style.width  = annotCanvas.offsetWidth  + 'px';
                 imgLayer.style.height = annotCanvas.offsetHeight + 'px';
                 imgLayer.classList.toggle('pdf-img-layer--off', _imgModeOff());
+                imgUnder.style.left   = imgLayer.style.left;
+                imgUnder.style.top    = imgLayer.style.top;
+                imgUnder.style.width  = imgLayer.style.width;
+                imgUnder.style.height = imgLayer.style.height;
                 if (_pdfImgBusy) return;
                 imgHits.textContent = '';
+                imgUnder.textContent = '';
+                getLayer(currentPage).strokes.forEach(s => {
+                    if (s.tool !== 'image' || !_isFileImageSrc(s.src)) return;
+                    const el = document.createElement('img');
+                    el.src = s.src;
+                    el.alt = '';
+                    el.draggable = false;
+                    el.style.cssText = 'position:absolute;pointer-events:none;user-select:none;max-width:none;';
+                    _placeEl(el, _imgCssRect(s));
+                    s._underEl = el;
+                    imgUnder.appendChild(el);
+                });
                 const layer = getLayer(currentPage);
                 layer.strokes.forEach(s => {
                     if (s.tool !== 'image') return;
@@ -1818,6 +1848,7 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 return copy;
             }
             function _pdfImgPaint(s) {
+                if (s._underEl) _placeEl(s._underEl, _imgCssRect(s));
                 if (_annotSnapshot) {
                     actx.putImageData(_annotSnapshot, 0, 0);
                     drawStroke(actx, s);
@@ -2011,7 +2042,7 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                             toSave[p] = {
                                 strokes: annotLayers[p].strokes.map(s => {
                                     if (s.tool !== 'image') return s;
-                                    const { _img, _selected, ...clean } = s;
+                                    const { _img, _selected, _underEl, ...clean } = s;
                                     return clean;
                                 })
                             };

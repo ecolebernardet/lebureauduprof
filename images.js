@@ -484,8 +484,131 @@ function _openImgOpacityMenu(widget, img, clientX, clientY) {
     }, 10);
 }
 
+// ── Insertion d'une image de la bibliothèque DANS un PDF ─────────────────
+// Si un widget PDF est « cible » (PDF en plein écran visible, ou dernier PDF
+// cliqué sur le bureau), l'image est collée sur la page courante du PDF,
+// exactement comme un Ctrl+V : centrée, sélectionnée, déplaçable et
+// redimensionnable. Sinon, comportement habituel (widget image sur le bureau).
+let _lastPdfTargetWidget = null;
+
+// Suivi du dernier PDF cliqué (phase capture → avant tout stopPropagation).
+// Un clic dans le panneau Visuels / le menu ne change pas la cible ;
+// un clic ailleurs sur le bureau (hors PDF) l'annule.
+window.addEventListener('pointerdown', (e) => {
+    const t = e.target;
+    if (!t || !t.closest) return;
+    const pdfW = t.closest('.widget[data-type="pdf"]');
+    if (pdfW) { _lastPdfTargetWidget = pdfW; return; }
+    if (t.closest('#board')) _lastPdfTargetWidget = null;
+}, true);
+
+function _isPdfWidgetUsable(w) {
+    if (!w || !w.isConnected || !w._pdfAnnotAPI || typeof w._pdfAnnotAPI.addImageStroke !== 'function') return false;
+    if (!w.getClientRects().length) return false;                         // display:none
+    if (getComputedStyle(w).visibility === 'hidden') return false;
+    const c = w.querySelector('.editor-container');
+    if (c && (c.classList.contains('pdf-fs-hidden') || c.dataset.collapsed === 'true')) return false;
+    const wrap = w.querySelector('.pdf-canvas-wrap');
+    if (wrap && wrap.style.display === 'none') return false;              // PDF pas encore ouvert
+    return true;
+}
+
+function _getTargetPdfWidget() {
+    // 1) PDF en plein écran visible (onglet actif)
+    const fs = Array.from(document.querySelectorAll('.editor-container.wf-pdf-fullboard'))
+        .find(c => !c.classList.contains('pdf-fs-hidden'));
+    if (fs) {
+        const w = fs.closest('.widget');
+        if (_isPdfWidgetUsable(w)) return w;
+    }
+    // 2) Dernier PDF cliqué
+    if (_isPdfWidgetUsable(_lastPdfTargetWidget)) return _lastPdfTargetWidget;
+    return null;
+}
+
+// Convertit l'image en data URL (comme un vrai collage : l'image est stockée
+// avec les annotations, reste déplaçable et disponible à l'export).
+// Indispensable : une image « images/… » dessinée telle quelle sur le canvas
+// d'annotations le verrouille en file:// (lecture des pixels interdite).
+// 3 méthodes essayées dans l'ordre : canvas → lecture du fichier (XHR) → fetch.
+function _imageSrcToDataUrl(src) {
+    if (!src || src.startsWith('data:')) return Promise.resolve(src);
+
+    const blobToDataUrl = (blob) => new Promise((res) => {
+        if (!blob || !blob.size) { res(null); return; }
+        const fr = new FileReader();
+        fr.onload  = () => res(typeof fr.result === 'string' ? fr.result : null);
+        fr.onerror = () => res(null);
+        fr.readAsDataURL(blob);
+    });
+
+    const viaCanvas = () => new Promise((res) => {
+        const im = new Image();
+        im.onload = () => {
+            try {
+                const cv = document.createElement('canvas');
+                cv.width  = im.naturalWidth  || 1;
+                cv.height = im.naturalHeight || 1;
+                cv.getContext('2d').drawImage(im, 0, 0);
+                const isJpg = /\.jpe?g($|\?)/i.test(src);
+                res(cv.toDataURL(isJpg ? 'image/jpeg' : 'image/png', 0.92));
+            } catch (e) { res(null); }   // canvas verrouillé (file://)
+        };
+        im.onerror = () => res(null);
+        im.src = src;
+    });
+
+    const viaXhr = () => new Promise((res) => {
+        try {
+            const x = new XMLHttpRequest();
+            x.open('GET', src, true);
+            x.responseType = 'blob';
+            x.onload  = () => ((x.status === 200 || x.status === 0) ? blobToDataUrl(x.response).then(res) : res(null));
+            x.onerror = () => res(null);
+            x.send();
+        } catch (e) { res(null); }
+    });
+
+    const viaFetch = () => (typeof fetch === 'function'
+        ? fetch(src).then(r => r.ok ? r.blob() : null).then(blobToDataUrl).catch(() => null)
+        : Promise.resolve(null));
+
+    return viaCanvas()
+        .then(d => d || viaXhr())
+        .then(d => d || viaFetch());
+}
+
+function _showImgToPdfToast(text) {
+    let toast = document.getElementById('img-to-pdf-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'img-to-pdf-toast';
+        toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1a3550;color:#7ab8f5;border:1px solid #4a90e2;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;z-index:2147483646;pointer-events:none;transition:opacity .3s;';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = text;
+    toast.style.opacity = '1';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toast.style.opacity = '0', 2000);
+}
+
+function _insertImageIntoPdf(pdfWidget, src) {
+    _imageSrcToDataUrl(src).then(dataUrl => {
+        if (!_isPdfWidgetUsable(pdfWidget)) return;
+        // Conversion impossible (page ouverte en file://) : on insère le chemin.
+        // pdf-viewer.js affiche alors l'image en <img> HTML sous les annotations,
+        // sans la peindre sur le canvas → aucun verrouillage, image déplaçable.
+        pdfWidget._pdfAnnotAPI.addImageStroke(dataUrl || src);
+        _showImgToPdfToast('🖼️ Image ajoutée au PDF');
+    });
+}
+
 // ── Insertion d'une image sur le bureau ───────────────────────────────────
 function _insertImageWidget(src, label) {
+    // Un PDF est actif → coller l'image dedans plutôt que sur le bureau
+    const pdfTarget = _getTargetPdfWidget();
+    if (pdfTarget) { _insertImageIntoPdf(pdfTarget, src); return; }
+
     const tmpImg = new Image();
     tmpImg.onload = () => {
         _doInsertImageWidget(src, label, tmpImg.naturalWidth, tmpImg.naturalHeight);

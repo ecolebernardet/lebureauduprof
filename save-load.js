@@ -112,7 +112,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre') {
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur') {
             // Calculatrice / Phrase en désordre : si le widget est réduit (mini-barre),
             // on garde sa position d'origine (ses dimensions sont gérées par le widget)
             const _calcMini = !!w.querySelector('.wf-mini-bar');
@@ -146,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -437,6 +437,11 @@ function buildBoardState() {
             pdsData = w._pdsGetData();
         }
         // Données propres au widget calculatrice
+        // Données propres au widget visualiseur (caméra USB)
+        let visuData = null;
+        if (w.dataset.type === 'visualiseur' && typeof w._visuGetData === 'function') {
+            visuData = w._visuGetData();
+        }
         let calcData = null;
         if (w.dataset.type === 'calculatrice' && typeof w._calcGetData === 'function') {
             calcData = w._calcGetData();
@@ -513,7 +518,8 @@ function buildBoardState() {
 			jrqData,
 			jpxData,
 			pdsData,
-			calcData
+			calcData,
+			visuData
 		});
     });
     const shapes = [];
@@ -1093,6 +1099,12 @@ function restoreBoardFromJSON(json) {
             widget = createWidget('calculatrice', '100px', '100px', false);
             if (w.calcData && widget && typeof widget._calcSetData === 'function') {
                 widget._calcSetData(w.calcData);
+            }
+        } else if (w.type === 'visualiseur') {
+            // Taille, caméra choisie, rotation, miroir, zoom, réglages, plein écran / réduit
+            widget = createWidget('visualiseur', '100px', '100px', false);
+            if (w.visuData && widget && typeof widget._visuSetData === 'function') {
+                widget._visuSetData(w.visuData);
             }
         } else if (w.type === 'pixelart') {
             if (typeof createPixelArtWidget === 'function') {

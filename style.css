@@ -825,7 +825,7 @@
 
 		/* ── DRAW-TOOLBAR orientation verticale / horizontale ── */
 		#draw-toolbar { box-sizing: border-box; }
-		#draw-toolbar:not(.horizontal) { width: 80px; }
+		#draw-toolbar:not(.horizontal) { width: 82px; padding-left: 4px !important; padding-right: 4px !important; } /* lignes Texte / Gomme + taille : 71px de contenu */
 		#draw-toolbar-inner { flex-direction: column; align-items: center; }
 
 		/* Séparateurs verticaux = ligne horizontale */

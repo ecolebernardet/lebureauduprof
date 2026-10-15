@@ -2216,10 +2216,13 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                         const layer = getLayer(currentPage);
                         if (!layer.history) layer.history = [];
                         layer.redoHistory = [];
-                        if (layer.strokes.length > 0) {
+                        // Les images collées sont conservées : seules les annotations sont effacées
+                        const kept = layer.strokes.filter(st => st.tool === 'image');
+                        if (layer.strokes.length > kept.length) {
                             layer.history.push([...layer.strokes]);
+                            if (layer.history.length > 30) layer.history.shift();
                         }
-                        layer.strokes = [];
+                        layer.strokes = kept;
                         redrawAnnotations(currentPage);
                         try { _saveAnnotations(); } catch(e) {}
                     },

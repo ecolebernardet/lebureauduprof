@@ -1528,6 +1528,39 @@
         }
         document.addEventListener('keydown', onDocKey);
 
+        // ── Suppr / Retour arrière : ne JAMAIS supprimer le widget ──
+        // Le tableau écoute ces touches pour supprimer le widget sélectionné.
+        // On les intercepte en phase de capture sur window (avant tout autre
+        // gestionnaire) dès que la calculatrice est « active » : focus dedans,
+        // dernier clic dessus, ou plein écran.
+        //   • Suppr / Del      → remise à zéro (comme la touche C)
+        //   • Retour arrière   → efface le dernier caractère
+        var calcActive = false;
+        function onDocPointerCapture(e) {
+            calcActive = !!(e.target && widget.contains(e.target));
+        }
+        document.addEventListener('pointerdown', onDocPointerCapture, true);
+
+        function onWinKeyCapture(e) {
+            if (!alive || !document.body.contains(widget)) return;
+            if (e.key !== 'Delete' && e.key !== 'Del' && e.key !== 'Backspace') return;
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            var t = e.target;
+            var inWidget = widget.contains(document.activeElement) || (t && widget.contains(t));
+            if (!inWidget && !calcActive && !isMax) return;
+            // Saisie dans un autre champ de la page : on n'y touche pas
+            var editable = t && t.closest && t.closest('input, textarea, select, [contenteditable="true"]');
+            if (editable && !widget.contains(editable)) return;
+            e.stopImmediatePropagation();       // le tableau ne reçoit pas la touche
+            if (editable) return;               // champ du widget : comportement normal
+            e.preventDefault();
+            if (outer.style.display === 'none') return;   // widget réduit : rien à effacer
+            var k = (e.key === 'Backspace') ? 'back' : 'C';
+            flashKey(k);
+            press(k);
+        }
+        window.addEventListener('keydown', onWinKeyCapture, true);
+
         // Prendre le focus au toucher pour activer le clavier
         outer.addEventListener('pointerdown', function () {
             if (!widget.contains(document.activeElement)) {
@@ -1613,6 +1646,8 @@
             clearTimeout(saveTimer);
             if (ro) ro.disconnect();
             document.removeEventListener('keydown', onDocKey);
+            window.removeEventListener('keydown', onWinKeyCapture, true);
+            document.removeEventListener('pointerdown', onDocPointerCapture, true);
         }
 
         wfClose.addEventListener('click', function (e) {

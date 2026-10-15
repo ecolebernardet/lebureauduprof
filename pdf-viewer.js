@@ -796,10 +796,13 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 // ── Image collée ──────────────────────────────────────────────────────
                 if (stroke.tool === 'image') {
                     if (!stroke.src) return;
-                    // Image de la bibliothèque (chemin « images/… ») : affichée en <img> HTML
-                    // sous le calque d'annotations (voir _pdfImgSync). La peindre sur le canvas
-                    // le verrouillerait en file:// (lecture des pixels interdite par le navigateur).
-                    if (_isFileImageSrc(stroke.src)) return;
+                    // TOUTES les images collées (chemin « images/… » ou data URL) sont affichées
+                    // en <img> HTML SOUS le calque d'annotations (voir _pdfImgSync) :
+                    // on ne les peint JAMAIS sur le canvas d'annotations visible, sinon la gomme
+                    // (destination-out) les effacerait en même temps que les traits.
+                    // (En file://, peindre un chemin « images/… » verrouillerait aussi le canvas.)
+                    // Sur un canvas externe (export, fond d'écran), on dessine les data URL.
+                    if (ctx === actx || _isFileImageSrc(stroke.src)) return;
                     // Récupérer (ou créer) l'objet Image mis en cache sur le stroke
                     if (!stroke._img) {
                         const img = new Image();
@@ -1457,8 +1460,13 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                         if (layer && layer.strokes && layer.strokes.length > 0) {
                             const _origW = annotCanvas.width;
                             Object.defineProperty(annotCanvas, 'width', { value: offCanvas.width, configurable: true });
+                            // Images d'abord (elles sont SOUS les annotations à l'écran),
+                            // puis les traits → la gomme n'efface pas les images dans le fond d'écran
                             for (const stroke of layer.strokes) {
-                                drawStroke(offCtx, stroke);
+                                if (stroke.tool === 'image') drawStroke(offCtx, stroke);
+                            }
+                            for (const stroke of layer.strokes) {
+                                if (stroke.tool !== 'image') drawStroke(offCtx, stroke);
                             }
                             Object.defineProperty(annotCanvas, 'width', { value: _origW, configurable: true });
                         }
@@ -1776,7 +1784,7 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 imgHits.textContent = '';
                 imgUnder.textContent = '';
                 getLayer(currentPage).strokes.forEach(s => {
-                    if (s.tool !== 'image' || !_isFileImageSrc(s.src)) return;
+                    if (s.tool !== 'image' || !s.src) return;   // toutes les images (chemin ou data URL)
                     const el = document.createElement('img');
                     el.src = s.src;
                     el.alt = '';
@@ -2385,8 +2393,9 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                         const imgData = _safeGetAnnotPixels();
                         if (!imgData) return; // canvas protégé : on garde les traits tels quels
                         layer._snapshot = imgData;
-                        // Nettoyer les strokes normaux car le snapshot les inclut
-                        layer.strokes = [];
+                        // Nettoyer les strokes normaux car le snapshot les inclut,
+                        // SAUF les images : elles ne sont pas sur le canvas (couche HTML dessous)
+                        layer.strokes = layer.strokes.filter(st => st.tool === 'image');
                         try { _saveAnnotations(); } catch(e) {}
                     },
                     // Déplacer un stroke texte en temps réel (pendant le drag)

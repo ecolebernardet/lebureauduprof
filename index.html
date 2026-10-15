@@ -2191,11 +2191,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="tools-card-name">Défi Calme Dessin</div>
                 <div class="tools-card-desc">Rester silencieux pour faire apparaître un dessin</div>
             </div>
-			<div class="tools-card" onclick="createPauseCalmWidget();toggleToolsPanel()">
-                <div class="tools-card-ico"><img src="pics/outils-pausecalme.jpg" alt="Pause calme" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="tools-card-name">Pause Calme</div>
-                <div class="tools-card-desc">Exercice de respiration guidée pour calmer la classe</div>
-            </div>
 			<div class="tools-card" onclick="createWidget('radar');toggleToolsPanel()">
                 <div class="tools-card-ico"><img src="pics/outils-radar.jpg" alt="Radar de bruit" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="tools-card-name">Radar de Bruit</div>
@@ -2210,6 +2205,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="tools-card-ico"><img src="pics/outils-couleurs-bruit.jpg" alt="Les couleurs du bruit" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="tools-card-name">Les couleurs du bruit</div>
                 <div class="tools-card-desc">L'écran change de couleur quand le bruit monte</div>
+            </div>
+			<div class="tools-card" onclick="createPauseCalmWidget();toggleToolsPanel()">
+                <div class="tools-card-ico"><img src="pics/outils-pausecalme.jpg" alt="Pause calme" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="tools-card-name">Pause Calme</div>
+                <div class="tools-card-desc">Exercice de respiration guidée pour calmer la classe</div>
             </div>
 		</div>
 		</div>

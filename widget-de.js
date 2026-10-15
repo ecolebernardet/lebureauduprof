@@ -94,6 +94,30 @@ function _wfIsPhoneLaunch() {
         };
     }
 
+    // ── Taille des pastilles (identique aux autres widgets) ───────────────
+    if (!document.getElementById('wf-btns-size')) {
+        const wz = document.createElement('style');
+        wz.id = 'wf-btns-size';
+        wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+        `;
+        document.head.appendChild(wz);
+    }
+
+    // Police arrondie partagée avec les autres widgets (repli système si hors-ligne)
+    if (!document.getElementById('wpc-font')) {
+        const fl = document.createElement('link');
+        fl.id = 'wpc-font';
+        fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+        document.head.appendChild(fl);
+    }
+
     // ── CSS boutons fenêtre (injecté une seule fois) ───────────────────────
     if (!document.getElementById('wf-btns-style')) {
         const ws = document.createElement('style');
@@ -121,133 +145,212 @@ function _wfIsPhoneLaunch() {
         const s = document.createElement('style');
         s.id = 'widget-de-style';
         s.textContent = `
-        .widget[data-type="de"] {
+        /* Widget parent transparent : .de-container porte tout le visuel */
+        .widget[data-type="de"],
+        .widget[data-type="de"]:focus-within {
             min-width: unset;
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            padding: 0 !important;
         }
+        .widget[data-type="de"] .widget-content {
+            padding: 0 !important;
+            background: transparent !important;
+            overflow: visible !important;
+        }
+
+        /* ── Rectangle principal (même design que la calculatrice) ── */
         .de-container {
-            background: #ffffff;
-            border: 1.5px solid #d1d5db;
-            border-radius: 16px;
-            padding: 14px 16px 12px;
+            --de-ink:   #14202E;
+            --de-glass: rgba(255,255,255,0.62);
+            --de-bg:    #C2B2F0;
+            --de-op:    #6A4FC2;
+            --de-d1:    #9581d6;
+            --de-d2:    #6A4FC2;
+            --de-d3:    #503b92;
+
+            background-color: var(--de-bg);
+            color: var(--de-ink);
+            border: none;
+            border-radius: 24px;
+            padding: 14px 16px 16px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+            gap: 10px;
+            font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+            box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
             position: relative;
             user-select: none;
             overflow: hidden;
-            width: 300px;
-            min-width: 240px;
-            min-height: 340px;
+            width: 380px;
+            min-width: 260px;
+            min-height: 420px;
+            container-type: inline-size;
+            transition: background-color .3s;
         }
+        .widget[data-type="de"]:hover .de-container {
+            outline: 2px dashed rgba(20,32,46,0.35);
+            outline-offset: 2px;
+        }
+        .de-sheen {
+            position: absolute; inset: 0; pointer-events: none; z-index: 0;
+            background:
+                radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+                radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+        }
+        .de-header, .de-faces-row, .de-count-row, .de-dice-zone, .de-history-row, .de-controls { position: relative; z-index: 1; }
+
+        /* ── Plein écran ── */
         .de-container.wf-fullboard {
             position: fixed !important;
             inset: 0 !important;
             width: 100% !important;
             height: 100% !important;
+            min-width: 0 !important;
             z-index: 9999 !important;
             border-radius: 0 !important;
-            padding: 0 !important;
+            outline: none !important;
             align-items: center;
             justify-content: center;
+            padding: 66px 16px 20px !important;
+            box-sizing: border-box !important;
         }
         .de-container.wf-fullboard .de-header {
             position: absolute;
-            top: 12px;
-            left: 0;
-            right: 0;
+            top: 14px; left: 0; right: 0;
             padding: 0 16px;
             cursor: default;
+            pointer-events: none;
+            z-index: 30;
         }
-        .de-container.wf-fullboard .de-title {
-            display: block;
-        }
-        /* Plein écran : la barre de titre ne doit pas recouvrir le curseur */
-        .de-container.wf-fullboard {
-            padding: 56px 16px 20px !important;
-            box-sizing: border-box !important;
-        }
-        .de-container.wf-fullboard .de-header { pointer-events: none; z-index: 30; }
-        .de-container.wf-fullboard .de-header .wf-btns { pointer-events: auto; }
+        .de-container.wf-fullboard .de-header > * { pointer-events: auto; }
+        .de-container.wf-fullboard .de-resize-handle { display: none; }
         .de-container.wf-fullboard .de-faces-row,
         .de-container.wf-fullboard .de-count-row,
         .de-container.wf-fullboard .de-history-row,
         .de-container.wf-fullboard .de-controls {
-            width: min(460px, 100%);
-            position: relative; z-index: 31;
+            width: min(520px, 100%);
+            z-index: 31;
         }
+        .de-container.wf-fullboard .de-dice-zone { flex: 1; width: 100%; }
+
+        /* ── En-tête : pastilles « verre » ── */
         .de-header {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 8px; cursor: move; user-select: none; flex-shrink: 0;
+        }
+        .de-title,
+        .de-tools {
             display: flex; align-items: center; gap: 8px;
-            cursor: move; user-select: none; flex-shrink: 0;
+            background: var(--de-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            border-radius: 999px;
+            box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
         }
         .de-title {
-            font-size: 13px; font-weight: 800; color: #374151;
-            letter-spacing: 0.3px; pointer-events: none; white-space: nowrap;
+            padding: 7px 16px 7px 12px;
+            font-size: 15px; font-weight: 700; color: var(--de-ink);
+            white-space: nowrap; overflow: hidden; min-width: 0;
+            pointer-events: none;
         }
-        .de-help-btn {
-            width: 22px; height: 22px; border-radius: 50%;
-            border: 1px solid #bbb; background: #f5f5f5;
-            color: #666; font-size: 12px; font-weight: 700;
-            cursor: pointer; display: flex; align-items: center;
-            justify-content: center; flex-shrink: 0; transition: background .15s;
+        .de-title span { overflow: hidden; text-overflow: ellipsis; }
+        .de-title svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .de-tools { padding: 5px 12px 5px 6px; flex-shrink: 0; gap: 2px; cursor: default; }
+        @container (max-width: 335px) {
+            .de-title span { display: none; }
+            .de-title { padding: 7px 10px; }
         }
-        .de-help-btn:hover { background: #e0e0e0; color: #333; }
-        .de-help-popup {
-            display: none; position: absolute; top: 42px; right: 10px;
-            background: #fff; border: 1px solid #ddd; border-radius: 10px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15); padding: 12px 14px; width: 240px;
-            font-size: 11px; color: #444; z-index: 20; line-height: 1.6;
+        .de-icon-btn {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; border: none; background: transparent;
+            color: var(--de-ink); cursor: pointer; padding: 0;
+            transition: background .15s;
         }
-        .de-help-popup.show { display: block; }
-        .de-help-popup h4 { margin: 0 0 8px; font-size: 12px; color: #374151; }
-        .de-help-popup p  { margin: 0 0 6px; }
-        .de-faces-row {
-            display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-            background: #f8f9ff; border: 1px solid #e0e3ff;
-            border-radius: 10px; padding: 7px 10px;
+        .de-icon-btn svg { width: 18px; height: 18px; }
+        .de-icon-btn:hover,
+        .de-icon-btn.is-on { background: rgba(20,32,46,0.12); }
+        .de-icon-btn:focus-visible { outline: 2px solid var(--de-ink); outline-offset: 2px; }
+        .de-sep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
+
+        /* ── Panneaux réglages / aide ── */
+        .de-panel {
+            position: absolute;
+            top: 62px; right: 16px;
+            width: 280px;
+            max-width: calc(100% - 32px);
+            max-height: calc(100% - 80px);
+            overflow-y: auto;
+            box-sizing: border-box;
+            z-index: 40;
+            display: none;
+            flex-direction: column;
+            gap: 11px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.95);
+            box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+            user-select: text;
+            color: var(--de-ink);
         }
-        .de-faces-label {
-            font-size: 11px; font-weight: 700; color: #374151; white-space: nowrap;
+        .de-panel.show { display: flex; }
+        .de-panel-title { font-size: 13px; font-weight: 700; }
+        .de-panel-row { font-size: 12px; font-weight: 600; color: rgba(20,32,46,0.75); }
+        .de-help-list { margin: 0; padding-left: 18px; font-size: 12px; font-weight: 600; line-height: 1.5; color: rgba(20,32,46,0.85); }
+        .de-help-list li { margin-bottom: 4px; }
+        .de-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+        .de-swatch {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 2px solid rgba(20,32,46,0.15); cursor: pointer; padding: 0;
         }
-        .de-faces-slider { flex: 1; accent-color: #6366f1; cursor: pointer; min-width: 0; }
-        .de-faces-value {
-            font-size: 14px; font-weight: 900; color: #6366f1;
-            min-width: 30px; text-align: right;
-            background: #eef2ff; border-radius: 6px; padding: 2px 6px;
-        }
-        /* ── Nombre de dés ( − / + ) ── */
+        .de-swatch.is-on { border-color: var(--de-ink); box-shadow: 0 0 0 2px #fff inset; }
+
+        /* ── Réglages : faces et nombre de dés ── */
+        .de-faces-row,
         .de-count-row {
             display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-            background: #f8f9ff; border: 1px solid #e0e3ff;
-            border-radius: 10px; padding: 5px 10px;
+            background: var(--de-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            border-radius: 16px;
+            padding: 7px 12px;
+        }
+        .de-faces-label {
+            font-size: 13px; font-weight: 700; color: var(--de-ink); white-space: nowrap;
+        }
+        .de-faces-slider { flex: 1; accent-color: var(--de-op); cursor: pointer; min-width: 0; }
+        .de-faces-value,
+        .de-count-value {
+            font-size: 15px; font-weight: 700; color: var(--de-ink);
+            min-width: 26px; text-align: center;
+            background: rgba(255,255,255,0.9); border-radius: 10px; padding: 2px 8px;
+            font-variant-numeric: tabular-nums;
         }
         .de-count-btn {
-            width: 26px; height: 26px; border-radius: 8px; border: none;
-            background: #6366f1; color: #fff; font-size: 17px; font-weight: 900;
+            width: 30px; height: 30px; border-radius: 10px; border: none;
+            background: var(--de-op); color: #fff;
+            font-family: inherit; font-size: 18px; font-weight: 700;
             cursor: pointer; display: flex; align-items: center; justify-content: center;
             padding: 0; line-height: 1; flex-shrink: 0;
-            transition: background .15s, transform .1s, opacity .15s;
+            box-shadow: 0 3px 0 rgba(10,20,35,0.18);
+            transition: transform .08s, filter .15s, box-shadow .08s, opacity .15s;
         }
-        .de-count-btn:hover  { background: #4f46e5; }
-        .de-count-btn:active { transform: scale(0.92); }
-        .de-count-btn.off    { opacity: .3; pointer-events: none; }
-        .de-count-value {
-            font-size: 14px; font-weight: 900; color: #6366f1;
-            min-width: 22px; text-align: center;
-            background: #eef2ff; border-radius: 6px; padding: 2px 6px;
-        }
+        .de-count-btn:hover  { filter: brightness(1.08); }
+        .de-count-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(10,20,35,0.18); }
+        .de-count-btn.off    { opacity: .35; pointer-events: none; }
         .de-count-hint {
-            margin-left: auto; font-size: 10px; color: #9ca3af; white-space: nowrap;
+            margin-left: auto; font-size: 11px; font-weight: 600;
+            color: rgba(20,32,46,0.6); white-space: nowrap;
         }
+
+        /* ── Zone des dés ── */
         .de-dice-zone {
             flex: 1; display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            gap: 6px; min-height: 150px;
+            gap: 8px; min-height: 0;
             width: 100%;
         }
         /* Rangée de dés (un ou plusieurs) */
@@ -272,7 +375,7 @@ function _wfIsPhoneLaunch() {
             margin-left: calc(var(--de-size) * -0.675);
             border-radius: 50%;
             background: radial-gradient(ellipse at center,
-                rgba(30,27,75,0.38) 0%, rgba(30,27,75,0.16) 45%, rgba(30,27,75,0) 72%);
+                rgba(10,20,35,0.40) 0%, rgba(10,20,35,0.16) 45%, rgba(10,20,35,0) 72%);
             pointer-events: none;
             will-change: transform, opacity;
         }
@@ -304,24 +407,24 @@ function _wfIsPhoneLaunch() {
             background:
                 radial-gradient(circle at 30% 22%, rgba(255,255,255,0.30), rgba(255,255,255,0) 50%),
                 radial-gradient(ellipse at 50% 50%, rgba(30,27,75,0) 60%, rgba(30,27,75,0.14) 100%),
-                linear-gradient(145deg, var(--c1, #8b93fb) 0%, var(--c2, #6366f1) 55%, var(--c3, #4f46e5) 100%);
+                linear-gradient(145deg, var(--c1, var(--de-d1)) 0%, var(--c2, var(--de-d2)) 55%, var(--c3, var(--de-d3)) 100%);
             /* Arête fine et douce : un simple filet clair d'un pixel */
             box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22);
             outline: 1px solid transparent;      /* anticrénelage des bords en 3D (Chrome) */
             -webkit-font-smoothing: antialiased;
             display: flex; align-items: center; justify-content: center;
             color: #fff;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            font-weight: 900;
-            font-size: calc(var(--de-size) * 0.48);
+            font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+            font-weight: 700;
+            font-size: calc(var(--de-size) * 0.50);
             line-height: 1;
-            text-shadow: 0 calc(var(--de-size) * 0.02) calc(var(--de-size) * 0.04) rgba(30,27,75,0.45);
+            text-shadow: 0 calc(var(--de-size) * 0.02) calc(var(--de-size) * 0.04) rgba(20,32,46,0.45);
             backface-visibility: hidden;
         }
         /* Coque intérieure fermée (cache les micro-jointures entre faces) */
         .de-core {
             position: absolute; inset: 1%;
-            background: #4f46e5;
+            background: var(--de-d3);
         }
         .de-c-front  { transform: translateZ(calc(var(--de-size) * 0.49)); }
         .de-c-back   { transform: rotateY(180deg) translateZ(calc(var(--de-size) * 0.49)); }
@@ -329,12 +432,12 @@ function _wfIsPhoneLaunch() {
         .de-c-left   { transform: rotateY(-90deg) translateZ(calc(var(--de-size) * 0.49)); }
         .de-c-top    { transform: rotateX(90deg)  translateZ(calc(var(--de-size) * 0.49)); }
         .de-c-bottom { transform: rotateX(-90deg) translateZ(calc(var(--de-size) * 0.49)); }
-        .de-face.two-digits { font-size: calc(var(--de-size) * 0.40); letter-spacing: -0.03em; }
-        .de-face.is-unknown { font-size: calc(var(--de-size) * 0.42); opacity: 1; }
+        .de-face.two-digits { font-size: calc(var(--de-size) * 0.42); letter-spacing: -0.03em; }
+        .de-face.is-unknown { font-size: calc(var(--de-size) * 0.44); opacity: 1; }
         /* Éclairage fixe par face (lumière venant d'en haut à gauche) */
         .de-face::after {
             content: ''; position: absolute; inset: 0; border-radius: inherit;
-            pointer-events: none; background: #1e1b4b;
+            pointer-events: none; background: #14202E;
         }
         .de-f-front::after  { opacity: 0;    }
         .de-f-top::after    { background: #fff; opacity: 0.18; }
@@ -355,15 +458,14 @@ function _wfIsPhoneLaunch() {
         }
         .de-pip {
             width: 62%; height: 62%; margin: auto; border-radius: 50%;
-            background: radial-gradient(circle at 40% 35%, #ffffff 0%, #eef0ff 55%, #c7d2fe 100%);
-            box-shadow: inset 0 calc(var(--de-size) * 0.012) calc(var(--de-size) * 0.02) rgba(30,27,75,0.35);
+            background: radial-gradient(circle at 40% 35%, #ffffff 0%, #f3f4f8 55%, #d6dbe6 100%);
+            box-shadow: inset 0 calc(var(--de-size) * 0.012) calc(var(--de-size) * 0.02) rgba(20,32,46,0.35);
         }
         .de-pip.off { visibility: hidden; }
         /* Face du résultat : prend une couleur propre au numéro tiré */
         .de-face.lit .de-pip {
             background: radial-gradient(circle at 40% 35%, #ffffff 0%, #fffaf0 60%, #f1f1f1 100%);
         }
-        .de-history-item.lit { color: #fff !important; border-color: transparent !important; }
         /* Résultat : petite pulsation lumineuse de la face avant */
         .de-poly.win,
         .de-f-front.win {
@@ -373,9 +475,7 @@ function _wfIsPhoneLaunch() {
             0%   { filter: brightness(1.6) saturate(1.2); }
             100% { filter: brightness(1)   saturate(1); }
         }
-        .de-container.wf-fullboard .de-dice-zone {
-            flex: 1; width: 100%;
-        }
+
 
         /* Le widget qui contient le dé en plein écran : aucune transformation
            (sinon position:fixed se cale sur le widget et non sur l'écran),
@@ -394,64 +494,101 @@ function _wfIsPhoneLaunch() {
                 height: 100dvh !important;
                 border: none !important;
                 border-radius: 0 !important;
-                padding-top: calc(56px + env(safe-area-inset-top)) !important;
+                padding-top: calc(66px + env(safe-area-inset-top)) !important;
                 padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
             }
             /* Le bouton dessin passerait par-dessus le dé sans être utilisable */
             body.de-has-max #draw-fab-btn { display: none !important; }
         }
-        .de-btn-roll.busy { opacity: .65; pointer-events: none; }
-        .de-result-hint {
-            font-size: 11px; color: #9ca3af; text-align: center;
-            font-style: italic; min-height: 16px;
+
+        /* ── Historique ── */
+        .de-history-row {
+            display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;
+            background: var(--de-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            border-radius: 16px;
+            padding: 8px 12px 10px;
         }
-        .de-history-row { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
-        .de-history-label {
-            font-size: 10px; font-weight: 700; color: #9ca3af;
-            text-transform: uppercase; letter-spacing: 0.5px;
-        }
+        .de-history-label { font-size: 13px; font-weight: 700; color: var(--de-ink); }
         .de-history {
-            display: flex; flex-wrap: wrap; gap: 4px;
-            max-height: 56px; overflow-y: auto;
+            display: flex; flex-wrap: wrap; gap: 5px;
+            max-height: 62px; overflow-y: auto;
         }
         .de-history:empty::after {
-            content: '—'; font-size: 11px; color: #d1d5db; font-style: italic;
+            content: 'Aucun lancer pour l\\2019instant';
+            font-size: 12px; font-weight: 600; color: rgba(20,32,46,0.55);
         }
         .de-history-item {
-            padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700;
-            background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb;
+            padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
+            background: rgba(255,255,255,0.8); color: rgba(20,32,46,0.75);
+            font-variant-numeric: tabular-nums;
         }
-        .de-history-item:first-child {
-            background: #eef2ff; color: #6366f1; border-color: #c7d2fe;
-        }
-        .de-controls { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+        .de-history-item.lit { color: #fff !important; }
+
+        /* ── Boutons ── */
+        .de-controls { display: flex; gap: 10px; align-items: stretch; flex-shrink: 0; }
         .de-btn {
-            padding: 8px 14px; border-radius: 10px; border: none;
-            font-size: 12px; font-weight: 700; cursor: pointer;
-            transition: background .15s, transform .1s;
+            border: none; border-radius: 16px;
+            font-family: inherit; font-weight: 700; cursor: pointer;
+            box-shadow: 0 3px 0 rgba(10,20,35,0.18);
+            transition: transform .08s, filter .15s, box-shadow .08s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
-        .de-btn:active { transform: scale(0.95); }
-        .de-btn-roll  { background: #6366f1; color: white; flex: 1; font-size: 13px; }
-        .de-btn-roll:hover  { background: #4f46e5; }
+        .de-btn:hover  { filter: brightness(1.06); }
+        .de-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(10,20,35,0.18); filter: brightness(0.94); }
+        .de-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+        .de-btn-roll {
+            flex: 1; padding: 11px 16px; font-size: 17px;
+            background: var(--de-ink); color: #fff;
+        }
+        .de-btn-roll.busy { opacity: .65; pointer-events: none; }
         .de-btn-clear {
-            background: #f3f4f6; color: #6b7280;
-            border: 1px solid #e5e7eb; font-size: 14px; padding: 8px 10px;
+            padding: 0 14px; background: rgba(255,255,255,0.82); color: #C0392B;
         }
-        .de-btn-clear:hover { background: #e5e7eb; color: #374151; }
+        .de-container.wf-fullboard .de-btn-roll { font-size: 20px; padding: 14px 18px; }
+
+        /* ── Poignée de redimensionnement ── */
         .de-resize-handle {
-            position: absolute; right: 0; bottom: 0; width: 18px; height: 18px;
-            cursor: se-resize; background: linear-gradient(135deg, transparent 50%, #bbb 50%);
-            border-radius: 0 0 14px 0; opacity: 0; transition: opacity .2s; z-index: 5;
+            position: absolute; bottom: 6px; right: 6px;
+            width: 18px; height: 18px;
+            cursor: nwse-resize; z-index: 7;
+            opacity: 0; transition: opacity .2s;
+            background: radial-gradient(circle, rgba(20,32,46,0.55) 1.3px, transparent 1.7px) 0 0 / 6px 6px;
+            -webkit-mask: linear-gradient(135deg, transparent 50%, #000 50%);
+                    mask: linear-gradient(135deg, transparent 50%, #000 50%);
         }
-        .de-container:hover .de-resize-handle { opacity: 1; }
+        .widget[data-type="de"]:hover .de-resize-handle { opacity: 1; }
         `;
         document.head.appendChild(s);
     }
 
     // ── Template HTML ──────────────────────────────────────────────────────
     const TEMPLATE_ID = 'template-de';
+
+    // Icônes (même trait que la calculatrice)
+    const ICON_DIE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01" stroke-width="3"/></svg>';
+    const ICON_SLIDERS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>';
+    const ICON_HELP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17.2h.01"/></svg>';
+    const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/></svg>';
+
+    // Couleurs (mêmes teintes que la calculatrice)
+    const DE_THEMES = {
+        violet: { name: 'Violet', bg: '#C2B2F0', op: '#6A4FC2' },
+        bleu:   { name: 'Bleu',   bg: '#8EC5F2', op: '#2F6FB3' },
+        vert:   { name: 'Vert',   bg: '#7FD6A6', op: '#23915A' },
+        jaune:  { name: 'Jaune',  bg: '#F6D86A', op: '#B9770E' },
+        rose:   { name: 'Rose',   bg: '#F4A9C0', op: '#C2456E' },
+        gris:   { name: 'Gris',   bg: '#D4DAE2', op: '#4A5868' }
+    };
+    const SWATCHES_HTML = Object.keys(DE_THEMES).map(id =>
+        `<button class="de-swatch" data-theme="${id}" title="${DE_THEMES[id].name}" style="background:${DE_THEMES[id].bg}"></button>`
+    ).join('');
+
     const COUNT_ROW_HTML = `
-    <span class="de-faces-label">Dés :</span>
+    <span class="de-faces-label">Dés</span>
     <button class="de-count-btn de-count-minus" title="Retirer un dé">−</button>
     <span class="de-count-value">1</span>
     <button class="de-count-btn de-count-plus" title="Ajouter un dé">+</button>
@@ -462,21 +599,26 @@ function _wfIsPhoneLaunch() {
         tpl.id = TEMPLATE_ID;
         tpl.innerHTML = `
 <div class="de-container">
+  <div class="de-sheen"></div>
 
   <!-- En-tête -->
   <div class="de-header">
-    <span class="de-title">🎲 Lancer un dé</span>
-    <div class="wf-btns" style="margin-left:auto">
-      <button class="de-help-btn" title="Aide">?</button>
-      <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
-      <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
-      <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+    <div class="de-title">${ICON_DIE}<span>Lancer un dé</span></div>
+    <div class="de-tools">
+      <button class="de-icon-btn de-settings-btn" title="Réglages">${ICON_SLIDERS}</button>
+      <button class="de-icon-btn de-help-btn" title="Aide">${ICON_HELP}</button>
+      <span class="de-sep"></span>
+      <div class="wf-btns">
+        <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
+        <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
+        <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+      </div>
     </div>
   </div>
 
   <!-- Sélecteur de faces -->
   <div class="de-faces-row">
-    <span class="de-faces-label">Faces :</span>
+    <span class="de-faces-label">Faces</span>
     <input type="range" class="de-faces-slider" min="2" max="30" value="6" step="1" />
     <span class="de-faces-value">6</span>
   </div>
@@ -488,7 +630,6 @@ function _wfIsPhoneLaunch() {
   <!-- Zone principale : les dés sont créés par le script -->
   <div class="de-dice-zone">
     <div class="de-stage-row"></div>
-    <div class="de-result-hint">Clique sur le dé ou sur « Lancer »</div>
   </div>
 
   <!-- Historique -->
@@ -499,18 +640,28 @@ function _wfIsPhoneLaunch() {
 
   <!-- Contrôles -->
   <div class="de-controls">
-    <button class="de-btn de-btn-roll">🎲 Lancer</button>
-    <button class="de-btn de-btn-clear" title="Effacer l'historique">🗑</button>
+    <button class="de-btn de-btn-roll">${ICON_DIE}Lancer</button>
+    <button class="de-btn de-btn-clear" title="Effacer l'historique">${ICON_TRASH}</button>
   </div>
 
-  <!-- Popup aide -->
-  <div class="de-help-popup">
-    <h4>💡 Comment utiliser ce widget ?</h4>
-    <p><b>Nombre de faces</b> — Utilise le curseur pour choisir entre 2 et 30 faces (d2, d6, d20…). La forme du dé s'adapte : pièce (2), tétraèdre (4), cube à points (6), octaèdre (8), toupie (10 et autres nombres pairs), dodécaèdre (12), icosaèdre (20) et dé long pour les nombres impairs.</p>
-    <p><b>Nombre de dés</b> — Les boutons <b>−</b> et <b>+</b> permettent de lancer de 1 à 6 dés en même temps. La somme s'affiche avec le résultat.</p>
-    <p><b>Lancer</b> — Clique sur <b>🎲 Lancer</b> ou directement sur un dé pour obtenir un résultat aléatoire.</p>
-    <p><b>Historique</b> — Les 20 derniers lancers s'affichent. Le plus récent est en couleur.</p>
-    <p><b>🗑</b> — Efface l'historique des lancers.</p>
+  <!-- Panneau réglages -->
+  <div class="de-panel de-settings-panel">
+    <div class="de-panel-title">Réglages</div>
+    <div class="de-panel-row">Couleur</div>
+    <div class="de-swatches">${SWATCHES_HTML}</div>
+  </div>
+
+  <!-- Panneau aide -->
+  <div class="de-panel de-help-popup">
+    <div class="de-panel-title">Aide</div>
+    <ul class="de-help-list">
+      <li><b>Faces</b> : le curseur choisit entre 2 et 30 faces. La forme du dé s'adapte : pièce (2), tétraèdre (4), cube à points (6), octaèdre (8), toupie (10 et autres nombres pairs), dodécaèdre (12), icosaèdre (20), dé long pour les nombres impairs.</li>
+      <li><b>Dés</b> : les boutons <b>−</b> et <b>+</b> lancent de 1 à 6 dés en même temps ; la somme apparaît dans l'historique (ex. 3+5=8).</li>
+      <li><b>Lancer</b> : bouton <b>Lancer</b> ou clic directement sur un dé.</li>
+      <li><b>Historique</b> : les 20 derniers lancers ; le plus récent est en couleur. La corbeille l'efface.</li>
+      <li><b>Réglages</b> : choix de la couleur du widget et des dés.</li>
+      <li>Poignée en bas à droite pour redimensionner. Pastilles : réduire, plein écran, fermer.</li>
+    </ul>
   </div>
 
   <!-- Poignée resize -->
@@ -768,7 +919,7 @@ function _wfIsPhoneLaunch() {
             const proj = (p) => { const s = FOCAL / (FOCAL - p[2]); return [cx + p[0] * radius * s, cy - p[1] * radius * s]; };
             const cam = [0, 0, FOCAL];
             const base = hexRgb(opts.base || '#6366f1');
-            const rimC = hexRgb('#4338ca');
+            const rimC = hexRgb(opts.rim || '#4338ca');
             const litC = opts.litColor ? hexRgb(opts.litColor) : null;
             ctx.lineJoin = 'round';
 
@@ -817,10 +968,10 @@ function _wfIsPhoneLaunch() {
                     let txt = String(f.label);
                     if (n >= 9 && (f.label === 6 || f.label === 9)) txt += '.';
                     let fs = f.coin ? 95 : (txt.length > 1 ? 105 : 125);
-                    ctx.font = `900 ${fs}px 'Segoe UI', system-ui, sans-serif`;
+                    ctx.font = `700 ${fs}px 'Quicksand', 'Segoe UI', system-ui, sans-serif`;
                     const maxW = f.wide ? 320 : (f.coin ? 150 : 165);
                     const w = ctx.measureText(txt).width;
-                    if (w > maxW) { fs *= maxW / w; ctx.font = `900 ${fs}px 'Segoe UI', system-ui, sans-serif`; }
+                    if (w > maxW) { fs *= maxW / w; ctx.font = `700 ${fs}px 'Quicksand', 'Segoe UI', system-ui, sans-serif`; }
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     const dy = 0;
@@ -846,11 +997,14 @@ function _wfIsPhoneLaunch() {
         const container    = widget.querySelector('.de-container');
         const helpBtn      = widget.querySelector('.de-help-btn');
         const helpPopup    = widget.querySelector('.de-help-popup');
+        const settingsBtn   = widget.querySelector('.de-settings-btn');
+        const settingsPanel = widget.querySelector('.de-settings-panel');
         const facesSlider  = widget.querySelector('.de-faces-slider');
         const facesValue   = widget.querySelector('.de-faces-value');
         const facesRow     = widget.querySelector('.de-faces-row');
         const diceZone     = widget.querySelector('.de-dice-zone');
-        const resultHint   = widget.querySelector('.de-result-hint');
+        // Plus d'affichage texte du résultat : on retire l'ancien bloc s'il existe
+        widget.querySelectorAll('.de-result-hint').forEach(el => el.remove());
         const historyEl    = widget.querySelector('.de-history');
         const rollBtn      = widget.querySelector('.de-btn-roll');
         const clearBtn     = widget.querySelector('.de-btn-clear');
@@ -957,6 +1111,35 @@ function _wfIsPhoneLaunch() {
 
         const isPoly = () => nbFaces !== 6;
 
+        // ── Texte du résultat ─────────────────────────────────────────────
+        const IDLE_HINT = 'Clique sur un dé ou sur « Lancer »';
+        function setHint(text, idle) {
+            /* affichage du résultat retiré */
+        }
+
+        // ── Couleur du widget et des dés ──────────────────────────────────
+        // shade(hex, k) : k > 0 éclaircit vers le blanc, k < 0 assombrit
+        function shade(hex, k) {
+            const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+            const out = c.map(x => Math.round(k >= 0 ? x + (255 - x) * k : x * (1 + k)));
+            return '#' + out.map(x => x.toString(16).padStart(2, '0')).join('');
+        }
+        const theme = { id: 'violet', op: '#6A4FC2', rim: '#4b3789' };
+        function applyTheme(id) {
+            if (!DE_THEMES[id]) id = 'violet';
+            const t = DE_THEMES[id];
+            theme.id = id; theme.op = t.op; theme.rim = shade(t.op, -0.3);
+            container.style.setProperty('--de-bg', t.bg);
+            container.style.setProperty('--de-op', t.op);
+            container.style.setProperty('--de-d1', shade(t.op, 0.3));
+            container.style.setProperty('--de-d2', t.op);
+            container.style.setProperty('--de-d3', shade(t.op, -0.25));
+            widget.querySelectorAll('.de-swatch').forEach(sw =>
+                sw.classList.toggle('is-on', sw.dataset.theme === id));
+            widget.dataset.deTheme = id;
+            dice.forEach(d => polyDraw(d));
+        }
+
         // ── Création d'un dé ──────────────────────────────────────────────
         const dice = [];
         function createDie() {
@@ -998,6 +1181,7 @@ function _wfIsPhoneLaunch() {
             if (d.polyCanvas.width !== W) { d.polyCanvas.width = W; d.polyCanvas.height = W; }
             DePoly.draw(d.polyCtx, W, W, g, d.polyR, {
                 radius: S * 0.62 * dpr, dpr, n: nbFaces,
+                base: theme.op, rim: theme.rim,
                 lit: d.polyLit, litColor: d.polyLit != null ? colorOf(d.polyLit)[1] : null
             });
         }
@@ -1092,26 +1276,38 @@ function _wfIsPhoneLaunch() {
         }
 
         // Taille des dés selon la place disponible
+        // Hauteur disponible pour la rangée de dés
+        function freeHeight() {
+            const cs  = getComputedStyle(container);
+            const gap = parseFloat(cs.rowGap) || 10;
+            let others = 0, count = 0;
+            ['.de-header', '.de-faces-row', '.de-count-row', '.de-history-row', '.de-controls'].forEach(sel => {
+                const el = container.querySelector(sel);
+                if (!el || getComputedStyle(el).position === 'absolute' || el.offsetParent === null) return;
+                others += el.offsetHeight; count++;
+            });
+            return container.clientHeight
+                - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+                - others - count * gap - 4;
+        }
+
         function updateSize() {
             const n = Math.max(1, dice.length);
             const rowW = stageRow.clientWidth || (container.clientWidth - 32);
             const per = rowW / n;
             let size;
-            if (container.classList.contains('wf-fullboard')) {
-                // Plein écran : les dés prennent toute la hauteur laissée libre par
-                // le curseur, l'historique et les boutons.
-                const cs = getComputedStyle(container);
-                const others = ['.de-faces-row', '.de-count-row', '.de-history-row', '.de-controls']
-                    .reduce((t, sel) => t + (container.querySelector(sel)?.offsetHeight || 0), 0);
-                const freeH = container.clientHeight
-                    - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
-                    - others - 4 * 12 - (resultHint.offsetHeight || 16) - 6 - 10;
-                size = Math.min(rowW * 0.62, per * 0.66, freeH / 1.75);
+            const full = container.classList.contains('wf-fullboard');
+            if (full) {
+                size = Math.min(rowW * 0.62, per * 0.66);
             } else {
-                size = Math.min(rowW * 0.42, per * 0.66);
-                if (container.style.height) size = Math.min(size, (diceZone.clientHeight - 26) / 1.75);
+                size = Math.min(rowW * 0.36, per * 0.66);
             }
-            size = Math.round(Math.max(n === 1 ? 70 : 36, Math.min(size, 700)));
+            // Hauteur imposée (plein écran ou widget redimensionné) : les dés ne
+            // prennent que la place laissée libre, pour que le résultat reste visible.
+            if (full || container.style.height) {
+                size = Math.min(size, freeHeight() / 1.75);
+            }
+            size = Math.round(Math.max((n === 1 && !full && !container.style.height) ? 70 : 36, Math.min(size, 700)));
             if (stageRow.style.getPropertyValue('--de-size') !== size + 'px')
                 stageRow.style.setProperty('--de-size', size + 'px');
             dice.forEach(polyDraw);
@@ -1140,14 +1336,14 @@ function _wfIsPhoneLaunch() {
             if (fromUser) {
                 // Élargit un peu le widget pour que les dés gardent une taille lisible
                 if (!container.classList.contains('wf-fullboard')) {
-                    const need = n === 1 ? 0 : 40 + n * 120;
+                    const need = n === 1 ? 0 : Math.max(380, 40 + n * 120);
                     if (container.offsetWidth < need) {
                         container.style.width = need + 'px';
                         saveDimsToDataset();
                     }
                 }
                 const allOk = showRest();
-                if (!allOk) resultHint.textContent = 'Clique sur un dé ou sur « Lancer »';
+                if (!allOk) setHint(IDLE_HINT, true);
                 if (typeof saveBoard === 'function') saveBoard();
             }
             updateSize();
@@ -1259,7 +1455,7 @@ function _wfIsPhoneLaunch() {
             if (_rolling) return;
             _rolling = true;
             rollBtn.classList.add('busy');
-            resultHint.textContent = '…';
+            setHint('…');
 
             const results = dice.map(() => rndInt(nbFaces));
             const S       = curSize();
@@ -1273,7 +1469,7 @@ function _wfIsPhoneLaunch() {
                 rollDie(d, results[i], S, D, delay, () => {
                     if (--pending > 0) return;
                     const entry = results.length === 1 ? results[0] : results;
-                    resultHint.textContent = describe(entry, 'Résultat');
+                    setHint(describe(entry, 'Résultat'));
                     _rolling = false;
                     rollBtn.classList.remove('busy');
                     history.unshift(entry);
@@ -1302,6 +1498,7 @@ function _wfIsPhoneLaunch() {
         }
 
         // ── Mise en place initiale ────────────────────────────────────────
+        applyTheme(widget.dataset.deTheme || 'violet');
         setCount(nbDice, false);
         if (typeof ResizeObserver === 'function') {
             new ResizeObserver(() => updateSize()).observe(container);
@@ -1311,7 +1508,7 @@ function _wfIsPhoneLaunch() {
         // Afficher l'historique restauré + dernier résultat
         renderHistory();
         if (history.length && showRest()) {
-            resultHint.textContent = describe(history[0], 'Dernier résultat');
+            setHint(describe(history[0], 'Dernier résultat'));
         } else if (!history.length) {
             dice.forEach(d => paintAll(d, null));
         }
@@ -1331,16 +1528,37 @@ function _wfIsPhoneLaunch() {
             widget.dataset.deHistory = '[]';
             renderHistory();
             dice.forEach(d => paintAll(d, null));
-            resultHint.textContent = 'Clique sur un dé ou sur « Lancer »';
+            setHint(IDLE_HINT, true);
             if (typeof saveBoard === 'function') saveBoard();
         });
 
         // ── Aide ─────────────────────────────────────────────────────────
-        makeTap(helpBtn, () => { helpPopup.classList.toggle('show'); });
+        // ── Panneaux aide / réglages (un seul ouvert à la fois) ──────────
+        function togglePanel(panel, btn) {
+            const open = !panel.classList.contains('show');
+            [[helpPopup, helpBtn], [settingsPanel, settingsBtn]].forEach(([p, b]) => {
+                p.classList.remove('show'); b.classList.remove('is-on');
+            });
+            if (open) { panel.classList.add('show'); btn.classList.add('is-on'); }
+        }
+        makeTap(helpBtn,     () => togglePanel(helpPopup, helpBtn));
+        makeTap(settingsBtn, () => togglePanel(settingsPanel, settingsBtn));
+        [helpPopup, settingsPanel].forEach(p => p.addEventListener('pointerdown', (e) => e.stopPropagation()));
         document.addEventListener('pointerdown', (e) => {
-            if (!helpPopup.contains(e.target) && e.target !== helpBtn)
-                helpPopup.classList.remove('show');
-        }, { passive: true });
+            [[helpPopup, helpBtn], [settingsPanel, settingsBtn]].forEach(([p, b]) => {
+                if (!p.contains(e.target) && !b.contains(e.target)) {
+                    p.classList.remove('show'); b.classList.remove('is-on');
+                }
+            });
+        }, { passive: true, capture: true });
+
+        // Couleur choisie dans les réglages
+        settingsPanel.querySelectorAll('.de-swatch').forEach(sw => {
+            makeTap(sw, () => {
+                applyTheme(sw.dataset.theme);
+                if (typeof saveBoard === 'function') saveBoard();
+            });
+        });
 
         // ── Boutons fenêtre (réduire / plein écran / fermer) ──────────────
         const wfMin   = container.querySelector('[data-role="wf-min"]');
@@ -1442,8 +1660,8 @@ function _wfIsPhoneLaunch() {
             const startX = e.clientX, startY = e.clientY;
             const startW = container.offsetWidth, startH = container.offsetHeight;
             function onMove(ev) {
-                container.style.width  = Math.max(240, startW + ev.clientX - startX) + 'px';
-                container.style.height = Math.max(340, startH + ev.clientY - startY) + 'px';
+                container.style.width  = Math.max(260, startW + ev.clientX - startX) + 'px';
+                container.style.height = Math.max(420, startH + ev.clientY - startY) + 'px';
             }
             function onEnd() {
                 resizeHandle.removeEventListener('pointermove', onMove);

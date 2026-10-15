@@ -1356,7 +1356,7 @@
 
 /* ── Panneau stickers ────────────────────────────────────────────── */
 
-		:root { --sticker-panel-w: 90vw; }
+		:root { --sticker-panel-w: 40vw; }
 		#sticker-panel {
 			display: flex;
 			position: fixed;
@@ -1558,7 +1558,7 @@ body.presentation-mode #sticker-panel-tab { display: none !important; }
 
 
 /* ── Panneau Widgets ──────────────────────────────────────────────────── */
-:root { --widgets-panel-w: 90vw; }
+:root { --widgets-panel-w: 85vw; }
 #widgets-panel {
     display: flex;
     position: fixed;
@@ -1695,7 +1695,7 @@ body.menu-light .widgets-card-ico img { border-color: #bbb; }
 
 
 /* ── Panneau Outils ──────────────────────────────────────────────────── */
-:root { --tools-panel-w: 90vw; }
+:root { --tools-panel-w: 85vw; }
 #tools-panel {
     display: flex;
     position: fixed;
@@ -1843,7 +1843,7 @@ body.presentation-mode #tools-panel-tab { display: none !important; }
 
 /* ── Panneau Activités ────────────────────────────────────────────── */
 
-:root { --act-panel-w: 90vw; }
+:root { --act-panel-w: 85vw; }
 #activities-panel {
     display: flex;
     position: fixed;
@@ -2001,12 +2001,14 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
 }
 .act-grid {
     display: grid;
-    grid-template-columns: repeat(10, 1fr);
+    /* minmax(0, 1fr) : toutes les colonnes gardent la même largeur,
+       même si un nom de carte contient un mot long */
+    grid-template-columns: repeat(10, minmax(0, 1fr));
     gap: 8px;
     margin-bottom: 0px;
 }
 #jeux-panel-content .act-grid {
-    grid-template-columns: repeat(15, 1fr);   /* nombre de colonnes propre au panneau Jeux */
+    grid-template-columns: repeat(15, minmax(0, 1fr));   /* nombre de colonnes propre au panneau Jeux */
 }
 .act-card {
     background: #1a1a1a;
@@ -2031,7 +2033,15 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
     font-size: 11px; font-weight: 700;
     color: rgba(255,255,255,0.8);
     line-height: 1.15;
+    max-width: 100%;
+    overflow-wrap: normal;     /* jamais de coupure au milieu d'un mot */
+    hyphens: manual;           /* pas de césure automatique (« ar-rondis », « contraire-s ») */
+    align-self: stretch;       /* le titre prend toute la largeur de la carte :      */
+    width: 100%;               /* le script ajusteTitresCartes() mesure le débordement */
+    box-sizing: border-box;
 }
+/* Une carte ne s'élargit jamais à cause de son contenu */
+.act-card { min-width: 0; }
 .act-card-desc {
     font-size: 9px; color: rgba(255,255,255,0.4);
     line-height: 1.15;
@@ -2042,7 +2052,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
    Réutilise les classes .act-* pour le contenu (grille,
    cartes...) ; seuls le conteneur et l'onglet sont propres.
 ══════════════════════════════════════════════════ */
-:root { --jeux-panel-w: 90vw; }
+:root { --jeux-panel-w: 85vw; }
 #jeux-panel {
     display: flex;
     position: fixed;
@@ -2298,7 +2308,7 @@ body.presentation-mode #pdf-library-tab { display: none !important; }
 
 
 /* ── Panneau Projets ──────────────────────────────────────── */
-:root { --proj-panel-w: 90vw; }
+:root { --proj-panel-w: 40vw; }
 
 #projects-panel {
     position: fixed;
@@ -2543,7 +2553,7 @@ body.menu-light #history-panel-tab.history-panel-tab-open { display: none !impor
 
 /* ── Panneaux Affichage & Historique ───────────────────────── */
 :root {
-    --display-panel-w: 90vw;
+    --display-panel-w: 40vw;
     --history-panel-w: 90vw;
 }
 #display-panel {
@@ -2898,8 +2908,8 @@ body.menu-light .disp-section-label, body.menu-light .hist-section-label {
 #image-panel {
     display: flex;
     position: fixed;
-    top: 0; left: calc(-10 * var(--image-panel-w, 90vw));
-    width: var(--image-panel-w, 90vw); height: calc(100vh);
+    top: 0; left: calc(-10 * var(--image-panel-w, 40vw));
+    width: var(--image-panel-w, 40vw); height: calc(100vh);
     background: #111;
     border-right: 1px solid #2e2e3a;
 	box-shadow: 0px 0px 50px rgba(0,0,0,1);
@@ -2911,6 +2921,14 @@ body.menu-light .disp-section-label, body.menu-light .hist-section-label {
 }
 
 #image-panel.active { left: 0; }
+/* Visuels et Images : la poignée ne peut pas élargir le panneau au-delà
+   de sa largeur d'ouverture (40vw). Leur redimensionnement est géré par
+   stickers.js et images.js : on plafonne donc ici, en CSS.
+   Pas sur téléphone, où les panneaux ont leur propre largeur. */
+@media not all and (max-width: 768px) {
+    #sticker-panel,
+    #image-panel { max-width: 40vw; }
+}
 #image-panel.image-panel-resizing { transition: none !important; }
 #image-panel-resize-handle {
     position: absolute; top: 0; right: 0;

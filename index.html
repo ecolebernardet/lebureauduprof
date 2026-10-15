@@ -312,10 +312,10 @@
 <body class="menu-light">
 
 <script>
-// ── Panneaux latéraux : toujours ouverts à 90 % du board au chargement ──
+// ── Panneaux latéraux : toujours ouverts à leur largeur par défaut au chargement ──
 // Les largeurs mémorisées après un redimensionnement à la poignée
 // (clés « …-panel-w », « pdf-lib-w »…) sont effacées à chaque chargement,
-// pour que chaque panneau reparte de sa largeur par défaut (90vw, style.css).
+// pour que chaque panneau reparte de sa largeur par défaut (85vw ou 40vw selon le panneau, style.css).
 // Le redimensionnement à la poignée reste possible pendant la session.
 (function() {
     try {
@@ -1598,6 +1598,53 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 </script>
 
 <script>
+// ── Panneaux Jeux et Activités : titres de cartes sans mot coupé ──
+// Les titres gardent leur taille normale. Seul un titre dont un mot ne tient
+// pas dans la largeur de la carte (« encadrements », « contraires »…) est
+// réduit, par petits pas, jusqu'à ce que ce mot tienne sur une ligne.
+(function() {
+    var PANELS   = ['jeux-panel', 'activities-panel'];
+    var MIN_SIZE = 8;   // taille minimale, en px
+    var STEP     = 0.5; // pas de réduction, en px
+
+    function ajusteTitresCartes() {
+        PANELS.forEach(function(id) {
+            var panel = document.getElementById(id);
+            if (!panel) return;
+            panel.querySelectorAll('.act-card-name').forEach(function(name) {
+                name.style.removeProperty('font-size');      // repart de la taille normale
+                if (!name.clientWidth) return;                // carte non affichée
+                var size = parseFloat(getComputedStyle(name).fontSize);
+                while (name.scrollWidth > name.clientWidth + 1 && size > MIN_SIZE) {
+                    size -= STEP;
+                    name.style.setProperty('font-size', size + 'px', 'important');
+                }
+            });
+        });
+    }
+    window.ajusteTitresCartes = ajusteTitresCartes;
+
+    var timer = null;
+    function planifie() {
+        clearTimeout(timer);
+        timer = setTimeout(ajusteTitresCartes, 120);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        planifie();
+        // Réajuste à l'ouverture d'un panneau (sa largeur a pu changer)
+        PANELS.forEach(function(id) {
+            var panel = document.getElementById(id);
+            if (panel) new MutationObserver(planifie).observe(panel, { attributes: true, attributeFilter: ['class', 'style'] });
+        });
+    });
+    window.addEventListener('load', planifie);
+    window.addEventListener('resize', planifie);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(planifie);
+})();
+</script>
+
+<script>
 // ── Panneau Jeux ─────────────────────────────────────────────────
 (function() {
     var JEUX_W_KEY = 'jeux-panel-w';
@@ -1640,7 +1687,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             // Garde-fou : si la valeur sauvegardée est absurde pour l'écran
             // actuel (ex. sauvegardée sur téléphone, rouverte sur PC), on
             // l'ignore et on repasse sur le comportement responsive par défaut.
-            var maxReasonableW = Math.round(window.innerWidth * 0.95);
+            var maxReasonableW = Math.round(window.innerWidth * 0.85);   // largeur max = largeur d'ouverture (85vw)
             if (initW >= 260 && initW <= maxReasonableW) {
                 panel.style.width = initW + 'px';
                 document.documentElement.style.setProperty('--jeux-panel-w', initW + 'px');
@@ -1660,8 +1707,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.95);
-            var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
+            var maxW = Math.round(window.innerWidth * 0.85);   // largeur max = largeur d'ouverture (85vw)
+            var w = Math.min(maxW, Math.max(260, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--jeux-panel-w', w + 'px');
         });
@@ -1898,7 +1945,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         if (!handle || !panel) return;
 
         // Restaurer la largeur sauvegardée (en px), sinon utiliser 70% de la fenêtre
-        // Largeur par défaut : 90 % de l'écran (CSS --act-panel-w: 90vw)
+        // Largeur par défaut : 85 % de l'écran (CSS --act-panel-w: 85vw)
 
         var dragging = false, startX = 0, startW = 0;
         handle.addEventListener('mousedown', function(e) {
@@ -1911,8 +1958,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.95);
-            var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
+            var maxW = Math.round(window.innerWidth * 0.85);   // largeur max = largeur d'ouverture (85vw)
+            var w = Math.min(maxW, Math.max(260, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--act-panel-w', w + 'px');
         });
@@ -2061,8 +2108,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.95);
-            var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
+            var maxW = Math.round(window.innerWidth * 0.85);   // largeur max = largeur d'ouverture (85vw)
+            var w = Math.min(maxW, Math.max(260, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--widgets-panel-w', w + 'px');
         });
@@ -2260,8 +2307,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.95);
-            var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
+            var maxW = Math.round(window.innerWidth * 0.85);   // largeur max = largeur d'ouverture (85vw)
+            var w = Math.min(maxW, Math.max(260, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--tools-panel-w', w + 'px');
         });
@@ -2322,7 +2369,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         var tab    = document.getElementById('projects-panel-tab');
         if (!handle || !panel) return;
 
-        // Largeur par défaut : 90 % de l'écran (CSS --proj-panel-w: 90vw)
+        // Largeur par défaut : 40 % de l'écran (CSS --proj-panel-w: 40vw)
 
         var dragging = false, startX = 0, startW = 0;
         handle.addEventListener('mousedown', function(e) {
@@ -2334,8 +2381,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         });
         document.addEventListener('mousemove', function(e) {
             if (!dragging) return;
-            var maxW = Math.round(window.innerWidth * 0.95);
-            var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
+            var maxW = Math.round(window.innerWidth * 0.40);   // largeur max = largeur d'ouverture (40vw)
+            var w = Math.min(maxW, Math.max(260, startW + e.clientX - startX));
             panel.style.width = w + 'px';
             document.documentElement.style.setProperty('--proj-panel-w', w + 'px');
         });
@@ -2566,8 +2613,8 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             });
             document.addEventListener('mousemove', function(e) {
                 if (!dragging) return;
-                var maxW = Math.round(window.innerWidth * 0.95);
-                var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
+                var maxW = Math.round(window.innerWidth * 0.40);   // largeur max = largeur d'ouverture (40vw)
+                var w = Math.min(maxW, Math.max(260, startW + e.clientX - startX));
                 panel.style.width = w + 'px';
                 document.documentElement.style.setProperty('--display-panel-w', w + 'px');
             });

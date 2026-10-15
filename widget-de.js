@@ -11,6 +11,8 @@
 //      <div class="mm-sub-item" onclick="createWidget('de');closeMainMenu()">
 //          <span class="mm-ico">🎲</span>&nbsp;&nbsp;Lancer un dé
 //      </div>
+//
+// Plusieurs dés : boutons − / + (de 1 à 6 dés lancés en même temps).
 // =========================================================================
 
 // Sur téléphone, un widget ouvert par l'utilisateur démarre en plein écran
@@ -173,6 +175,7 @@ function _wfIsPhoneLaunch() {
         .de-container.wf-fullboard .de-header { pointer-events: none; z-index: 30; }
         .de-container.wf-fullboard .de-header .wf-btns { pointer-events: auto; }
         .de-container.wf-fullboard .de-faces-row,
+        .de-container.wf-fullboard .de-count-row,
         .de-container.wf-fullboard .de-history-row,
         .de-container.wf-fullboard .de-controls {
             width: min(460px, 100%);
@@ -217,17 +220,46 @@ function _wfIsPhoneLaunch() {
             min-width: 30px; text-align: right;
             background: #eef2ff; border-radius: 6px; padding: 2px 6px;
         }
+        /* ── Nombre de dés ( − / + ) ── */
+        .de-count-row {
+            display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+            background: #f8f9ff; border: 1px solid #e0e3ff;
+            border-radius: 10px; padding: 5px 10px;
+        }
+        .de-count-btn {
+            width: 26px; height: 26px; border-radius: 8px; border: none;
+            background: #6366f1; color: #fff; font-size: 17px; font-weight: 900;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            padding: 0; line-height: 1; flex-shrink: 0;
+            transition: background .15s, transform .1s, opacity .15s;
+        }
+        .de-count-btn:hover  { background: #4f46e5; }
+        .de-count-btn:active { transform: scale(0.92); }
+        .de-count-btn.off    { opacity: .3; pointer-events: none; }
+        .de-count-value {
+            font-size: 14px; font-weight: 900; color: #6366f1;
+            min-width: 22px; text-align: center;
+            background: #eef2ff; border-radius: 6px; padding: 2px 6px;
+        }
+        .de-count-hint {
+            margin-left: auto; font-size: 10px; color: #9ca3af; white-space: nowrap;
+        }
         .de-dice-zone {
             flex: 1; display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             gap: 6px; min-height: 150px;
             width: 100%;
         }
+        /* Rangée de dés (un ou plusieurs) */
+        .de-stage-row {
+            --de-size: 110px;
+            display: flex; justify-content: center; align-items: flex-end;
+            width: 100%;
+        }
         /* ── Scène 3D : le dé est un vrai cube CSS (6 faces) ── */
         .de-stage {
-            --de-size: 110px;
             position: relative;
-            width: 100%;
+            flex: 1 1 0; min-width: 0;
             height: calc(var(--de-size) * 1.75);
             perspective: calc(var(--de-size) * 6);
             perspective-origin: 50% 25%;
@@ -418,6 +450,13 @@ function _wfIsPhoneLaunch() {
 
     // ── Template HTML ──────────────────────────────────────────────────────
     const TEMPLATE_ID = 'template-de';
+    const COUNT_ROW_HTML = `
+    <span class="de-faces-label">Dés :</span>
+    <button class="de-count-btn de-count-minus" title="Retirer un dé">−</button>
+    <span class="de-count-value">1</span>
+    <button class="de-count-btn de-count-plus" title="Ajouter un dé">+</button>
+    <span class="de-count-hint">lancés ensemble</span>`;
+
     if (!document.getElementById(TEMPLATE_ID)) {
         const tpl = document.createElement('template');
         tpl.id = TEMPLATE_ID;
@@ -442,28 +481,13 @@ function _wfIsPhoneLaunch() {
     <span class="de-faces-value">6</span>
   </div>
 
-  <!-- Zone principale du dé -->
+  <!-- Nombre de dés -->
+  <div class="de-count-row">${COUNT_ROW_HTML}
+  </div>
+
+  <!-- Zone principale : les dés sont créés par le script -->
   <div class="de-dice-zone">
-    <div class="de-stage" role="button" aria-label="Lancer le dé">
-      <div class="de-floor"></div>
-      <div class="de-toss">
-        <div class="de-cube">
-          <div class="de-core de-c-front"></div>
-          <div class="de-core de-c-back"></div>
-          <div class="de-core de-c-right"></div>
-          <div class="de-core de-c-left"></div>
-          <div class="de-core de-c-top"></div>
-          <div class="de-core de-c-bottom"></div>
-          <div class="de-face de-f-front"></div>
-          <div class="de-face de-f-back"></div>
-          <div class="de-face de-f-right"></div>
-          <div class="de-face de-f-left"></div>
-          <div class="de-face de-f-top"></div>
-          <div class="de-face de-f-bottom"></div>
-        </div>
-        <canvas class="de-poly"></canvas>
-      </div>
-    </div>
+    <div class="de-stage-row"></div>
     <div class="de-result-hint">Clique sur le dé ou sur « Lancer »</div>
   </div>
 
@@ -483,8 +507,9 @@ function _wfIsPhoneLaunch() {
   <div class="de-help-popup">
     <h4>💡 Comment utiliser ce widget ?</h4>
     <p><b>Nombre de faces</b> — Utilise le curseur pour choisir entre 2 et 30 faces (d2, d6, d20…). La forme du dé s'adapte : pièce (2), tétraèdre (4), cube à points (6), octaèdre (8), toupie (10 et autres nombres pairs), dodécaèdre (12), icosaèdre (20) et dé long pour les nombres impairs.</p>
-    <p><b>Lancer</b> — Clique sur <b>🎲 Lancer</b> ou directement sur le dé pour obtenir un résultat aléatoire.</p>
-    <p><b>Historique</b> — Les 20 derniers lancers s'affichent. Le plus récent est en violet.</p>
+    <p><b>Nombre de dés</b> — Les boutons <b>−</b> et <b>+</b> permettent de lancer de 1 à 6 dés en même temps. La somme s'affiche avec le résultat.</p>
+    <p><b>Lancer</b> — Clique sur <b>🎲 Lancer</b> ou directement sur un dé pour obtenir un résultat aléatoire.</p>
+    <p><b>Historique</b> — Les 20 derniers lancers s'affichent. Le plus récent est en couleur.</p>
     <p><b>🗑</b> — Efface l'historique des lancers.</p>
   </div>
 
@@ -494,6 +519,27 @@ function _wfIsPhoneLaunch() {
 </div>`;
         document.body.appendChild(tpl);
     }
+
+    // Contenu d'un dé (cube CSS + canvas pour les autres formes)
+    const DIE_HTML = `
+      <div class="de-floor"></div>
+      <div class="de-toss">
+        <div class="de-cube">
+          <div class="de-core de-c-front"></div>
+          <div class="de-core de-c-back"></div>
+          <div class="de-core de-c-right"></div>
+          <div class="de-core de-c-left"></div>
+          <div class="de-core de-c-top"></div>
+          <div class="de-core de-c-bottom"></div>
+          <div class="de-face de-f-front"></div>
+          <div class="de-face de-f-back"></div>
+          <div class="de-face de-f-right"></div>
+          <div class="de-face de-f-left"></div>
+          <div class="de-face de-f-top"></div>
+          <div class="de-face de-f-bottom"></div>
+        </div>
+        <canvas class="de-poly"></canvas>
+      </div>`;
 
     // =========================================================================
     // MOTEUR 3D (canvas) — dés autres que le d6
@@ -795,39 +841,53 @@ function _wfIsPhoneLaunch() {
     // =========================================================================
     window.initDeWidget = function (widget) {
 
+        const MAX_DICE = 6;
+
         const container    = widget.querySelector('.de-container');
         const helpBtn      = widget.querySelector('.de-help-btn');
         const helpPopup    = widget.querySelector('.de-help-popup');
         const facesSlider  = widget.querySelector('.de-faces-slider');
         const facesValue   = widget.querySelector('.de-faces-value');
+        const facesRow     = widget.querySelector('.de-faces-row');
         const diceZone     = widget.querySelector('.de-dice-zone');
-        const stage        = widget.querySelector('.de-stage');
-        const floorEl      = widget.querySelector('.de-floor');
-        const toss         = widget.querySelector('.de-toss');
-        const cube         = widget.querySelector('.de-cube');
-        const polyCanvas   = widget.querySelector('.de-poly');
-        const polyCtx      = polyCanvas.getContext('2d');
-        let polyR = null, polyLit = null, polyRoll = 0;
-        const faceEls = {
-            front:  widget.querySelector('.de-f-front'),
-            back:   widget.querySelector('.de-f-back'),
-            right:  widget.querySelector('.de-f-right'),
-            left:   widget.querySelector('.de-f-left'),
-            top:    widget.querySelector('.de-f-top'),
-            bottom: widget.querySelector('.de-f-bottom'),
-        };
         const resultHint   = widget.querySelector('.de-result-hint');
         const historyEl    = widget.querySelector('.de-history');
         const rollBtn      = widget.querySelector('.de-btn-roll');
         const clearBtn     = widget.querySelector('.de-btn-clear');
         const resizeHandle = widget.querySelector('.de-resize-handle');
 
+        // Rangée des dés (créée si absente, ex. ancien widget restauré)
+        let stageRow = diceZone.querySelector('.de-stage-row');
+        diceZone.querySelectorAll('.de-stage').forEach(el => el.remove());
+        if (!stageRow) {
+            stageRow = document.createElement('div');
+            stageRow.className = 'de-stage-row';
+            diceZone.insertBefore(stageRow, diceZone.firstChild);
+        }
+
+        // Ligne « Dés : − n + » (créée si absente)
+        let countRow = widget.querySelector('.de-count-row');
+        if (!countRow) {
+            countRow = document.createElement('div');
+            countRow.className = 'de-count-row';
+            countRow.innerHTML = COUNT_ROW_HTML;
+            facesRow.insertAdjacentElement('afterend', countRow);
+        }
+        const minusBtn   = countRow.querySelector('.de-count-minus');
+        const plusBtn    = countRow.querySelector('.de-count-plus');
+        const countValue = countRow.querySelector('.de-count-value');
+        countRow.addEventListener('pointerdown', (e) => e.stopPropagation());
+
         // ── Restaurer l'état persisté dans les dataset ───────────────────
         let nbFaces = 6;
+        let nbDice  = 1;
         let history = [];
 
         if (widget.dataset.deFaces) {
             nbFaces = parseInt(widget.dataset.deFaces, 10) || 6;
+        }
+        if (widget.dataset.deCount) {
+            nbDice = Math.max(1, Math.min(MAX_DICE, parseInt(widget.dataset.deCount, 10) || 1));
         }
         if (widget.dataset.deHistory) {
             try { history = JSON.parse(widget.dataset.deHistory); } catch(e) { history = []; }
@@ -866,17 +926,16 @@ function _wfIsPhoneLaunch() {
         });
 
         // =================================================================
-        // DÉ 3D
+        // DÉS 3D
         // =================================================================
         // Orientation de repos : face avant visible + dessus + côté droit
         const REST_X = -22, REST_Y = -28;
-        let restZ = 0;
         const restTransform = (z) => `rotateX(${REST_X}deg) rotateY(${REST_Y}deg) rotateZ(${z}deg)`;
-        cube.style.transform = restTransform(restZ);
 
         const rndInt  = (n) => Math.floor(Math.random() * n) + 1;
         const rndReal = (a, b) => a + Math.random() * (b - a);
         const pick    = (arr) => arr[Math.floor(Math.random() * arr.length)];
+        const curSize = () => parseFloat(stageRow.style.getPropertyValue('--de-size')) || 110;
 
         // Disposition des points (grille 3×3) pour le d6
         const PIPS = { 1:[4], 2:[2,6], 3:[2,4,6], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] };
@@ -894,32 +953,66 @@ function _wfIsPhoneLaunch() {
             ['#a3e635','#65a30d','#3f6212'],  // vert pomme
             ['#93c5fd','#3b82f6','#1d4ed8'],  // bleu
         ];
-        const colorOf = (val) => COLORS[(val - 1) % COLORS.length];
+        const colorOf = (val) => COLORS[(Math.max(1, val) - 1) % COLORS.length];
+
+        const isPoly = () => nbFaces !== 6;
+
+        // ── Création d'un dé ──────────────────────────────────────────────
+        const dice = [];
+        function createDie() {
+            const stage = document.createElement('div');
+            stage.className = 'de-stage';
+            stage.setAttribute('role', 'button');
+            stage.setAttribute('aria-label', 'Lancer les dés');
+            stage.innerHTML = DIE_HTML;
+            const polyCanvas = stage.querySelector('.de-poly');
+            const d = {
+                stage,
+                floorEl: stage.querySelector('.de-floor'),
+                toss:    stage.querySelector('.de-toss'),
+                cube:    stage.querySelector('.de-cube'),
+                polyCanvas,
+                polyCtx: polyCanvas.getContext('2d'),
+                polyR: null, polyLit: null, polyRoll: 0,
+                faceEls: {
+                    front:  stage.querySelector('.de-f-front'),
+                    back:   stage.querySelector('.de-f-back'),
+                    right:  stage.querySelector('.de-f-right'),
+                    left:   stage.querySelector('.de-f-left'),
+                    top:    stage.querySelector('.de-f-top'),
+                    bottom: stage.querySelector('.de-f-bottom'),
+                }
+            };
+            d.cube.style.transform = restTransform(0);
+            makeTap(stage, roll);
+            return d;
+        }
 
         // ── Dés non cubiques (canvas) ─────────────────────────────────────
-        const isPoly = () => nbFaces !== 6;
-        function polyDraw() {
-            if (!isPoly() || !polyR) return;
+        function polyDraw(d) {
+            if (!isPoly() || !d.polyR) return;
             const g = DePoly.geometry(nbFaces);
-            const S = parseFloat(stage.style.getPropertyValue('--de-size')) || 110;
+            const S = curSize();
             const dpr = Math.min(3, window.devicePixelRatio || 1);
             const W = Math.round(S * 1.7 * dpr);
-            if (polyCanvas.width !== W) { polyCanvas.width = W; polyCanvas.height = W; }
-            DePoly.draw(polyCtx, W, W, g, polyR, {
+            if (d.polyCanvas.width !== W) { d.polyCanvas.width = W; d.polyCanvas.height = W; }
+            DePoly.draw(d.polyCtx, W, W, g, d.polyR, {
                 radius: S * 0.62 * dpr, dpr, n: nbFaces,
-                lit: polyLit, litColor: polyLit != null ? colorOf(polyLit)[1] : null
+                lit: d.polyLit, litColor: d.polyLit != null ? colorOf(d.polyLit)[1] : null
             });
         }
-        function polyShow(val, lit) {
+        function polyShow(d, val, lit) {
             const g = DePoly.geometry(nbFaces);
-            polyR = DePoly.restFor(g, val == null ? 1 : val, polyRoll);
-            polyLit = lit ? val : null;
-            polyDraw();
+            d.polyR = DePoly.restFor(g, val == null ? 1 : val, d.polyRoll);
+            d.polyLit = lit ? val : null;
+            polyDraw(d);
         }
-        function setMode() { stage.classList.toggle('is-poly', isPoly()); }
+        function setMode(d) { d.stage.classList.toggle('is-poly', isPoly()); }
 
-        function lightFace(el, val) {
-            if (isPoly() && el === faceEls.front) { polyShow(val, true); return; }
+        // Met en couleur la face du résultat
+        function lightResult(d, val) {
+            if (isPoly()) { polyShow(d, val, true); return; }
+            const el = d.faceEls.front;
             const [c1, c2, c3] = colorOf(val);
             el.style.setProperty('--c1', c1);
             el.style.setProperty('--c2', c2);
@@ -947,10 +1040,10 @@ function _wfIsPhoneLaunch() {
             }
         }
 
-        // Remplit les 6 faces ; `front` = valeur visible à l'arrêt (null → « ? »)
-        function paintAll(front) {
-            setMode();
-            if (isPoly()) { polyShow(front, false); return; }
+        // Remplit les 6 faces d'un dé ; `front` = valeur visible à l'arrêt (null → « ? »)
+        function paintAll(d, front) {
+            setMode(d);
+            if (isPoly()) { polyShow(d, front, false); return; }
             const f = front == null ? rndInt(nbFaces) : front;
             let v;
             if (nbFaces === 6) {
@@ -968,53 +1061,105 @@ function _wfIsPhoneLaunch() {
                 }
                 v = { front: f, back: others[0], right: others[1], left: others[2], top: others[3], bottom: others[4] };
             }
-            Object.keys(faceEls).forEach(k => paintFace(faceEls[k], v[k]));
-            if (front == null) paintFace(faceEls.front, null);
+            Object.keys(d.faceEls).forEach(k => paintFace(d.faceEls[k], v[k]));
+            if (front == null) paintFace(d.faceEls.front, null);
         }
 
-        // Taille du dé selon la place disponible
+        // ── Historique : une entrée = un nombre (1 dé) ou un tableau (plusieurs dés)
+        const entryValues = (h) => Array.isArray(h) ? h : [h];
+        const entrySum    = (h) => entryValues(h).reduce((a, b) => a + b, 0);
+        function entryText(h) {
+            const v = entryValues(h);
+            return v.length === 1 ? String(v[0]) : `${v.join('+')}=${entrySum(h)}`;
+        }
+        function describe(h, prefix) {
+            const v = entryValues(h);
+            if (v.length === 1) return `${prefix} : ${v[0]}  (sur ${nbFaces})`;
+            return `${prefix} : ${v.join(' + ')} = ${entrySum(h)}  (${v.length} dés à ${nbFaces} faces)`;
+        }
+
+        // Affiche les dés au repos avec le dernier résultat (si compatible)
+        function showRest() {
+            const last = history.length ? entryValues(history[0]) : [];
+            let allOk = last.length === dice.length;
+            dice.forEach((d, i) => {
+                const val = last[i] != null && last[i] <= nbFaces ? last[i] : null;
+                if (val == null) allOk = false;
+                paintAll(d, val);
+                if (val != null) lightResult(d, val);
+            });
+            return allOk;
+        }
+
+        // Taille des dés selon la place disponible
         function updateSize() {
+            const n = Math.max(1, dice.length);
+            const rowW = stageRow.clientWidth || (container.clientWidth - 32);
+            const per = rowW / n;
             let size;
             if (container.classList.contains('wf-fullboard')) {
-                // Plein écran : le dé prend toute la hauteur laissée libre par
+                // Plein écran : les dés prennent toute la hauteur laissée libre par
                 // le curseur, l'historique et les boutons.
                 const cs = getComputedStyle(container);
-                const others = ['.de-faces-row', '.de-history-row', '.de-controls']
+                const others = ['.de-faces-row', '.de-count-row', '.de-history-row', '.de-controls']
                     .reduce((t, sel) => t + (container.querySelector(sel)?.offsetHeight || 0), 0);
                 const freeH = container.clientHeight
                     - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
-                    - others - 3 * 12 - (resultHint.offsetHeight || 16) - 6 - 10;
-                size = Math.min(stage.clientWidth * 0.62, freeH / 1.75);
+                    - others - 4 * 12 - (resultHint.offsetHeight || 16) - 6 - 10;
+                size = Math.min(rowW * 0.62, per * 0.66, freeH / 1.75);
             } else {
-                size = stage.clientWidth * 0.42;
+                size = Math.min(rowW * 0.42, per * 0.66);
                 if (container.style.height) size = Math.min(size, (diceZone.clientHeight - 26) / 1.75);
             }
-            size = Math.round(Math.max(70, Math.min(size, 700)));
-            if (stage.style.getPropertyValue('--de-size') !== size + 'px')
-                stage.style.setProperty('--de-size', size + 'px');
-            polyDraw();
+            size = Math.round(Math.max(n === 1 ? 70 : 36, Math.min(size, 700)));
+            if (stageRow.style.getPropertyValue('--de-size') !== size + 'px')
+                stageRow.style.setProperty('--de-size', size + 'px');
+            dice.forEach(polyDraw);
         }
-        updateSize();
-        if (typeof ResizeObserver === 'function') {
-            new ResizeObserver(() => updateSize()).observe(container);
-        }
-        window.addEventListener('resize', updateSize);
 
-        // ── Lancer le dé ─────────────────────────────────────────────────
+        // ── Nombre de dés ─────────────────────────────────────────────────
         let _rolling = false;
 
-        function roll() {
-            if (_rolling) return;
-            _rolling = true;
-            rollBtn.classList.add('busy');
+        function setCount(n, fromUser) {
+            n = Math.max(1, Math.min(MAX_DICE, n));
+            while (dice.length < n) {
+                const d = createDie();
+                dice.push(d);
+                stageRow.appendChild(d.stage);
+            }
+            while (dice.length > n) {
+                const d = dice.pop();
+                d.stage.remove();
+            }
+            nbDice = n;
+            widget.dataset.deCount = n;
+            countValue.textContent = n;
+            minusBtn.classList.toggle('off', n <= 1);
+            plusBtn.classList.toggle('off', n >= MAX_DICE);
 
-            const result = rndInt(nbFaces);
-            paintAll(result);
-            resultHint.textContent = '…';
+            if (fromUser) {
+                // Élargit un peu le widget pour que les dés gardent une taille lisible
+                if (!container.classList.contains('wf-fullboard')) {
+                    const need = n === 1 ? 0 : 40 + n * 120;
+                    if (container.offsetWidth < need) {
+                        container.style.width = need + 'px';
+                        saveDimsToDataset();
+                    }
+                }
+                const allOk = showRest();
+                if (!allOk) resultHint.textContent = 'Clique sur un dé ou sur « Lancer »';
+                if (typeof saveBoard === 'function') saveBoard();
+            }
+            updateSize();
+        }
 
-            const S      = parseFloat(stage.style.getPropertyValue('--de-size')) || 110;
-            const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            const D      = reduce ? 450 : 1500;
+        makeTap(plusBtn,  () => { if (!_rolling) setCount(nbDice + 1, true); });
+        makeTap(minusBtn, () => { if (!_rolling) setCount(nbDice - 1, true); });
+
+        // ── Lancer les dés ───────────────────────────────────────────────
+        function rollDie(d, result, S, D, delay, done) {
+            paintAll(d, result);
+
             const dir    = Math.random() < 0.5 ? -1 : 1;     // arrive par la gauche ou par la droite
             const sgn    = () => (Math.random() < 0.5 ? -1 : 1);
             const newZ   = rndReal(-9, 9);                    // petite inclinaison finale naturelle
@@ -1031,31 +1176,31 @@ function _wfIsPhoneLaunch() {
             // Rotation : tourne vite en l'air, ralentit à chaque rebond, bascule un peu à l'arrêt
             let cubeAnim = null;
             if (!isPoly()) {
-                cubeAnim = cube.animate([
+                cubeAnim = d.cube.animate([
                     { transform: rot(1),          offset: 0,    easing: 'cubic-bezier(.25,.6,.45,1)' },
                     { transform: rot(0.16),       offset: 0.48, easing: 'cubic-bezier(.3,.5,.5,1)' },
                     { transform: rot(0.02, 10),   offset: 0.72, easing: 'ease-out' },
                     { transform: rot(0, -4),      offset: 0.86, easing: 'ease-in-out' },
                     { transform: rot(0),          offset: 1 }
-                ], { duration: D, fill: 'forwards' });
+                ], { duration: D, delay, fill: 'both' });
             } else {
                 // Polyèdre : tourne autour d'un axe au hasard, de moins en moins vite,
                 // puis se pose sur la face tirée avec un petit balancement.
                 const g = DePoly.geometry(nbFaces);
-                polyRoll = newZ * Math.PI / 180;
-                const Rf = DePoly.restFor(g, result, polyRoll);
+                d.polyRoll = newZ * Math.PI / 180;
+                const Rf = DePoly.restFor(g, result, d.polyRoll);
                 const axis = DePoly.norm([rndReal(-1, 1), rndReal(-1, 1), rndReal(-1, 1)]);
                 const total = (2.4 + Math.random()) * 2 * Math.PI * sgn();
-                polyLit = null;
-                const t0 = performance.now();
+                d.polyLit = null;
+                const t0 = performance.now() + delay;
                 const tick = (now) => {
-                    const t = Math.min(1, (now - t0) / D);
+                    const t = Math.max(0, Math.min(1, (now - t0) / D));
                     const x = Math.min(1, t / 0.86), k = Math.pow(1 - x, 3);
                     const w = t > 0.62 ? 0.16 * Math.sin((t - 0.62) / 0.38 * 2 * Math.PI) * (1 - (t - 0.62) / 0.38) : 0;
-                    polyR = DePoly.mm(DePoly.rx(w), DePoly.mm(Rf, DePoly.raxis(axis, total * k)));
-                    polyDraw();
+                    d.polyR = DePoly.mm(DePoly.rx(w), DePoly.mm(Rf, DePoly.raxis(axis, total * k)));
+                    polyDraw(d);
                     if (t < 1) requestAnimationFrame(tick);
-                    else { polyR = Rf; finish(); }
+                    else { d.polyR = Rf; finish(); }
                 };
                 requestAnimationFrame(tick);
             }
@@ -1076,95 +1221,117 @@ function _wfIsPhoneLaunch() {
                 [0.82,  0,     0,    1,    1,    'linear'],
                 [1,     0,     0,    1,    1,    'linear'],
             ];
-            const tossAnim = toss.animate(P.map(([o, x, y, sx, sy, e]) => ({
+            const tossAnim = d.toss.animate(P.map(([o, x, y, sx, sy, e]) => ({
                 offset: o, easing: e,
                 transform: `translate(${x * dir * S}px, ${y * S}px) scale(${sx}, ${sy})`,
                 opacity: o === 0 ? 0 : 1
-            })), { duration: D, fill: 'forwards' });
+            })), { duration: D, delay, fill: 'both' });
 
             // Ombre au sol : petite et pâle quand le dé est haut, nette quand il touche
-            const floorAnim = floorEl.animate(P.map(([o, x, y, , , e]) => {
+            const floorAnim = d.floorEl.animate(P.map(([o, x, y, , , e]) => {
                 const h = Math.min(1, -y / 1.45);
                 return {
                     offset: o, easing: e,
                     transform: `translateX(${x * dir * S}px) scale(${1 - 0.5 * h})`,
                     opacity: o === 0 ? 0 : 1 - 0.65 * h
                 };
-            }), { duration: D, fill: 'forwards' });
+            }), { duration: D, delay, fill: 'both' });
 
             function finish() {
                 tossAnim.cancel(); floorAnim.cancel();
                 if (cubeAnim) {
-                    restZ = newZ;
-                    cube.style.transform = restTransform(restZ);
+                    d.cube.style.transform = restTransform(newZ);
                     cubeAnim.cancel();
-                    const front = faceEls.front;
-                    lightFace(front, result);
+                    const front = d.faceEls.front;
+                    lightResult(d, result);
                     front.classList.remove('win'); void front.offsetWidth; front.classList.add('win');
                 } else {
-                    polyLit = result;
-                    polyDraw();
-                    polyCanvas.classList.remove('win'); void polyCanvas.offsetWidth; polyCanvas.classList.add('win');
+                    d.polyLit = result;
+                    polyDraw(d);
+                    d.polyCanvas.classList.remove('win'); void d.polyCanvas.offsetWidth; d.polyCanvas.classList.add('win');
                 }
-
-                resultHint.textContent = `Résultat : ${result}  (sur ${nbFaces})`;
-                _rolling = false;
-                rollBtn.classList.remove('busy');
-                history.unshift(result);
-                if (history.length > 20) history = history.slice(0, 20);
-                widget.dataset.deHistory = JSON.stringify(history);
-                renderHistory();
-                if (typeof saveBoard === 'function') saveBoard();
+                done();
             }
             if (cubeAnim) cubeAnim.onfinish = finish;
+        }
+
+        function roll() {
+            if (_rolling) return;
+            _rolling = true;
+            rollBtn.classList.add('busy');
+            resultHint.textContent = '…';
+
+            const results = dice.map(() => rndInt(nbFaces));
+            const S       = curSize();
+            const reduce  = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const D       = reduce ? 450 : 1500;
+            let pending   = dice.length;
+
+            dice.forEach((d, i) => {
+                // léger décalage entre les dés pour un lancer plus naturel
+                const delay = (reduce || i === 0) ? 0 : Math.round(rndReal(0, 160));
+                rollDie(d, results[i], S, D, delay, () => {
+                    if (--pending > 0) return;
+                    const entry = results.length === 1 ? results[0] : results;
+                    resultHint.textContent = describe(entry, 'Résultat');
+                    _rolling = false;
+                    rollBtn.classList.remove('busy');
+                    history.unshift(entry);
+                    if (history.length > 20) history = history.slice(0, 20);
+                    widget.dataset.deHistory = JSON.stringify(history);
+                    renderHistory();
+                    if (typeof saveBoard === 'function') saveBoard();
+                });
+            });
         }
 
         // ── Rendu de l'historique ─────────────────────────────────────────
         function renderHistory() {
             historyEl.innerHTML = '';
-            history.forEach((val, i) => {
+            history.forEach((entry, i) => {
                 const item = document.createElement('span');
                 item.className = 'de-history-item';
-                item.textContent = val;
+                item.textContent = entryText(entry);
                 if (i === 0) {
                     item.title = 'Dernier lancer';
                     item.classList.add('lit');
-                    item.style.background = colorOf(val)[1];
+                    item.style.background = colorOf(entrySum(entry))[1];
                 }
                 historyEl.appendChild(item);
             });
         }
 
+        // ── Mise en place initiale ────────────────────────────────────────
+        setCount(nbDice, false);
+        if (typeof ResizeObserver === 'function') {
+            new ResizeObserver(() => updateSize()).observe(container);
+        }
+        window.addEventListener('resize', updateSize);
+
         // Afficher l'historique restauré + dernier résultat
         renderHistory();
-        if (history.length > 0 && history[0] <= nbFaces) {
-            const last = history[0];
-            paintAll(last);
-            lightFace(faceEls.front, last);
-            resultHint.textContent  = `Dernier résultat : ${last}  (sur ${nbFaces})`;
-        } else {
-            paintAll(null);
+        if (history.length && showRest()) {
+            resultHint.textContent = describe(history[0], 'Dernier résultat');
+        } else if (!history.length) {
+            dice.forEach(d => paintAll(d, null));
         }
 
-        // Changement du nombre de faces : on repeint le dé au repos
+        // Changement du nombre de faces : on repeint les dés au repos
         facesSlider.addEventListener('input', () => {
             if (_rolling) return;
-            const last = history.length && history[0] <= nbFaces ? history[0] : null;
-            paintAll(last);
-            if (last != null) lightFace(faceEls.front, last);
+            showRest();
         });
 
         // ── Boutons principaux ────────────────────────────────────────────
         makeTap(rollBtn, roll);
-        makeTap(stage,   roll);
 
         makeTap(clearBtn, () => {
             if (_rolling) return;
             history = [];
             widget.dataset.deHistory = '[]';
             renderHistory();
-            paintAll(null);
-            resultHint.textContent = 'Clique sur le dé ou sur « Lancer »';
+            dice.forEach(d => paintAll(d, null));
+            resultHint.textContent = 'Clique sur un dé ou sur « Lancer »';
             if (typeof saveBoard === 'function') saveBoard();
         });
 
@@ -1299,6 +1466,7 @@ function _wfIsPhoneLaunch() {
             // Le widget s'ouvre à 100px du bord gauche du board.
             widget.style.left = '100px';
             widget.dataset.leftPercent = (100 / curW) * 100;
+            updateSize();
         }));
     };
 

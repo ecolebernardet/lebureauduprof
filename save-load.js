@@ -431,6 +431,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-labyrinthe' && typeof w._jlabGetData === 'function') {
             jlabData = w._jlabGetData();
         }
+        // Données propres au jeu des 7 différences (scène, différences trouvées, erreurs, temps, taille)
+        let j7dData = null;
+        if (w.dataset.type === 'jeu-7-differences' && typeof w._j7dGetData === 'function') {
+            j7dData = w._j7dGetData();
+        }
         // Données propres au jeu Pixel art (dessin choisi, cases coloriées, options, temps, taille)
         let jpxData = null;
         if (w.dataset.type === 'jeu-pixel-art' && typeof w._jpxGetData === 'function') {
@@ -523,6 +528,7 @@ function buildBoardState() {
 			jrqData,
 			jpxData,
 			jlabData,
+			j7dData,
 			pdsData,
 			calcData,
 			visuData
@@ -1097,6 +1103,13 @@ function restoreBoardFromJSON(json) {
             // Niveau, chemin parcouru, indices, temps, brouillard, taille et plein écran
             if (typeof createJeuLabyrintheWidget === 'function') {
                 widget = createJeuLabyrintheWidget(w.jlabData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-7-differences') {
+            // Scène (ou graine « au hasard »), différences trouvées, erreurs, indices, temps, taille et plein écran
+            if (typeof createJeu7DifferencesWidget === 'function') {
+                widget = createJeu7DifferencesWidget(w.j7dData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

@@ -385,6 +385,48 @@
         return e;
     }
 
+    // ── Flèches du clavier : écoute globale ──────────────────────────────
+    // Les flèches doivent piloter le personnage même quand le jeu n'a pas le
+    // focus clavier (après un clic ailleurs, un widget juste créé…), et ne pas
+    // déplacer en même temps le widget sélectionné sur le tableau.
+    // Le labyrinthe visé : le dernier touché, ou le seul visible à l'écran.
+    var _jlabInstances = [], _jlabActive = null;
+    function _jlabVisible(inst) {
+        return inst.root.isConnected && inst.root.offsetParent !== null && inst.root.style.display !== 'none';
+    }
+    function _jlabTarget() {
+        _jlabInstances = _jlabInstances.filter(function (i) { return i.root.isConnected; });
+        if (_jlabActive && _jlabVisible(_jlabActive)) return _jlabActive;
+        var vis = _jlabInstances.filter(_jlabVisible);
+        return vis.length === 1 ? vis[0] : null;
+    }
+    var ARROWS = { ArrowUp: 'N', ArrowDown: 'S', ArrowLeft: 'W', ArrowRight: 'E' };
+    function _jlabGlobalKey(e) {
+        var dk = ARROWS[e.key];
+        if (!dk || e.ctrlKey || e.metaKey || e.altKey) return;
+        // Ne pas voler les flèches pendant une saisie de texte
+        var t = e.target;
+        if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+        var inst = _jlabTarget();
+        if (!inst) return;
+        // Focus dans un autre widget du tableau : on le laisse tranquille
+        var other = t && t.closest && t.closest('.widget');
+        if (other && other !== inst.widget) return;
+        if (!inst.handleArrow(dk, e.shiftKey)) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+    }
+    window.addEventListener('keydown', _jlabGlobalKey, true);
+    // Un clic dans un autre widget rend la main au tableau ; un clic dans le
+    // labyrinthe le rend actif.
+    window.addEventListener('pointerdown', function (e) {
+        var w = e.target && e.target.closest && e.target.closest('.widget');
+        if (!w) return;
+        var hit = null;
+        _jlabInstances.forEach(function (i) { if (i.widget === w) hit = i; });
+        _jlabActive = hit;
+    }, true);
+
     var EMOJI_FONT = '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji","Twemoji Mozilla",sans-serif';
 
     // =====================================================================
@@ -470,7 +512,7 @@
                 '<p style="margin:6px 0;">🎯 <b>But :</b> guider le personnage du <b>départ</b> (en haut à gauche) jusqu\'à son <b>trésor</b>, à l\'arrivée (en bas à droite).</p>' +
                 '<p style="margin:6px 0;">✍️ <b>Trace le chemin</b> au doigt, au stylet ou à la souris en partant du personnage.</p>' +
                 '<p style="margin:6px 0;">👆 <b>Balaye</b> le plateau dans une direction : le personnage glisse jusqu\'au prochain carrefour.</p>' +
-                '<p style="margin:6px 0;">⌨️ <b>Flèches</b> du clavier (Maj + flèche pour glisser) ou la <b>croix</b> à droite (reste appuyé pour avancer).</p>' +
+                '<p style="margin:6px 0;">⌨️ <b>Flèches</b> du clavier (Maj + flèche pour glisser, reste appuyé pour avancer) ou la <b>croix</b> à droite (reste appuyé pour avancer).</p>' +
                 '<p style="margin:6px 0;">⭐ Chaque case parcourue compte pour un <b>pas</b>. Atteins le minimum pour gagner 3 étoiles (2 au maximum si tu as utilisé un indice).</p>' +
                 '<p style="margin:6px 0;">🌫️ <b>Brouillard :</b> tu ne vois que ce qui est autour de toi. Un vrai défi !</p></div></div>' +
             '<div class="jlab-grip" title="Redimensionner"></div>';
@@ -917,8 +959,20 @@
         });
 
         // ── Clavier : flèches / ZQSD, Maj = glisser, Ctrl+Z ──────────────
-        var KEYS = { ArrowUp: 'N', ArrowDown: 'S', ArrowLeft: 'W', ArrowRight: 'E',
-                     z: 'N', s: 'S', q: 'W', d: 'E', w: 'N', a: 'W', Z: 'N', S: 'S', Q: 'W', D: 'E', W: 'N', A: 'W' };
+        // Les flèches passent par l'écoute globale (_jlabGlobalKey) ;
+        // ZQSD / WASD fonctionnent quand le jeu a le focus.
+        var KEYS = { z: 'N', s: 'S', q: 'W', d: 'E', w: 'N', a: 'W', Z: 'N', S: 'S', Q: 'W', D: 'E', W: 'N', A: 'W' };
+        var inst = {
+            widget: widget, root: root,
+            handleArrow: function (dk, shift) {
+                if (S.won || S.busy || !S.L) return false;
+                if (root.querySelector('.jlab-ov.show')) return false;
+                if (shift) glide(dk); else stepDir(dk);
+                return true;
+            }
+        };
+        _jlabInstances.push(inst);
+        _jlabActive = inst;
         root.addEventListener('keydown', function (e) {
             if ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey)) { undo(); e.preventDefault(); e.stopPropagation(); return; }
             if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1140,6 +1194,7 @@
         loadLevel(startLevel, data.path ? data : null);
         requestAnimationFrame(layout);
         setTimeout(layout, 120);
+        setTimeout(function () { try { root.focus({ preventScroll: true }); } catch (e) {} }, 150);
         // Redessiner quand la police des émojis est prête
         if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (root.isConnected) draw(); });
 

@@ -7,13 +7,18 @@
 // hasard ne paie plus (1 chance sur 3).
 //   👤 Seul    : 20 questions chronométrées, points selon la rapidité, record.
 //   👥 À deux  : écran partagé pour le TBI (un joueur de chaque côté, multi-
-//               touch). Une erreur bloque son côté. Victoire au choix :
+//               touch). Une erreur bloque son côté (ou, au choix, donne le
+//               point à l'adversaire). Victoire au choix :
 //               premier à N points, ou le plus de points en N manches.
 //               Bouton ⏸ Pause pendant le duel.
 //               Liste de classe (bouton 📂, fichier .txt « prénom;nom ») :
 //               tirage au sort de 2 élèves par duel (chacun passe une fois
 //               par tour), scores affichés à côté du nom de chaque élève,
 //               liste visible à gauche et à droite en plein écran.
+//               Mode 🏆 Tournoi (élimination directe) : 1er tour, puis seuls
+//               les gagnants jouent le tour suivant, jusqu'à la finale.
+//               Nombre impair : match de barrage (le perdant est éliminé).
+//               Égalité en fin de match : manche décisive.
 // Nombres : jusqu'à 20, 100, 1 000, grands nombres, décimaux, fractions, calculs.
 // 3 niveaux : facile (écart large), moyen (nombres proches), difficile (pièges).
 //
@@ -583,6 +588,69 @@
         .jpg-draw-vs { font-family: 'Lilita One', sans-serif; font-size: calc(34px * var(--jpg-s)); color: var(--or); text-shadow: 0 calc(3px * var(--jpg-s)) 0 #B3470F; }
         .jpg-draw-info { font-weight: 800; font-size: calc(13px * var(--jpg-s)); color: rgba(255,255,255,0.85); text-align: center; min-height: 1.3em; }
 
+        /* ── Tournoi ── */
+        .jpg-arena.tour {
+            height: auto; min-height: calc(370px * var(--jpg-s));
+            background:
+                radial-gradient(circle, rgba(255,255,255,0.06) calc(1.5px * var(--jpg-s)), transparent calc(2px * var(--jpg-s))) 0 0 / calc(24px * var(--jpg-s)) calc(24px * var(--jpg-s)),
+                linear-gradient(160deg, #3D2C8D 0%, #5B3FB0 60%, #7A55C9 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            gap: calc(10px * var(--jpg-s)); color: #fff; padding: calc(14px * var(--jpg-s)); box-sizing: border-box;
+        }
+        .jpg-tour-tabs { display: flex; flex-wrap: wrap; gap: calc(5px * var(--jpg-s)); justify-content: center; }
+        .jpg-tour-tab {
+            font-family: inherit; font-weight: 900; font-size: calc(12px * var(--jpg-s)); cursor: pointer;
+            padding: calc(4px * var(--jpg-s)) calc(11px * var(--jpg-s)); border-radius: 999px;
+            border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.06); color: #fff;
+        }
+        .jpg-tour-tab.done { border-color: rgba(124,255,178,0.6); }
+        .jpg-tour-tab.on { background: var(--or); border-color: var(--or); color: var(--encre); }
+        .jpg-tour-sub { font-weight: 800; font-size: calc(13px * var(--jpg-s)); color: rgba(255,255,255,0.85); }
+        .jpg-champ {
+            font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: calc(26px * var(--jpg-s));
+            background: var(--or); color: var(--encre); border-radius: 999px;
+            padding: calc(6px * var(--jpg-s)) calc(20px * var(--jpg-s));
+            box-shadow: 0 calc(4px * var(--jpg-s)) 0 #B3840B; animation: jpg-pop .4s ease-out; text-align: center;
+        }
+        .jpg-champ b { font-weight: 400; }
+        .jpg-matches {
+            display: grid; grid-template-columns: 1fr; gap: calc(6px * var(--jpg-s));
+            width: 100%; max-width: calc(520px * var(--jpg-s));
+            max-height: calc(250px * var(--jpg-s)); overflow-y: auto; padding: 2px;
+        }
+        .jpg-matches.two { grid-template-columns: 1fr 1fr; max-width: none; }
+        .jpg-match {
+            display: grid; grid-template-columns: auto 1fr auto 1fr; align-items: center;
+            gap: calc(6px * var(--jpg-s)); min-width: 0;
+            background: rgba(255,255,255,0.10); border-radius: calc(12px * var(--jpg-s));
+            padding: calc(5px * var(--jpg-s)) calc(8px * var(--jpg-s));
+            font-weight: 900; font-size: calc(14px * var(--jpg-s));
+        }
+        .jpg-match.cur { background: #fff; color: var(--encre); box-shadow: 0 0 0 calc(3px * var(--jpg-s)) var(--or); animation: jpg-pop .3s ease-out; }
+        .jpg-match.todo { opacity: 0.7; }
+        .jpg-match.barrage { box-shadow: inset 0 0 0 2px rgba(255,201,51,0.7); }
+        .jpg-match.barrage.cur { box-shadow: 0 0 0 calc(3px * var(--jpg-s)) var(--or); }
+        .jpg-mn-b { background: var(--or); }
+        .jpg-mp-wait { font-style: italic; font-weight: 800; opacity: 0.7; font-size: 0.85em; }
+        .jpg-mn {
+            min-width: calc(20px * var(--jpg-s)); height: calc(20px * var(--jpg-s)); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.25); color: #fff; font-size: calc(11px * var(--jpg-s));
+        }
+        .jpg-mp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+        .jpg-mp.L { text-align: right; } .jpg-mp.R { text-align: left; }
+        .jpg-match.cur .jpg-mp.L { color: #1F6FB5; } .jpg-match.cur .jpg-mp.R { color: #E0620F; }
+        .jpg-mp.win { color: #7CFFB2; }
+        .jpg-mp.win::after { content: ' ✔'; }
+        .jpg-mp.lose { opacity: 0.5; text-decoration: line-through; }
+        .jpg-ms { font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: calc(15px * var(--jpg-s)); color: var(--or); white-space: nowrap; text-align: center; }
+        .jpg-match.cur .jpg-ms { color: #5B3FB0; }
+        .jpg-st.t-out { opacity: 0.45; }
+        .jpg-st.t-out .jpg-st-name { text-decoration: line-through; }
+        .jpg-st.t-champ { background: var(--or) !important; color: var(--encre) !important; }
+        .jpg-st.t-qualif .jpg-st-state { color: var(--vert); }
+        .jpg-side .jpg-st.t-qualif .jpg-st-state { color: #7CFFB2; }
+
         /* ══ ÉCRAN DE RÉGLAGES (comme la Battle de calculs) ══ */
         .jpg-arena.setup {
             height: auto; min-height: calc(370px * var(--jpg-s));
@@ -812,9 +880,11 @@
     const CLASS_KEY = 'jeu-plus-grand-classe';    // liste d'élèves + scores
     const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
     function loadDuel() {
-        const d = { end: 'goal', goal: 10, count: 10 };
+        const d = { end: 'goal', goal: 10, count: 10, org: 'free', err: 'lock' };
         try { Object.assign(d, JSON.parse(localStorage.getItem(DUEL_KEY) || '{}')); } catch (e) {}
         if (d.end !== 'count') d.end = 'goal';
+        if (d.org !== 'tour') d.org = 'free';      // free = duels tirés au sort · tour = tournoi
+        if (d.err !== 'gift') d.err = 'lock';      // erreur : lock = côté bloqué · gift = point à l'adversaire
         d.goal = Math.max(1, Math.min(30, d.goal | 0 || 10));
         d.count = Math.max(3, Math.min(40, d.count | 0 || 10));
         return d;
@@ -842,6 +912,8 @@
             if (c && Array.isArray(c.students)) {
                 c.played = Array.isArray(c.played) ? c.played : [];
                 c.students.forEach(st => { if (!Array.isArray(st.scores)) st.scores = []; });
+                // Tournoi en cours : { rounds: [{ players, matches: [{ L, R, w, sL, sR, barrage, wait }] }], champion, barr }
+                if (!c.tour || !Array.isArray(c.tour.rounds) || !c.tour.rounds.length || !Array.isArray(c.tour.barr)) c.tour = null;
                 return c;
             }
         } catch (e) {}
@@ -960,7 +1032,8 @@
                 <p>⚙️ <b>Réglages</b> : choisissez le nombre de joueurs, les nombres à comparer, le niveau et la consigne, puis <b>▶ Jouer</b> (ou <b>▶ Lancer le duel</b> à deux).</p>
                 <p>Trois nombres apparaissent : tape <b>le plus vite possible</b> sur le plus grand (ou le plus petit, selon la consigne affichée).</p>
                 <p>👤 <b>Seul</b> : 20 questions, chacune avec un temps limité. Plus tu es rapide, plus tu gagnes de points ! Le temps se règle dans ⚙️ Réglages (secondes par question).</p>
-                <p>👥 <b>À deux</b> (au TBI) : un joueur de chaque côté de l'écran. Le premier qui tape le bon nombre marque le point. Si tu te trompes, ton côté est <b>bloqué 🔒</b> pour cette manche. Victoire : <b>premier à N points</b> ou <b>le plus de points en N manches</b> (au choix).</p>
+                <p>👥 <b>À deux</b> (au TBI) : un joueur de chaque côté de l'écran. Le premier qui tape le bon nombre marque le point. Si tu te trompes, au choix dans ⚙️ Réglages : ton côté est <b>bloqué 🔒</b> pour cette manche, ou <b>le point va à ton adversaire 🎁</b>. Victoire : <b>premier à N points</b> ou <b>le plus de points en N manches</b> (au choix).</p>
+                <p>🏆 <b>Tournoi</b> (à deux, avec une liste 📂) : choisissez « 🏆 Tournoi » dans ⚙️ Réglages (Nombre de joueurs). Les élèves présents sont répartis en matchs ; seuls les <b>gagnants</b> passent au tour suivant, jusqu'à la <b>finale</b>. Nombre impair : un <b>match de barrage</b> est joué d'abord (le perdant est éliminé, le vainqueur joue encore un match), donc tout le monde joue à chaque tour. En cas d'égalité, une <b>manche décisive</b> départage les joueurs.</p>
                 <p>⏸ <b>Pause</b> possible pendant la partie (ou touche Espace / Échap).</p>
                 <p>📂 À deux, chargez une liste d'élèves (.txt, une ligne <b>prénom;nom</b>) : deux élèves sont tirés au sort pour chaque duel et leurs scores s'affichent à côté de leur nom.</p>
                 <p>Clavier : seul <b>1</b> / <b>2</b> / <b>3</b> (ou ← / ↓ / →) · à deux : joueur bleu <b>A</b> / <b>Z</b> / <b>E</b>, joueur orange <b>I</b> / <b>O</b> / <b>P</b>.</p>
@@ -1164,6 +1237,12 @@
         const TYPE_LBL = { n20: 'Jusqu\'à 20', n100: 'Jusqu\'à 100', n1000: 'Jusqu\'à 1 000', n1m: 'Grands nombres', dec: 'Décimaux', frac: 'Fractions', calc: 'Calculs' };
         function setupMsg() {
             if (mode === 'solo') return '⚖️ Choisis les nombres, le niveau et la consigne, puis clique sur <b>▶ Jouer</b> !';
+            if (DS.org === 'tour') {
+                if (CL.tour && !CL.tour.champion) return '🏆 Un tournoi est en cours : cliquez sur <b>▶ Reprendre le tournoi</b> pour voir le prochain match.';
+                return hasClass()
+                    ? '🏆 Tournoi : les élèves présents de la liste 📂 sont répartis en matchs. Seuls les gagnants passent au tour suivant, jusqu\'à la <b>finale</b> ! Cliquez sur <b>▶ Lancer le tournoi</b>.'
+                    : '🏆 Pour un tournoi, chargez d\'abord une liste d\'élèves avec le bouton <b>📂</b> (au moins 2 élèves présents).';
+            }
             return hasClass()
                 ? '👥 Choisissez les réglages, puis cliquez sur <b>▶ Lancer le duel</b> : deux élèves de la liste 📂 seront tirés au sort.'
                 : '👥 Choisissez les réglages, puis cliquez sur <b>▶ Lancer le duel</b>. Un élève de chaque côté du tableau ! (📂 pour charger une liste d\'élèves)';
@@ -1193,6 +1272,7 @@
                 <div class="jpg-chips">
                     <button class="jpg-small" data-mode="solo">👤 Seul</button>
                     <button class="jpg-small" data-mode="duel">👥 À deux (duel au tableau)</button>
+                    <button class="jpg-small" data-mode="tour" title="Élimination directe avec la liste d'élèves 📂 : seuls les gagnants passent au tour suivant">🏆 Tournoi</button>
                 </div>
                 <div class="jpg-label">Quels nombres comparer ?</div>
                 <div class="jpg-chips jpg-chips-types">${types}</div>
@@ -1220,6 +1300,11 @@
                         <button class="jpg-small" data-end="count" title="Le duel s'arrête après un nombre fixe de manches">🔢 Le plus de points en N manches</button>
                         <button class="jpg-small" data-end="goal" title="Le duel s'arrête dès qu'un joueur atteint le nombre de points">🏁 Le premier à N points</button>
                     </div>
+                    <div class="jpg-label">En cas de mauvaise réponse</div>
+                    <div class="jpg-chips">
+                        <button class="jpg-small" data-err="lock" title="Le joueur qui se trompe ne peut plus répondre pendant cette manche ; l'autre peut encore marquer">🔒 Son côté est bloqué</button>
+                        <button class="jpg-small" data-err="gift" title="Une mauvaise réponse donne immédiatement le point à l'adversaire">🎁 Le point va à l'adversaire</button>
+                    </div>
                 </div>
                 <div class="jpg-params">
                     ${spinner('Secondes<br>par question', 'speed', 2, 30)}
@@ -1230,11 +1315,13 @@
 
             const q = (sel) => arena.querySelectorAll(sel);
             const sync = () => {
-                q('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+                const shown = mode === 'solo' ? 'solo' : DS.org === 'tour' ? 'tour' : 'duel';
+                q('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === shown));
                 q('[data-type]').forEach(b => b.classList.toggle('on', b.dataset.type === type));
                 q('[data-level]').forEach(b => b.classList.toggle('on', +b.dataset.level === level));
                 q('[data-order]').forEach(b => b.classList.toggle('on', b.dataset.order === orderMode));
                 q('[data-end]').forEach(b => b.classList.toggle('on', b.dataset.end === DS.end));
+                q('[data-err]').forEach(b => b.classList.toggle('on', b.dataset.err === DS.err));
                 q('[data-endbox]').forEach(el => el.classList.toggle('jpg-hide', el.dataset.endbox !== DS.end));
                 q('[data-key]').forEach(inp => { inp.value = getVal(inp.dataset.key); });
                 q('[data-endbox]').forEach(el => { if (mode !== 'duel') el.classList.add('jpg-hide'); });
@@ -1243,7 +1330,8 @@
                 const sec = speed;
                 arena.querySelector('.jpg-info').innerHTML = mode === 'solo'
                     ? `👤 <b>${SOLO_ROUNDS}</b> questions · <b>${sec} s</b> par question · 🏆 Record : <b>${records[recKey()] || 0}</b> pts`
-                    : `👥 Un joueur de chaque côté du tableau · <b>${sec} s</b> par question · une erreur bloque son côté 🔒`;
+                    : DS.org === 'tour' ? tourInfo(sec)
+                    : `👥 Un joueur de chaque côté du tableau · <b>${sec} s</b> par question · ${errTxt()}`;
                 updateStats(false);
                 updateButtons();
             };
@@ -1255,11 +1343,18 @@
                     requestAnimationFrame(applyScale);
                 }
             };
-            q('[data-mode]').forEach(b => b.addEventListener('click', () => { const m = mode !== b.dataset.mode; mode = b.dataset.mode; changed(m); }));
+            // Seul / À deux / Tournoi (le tournoi est une suite de duels : mode « duel » + DS.org)
+            q('[data-mode]').forEach(b => b.addEventListener('click', () => {
+                const before = mode + DS.org;
+                mode = b.dataset.mode === 'solo' ? 'solo' : 'duel';
+                if (b.dataset.mode !== 'solo') { DS.org = b.dataset.mode === 'tour' ? 'tour' : 'free'; saveDuel(DS); }
+                changed(before !== mode + DS.org);
+            }));
             q('[data-type]').forEach(b => b.addEventListener('click', () => { type = b.dataset.type; changed(); }));
             q('[data-level]').forEach(b => b.addEventListener('click', () => { level = +b.dataset.level; changed(); }));
             q('[data-order]').forEach(b => b.addEventListener('click', () => { orderMode = b.dataset.order; changed(); }));
             q('[data-end]').forEach(b => b.addEventListener('click', () => { DS.end = b.dataset.end; saveDuel(DS); sync(); }));
+            q('[data-err]').forEach(b => b.addEventListener('click', () => { DS.err = b.dataset.err; saveDuel(DS); sync(); }));
 
             // Spinners +/− avec appui long
             q('[data-key]').forEach(input => {
@@ -1346,7 +1441,7 @@
             const r = readyEl();
             if (mode === 'duel') {
                 duelRound++;
-                const dr = arena.querySelector('[data-role="dround"]'); if (dr) dr.textContent = DS.end === 'count' ? `${duelRound}/${DS.count}` : duelRound;
+                const dr = arena.querySelector('[data-role="dround"]'); if (dr) dr.textContent = DS.end === 'count' ? (duelRound > DS.count ? '⚡' : `${duelRound}/${DS.count}`) : duelRound;
             }
             // Petite attente aléatoire : impossible d'anticiper
             await pwait(mode === 'duel' ? 700 + Math.random() * 900 : 350 + Math.random() * 450);
@@ -1452,6 +1547,26 @@
                 say(`${side === 'L' ? '🔵' : '🟠'} Point pour <b>${esc(names[side])}</b> en ${ms} s ! ${explainTxt()}${balle}`, 'good');
                 await pwait(1300);
                 duelNext(id);
+            } else if (DS.err === 'gift') {
+                // Mode « point à l'adversaire » : la manche s'arrête, l'autre joueur marque
+                state = 'result';
+                pts[other]++;
+                bs.forEach(b => {
+                    if (+b.dataset.k === k) b.classList.add('ko');
+                    else if (+b.dataset.k === ci) b.classList.add('hint');
+                });
+                numBtns(other).forEach(b => { if (+b.dataset.k === ci) b.classList.add('hint'); });
+                const half = arena.querySelector(`.jpg-half.${other}`);
+                half.classList.add('win');
+                const sc = half.querySelector('.jpg-pscore');
+                sc.textContent = pts[other];
+                sc.classList.remove('bump'); void sc.offsetWidth; sc.classList.add('bump');
+                sfx('bad');
+                setTimeout(() => sfx(other === 'L' ? 'pointL' : 'pointR'), 250);
+                const balle = DS.end === 'goal' && pts[other] === DS.goal - 1 ? ' ⚡ Balle de match !' : '';
+                say(`${side === 'L' ? '🔵' : '🟠'} <b>${esc(names[side])}</b> s'est trompé : 🎁 le point va à ${other === 'L' ? '🔵' : '🟠'} <b>${esc(names[other])}</b> ! ${explainTxt()}${balle}`, 'bad');
+                await pwait(1800);
+                duelNext(id);
             } else {
                 locked[side] = true;
                 bs.forEach(b => { if (+b.dataset.k === k) b.classList.add('ko'); });
@@ -1502,8 +1617,14 @@
         // Après chaque manche : fin du duel ou manche suivante
         function duelNext(id) {
             if (id !== runId) return;
-            if (DS.end === 'goal' && (pts.L >= DS.goal || pts.R >= DS.goal)) duelEnd();
-            else if (DS.end === 'count' && duelRound >= DS.count) duelEnd();
+            const over = (DS.end === 'goal' && (pts.L >= DS.goal || pts.R >= DS.goal))
+                      || (DS.end === 'count' && duelRound >= DS.count);
+            if (over && tourMatch() && pts.L === pts.R) {
+                // Tournoi : il faut un gagnant → manche décisive (le prochain point gagne)
+                say(`⚖️ Égalité ${pts.L} à ${pts.R} ! <b>Manche décisive</b> : le prochain point gagne le match.`);
+                newRound();
+            }
+            else if (over) duelEnd();
             else newRound();
         }
         function duelEnd() {
@@ -1513,6 +1634,19 @@
             const ov = overlay();
             const tie = pts.L === pts.R;
             const side = pts.L > pts.R ? 'L' : 'R';
+            const tm = tie ? null : tourMatch();
+            let tourTxt = '';
+            if (tm) {
+                tm.w = side === 'L' ? duo.L : duo.R; tm.sL = pts.L; tm.sR = pts.R;
+                const isBarrage = !!tm.barrage;
+                const res = tourAdvance();
+                const last = isBarrage ? tourCur().matches.find(x => x.wait) : null;
+                tourTxt = isBarrage
+                    ? `⚔️ ${esc(names[side])} gagne le barrage et reste en lice !` + (last ? ` Prochain adversaire : ${esc(shortName(stById(last.L)))}.` : '')
+                    : res === 'champion'
+                    ? `🏆 ${esc(names[side])} remporte le tournoi !`
+                    : `🏆 ${esc(names[side])} est qualifié(e) pour le tour suivant !` + (res === 'newround' ? ' · Ce tour est terminé.' : '');
+            }
             const recorded = recordDuel();
             const finalHTML = `<div class="jpg-final"><span class="L">${pts.L}<small>${esc(names.L)}</small></span> – <span class="R">${pts.R}<small>${esc(names.R)}</small></span></div>`;
             ov.querySelector('.jpg-card').innerHTML = `
@@ -1520,9 +1654,10 @@
                 <h3>${tie ? 'Égalité parfaite !' : esc(names[side]) + ' gagne !'}</h3>
                 ${finalHTML}
                 <p class="jpg-sub">en ${duelRound} manche${duelRound > 1 ? 's' : ''}</p>
-                ${recorded ? '<p class="jpg-rec">✔ Scores ajoutés dans la liste 📂</p>' : ''}
+                ${tourTxt ? `<p class="jpg-rec">${tourTxt}</p>` : recorded ? '<p class="jpg-rec">✔ Scores ajoutés dans la liste 📂</p>' : ''}
                 <div class="jpg-actions">
-                    ${hasClass() ? '<button class="jpg-btn jpg-btn-go" data-act="next">🎲 Duel suivant</button>'
+                    ${tm ? '<button class="jpg-btn jpg-btn-go" data-act="tour">🏆 Suite du tournoi</button>'
+                         : hasClass() ? '<button class="jpg-btn jpg-btn-go" data-act="next">🎲 Duel suivant</button>'
                                  : '<button class="jpg-btn jpg-btn-go" data-act="again">🔄 Revanche</button>'}
                     <button class="jpg-btn" data-act="tosetup">⚙️ Réglages</button>
                 </div>`;
@@ -1531,6 +1666,8 @@
             say(tie
                 ? `🤝 Égalité ${pts.L} à ${pts.R} ! Bravo à tous les deux.`
                 : `🏆 Victoire de <b>${esc(names[side])}</b> ${pts.L} à ${pts.R} ! Bravo !`, 'good');
+            const tb = ov.querySelector('[data-act="tour"]');
+            if (tb) tb.addEventListener('click', (e) => { e.stopPropagation(); showTournament(); });
             const nx = ov.querySelector('[data-act="next"]');
             if (nx) nx.addEventListener('click', (e) => { e.stopPropagation(); showDraw(true); });
             const ag = ov.querySelector('[data-act="again"]');
@@ -1551,6 +1688,7 @@
         }
 
         // ── Fin du duel : premier à N points / N manches ──────────────────
+        const errTxt = () => DS.err === 'gift' ? 'une erreur donne le point à l\'adversaire 🎁' : 'une erreur bloque son côté 🔒';
         const endTxt = () => DS.end === 'goal' ? `Premier à ${DS.goal}` : `En ${DS.count} manches`;
 
         // ── Pause (seul et duel) ───────────────────────────────────────────────────
@@ -1594,7 +1732,7 @@
             $('.jpg-class-count').textContent = CL.students.length
                 ? `${present.length} présent${present.length > 1 ? 's' : ''} · ${played} ont joué` : '';
             classBtn.classList.toggle('on', CL.students.length > 0);
-            clBtn('draw').disabled = !hasClass() || playing() || rolling;
+            clBtn('draw').disabled = !hasClass() || playing() || rolling || tourOn();
             clBtn('reset').disabled = !CL.students.length;
             clBtn('clear').disabled = !CL.students.length;
             const wantSides = container.classList.contains('wf-fullboard') && mode === 'duel' && CL.students.length > 0;
@@ -1609,11 +1747,15 @@
                 if (st.absent) cls.push('absent');
                 if (duo && duo.L === st.id) cls.push('cur-L');
                 if (duo && duo.R === st.id) cls.push('cur-R');
+                const ts = tourOn() ? tourStatus(st.id) : null;
+                if (ts) cls.push('t-' + ts);
                 const sc = st.scores.map(r => {
                     const k = r.pts > r.opp ? 'win' : r.pts < r.opp ? 'lose' : 'tie';
                     return `<span class="jpg-sc ${k}" title="${esc(r.pts + ' – ' + r.opp + ' contre ' + r.adv)}">${r.pts}</span>`;
                 }).join('');
-                const stateTxt = st.absent ? 'absent' : (duo && (duo.L === st.id || duo.R === st.id)) ? 'au tableau' : '';
+                const stateTxt = (duo && (duo.L === st.id || duo.R === st.id)) ? 'au tableau'
+                    : ts === 'champ' ? '🏆 champion' : ts === 'out' ? 'éliminé' : ts === 'qualif' ? 'qualifié' : ts === 'in' ? 'en lice'
+                    : st.absent ? 'absent' : '';
                 return `<div class="${cls.join(' ')}" data-id="${st.id}">
                     <span class="jpg-st-name">${esc(fullName(st))}</span>
                     ${stateTxt ? `<span class="jpg-st-state">${stateTxt}</span>` : ''}
@@ -1679,7 +1821,162 @@
             classBox.classList.add('show');
             say(`✅ <b>${list.length} élèves</b> chargés ! Cliquez sur <b>🎲 Tirer au sort</b> ou <b>▶ Jouer</b>.`, 'good');
             if (state === 'draw') showDraw(true);
+            if (state === 'tour') showSetup();
         });
+
+
+        // =====================================================================
+        // TOURNOI (élimination directe) : 1er tour, puis seuls les gagnants
+        // jouent le tour suivant… jusqu'à la finale.
+        // Nombre impair de joueurs : MATCH DE BARRAGE. Deux élèves (jamais les
+        // mêmes si possible) s'affrontent d'abord, le perdant est éliminé et le
+        // vainqueur joue ensuite le dernier match du tour contre l'élève resté
+        // seul. Tout le monde joue donc à chaque tour.
+        // Match : { L, R, w, sL, sR, barrage?, wait? }  (wait : R = vainqueur du barrage)
+        // =====================================================================
+        const tourOn = () => mode === 'duel' && DS.org === 'tour';
+        const tourCur = () => CL.tour ? CL.tour.rounds[CL.tour.rounds.length - 1] : null;
+        const curMatch = () => { const R = tourCur(); return R && !CL.tour.champion ? R.matches.find(m => !m.w && m.R) || null : null; };
+        // Le match en cours de jeu (si le duel au tableau est un match du tournoi)
+        const tourMatch = () => {
+            if (!tourOn() || !duo) return null;
+            const m = curMatch();
+            return m && m.L === duo.L && m.R === duo.R ? m : null;
+        };
+        const roundDone = (R) => R.matches.every(m => m.w);
+        const hasBarrage = (R) => R.matches.some(m => m.barrage);
+        function roundName(R, i) {
+            // Nombre de joueurs après le barrage éventuel
+            const n = R.players.length - (hasBarrage(R) ? 1 : 0);
+            if (n <= 2) return 'Finale';
+            if (n <= 4) return 'Demi-finales';
+            if (n <= 8) return 'Quarts de finale';
+            if (n <= 16) return 'Huitièmes de finale';
+            return i === 0 ? '1er tour' : (i + 1) + 'e tour';
+        }
+        const nbRounds = (n) => n < 2 ? 0 : Math.ceil(Math.log2(n));
+        function tourInfo(sec) {
+            if (CL.tour && !CL.tour.champion) {
+                const R = tourCur();
+                return `🏆 Tournoi en cours : <b>${roundName(R, CL.tour.rounds.length - 1)}</b> · ${R.matches.filter(m => m.w).length} / ${R.matches.length} matchs joués · <b>${sec} s</b> par question`;
+            }
+            const n = CL.students.filter(st => !st.absent).length;
+            if (n < 2) return '🏆 Tournoi : chargez d\'abord une liste d\'élèves 📂';
+            return `🏆 Tournoi : <b>${n}</b> élèves présents · nombre impair = <b>match de barrage</b> · égalité = manche décisive`;
+        }
+        function makeRound(ids) {
+            const T = CL.tour;
+            const list = shuffle(ids.slice());
+            const matches = [];
+            let alone = null;
+            if (list.length % 2) {
+                // Barrage : deux élèves qui n'ont pas encore joué de barrage (si possible)
+                const fresh = list.filter(id => T.barr.indexOf(id) < 0);
+                const pool = fresh.length >= 2 ? fresh : list;
+                const a = pool[0], b = pool[1];
+                [a, b].forEach(id => { list.splice(list.indexOf(id), 1); T.barr.push(id); });
+                matches.push({ L: a, R: b, w: null, sL: 0, sR: 0, barrage: true });
+                alone = list.pop();          // affrontera le vainqueur du barrage
+            }
+            for (let i = 0; i + 1 < list.length; i += 2) matches.push({ L: list[i], R: list[i + 1], w: null, sL: 0, sR: 0 });
+            // Le match « élève seul contre vainqueur du barrage » se joue en dernier :
+            // le vainqueur du barrage a le temps de souffler.
+            if (alone) matches.push({ L: alone, R: null, w: null, sL: 0, sR: 0, wait: true });
+            T.rounds.push({ players: ids.slice(), matches });
+        }
+        function createTournament() {
+            const ids = CL.students.filter(st => !st.absent).map(st => st.id);
+            CL.tour = { rounds: [], champion: null, barr: [] };
+            makeRound(ids);
+            saveClass(CL);
+        }
+        // Après un match : barrage → son vainqueur rejoint le dernier match ;
+        // tour terminé → tour suivant avec les gagnants (ou champion)
+        function tourAdvance() {
+            const R = tourCur();
+            let res = '';
+            const b = R.matches.find(m => m.barrage);
+            const x = R.matches.find(m => m.wait);
+            if (b && b.w && x && !x.R) { x.R = b.w; res = 'barrage'; }
+            if (roundDone(R)) {
+                const winners = R.matches.filter(m => !m.barrage).map(m => m.w);
+                if (winners.length <= 1) { CL.tour.champion = winners[0]; res = 'champion'; }
+                else { makeRound(winners); res = 'newround'; }
+            }
+            saveClass(CL);
+            return res;
+        }
+        function tourStatus(id) {
+            const T = CL.tour;
+            if (!T || T.rounds[0].players.indexOf(id) < 0) return null;
+            if (T.champion) return T.champion === id ? 'champ' : 'out';
+            const R = tourCur();
+            if (R.players.indexOf(id) < 0) return 'out';
+            if (R.matches.some(m => m.w && m.w !== id && (m.L === id || m.R === id))) return 'out';
+            if (R.matches.some(m => m.w === id && !m.barrage)) return 'qualif';
+            return 'in';
+        }
+        function newTournament(askFirst) {
+            if (askFirst && CL.tour && !CL.tour.champion && CL.tour.rounds.some(r => r.matches.some(m => m.w))
+                && !confirm('Un tournoi est en cours. Le recommencer depuis le début ?')) return;
+            if (!hasClass()) { CL.tour = null; saveClass(CL); showSetup('⚠️ Pour un tournoi, il faut une liste d\'élèves 📂 avec au moins 2 présents.'); return; }
+            createTournament();
+            showTournament();
+            sfx('pointL');
+        }
+        function showTournament(view) {
+            if (!CL.tour) {
+                if (!hasClass()) { showSetup('⚠️ Pour un tournoi, chargez d\'abord une liste d\'élèves avec le bouton <b>📂</b> (au moins 2 présents).'); return; }
+                createTournament();
+            }
+            runId++;
+            resetPause();
+            state = 'tour';
+            duo = null;
+            const T = CL.tour, cur = T.rounds.length - 1;
+            const vi = view == null ? cur : Math.max(0, Math.min(cur, view));
+            const R = T.rounds[vi];
+            const m = curMatch();
+            const nm = (id) => esc(shortName(stById(id)) || '?');
+            const fn = (id) => { const st = stById(id); return st ? esc(fullName(st)) : '?'; };
+            const tabs = T.rounds.map((r, i) =>
+                `<button class="jpg-tour-tab${i === vi ? ' on' : ''}${roundDone(r) ? ' done' : ''}" data-tv="${i}">${roundName(r, i)}${roundDone(r) ? ' ✔' : ''}</button>`).join('');
+            let num = 0;
+            const rows = R.matches.map((x) => {
+                const isCur = x === m;
+                const p = (id, side) => id
+                    ? `<span class="jpg-mp ${side}${x.w ? (x.w === id ? ' win' : ' lose') : ''}" title="${fn(id)}">${nm(id)}</span>`
+                    : `<span class="jpg-mp ${side} jpg-mp-wait">⚔️ vainqueur du barrage</span>`;
+                const mid = x.w ? `<span class="jpg-ms">${x.sL} – ${x.sR}</span>` : `<span class="jpg-ms">${isCur ? '▶' : 'vs'}</span>`;
+                const tag = x.barrage ? '<span class="jpg-mn jpg-mn-b" title="Match de barrage : le perdant est éliminé">⚔️</span>' : `<span class="jpg-mn">${++num}</span>`;
+                return `<div class="jpg-match ${x.w ? 'done' : isCur ? 'cur' : 'todo'}${x.barrage ? ' barrage' : ''}">${tag}${p(x.L, 'L')}${mid}${p(x.R, 'R')}</div>`;
+            }).join('');
+            const playedN = R.matches.filter(x => x.w).length;
+            const champ = T.champion
+                ? `<div class="jpg-champ">🏆 <b>${fn(T.champion)}</b> remporte le tournoi !</div>`
+                : `<div class="jpg-tour-sub">${R.players.length} joueur${R.players.length > 1 ? 's' : ''}${hasBarrage(R) ? ' (nombre impair : ⚔️ barrage)' : ''} · match ${Math.min(playedN + 1, R.matches.length)} / ${R.matches.length}${vi < cur ? ' · tour terminé' : ''}</div>`;
+            arena.className = 'jpg-arena tour';
+            arena.innerHTML = `
+                <div class="jpg-draw-title">🏆 Tournoi</div>
+                <div class="jpg-tour-tabs">${tabs}</div>
+                ${champ}
+                <div class="jpg-matches${R.matches.length > 4 ? ' two' : ''}">${rows}</div>
+                <div class="jpg-actions"><button class="jpg-btn" data-tr="new">🔁 Nouveau tournoi</button></div>`;
+            arena.querySelectorAll('[data-tv]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); showTournament(+b.dataset.tv); }));
+            arena.querySelector('[data-tr="new"]').addEventListener('click', (e) => { e.stopPropagation(); newTournament(true); });
+            if (T.champion) {
+                say(`🏆 Bravo à <b>${fn(T.champion)}</b>, vainqueur du tournoi ! Cliquez sur <b>🔁 Nouveau tournoi</b> pour recommencer.`, 'good');
+                if (view == null) { sfx('win'); party(); }
+            } else if (m) {
+                const fresh = playedN === 0 && vi === cur;
+                const head = fresh ? `🏆 <b>${roundName(tourCur(), cur)}</b> ! ` : '';
+                say(m.barrage
+                    ? `${head}⚔️ <b>Match de barrage</b> (nombre impair de joueurs) : <b>${fn(m.L)}</b> 🔵 contre 🟠 <b>${fn(m.R)}</b>. Le perdant est éliminé, le vainqueur jouera encore un match dans ce tour. Venez au tableau, puis <b>▶ Jouer le match</b>.`
+                    : `${head}Prochain match${m.wait ? ' (contre le vainqueur du barrage)' : ''} : <b>${fn(m.L)}</b> 🔵 contre 🟠 <b>${fn(m.R)}</b>. Venez au tableau, puis <b>▶ Jouer le match</b>.`, 'good');
+            }
+            updateButtons();
+            requestAnimationFrame(applyScale);
+        }
 
         // Choix de 2 élèves : d'abord ceux qui n'ont pas encore joué dans le tour
         function pickDuo() {
@@ -1786,9 +2083,11 @@
         clBtn('load').addEventListener('click', () => classFile.click());
         clBtn('draw').addEventListener('click', () => { classBox.classList.remove('show'); duo = null; showDraw(true); });
         clBtn('reset').addEventListener('click', () => {
-            if (!confirm('Effacer tous les scores et recommencer le tour de tirage ?')) return;
+            if (!confirm('Effacer tous les scores, recommencer le tour de tirage et effacer le tournoi en cours ?')) return;
             CL.students.forEach(st => { st.scores = []; });
             CL.played = [];
+            CL.tour = null;
+            if (state === 'tour') showSetup();
             saveClass(CL); renderClass();
             say('♻️ Scores remis à zéro : tout le monde peut de nouveau être tiré au sort.');
         });
@@ -1798,14 +2097,18 @@
             duo = null;
             names = { L: 'Joueur bleu', R: 'Joueur orange' };
             saveClass(CL); renderClass();
-            if (state === 'draw') showSetup();
+            if (state === 'draw' || state === 'tour') showSetup();
             say('🗑 Liste d\'élèves retirée.');
         });
 
         // ── Démarrer / arrêter ─────────────────────────────────────────────
         function updateButtons() {
             const pl = playing();
-            btn('start').textContent = pl ? '🔄 Recommencer' : (mode === 'duel' ? '▶ Lancer le duel' : '▶ Jouer');
+            btn('start').textContent = pl ? (tourMatch() ? '🔄 Rejouer le match' : '🔄 Recommencer')
+                : state === 'tour' ? (CL.tour && CL.tour.champion ? '🔁 Nouveau tournoi' : '▶ Jouer le match')
+                : mode !== 'duel' ? '▶ Jouer'
+                : tourOn() ? (CL.tour && !CL.tour.champion ? '▶ Reprendre le tournoi' : '▶ Lancer le tournoi')
+                : '▶ Lancer le duel';
             btn('start').disabled = rolling;
             btn('stop').disabled = !pl;
             // Pendant la partie : « Pause » à la place de « Réglages »
@@ -1821,8 +2124,16 @@
         async function start() {
             if (rolling) return;
             if (state === 'setup') { readSetupInputs(); saveSettings(); }
+            if (tourOn()) {
+                // Tournoi : on joue le prochain match du tableau (ou on rejoue le match en cours)
+                if (state === 'tour' && CL.tour && CL.tour.champion) { newTournament(false); return; }
+                const m = curMatch();
+                const replay = playing() && tourMatch();
+                if (!m || (state !== 'tour' && !replay)) { showTournament(); return; }
+                duo = { L: m.L, R: m.R };
+            }
             // Duel avec une liste d'élèves : on passe d'abord par le tirage au sort
-            if (hasClass() && (state === 'setup' || state === 'over' || !duo)) {
+            else if (hasClass() && (state === 'setup' || state === 'over' || !duo)) {
                 if (state !== 'draw' || !duo) { showDraw(!duo); return; }
             }
             if (mode === 'duel') applyDuoNames();
@@ -1845,7 +2156,7 @@
             }
             r.textContent = 'Partez !'; r.classList.remove('show'); void r.offsetWidth; r.classList.add('show');
             say(mode === 'solo' ? `⚡ ${SOLO_ROUNDS} questions : sois rapide et précis !`
-                : `⚡ ${DS.end === 'goal' ? `Premier à ${DS.goal} point${DS.goal > 1 ? 's' : ''} !` : `${DS.count} manches : le plus de points gagne !`} Attention : une erreur bloque ton côté pour la manche.`);
+                : `⚡ ${DS.end === 'goal' ? `Premier à ${DS.goal} point${DS.goal > 1 ? 's' : ''} !` : `${DS.count} manches : le plus de points gagne !`} Attention : ${DS.err === 'gift' ? 'une erreur donne le point à ton adversaire 🎁 !' : 'une erreur bloque ton côté pour la manche 🔒.'}`);
             await pwait(400);
             if (id !== runId) return;
             newRound();
@@ -1866,6 +2177,12 @@
         btn('setup').addEventListener('click', () => showSetup());
         btn('stop').addEventListener('click', () => {
             if (!playing()) return;
+            if (tourMatch()) {
+                const t = `⏹ Match arrêté (${esc(names.L)} ${pts.L} – ${pts.R} ${esc(names.R)}) : il n'est pas compté, vous pourrez le rejouer.`;
+                showTournament();
+                say(t);
+                return;
+            }
             showSetup(mode === 'duel'
                 ? `⏹ Duel arrêté (${esc(names.L)} ${pts.L} – ${pts.R} ${esc(names.R)}).`
                 : '⏹ Partie arrêtée.');
@@ -1883,7 +2200,7 @@
             if (!ae || !widget.contains(ae) || ae.tagName === 'SELECT' || ae.tagName === 'INPUT') return;
             if (e.ctrlKey || e.metaKey || e.altKey) return;
             const k = e.key.toLowerCase();
-            if ((k === 'enter' || k === ' ') && (state === 'setup' || state === 'draw' || (state === 'over' && mode === 'solo'))) { e.preventDefault(); start(); return; }
+            if ((k === 'enter' || k === ' ') && (state === 'setup' || state === 'draw' || state === 'tour' || (state === 'over' && mode === 'solo'))) { e.preventDefault(); start(); return; }
             if ((k === ' ' || k === 'escape') && playing()) { e.preventDefault(); togglePause(); return; }
             const pick = (side, i) => { const b = numBtns(side)[i]; if (b) { e.preventDefault(); answer(side, +b.dataset.k); } };
             if (mode === 'solo') {
@@ -1921,7 +2238,7 @@
         wfMin.addEventListener('click', (e) => {
             e.stopPropagation();
             if (_isMax) wfMax.click();
-            if (playing() || state === 'draw') showSetup('⏹ Partie arrêtée.');
+            if (playing() || state === 'draw' || state === 'tour') showSetup('⏹ Partie arrêtée.');
             classBox.classList.remove('show');
             window._wfMiniBarCollapse(widget, '⚖️ Plus grand / plus petit', { onExpand: applyScale });
         });

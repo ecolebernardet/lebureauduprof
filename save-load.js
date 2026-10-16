@@ -426,6 +426,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-repro-quadrillage' && typeof w._jrqGetData === 'function') {
             jrqData = w._jrqGetData();
         }
+        // Données propres au jeu Labyrinthe (niveau, chemin parcouru, temps, options, taille)
+        let jlabData = null;
+        if (w.dataset.type === 'jeu-labyrinthe' && typeof w._jlabGetData === 'function') {
+            jlabData = w._jlabGetData();
+        }
         // Données propres au jeu Pixel art (dessin choisi, cases coloriées, options, temps, taille)
         let jpxData = null;
         if (w.dataset.type === 'jeu-pixel-art' && typeof w._jpxGetData === 'function') {
@@ -517,6 +522,7 @@ function buildBoardState() {
 			jtqData,
 			jrqData,
 			jpxData,
+			jlabData,
 			pdsData,
 			calcData,
 			visuData
@@ -1084,6 +1090,13 @@ function restoreBoardFromJSON(json) {
             // Dessin choisi, cases coloriées, palette, options, temps, taille et plein écran
             if (typeof createJeuPixelArtWidget === 'function') {
                 widget = createJeuPixelArtWidget(w.jpxData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-labyrinthe') {
+            // Niveau, chemin parcouru, indices, temps, brouillard, taille et plein écran
+            if (typeof createJeuLabyrintheWidget === 'function') {
+                widget = createJeuLabyrintheWidget(w.jlabData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

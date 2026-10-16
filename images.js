@@ -484,6 +484,50 @@ function _openImgOpacityMenu(widget, img, clientX, clientY) {
     }, 10);
 }
 
+// ── Copier une image widget (comme Ctrl+C) ───────────────────────────────
+// Sélectionne l'image puis appelle copySelectedWidgets(), la fonction du
+// Ctrl+C : un Ctrl+V colle ensuite une copie, exactement comme d'habitude.
+// Si cette fonction n'existe pas, l'image est copiée dans le presse-papiers
+// du système (collable aussi dans Word, un mail, etc.).
+function copyImageWidget(widget) {
+    if (!widget) return;
+    if (typeof copySelectedWidgets === 'function' && typeof selectedWidgets !== 'undefined') {
+        document.querySelectorAll('.widget.selected, .shape-widget.selected').forEach(w => w.classList.remove('selected'));
+        selectedWidgets = [widget];
+        widget.classList.add('selected');
+        if (typeof updateSelectionOverlay === 'function') updateSelectionOverlay();
+        copySelectedWidgets();
+        _showImgToPdfToast('📋 Image copiée');
+        return;
+    }
+    _copyImageToSystemClipboard(widget);
+}
+
+function _copyImageToSystemClipboard(widget) {
+    const img = widget.querySelector('img');
+    if (!img || !navigator.clipboard || typeof ClipboardItem === 'undefined') {
+        _showImgToPdfToast('⚠ Copie impossible dans ce navigateur');
+        return;
+    }
+    const pngBlob = new Promise((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => {
+            try {
+                const cv = document.createElement('canvas');
+                cv.width  = im.naturalWidth  || 1;
+                cv.height = im.naturalHeight || 1;
+                cv.getContext('2d').drawImage(im, 0, 0);
+                cv.toBlob(b => b ? resolve(b) : reject(new Error('toBlob')), 'image/png');
+            } catch (e) { reject(e); }
+        };
+        im.onerror = reject;
+        im.src = img.src;
+    });
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })])
+        .then(() => _showImgToPdfToast('📋 Image copiée'))
+        .catch(() => _showImgToPdfToast('⚠ Copie impossible (ouvrez le site en http/https)'));
+}
+
 // ── Insertion d'une image de la bibliothèque DANS un PDF ─────────────────
 // Si un widget PDF est « cible » (PDF en plein écran visible, ou dernier PDF
 // cliqué sur le bureau), l'image est collée sur la page courante du PDF,
@@ -819,6 +863,11 @@ function _openImgContextMenu(widget, img, clientX, clientY) {
             icon: '⧉',
             label: 'Dupliquer',
             action: () => { cloneWidget(widget); }
+        },
+        {
+            icon: '📋',
+            label: 'Copier (Ctrl+C)',
+            action: () => { copyImageWidget(widget); }
         },
         {
             icon: '☀',

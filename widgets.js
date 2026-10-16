@@ -204,6 +204,23 @@ function buildCtxMenu(menu, widget) {
             openShapeEditPanel(widget);
         });
     }
+    // Images : copier comme Ctrl+C
+    if (widget.dataset.imageWidget === 'true' && typeof copyImageWidget === 'function') {
+        addCtxBtn(menu, '📋 Copier', () => {
+            closeCtxMenuAll();
+            copyImageWidget(widget);
+        });
+    }
+    // Images : réglage de la transparence (même curseur que le clic droit / double-clic)
+    if (widget.dataset.imageWidget === 'true' && typeof _openImgOpacityMenu === 'function') {
+        addCtxBtn(menu, '☀ Transparence…', (e) => {
+            // Ouvrir le curseur à l'endroit du bouton cliqué
+            const r = e.currentTarget.getBoundingClientRect();
+            closeCtxMenuAll();
+            const img = widget.querySelector('img');
+            if (img) _openImgOpacityMenu(widget, img, r.left, r.top);
+        });
+    }
 }
 
 function addCtxBtn(menu, label, fn) {

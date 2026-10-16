@@ -3375,6 +3375,7 @@ function lancerTracesGeometriques() {
        et chargé automatiquement, sans passer par aucun panneau/onglet.
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="board-quick-menu" style="display:none;">
+    <button data-action="paste" title="Coller (Ctrl+V)"><span class="bqm-ico">📋</span><span class="bqm-lbl">Coller</span></button>
     <button data-action="pdf" title="Ouvrir un PDF"><span class="bqm-ico">📄</span><span class="bqm-lbl">PDF</span></button>
     <button data-action="seyes" title="Écriture Seyes"><span class="bqm-ico">✏️</span><span class="bqm-lbl">Écriture Seyes</span></button>
     <button data-action="text" title="Ajouter un texte"><span class="bqm-ico">🔤</span><span class="bqm-lbl">Texte</span></button>
@@ -3409,12 +3410,60 @@ function lancerTracesGeometriques() {
         menu.style.display = 'none';
     }
 
+    /* ── Coller (comme Ctrl+V) ───────────────────────────────────────────
+       1) Ce qui a été copié dans le bureau (Ctrl+C ou « Copier ») :
+          pasteWidgets() de board.js, la même fonction que Ctrl+V.
+       2) Sinon, une image copiée ailleurs (navigateur, capture d'écran…)
+          est lue dans le presse-papiers du système et insérée. */
+    function pasteFromQuickMenu() {
+        var hasBoardClipboard = false;
+        try { hasBoardClipboard = !!localStorage.getItem('clipboardWidgets'); } catch (e) {}
+        if (hasBoardClipboard && typeof pasteWidgets === 'function') {
+            pasteWidgets();
+            return;
+        }
+        if (navigator.clipboard && typeof navigator.clipboard.read === 'function' && typeof _insertImageWidget === 'function') {
+            navigator.clipboard.read().then(function(items) {
+                for (var i = 0; i < items.length; i++) {
+                    var type = items[i].types.find(function(t) { return t.indexOf('image/') === 0; });
+                    if (!type) continue;
+                    return items[i].getType(type).then(function(blob) {
+                        var reader = new FileReader();
+                        reader.onload = function(ev) { _insertImageWidget(ev.target.result, 'Image collée'); };
+                        reader.readAsDataURL(blob);
+                    });
+                }
+                _quickMenuToast('📋 Rien à coller');
+            }).catch(function() {
+                _quickMenuToast('📋 Rien à coller');
+            });
+            return;
+        }
+        _quickMenuToast('📋 Rien à coller');
+    }
+
+    function _quickMenuToast(text) {
+        var toast = document.getElementById('copy-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'copy-toast';
+            toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1a3550;color:#7ab8f5;border:1px solid #4a90e2;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;z-index:99999;pointer-events:none;transition:opacity .3s;';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = text;
+        toast.style.opacity = '1';
+        clearTimeout(toast._t);
+        toast._t = setTimeout(function() { toast.style.opacity = '0'; }, 2000);
+    }
+
     menu.addEventListener('click', function(e) {
         var btn = e.target.closest('button[data-action]');
         if (!btn) return;
         var action = btn.dataset.action;
         closeQuickMenu();
-        if (action === 'pdf' && typeof createWidget === 'function') {
+        if (action === 'paste') {
+            pasteFromQuickMenu();
+        } else if (action === 'pdf' && typeof createWidget === 'function') {
             createWidget('pdf');
         } else if (action === 'seyes' && typeof createSeyesWidget === 'function') {
             createSeyesWidget();

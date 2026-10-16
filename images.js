@@ -496,8 +496,7 @@ function copyImageWidget(widget) {
         selectedWidgets = [widget];
         widget.classList.add('selected');
         if (typeof updateSelectionOverlay === 'function') updateSelectionOverlay();
-        copySelectedWidgets();
-        _showImgToPdfToast('📋 Image copiée');
+        copySelectedWidgets(); // affiche lui-même « 1 widget copié — Ctrl+V pour coller »
         return;
     }
     _copyImageToSystemClipboard(widget);

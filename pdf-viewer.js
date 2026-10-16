@@ -400,7 +400,12 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                     // Centrage : margin auto quand le canvas est plus petit que le wrap,
                     // margin:8px (pas de centrage) quand il déborde → scroll gauche/droite natif
                     const canvasCssW = viewport.width / dpr;
-                    const marginVal = canvasCssW <= canvasWrap.clientWidth ? '8px auto' : '8px';
+                    // Marge basse = 75 % de la hauteur visible : on peut « remonter » le bas de la page
+                    // jusqu'en haut du widget (barre de défilement verticale ou main)
+                    const extraBottom = Math.round(canvasWrap.clientHeight * 0.75);
+                    const marginVal = canvasCssW <= canvasWrap.clientWidth
+                        ? `8px auto ${extraBottom}px auto`
+                        : `8px 8px ${extraBottom}px 8px`;
                     pdfCanvas.style.display = 'block';
                     pdfCanvas.style.margin  = marginVal;
                     // annotCanvas : positionné en absolute par rapport au canvasStack (position:relative)

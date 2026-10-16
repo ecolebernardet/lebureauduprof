@@ -238,7 +238,7 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             gap: calc(18px * var(--jpg-s));
         }
-        .jpg-arena.duel { display: grid; grid-template-columns: 1fr calc(54px * var(--jpg-s)) 1fr; height: calc(370px * var(--jpg-s)); }
+        .jpg-arena.duel { display: grid; grid-template-columns: 1fr calc(54px * var(--jpg-s)) 1fr; grid-template-rows: auto 1fr; height: calc(400px * var(--jpg-s)); }
 
         .jpg-order {
             color: #fff; font-weight: 900; font-size: calc(20px * var(--jpg-s));
@@ -284,12 +284,40 @@
         .jpg-frac span:last-child { padding-top: 0.06em; }
         .jpg-num small { font-size: 0.72em; }
 
-        .jpg-timebar {
-            width: 60%; height: calc(10px * var(--jpg-s));
-            background: rgba(0,0,0,0.25); border-radius: 999px; overflow: hidden;
+        .jpg-timewrap {
+            display: flex !important; align-items: center; gap: calc(10px * var(--jpg-s));
+            width: 70%; visibility: visible !important; opacity: 1 !important;
         }
-        .jpg-timebar i { display: block; height: 100%; width: 100%; background: var(--or); border-radius: 999px; }
-        .jpg-timebar.low i { background: var(--rouge); }
+        .jpg-timebar {
+            flex: 1; display: block !important; position: relative;
+            height: calc(16px * var(--jpg-s)) !important; min-height: 8px;
+            background: rgba(0,0,0,0.35); border-radius: 999px; overflow: hidden;
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25);
+        }
+        .jpg-timebar .jpg-timefill {
+            position: absolute; left: 0; top: 0; bottom: 0;
+            display: block !important; width: 100%;
+            background: var(--or); border-radius: 999px; transition: background .2s;
+        }
+        .jpg-timebar.low .jpg-timefill { background: var(--rouge); }
+        .jpg-timesec {
+            min-width: calc(40px * var(--jpg-s)); text-align: right;
+            font-family: 'Lilita One', 'Nunito', sans-serif; font-size: calc(20px * var(--jpg-s));
+            color: #fff; line-height: 1; font-variant-numeric: tabular-nums;
+            text-shadow: 0 calc(2px * var(--jpg-s)) 0 rgba(0,0,0,0.3);
+        }
+        .jpg-timewrap.low .jpg-timesec { color: #FFB3BA; }
+        @keyframes jpg-blink { 50% { opacity: 0.45; } }
+        .jpg-timewrap.low .jpg-timebar { animation: jpg-blink .5s ease-in-out infinite; }
+        /* Duel : une seule barre commune, en haut (comme la Battle de calculs) */
+        .jpg-duelbar {
+            grid-column: 1 / -1;
+            display: flex; align-items: center; justify-content: center;
+            padding: calc(9px * var(--jpg-s)) calc(12px * var(--jpg-s));
+            background:
+                radial-gradient(circle, rgba(255,255,255,0.06) calc(1.5px * var(--jpg-s)), transparent calc(2px * var(--jpg-s))) 0 0 / calc(24px * var(--jpg-s)) calc(24px * var(--jpg-s)),
+                linear-gradient(160deg, #3D2C8D 0%, #5B3FB0 60%, #7A55C9 100%);
+        }
 
         /* Duel */
         .jpg-half {
@@ -299,8 +327,8 @@
             padding: calc(10px * var(--jpg-s));
             transition: background .2s;
         }
-        .jpg-half.L { background: linear-gradient(160deg, #1F6FB5, #3BA7FF); border-radius: calc(18px * var(--jpg-s)) 0 0 calc(18px * var(--jpg-s)); }
-        .jpg-half.R { background: linear-gradient(200deg, #B3470F, #FF7A1A); border-radius: 0 calc(18px * var(--jpg-s)) calc(18px * var(--jpg-s)) 0; }
+        .jpg-half.L { background: linear-gradient(160deg, #1F6FB5, #3BA7FF); border-radius: 0 0 0 calc(18px * var(--jpg-s)); }
+        .jpg-half.R { background: linear-gradient(200deg, #B3470F, #FF7A1A); border-radius: 0 0 calc(18px * var(--jpg-s)) 0; }
         .jpg-half.win { box-shadow: inset 0 0 0 calc(6px * var(--jpg-s)) #7CFFB2; }
         .jpg-half.lock::after {
             content: '🔒'; position: absolute; inset: 0;
@@ -1082,7 +1110,7 @@
                         <button class="jpg-num hidden" data-k="1">?</button>
                         <button class="jpg-num hidden" data-k="2">?</button>
                     </div>
-                    <div class="jpg-timebar"><i></i></div>
+                    <div class="jpg-timewrap"><div class="jpg-timebar"><div class="jpg-timefill"></div></div><span class="jpg-timesec"></span></div>
                     <div class="jpg-ready"></div>
                     <div class="jpg-pause"><div class="jpg-pause-card">⏸<br>Pause<small>Touchez ici ou sur ▶ Reprendre pour continuer</small></div></div>
                     <div class="jpg-overlay"><div class="jpg-card"></div></div>`;
@@ -1102,6 +1130,7 @@
                         <div class="jpg-pkeys">${keys}</div>
                     </div>`;
                 arena.innerHTML = `
+                    <div class="jpg-duelbar"><div class="jpg-timewrap"><div class="jpg-timebar"><div class="jpg-timefill"></div></div><span class="jpg-timesec"></span></div></div>
                     ${half('L', 'clavier : A / Z / E')}
                     <div class="jpg-mid"><small>Manche</small><b data-role="dround">0</b><small data-role="endtxt">${endTxt()}</small></div>
                     ${half('R', 'clavier : I / O / P')}
@@ -1313,8 +1342,7 @@
             locked = { L: false, R: false };
             arena.querySelectorAll('.jpg-half').forEach(h => h.classList.remove('lock', 'win'));
             showHidden();
-            const tb = arena.querySelector('.jpg-timebar');
-            if (tb) { tb.classList.remove('low'); tb.firstElementChild.style.width = '100%'; }
+            setTimeBar(1, speed);
             const r = readyEl();
             if (mode === 'duel') {
                 duelRound++;
@@ -1328,25 +1356,36 @@
             sfx('go');
             state = 'go';
             t0 = clock();
-            if (mode === 'solo') runTimer(id);
-            else duelTimeout(id);
+            runTimer(id);
+        }
+        // Barre de temps + secondes restantes (seul : 1 barre ; duel : 1 de chaque côté)
+        function setTimeBar(k, secLeft) {
+            k = Math.max(0, Math.min(1, k));
+            const low = k < 0.3;
+            arena.querySelectorAll('.jpg-timewrap').forEach(wrap => {
+                wrap.querySelector('.jpg-timefill').style.width = (k * 100) + '%';
+                wrap.querySelector('.jpg-timebar').classList.toggle('low', low);
+                wrap.classList.toggle('low', low);
+                wrap.querySelector('.jpg-timesec').textContent = Math.max(0, Math.ceil(secLeft)) + ' s';
+            });
         }
         function runTimer(id) {
             const limit = qTime();
-            const tb = arena.querySelector('.jpg-timebar');
             const step = () => {
                 if (id !== runId || state !== 'go' || !widget.isConnected) return;
-                const el = clock() - t0;
-                const k = Math.max(0, 1 - el / limit);
-                tb.firstElementChild.style.width = (k * 100) + '%';
-                tb.classList.toggle('low', k < 0.3);
-                if (k <= 0) { soloResult(null); return; }
+                const left = limit - (clock() - t0);
+                const k = Math.max(0, left / limit);
+                setTimeBar(k, left / 1000);
+                if (k <= 0) {
+                    if (mode === 'solo') soloResult(null);
+                    else duelTimeout(id);
+                    return;
+                }
                 requestAnimationFrame(step);
             };
             requestAnimationFrame(step);
         }
         async function duelTimeout(id) {
-            await pwait(qTime());
             if (id !== runId || state !== 'go') return;
             state = 'result';
             numBtns('L')[0] && [...numBtns('L'), ...numBtns('R')].forEach(b => { if (+b.dataset.k === correctIdx()) b.classList.add('hint'); });

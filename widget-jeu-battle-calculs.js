@@ -315,12 +315,32 @@
             color: #5B3FB0; text-align: center; line-height: 1.05;
         }
         .bc-calc .bc-q { font-size: 0.9em; }
-        .bc-timebar {
-            width: 70%; height: calc(10px * var(--bc-s));
-            background: rgba(0,0,0,0.25); border-radius: 999px; overflow: hidden;
+        .bc-timewrap {
+            display: flex !important; align-items: center; gap: calc(10px * var(--bc-s));
+            width: 80%; visibility: visible !important; opacity: 1 !important;
         }
-        .bc-timebar i { display: block; height: 100%; width: 100%; background: var(--or); border-radius: 999px; }
-        .bc-timebar.low i { background: var(--rouge); }
+        .bc-timebar {
+            flex: 1; display: block !important; position: relative;
+            height: calc(16px * var(--bc-s)) !important; min-height: 8px;
+            background: rgba(0,0,0,0.35); border-radius: 999px; overflow: hidden;
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25);
+        }
+        .bc-timebar .bc-timefill {
+            position: absolute; left: 0; top: 0; bottom: 0;
+            display: block !important; width: 100%;
+            background: var(--or); border-radius: 999px;
+            transition: background .2s;
+        }
+        .bc-timebar.low .bc-timefill { background: var(--rouge); }
+        .bc-timesec {
+            min-width: calc(44px * var(--bc-s)); text-align: right;
+            font-family: 'Lilita One', 'Nunito', sans-serif; font-size: calc(20px * var(--bc-s));
+            color: #fff; line-height: 1; font-variant-numeric: tabular-nums;
+            text-shadow: 0 calc(2px * var(--bc-s)) 0 rgba(0,0,0,0.3);
+        }
+        .bc-timewrap.low .bc-timesec { color: #FFB3BA; }
+        @keyframes bc-blink { 50% { opacity: 0.45; } }
+        .bc-timewrap.low .bc-timebar { animation: bc-blink .5s ease-in-out infinite; }
 
         .bc-field { flex: 1; display: grid; grid-template-columns: 1fr calc(64px * var(--bc-s)) 1fr; }
         .bc-half {
@@ -1551,7 +1571,7 @@
               <div class="bc-duel">
                 <div class="bc-banner">
                     <div class="bc-calc wait">?</div>
-                    <div class="bc-timebar"><i></i></div>
+                    <div class="bc-timewrap"><div class="bc-timebar"><div class="bc-timefill"></div></div><span class="bc-timesec"></span></div>
                 </div>
                 <div class="bc-field">
                     ${half('L')}
@@ -1587,7 +1607,7 @@
               <div class="bc-duel bc-solo">
                 <div class="bc-banner">
                     <div class="bc-calc wait">?</div>
-                    <div class="bc-timebar"><i></i></div>
+                    <div class="bc-timewrap"><div class="bc-timebar"><div class="bc-timefill"></div></div><span class="bc-timesec"></span></div>
                 </div>
                 <div class="bc-field solo">
                     <div class="bc-half S" data-side="S">
@@ -1657,8 +1677,7 @@
             allChoices().forEach(b => { b.className = 'bc-choice hidden'; b.textContent = '?'; delete b.dataset.v; });
             const c = calcEl();
             c.className = 'bc-calc wait'; c.textContent = '?'; c.style.fontSize = '';
-            const tb = arena.querySelector('.bc-timebar');
-            tb.classList.remove('low'); tb.firstElementChild.style.width = '100%';
+            setTimeBar(1, S.speed);
             arena.querySelector('[data-role="round"]').innerHTML = roundLabel(idx + 1);
             // Petite attente aléatoire : impossible d'anticiper
             await pwait(600 + Math.random() * 700);
@@ -1681,14 +1700,25 @@
             t0 = clock();
             runTimer(id);
         }
+        // Barre de temps (comme dans « Plus grand / plus petit ») + secondes restantes
+        function setTimeBar(k, secLeft) {
+            const wrap = arena.querySelector('.bc-timewrap');
+            if (!wrap) return;
+            const fill = wrap.querySelector('.bc-timefill');
+            const sec = wrap.querySelector('.bc-timesec');
+            fill.style.width = (Math.max(0, Math.min(1, k)) * 100) + '%';
+            const low = k < 0.3 && k < 1;
+            wrap.querySelector('.bc-timebar').classList.toggle('low', low);
+            wrap.classList.toggle('low', low);
+            sec.textContent = Math.max(0, Math.ceil(secLeft)) + ' s';
+        }
         function runTimer(id) {
             const limit = S.speed * 1000;
-            const tb = arena.querySelector('.bc-timebar');
             const step = () => {
                 if (id !== runId || state !== 'go' || !widget.isConnected) return;
-                const k = Math.max(0, 1 - (clock() - t0) / limit);
-                tb.firstElementChild.style.width = (k * 100) + '%';
-                tb.classList.toggle('low', k < 0.3);
+                const left = limit - (clock() - t0);
+                const k = Math.max(0, left / limit);
+                setTimeBar(k, left / 1000);
                 if (k <= 0) { timeUp(id); return; }
                 requestAnimationFrame(step);
             };

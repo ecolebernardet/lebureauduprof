@@ -599,6 +599,212 @@
         padding: 3px 8px !important;
     }
 
+
+
+    /* ════════════════════════════════════════════════════════
+       20. NOUVEAU GRAPHISME DES PANNEAUX — version téléphone
+           Le graphisme (en-têtes dégradés, sections en cartes,
+           pastilles, vignettes blanches) est dans style.css ;
+           ici on le resserre pour les petits écrans et on remplace
+           les effets de survol (inutiles au doigt) par un retour
+           visuel au toucher.
+    ════════════════════════════════════════════════════════ */
+
+    /* En-têtes plus bas */
+    html body #jeux-panel #jeux-panel-header,
+    html body #activities-panel #act-panel-header,
+    html body #tools-panel #tools-panel-header,
+    html body #widgets-panel #widgets-panel-header,
+    html body #sticker-panel #sticker-panel-header,
+    html body #projects-panel #proj-panel-header,
+    html body #display-panel #display-panel-header {
+        padding: 9px 12px !important;
+    }
+    html body #jeux-panel #jeux-panel-header h3,
+    html body #activities-panel #act-panel-header h3,
+    html body #tools-panel #tools-panel-header h3,
+    html body #widgets-panel #widgets-panel-header h3,
+    html body #sticker-panel #sticker-panel-header h3,
+    html body #projects-panel #proj-panel-header span,
+    html body #display-panel #display-panel-header h3 {
+        font-size: 16px !important;
+        gap: 8px !important;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    html body #jeux-panel #jeux-panel-header .panel-title-ico,
+    html body #activities-panel #act-panel-header .panel-title-ico,
+    html body #tools-panel #tools-panel-header .panel-title-ico,
+    html body #widgets-panel #widgets-panel-header .panel-title-ico,
+    html body #sticker-panel #sticker-panel-header .panel-title-ico,
+    html body #projects-panel #proj-panel-header .panel-title-ico,
+    html body #display-panel #display-panel-header .panel-title-ico {
+        width: 26px !important; height: 26px !important; padding: 4px !important;
+    }
+    html body #jeux-panel #jeux-panel-header #jeux-panel-close,
+    html body #activities-panel #act-panel-header #act-panel-close,
+    html body #tools-panel #tools-panel-header #tools-panel-close,
+    html body #widgets-panel #widgets-panel-header #widgets-panel-close,
+    html body #sticker-panel #sticker-panel-header .sp-close,
+    html body #projects-panel #proj-panel-header #proj-panel-close,
+    html body #display-panel #display-panel-header #display-panel-close {
+        width: 32px !important; height: 32px !important;
+    }
+
+    /* Zones défilantes */
+    html body #jeux-panel #jeux-panel-content,
+    html body #activities-panel #act-panel-content,
+    html body #tools-panel #tools-panel-content,
+    html body #widgets-panel #widgets-panel-content,
+    html body #display-panel #display-panel-content {
+        padding: 10px 8px 14px 10px !important;
+    }
+
+    /* Sections en cartes, plus serrées */
+    html body #jeux-panel .jeux-section,
+    html body #activities-panel .act-section,
+    html body #tools-panel .tools-section,
+    html body #widgets-panel .widgets-section,
+    html body #display-panel .disp-block {
+        padding: 8px 8px 10px 12px !important;
+        margin-bottom: 10px !important;
+        border-radius: 14px !important;
+    }
+    html body #jeux-panel .jeux-section::before,
+    html body #activities-panel .act-section::before,
+    html body #tools-panel .tools-section::before,
+    html body #widgets-panel .widgets-section::before,
+    html body #display-panel .disp-block::before {
+        width: 4px !important;
+    }
+
+    /* Pastilles de titres : plus petites, retour à la ligne autorisé */
+    html body #jeux-panel .jeux-section .act-section-label,
+    html body #activities-panel .act-section .act-section-label,
+    html body #tools-panel .tools-section .tools-section-label,
+    html body #widgets-panel .widgets-section .widgets-section-label,
+    html body #display-panel .disp-block .disp-section-label {
+        font-size: 10.5px !important;
+        padding: 3px 10px !important;
+        margin-bottom: 7px !important;
+        max-width: 100%;
+        box-sizing: border-box;
+        white-space: normal;
+        line-height: 1.25;
+        letter-spacing: .4px !important;
+    }
+
+    /* Vignettes */
+    html body #jeux-panel .act-card,
+    html body #activities-panel .act-card,
+    html body #tools-panel .tools-card,
+    html body #widgets-panel .widgets-card {
+        border-radius: 12px !important;
+        gap: 3px !important;
+    }
+    html body #jeux-panel .act-card-ico,
+    html body #activities-panel .act-card-ico,
+    html body #tools-panel .tools-card-ico,
+    html body #widgets-panel .widgets-card-ico {
+        border-radius: 8px !important;
+    }
+
+    /* Au doigt : pas de vignette « soulevée » qui reste coincée,
+       mais un léger enfoncement coloré au moment du toucher */
+    html body #jeux-panel .act-card:hover,
+    html body #activities-panel .act-card:hover,
+    html body #tools-panel .tools-card:hover,
+    html body #widgets-panel .widgets-card:hover,
+    html body #sticker-panel .sp-anim-btn:hover,
+    html body #display-panel .hist-btn:hover,
+    html body #display-panel .disp-inline-btn:hover,
+    html body #display-panel .bg-thumb:hover,
+    html body #projects-panel .proj-panel-action-btn:hover,
+    html body #projects-panel #proj-panel-new-btn:hover {
+        transform: none !important;
+        box-shadow: 0 1px 3px rgba(40,30,70,0.07) !important;
+    }
+    html body #jeux-panel .act-card:hover .act-card-ico img,
+    html body #activities-panel .act-card:hover .act-card-ico img,
+    html body #tools-panel .tools-card:hover .tools-card-ico img,
+    html body #widgets-panel .widgets-card:hover .widgets-card-ico img {
+        transform: none !important;
+    }
+    html body #jeux-panel .act-card:active,
+    html body #activities-panel .act-card:active,
+    html body #tools-panel .tools-card:active,
+    html body #widgets-panel .widgets-card:active,
+    html body #sticker-panel .sp-anim-btn:active,
+    html body #display-panel .hist-btn:active,
+    html body #display-panel .disp-inline-btn:active,
+    html body #display-panel .bg-thumb:active,
+    html body #projects-panel .proj-panel-action-btn:active {
+        transform: scale(0.95) !important;
+        border-color: var(--sec-c, #4a90e2) !important;
+    }
+
+    /* ── Visuels ── */
+    html body #sticker-panel #sticker-mode-bar {
+        margin: 10px 10px 4px !important;
+        padding: 3px !important;
+        gap: 3px !important;
+    }
+    html body #sticker-panel .sp-mode-btn {
+        font-size: 9.5px !important;
+        padding: 7px 2px !important;
+        letter-spacing: 0 !important;
+    }
+    html body #sticker-panel #sticker-panel-tabs,
+    html body #sticker-panel #image-panel-tabs {
+        padding: 6px 10px 2px !important;
+        gap: 5px !important;
+    }
+    html body #sticker-panel .sp-tab,
+    html body #sticker-panel .img-tab-btn {
+        font-size: 10.5px !important;
+        padding: 5px 4px !important;
+    }
+    html body #sticker-panel #sticker-panel-search,
+    html body #sticker-panel #image-panel-search {
+        padding: 6px 10px 6px !important;
+    }
+    html body #sticker-panel #sp-content,
+    html body #sticker-panel #image-panel-grid {
+        margin: 0 10px 10px !important;
+        padding: 8px !important;
+        border-radius: 14px !important;
+    }
+    html body #sticker-panel .sp-grid-anim {
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 5px !important;
+    }
+    html body #sticker-panel .sp-anim-btn { border-radius: 10px !important; }
+    html body #sticker-panel .sp-anim-btn img { width: 100%; height: auto; max-width: 42px; }
+    html body #sticker-panel #image-panel-grid { grid-template-columns: repeat(3, 1fr) !important; }
+    html body #sticker-panel #image-panel-footer { padding: 0 10px 10px !important; }
+
+    /* ── Tableaux ── */
+    html body #projects-panel #proj-panel-draft-banner { margin: 10px 10px 0 !important; }
+    html body #projects-panel #proj-panel-new-btn { margin: 10px 10px 6px !important; padding: 11px 12px !important; }
+    html body #projects-panel #proj-panel-actions { padding: 4px 10px 10px !important; gap: 5px !important; }
+    html body #projects-panel .proj-panel-action-btn { font-size: 10.5px !important; padding: 8px 4px !important; }
+    html body #projects-panel #proj-panel-list { margin: 0 10px 10px !important; }
+    /* Pas de survol au doigt : les boutons d'un tableau restent visibles */
+    html body #projects-panel .proj-panel-item-actions { opacity: 1 !important; }
+    html body #projects-panel .proj-panel-btn { width: 30px !important; height: 30px !important; font-size: 13px !important; }
+    html body #projects-panel .proj-panel-item-header { padding: 8px 8px !important; }
+
+    /* ── Écran ── */
+    html body #display-panel .hist-btn,
+    html body #display-panel .disp-inline-btn {
+        font-size: 11px !important;
+        padding: 8px 2px 6px !important;
+    }
+    html body #display-panel .disp-inline-row { gap: 5px !important; }
+    html body #display-panel .bg-thumb { border-radius: 8px !important; }
+
 } /* fin @media (max-width: 768px) */
 
 

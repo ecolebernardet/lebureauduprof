@@ -198,6 +198,18 @@ function buildCtxMenu(menu, widget) {
         if (isShape) cloneShapeWidget(widget);
         else cloneWidget(widget);
     });
+    // Épingler / désépingler (anciennement bouton 📌 de la barre d'action)
+    const isPinned = widget.dataset.pinned === 'true';
+    addCtxBtn(menu, isPinned ? '📌 Désépingler' : '📌 Épingler', () => {
+        closeCtxMenuAll();
+        togglePin(widget);
+    });
+    // Envoyer derrière / remettre devant (anciennement bouton 🔽 de la barre d'action)
+    const isBack = widget.dataset.background === 'true';
+    addCtxBtn(menu, isBack ? '🔼 Remettre devant' : '🔽 Envoyer derrière', () => {
+        closeCtxMenuAll();
+        sendToBack(widget);
+    });
     if (isShape) {
         addCtxBtn(menu, '🎨 Modifier', () => {
             closeCtxMenuAll();
@@ -335,8 +347,8 @@ function _updateActionBarCompact(widget) {
     const w   = svg
         ? (parseFloat(svg.getAttribute('width')) || widget.offsetWidth)
         : (ec ? ec.offsetWidth : widget.offsetWidth);
-    const BTN_NORMAL = 26, GAP_NORMAL = 4, N = 4;
-    const barNeeded = N * BTN_NORMAL + (N - 1) * GAP_NORMAL; // 116px
+    const BTN_NORMAL = 26, GAP_NORMAL = 4, N = 2; // ☰ + ×
+    const barNeeded = N * BTN_NORMAL + (N - 1) * GAP_NORMAL; // 56px
     const compact = w > 0 && w < barNeeded + 20; // +20px de marge
     bar.style.gap = compact ? '2px' : '';
     bar.querySelectorAll('.widget-close-handle,.widget-pin-handle,.widget-back-handle,.widget-menu-handle').forEach(btn => {
@@ -366,6 +378,12 @@ function _isWidgetWithoutHandles(type) {
         '.widget[data-type^="battle-"] > .widget-rotate-handle,' +
         '.widget[data-type^="jeu-"] > .drag-handle,' +
         '.widget[data-type^="jeu-"] > .widget-rotate-handle' +
+        '{ display: none !important; }' +
+        // Épingler / Envoyer derrière sont désormais dans le menu ☰ :
+        // on masque les anciens boutons pour les widgets qui construisent
+        // leur propre barre d'action (battle-*, formes, widgets restaurés…)
+        '.widget-action-bar .widget-pin-handle,' +
+        '.widget-action-bar .widget-back-handle' +
         '{ display: none !important; }';
     const style = document.createElement('style');
     style.id = 'no-handles-jeu-battle';
@@ -418,8 +436,6 @@ function createWidget(type, x = null, y = null, doSnapshot = true) {
         ${_noHandles ? '' : '<div class="widget-rotate-handle" title="Faire pivoter">↻</div>'}
         <div class="widget-action-bar">
             <div class="widget-menu-handle" onclick="toggleCtxMenu(this.closest('.widget,.shape-widget'))" title="Menu">☰</div>
-            <div class="widget-pin-handle" onclick="togglePin(this.closest('.widget, .shape-widget'))" title="Épingler">📌</div>
-            <div class="widget-back-handle" onclick="sendToBack(this.closest('.widget, .shape-widget'))" title="Envoyer derrière">🔽</div>
             <div class="widget-close-handle" onclick="
                 (function(w){
                     snapshotNow();

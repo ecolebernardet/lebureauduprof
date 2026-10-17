@@ -12,6 +12,29 @@
 
 // ── CSS ───────────────────────────────────────────────────────────────────
 (function () {
+    // Police arrondie partagée avec les autres widgets (repli système si hors-ligne)
+    if (!document.getElementById('wpc-font')) {
+        const fl = document.createElement('link');
+        fl.id = 'wpc-font';
+        fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+        document.head.appendChild(fl);
+    }
+    // Taille des pastilles fenêtre (identique aux autres widgets)
+    if (!document.getElementById('wf-btns-size')) {
+        const wz = document.createElement('style');
+        wz.id = 'wf-btns-size';
+        wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+        `;
+        document.head.appendChild(wz);
+    }
+
     // Fonction utilitaire mini-barre collapse (injectée une seule fois, partagée avec les autres widgets)
     if (!window._wfMiniBarCollapse) {
         window._wfMiniBarCollapse = function(widget, label, opts) {
@@ -145,65 +168,153 @@
         const s = document.createElement('style');
         s.id = 'edt-widget-style';
         s.textContent = `
-        .widget[data-type="edt"] {
+        /* ═══ Nouveau graphisme (même charte que Tirage / Équipes / Liste) ═══ */
+        .widget[data-type="edt"],
+        .widget[data-type="edt"]:focus-within {
             min-width: unset;
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
         }
-
-        /* ── Conteneur principal ── */
+        /* ── Cadre coloré ── */
         .edt-container {
-            background: #ffffff;
-            border: 1.5px solid #d1d5db;
-            border-radius: 16px;
-            padding: 14px 16px 12px;
+            --ew-ink:   #14202E;
+            --ew-glass: rgba(255,255,255,0.62);
+            --ew-bg:    #8EC5F2;
+            --ew-op:    #2F6FB3;
+            background-color: var(--ew-bg);
+            background-image:
+                radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+                radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+            border: none;
+            border-radius: 24px;
+            padding: 0 16px 16px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+            gap: 10px;
+            font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+            color: var(--ew-ink);
+            box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
             position: relative;
             user-select: none;
             overflow: hidden;
+            container-type: inline-size;
+            transition: background-color .3s;
         }
-
-        /* ── En-tête ── */
+        .widget[data-type="edt"]:hover .edt-container,
+        .widget[data-type="edt"]:focus-within .edt-container {
+            outline: 2px dashed rgba(20,32,46,0.35);
+            outline-offset: 2px;
+        }
+        /* ── En-tête : deux pastilles « verre » ── */
         .edt-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
+            gap: 10px;
+            padding: 14px 0 0;
+            flex-shrink: 0;
             cursor: move;
             user-select: none;
+            border: none;
+            background: transparent;
+        }
+        .edt-title, .edt-tools, .edt-glass {
+            background: var(--ew-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+        }
+        .edt-title, .edt-tools {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
         }
         .edt-title {
-            font-size: 13px;
-            font-weight: 800;
-            color: #374151;
-            letter-spacing: 0.3px;
-            pointer-events: none;
+            padding: 7px 16px 7px 12px;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0;
+            color: var(--ew-ink);
             white-space: nowrap;
+            overflow: hidden;
+            min-width: 0;
+            pointer-events: none;
+        }
+        .edt-title span { overflow: hidden; text-overflow: ellipsis; }
+        .edt-title svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--ew-op); }
+        .edt-tools { padding: 5px 12px 5px 6px; gap: 2px; flex-shrink: 0; }
+        @container (max-width: 460px) { .edt-title span { display: none; } .edt-title { padding: 7px 10px; } }
+        .edt-icon-btn {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; border: none; background: transparent;
+            color: var(--ew-ink); cursor: pointer; padding: 0;
+            transition: background .15s;
+        }
+        .edt-icon-btn svg { width: 18px; height: 18px; }
+        .edt-icon-btn:hover, .edt-icon-btn.is-on { background: rgba(20,32,46,0.12); }
+        .edt-hsep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
+        /* ── Panneau « Couleur du cadre » ── */
+        .edt-pop {
+            display: none;
+            position: absolute; top: 62px; right: 16px; z-index: 400;
+            width: 250px; max-width: calc(100% - 32px);
+            box-sizing: border-box;
+            flex-direction: column; gap: 10px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.96);
+            box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+            color: var(--ew-ink);
+            cursor: default;
+        }
+        .edt-pop.show { display: flex; }
+        .edt-pop-title { font-size: 13px; font-weight: 700; }
+        .edt-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+        .edt-swatch {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 2px solid rgba(20,32,46,0.15); padding: 0; cursor: pointer;
+        }
+        .edt-swatch.is-on { border-color: var(--ew-ink); box-shadow: 0 0 0 2px #fff inset; }
+        /* ── Plein écran : marge à gauche pour laisser visibles les onglets des panneaux ── */
+        .edt-container.wf-fullboard {
+            position: fixed !important;
+            inset: 0 !important;
+            left: 40px !important;
+            width: calc(100vw - 40px) !important;
+            height: 100% !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            outline: none !important;
+        }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .edt-container.wf-fullboard { height: 100dvh !important; padding: 0 10px 10px; }
         }
 
-        /* ── Barre outils ── */
+        /* ── Barre d'outils (pastille « verre ») ── */
         .edt-toolbar {
             display: flex;
-            gap: 5px;
+            gap: 3px;
             align-items: center;
             flex-wrap: wrap;
             position: relative;
+            padding: 4px;
+            border-radius: 18px;
+            flex-shrink: 0;
         }
         .edt-btn {
-            padding: 5px 10px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            font-size: 11px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: none;
+            font-size: 12px;
             font-weight: 700;
+            font-family: inherit;
             cursor: pointer;
-            background: #f5f5f5;
-            color: #444;
+            background: transparent;
+            color: var(--ew-ink);
             transition: background .15s, transform .1s;
             display: flex;
             align-items: center;
@@ -211,54 +322,40 @@
             white-space: nowrap;
         }
         .edt-btn:active { transform: scale(0.96); }
-        .edt-btn:hover { background: #e8e8e8; }
-        .edt-btn-danger { background: #fff0f0; color: #c0392b; border-color: #f5c6c6; }
-        .edt-btn-danger:hover { background: #fdd; }
-        .edt-sep {
-            width: 1px;
-            height: 22px;
-            background: #e0e0e0;
-            flex-shrink: 0;
-        }
+        .edt-btn:hover { background: rgba(20,32,46,0.08); }
+        .edt-btn:disabled { opacity: .5; }
+        .edt-btn-primary { background: var(--ew-op); color: #fff; box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+        .edt-btn-primary:hover { background: var(--ew-op); filter: brightness(1.1); }
+        .edt-btn-danger { color: #C0392B; }
+        .edt-btn-danger:hover { background: rgba(192,57,43,0.1); }
+        .edt-sep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); flex-shrink: 0; margin: 0 3px; }
+
+        /* ── Taille du texte (modale) ── */
         .edt-font-ctrl {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 5px;
-            padding: 3px 8px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            background: #f5f5f5;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #F4F6F9;
+            border: 1.5px solid rgba(20,32,46,0.08);
         }
-        .edt-font-ctrl-icon {
-            font-size: 11px;
-            font-weight: 800;
-            color: #6b7280;
-        }
+        .edt-font-ctrl-icon { font-size: 12px; font-weight: 700; color: rgba(20,32,46,0.6); }
         .edt-font-btn {
-            width: 18px;
-            height: 18px;
-            border-radius: 5px;
-            border: 1px solid #d5d5d5;
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            border: none;
             background: #fff;
-            color: #444;
-            font-size: 12px;
-            font-weight: 800;
-            line-height: 1;
+            color: var(--ew-ink);
+            font-size: 14px; font-weight: 700; line-height: 1;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             padding: 0;
+            box-shadow: 0 1px 3px rgba(10,20,35,0.2);
         }
-        .edt-font-btn:hover { background: #eee; }
+        .edt-font-btn:hover { background: #f4f6f9; }
         .edt-font-btn:active { transform: scale(0.92); }
-        .edt-font-val {
-            font-size: 11px;
-            font-weight: 700;
-            color: #374151;
-            min-width: 16px;
-            text-align: center;
-        }
+        .edt-font-val { font-size: 13px; font-weight: 700; color: var(--ew-ink); min-width: 18px; text-align: center; }
 
         /* ── Menu jours ── */
         .edt-days-menu {
@@ -266,328 +363,180 @@
             position: absolute;
             top: 40px;
             left: 0;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 10px 14px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            background: rgba(255,255,255,0.97);
+            border: none;
+            border-radius: 16px;
+            padding: 12px 16px;
+            box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
             z-index: 300;
             flex-direction: column;
-            gap: 7px;
-            min-width: 150px;
+            gap: 8px;
+            min-width: 160px;
         }
         .edt-days-menu.show { display: flex; }
         .edt-days-menu-title {
-            font-size: 10px;
-            font-weight: 800;
-            color: #9ca3af;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            margin-bottom: 2px;
+            font-size: 11px; font-weight: 700; color: rgba(20,32,46,0.55);
+            text-transform: uppercase; letter-spacing: .4px; margin-bottom: 2px;
         }
         .edt-days-menu-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #374151;
-            cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px; font-weight: 700; color: var(--ew-ink); cursor: pointer;
         }
-        .edt-days-menu-item input { cursor: pointer; width: 14px; height: 14px; }
+        .edt-days-menu-item input { cursor: pointer; width: 15px; height: 15px; accent-color: var(--ew-op); }
 
-        /* ── Légende matières ── */
-        .edt-legend {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .edt-legend-chip {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 2px 9px 2px 6px;
-            border-radius: 20px;
-            background: #f3f4f6;
-            font-size: 10px;
-            font-weight: 700;
-            color: #4b5563;
-        }
-        .edt-legend-dot {
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        /* ── Zone grille ── */
+        /* ── Zone grille (zone blanche arrondie) ── */
         .edt-grid-wrap {
             flex: 1;
-            background: #f8f9fa;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
+            background: rgba(255,255,255,0.94);
+            border: none;
+            border-radius: 18px;
+            box-shadow: inset 0 2px 8px rgba(10,20,35,0.08);
             overflow: hidden;
             position: relative;
             display: flex;
             flex-direction: column;
             min-height: 200px;
+            padding: 6px 8px 8px 4px;
         }
         .edt-days-header {
             display: flex;
-            height: 28px;
+            height: 30px;
             flex-shrink: 0;
-            border-bottom: 1.5px solid #e5e7eb;
-            background: #ffffff;
+            border-bottom: 1.5px solid rgba(20,32,46,0.08);
+            background: transparent;
             margin-bottom: 6px;
         }
         .edt-axis-spacer { width: 40px; flex-shrink: 0; }
         .edt-day-head {
             flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10.5px;
-            font-weight: 800;
-            color: #374151;
-            text-transform: uppercase;
-            letter-spacing: .3px;
-            border-left: 1px solid #eef0f2;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700;
+            color: var(--ew-ink);
+            text-transform: uppercase; letter-spacing: .5px;
+            border-left: 1px solid rgba(20,32,46,0.06);
         }
-        .edt-body {
-            flex: 1;
-            position: relative;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-        .edt-body-inner {
-            position: relative;
-            display: flex;
-            min-height: 100%;
-        }
-        .edt-axis {
-            width: 40px;
-            flex-shrink: 0;
-            position: relative;
-        }
+        .edt-body { flex: 1; position: relative; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; }
+        .edt-body-inner { position: relative; display: flex; min-height: 100%; }
+        .edt-axis { width: 40px; flex-shrink: 0; position: relative; }
         .edt-hour-label {
-            position: absolute;
-            left: 0;
-            right: 5px;
+            position: absolute; left: 0; right: 5px;
             text-align: right;
-            font-size: 9.5px;
-            font-weight: 600;
-            color: #9ca3af;
+            font-size: 10px; font-weight: 700;
+            color: rgba(20,32,46,0.45);
             transform: translateY(-50%);
             pointer-events: none;
         }
-        .edt-days {
-            flex: 1;
-            display: flex;
-            position: relative;
-        }
-        .edt-day-col {
-            flex: 1;
-            position: relative;
-            border-left: 1px solid #eef0f2;
-        }
-        .edt-grid-lines {
-            position: absolute;
-            top: 0; bottom: 0; right: 0;
-            left: 40px;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .edt-grid-line {
-            position: absolute;
-            left: 0; right: 0;
-            height: 1px;
-            background: #eef0f2;
-        }
+        .edt-days { flex: 1; display: flex; position: relative; }
+        .edt-day-col { flex: 1; position: relative; border-left: 1px solid rgba(20,32,46,0.06); }
+        .edt-grid-lines { position: absolute; top: 0; bottom: 0; right: 0; left: 40px; pointer-events: none; z-index: 0; }
+        .edt-grid-line { position: absolute; left: 0; right: 0; height: 1px; background: rgba(20,32,46,0.07); }
         .edt-block {
             position: absolute;
-            border-radius: 6px;
+            border-radius: 9px;
             box-sizing: border-box;
             padding: 3px 6px;
             overflow: hidden;
             color: #fff;
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.18);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
             text-align: center;
             z-index: 1;
-            transition: filter .1s;
+            transition: filter .1s, transform .1s;
         }
-        .edt-block:hover { filter: brightness(1.1); z-index: 2; }
-        .edt-block-name {
-            font-size: 12px;
-            font-weight: 800;
-            width: 100%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .edt-block-time {
-            font-size: 9.5px;
-            font-weight: 600;
-            opacity: .85;
-            width: 100%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-top: 1px;
-        }
+        .edt-block:hover { filter: brightness(1.08); z-index: 2; }
+        .edt-block-name { font-size: 12px; font-weight: 700; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .edt-block-time { font-size: 9.5px; font-weight: 600; opacity: .85; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
         .edt-empty-msg {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #9ca3af;
-            font-size: 12px;
-            font-weight: 600;
-            text-align: center;
-            padding: 20px;
-            box-sizing: border-box;
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(20,32,46,0.5);
+            font-size: 14px; font-weight: 600;
+            text-align: center; padding: 20px; box-sizing: border-box;
             pointer-events: none;
         }
 
-        /* ── Modal ajout / édition cours ── */
+        /* ── Modale ajout / édition d'un cours ── */
         .edt-modal-overlay {
+            --ew-ink: #14202E; --ew-op: #2F6FB3;
             display: none;
-            position: fixed;
-            inset: 0;
+            position: fixed; inset: 0;
             z-index: 99999;
-            background: rgba(0,0,0,0.55);
-            backdrop-filter: blur(3px);
-            align-items: center;
-            justify-content: center;
+            background: rgba(10,20,35,0.35);
+            -webkit-backdrop-filter: blur(4px);
+                    backdrop-filter: blur(4px);
+            align-items: center; justify-content: center;
+            font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
         }
         .edt-modal-overlay.show { display: flex; }
         .edt-modal-box {
-            background: #fff;
-            border-radius: 16px;
+            background: rgba(255,255,255,0.98);
+            border-radius: 20px;
             padding: 22px;
-            width: 320px;
+            width: 340px;
             max-width: 92vw;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+            color: var(--ew-ink);
         }
-        .edt-modal-box h3 {
-            margin: 0 0 14px;
-            font-size: 14px;
-            font-weight: 800;
-            color: #374151;
-        }
+        .edt-modal-box h3 { margin: 0 0 14px; font-size: 16px; font-weight: 700; color: var(--ew-ink); text-align: center; }
         .edt-field { margin-bottom: 12px; }
         .edt-field label {
             display: block;
-            font-size: 10.5px;
-            font-weight: 800;
-            color: #6b7280;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: .3px;
+            font-size: 11px; font-weight: 700;
+            color: rgba(20,32,46,0.55);
+            margin-bottom: 5px;
+            text-transform: uppercase; letter-spacing: .4px;
         }
-        .edt-field select, .edt-field input {
+        .edt-field select, .edt-field input:not([type="checkbox"]) {
             width: 100%;
             box-sizing: border-box;
-            padding: 8px 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
+            padding: 8px 12px;
+            border: 1.5px solid rgba(20,32,46,0.12);
+            border-radius: 12px;
+            font-size: 14px; font-weight: 600;
+            color: var(--ew-ink);
+            background: #F4F6F9;
             outline: none;
-            transition: border-color .2s;
+            transition: border-color .2s, background .2s;
             font-family: inherit;
         }
-        .edt-field select:focus, .edt-field input:focus { border-color: #4a90e2; }
-        .edt-color-hint {
-            flex: 1;
-            min-width: 0;
-            font-size: 10.5px;
-            color: #9ca3af;
-            line-height: 1.3;
-            word-wrap: break-word;
-        }
-        .edt-modal-days-check {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 7px 10px;
-            margin-top: 2px;
-        }
-        .edt-modal-day-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #374151;
-            cursor: pointer;
-        }
-        .edt-modal-day-item input {
-            cursor: pointer;
-            width: 14px;
-            height: 14px;
-            flex-shrink: 0;
-        }
-        .edt-modal-day-item.edt-day-hidden { color: #b0b5bd; font-weight: 600; }
+        .edt-field select:focus, .edt-field input:not([type="checkbox"]):focus { border-color: var(--ew-op); background: #fff; }
+        .edt-field input[type="checkbox"] { accent-color: var(--ew-op); }
+        .edt-color-hint { flex: 1; min-width: 0; font-size: 11px; font-weight: 600; color: rgba(20,32,46,0.5); line-height: 1.3; word-wrap: break-word; }
+        .edt-modal-days-check { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px 10px; margin-top: 2px; }
+        .edt-modal-day-item { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--ew-ink); cursor: pointer; text-transform: none; letter-spacing: 0; }
+        .edt-modal-day-item input { cursor: pointer; width: 15px; height: 15px; flex-shrink: 0; }
+        .edt-modal-day-item.edt-day-hidden { color: rgba(20,32,46,0.4); font-weight: 600; }
         .edt-field-row { display: flex; gap: 8px; }
         .edt-field-row .edt-field { flex: 1; margin-bottom: 12px; }
-        .edt-color-dot {
-            display: inline-block;
-            width: 13px;
-            height: 13px;
-            border-radius: 4px;
-            vertical-align: middle;
-            margin-left: 7px;
-            border: 1px solid rgba(0,0,0,0.15);
-        }
-        .edt-modal-btns { display: flex; gap: 8px; margin-top: 6px; }
-        .edt-modal-cancel {
+        .edt-color-dot { display: inline-block; width: 13px; height: 13px; border-radius: 4px; vertical-align: middle; margin-left: 7px; border: 1px solid rgba(0,0,0,0.15); }
+        .edt-modal-btns { display: flex; gap: 8px; margin-top: 8px; }
+        .edt-modal-cancel, .edt-modal-ok, .edt-modal-delete {
             flex: 1;
             padding: 9px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            background: #f5f5f5;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        .edt-modal-ok {
-            flex: 1;
-            padding: 9px;
-            border-radius: 8px;
+            border-radius: 999px;
             border: none;
-            background: #4a90e2;
-            color: white;
-            font-size: 12px;
-            font-weight: 700;
+            font-size: 13px; font-weight: 700;
+            font-family: inherit;
             cursor: pointer;
+            transition: background .15s, filter .15s, transform .1s;
         }
-        .edt-modal-ok:hover { background: #357abd; }
-        .edt-modal-delete {
-            padding: 9px 12px;
-            border-radius: 8px;
-            border: 1px solid #f5c6c6;
-            background: #fff0f0;
-            color: #c0392b;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        .edt-modal-delete:hover { background: #fdd; }
+        .edt-modal-cancel { background: rgba(20,32,46,0.08); color: var(--ew-ink); }
+        .edt-modal-cancel:hover { background: rgba(20,32,46,0.15); }
+        .edt-modal-ok { background: var(--ew-op); color: #fff; }
+        .edt-modal-ok:hover { filter: brightness(1.1); }
+        .edt-modal-delete { flex: 0 0 auto; padding: 9px 14px; background: rgba(192,57,43,0.1); color: #C0392B; }
+        .edt-modal-delete:hover { background: rgba(192,57,43,0.18); }
+        .edt-modal-btns button:active { transform: scale(0.96); }
 
-        /* ── Resize handle ── */
+        /* ── Poignée de redimensionnement ── */
         .edt-resize-handle {
             position: absolute;
             right: 0; bottom: 0;
-            width: 18px; height: 18px;
+            width: 20px; height: 20px;
             cursor: se-resize;
-            background: linear-gradient(135deg, transparent 50%, #aaa 50%);
-            border-radius: 0 0 14px 0;
+            background: linear-gradient(135deg, transparent 50%, rgba(20,32,46,0.35) 50%);
+            border-radius: 0 0 24px 0;
             opacity: 0;
             transition: opacity .2s;
             z-index: 5;
@@ -597,31 +546,26 @@
         /* ── État réduit ── */
         .edt-container.wf-minimized > *:not(.edt-header) { display: none !important; }
         .edt-container.wf-minimized { gap: 0; }
-
-        /* ── État plein écran board ── */
-        .edt-container.wf-fullboard {
-            position: fixed !important;
-            inset: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            z-index: 9999 !important;
-            border-radius: 0 !important;
-        }
-
-        /* ── Téléphone : plein écran décalé de 40 px à gauche pour laisser
-           les onglets latéraux visibles, hauteur réelle de l'écran ── */
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
-            .edt-container.wf-fullboard {
-                left: 40px !important;
-                width: calc(100vw - 40px) !important;
-                height: 100dvh !important;
-                border: none !important;
-            }
-        }
         `;
         document.head.appendChild(s);
     }
 })();
+
+
+// Couleurs du cadre (mêmes que Tirage / Équipes / Liste de classe / Minuteur)
+const EDT_THEMES = {
+    bleu:   { name: 'Bleu',    bg: '#8EC5F2', op: '#2F6FB3' },
+    vert:   { name: 'Vert',    bg: '#7FD6A6', op: '#23915A' },
+    jaune:  { name: 'Jaune',   bg: '#F6D86A', op: '#B9770E' },
+    rose:   { name: 'Rose',    bg: '#F4A9C0', op: '#C2456E' },
+    violet: { name: 'Violet',  bg: '#C2B2F0', op: '#6A4FC2' },
+    gris:   { name: 'Gris',    bg: '#D4DAE2', op: '#4A5868' },
+    noir:   { name: 'Ardoise', bg: '#4A525E', op: '#2F6FB3' }
+};
+const EDT_DEFAULT_THEME = 'bleu';
+const EDT_ICON_PALETTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg>';
+const EDT_ICON_HELP    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17.2h.01"/></svg>';
+const EDT_ICON_TITLE   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17"/><path d="M8 3v4M16 3v4"/><path d="M8 14h3M13 14h3M8 17.5h3"/></svg>';
 
 // ── Constantes emploi du temps ──────────────────────────────────────────
 const EDT_DAYS_ALL = [
@@ -761,18 +705,22 @@ function createEdtWidget() {
     const header = document.createElement('div');
     header.className = 'edt-header';
     header.innerHTML = `
-        <span class="edt-title">🗓️ Emploi du temps</span>
-        <div class="wf-btns" style="margin-left:auto">
-            <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
-            <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
-            <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+        <div class="edt-title">${EDT_ICON_TITLE}<span>Emploi du temps</span></div>
+        <div class="edt-tools">
+            <button class="edt-icon-btn edt-theme-btn" title="Couleur du cadre">${EDT_ICON_PALETTE}</button>
+            <span class="edt-hsep"></span>
+            <div class="wf-btns">
+                <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
+                <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
+                <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+            </div>
         </div>
     `;
     container.appendChild(header);
 
     // ── Barre d'outils ────────────────────────────────────────────────────
     const toolbar = document.createElement('div');
-    toolbar.className = 'edt-toolbar';
+    toolbar.className = 'edt-toolbar edt-glass';
 
     // Bouton jours (avec menu déroulant)
     const daysWrapper = document.createElement('div');
@@ -797,7 +745,7 @@ function createEdtWidget() {
     daysWrapper.appendChild(daysMenu);
 
     const btnAdd = document.createElement('button');
-    btnAdd.className = 'edt-btn';
+    btnAdd.className = 'edt-btn edt-btn-primary';
     btnAdd.title = 'Ajouter un cours';
     btnAdd.innerHTML = '➕ Ajouter un cours';
 
@@ -951,6 +899,45 @@ function createEdtWidget() {
         </div>
     `;
     document.body.appendChild(modalOverlay);
+
+
+    // ── Couleur du cadre (palette, mémorisée dans la sauvegarde du tableau) ──
+    const edtThemeBtn = container.querySelector('.edt-theme-btn');
+    const edtPop = document.createElement('div');
+    edtPop.className = 'edt-pop';
+    edtPop.innerHTML = '<div class="edt-pop-title">Couleur du cadre</div><div class="edt-swatches">' +
+        Object.keys(EDT_THEMES).map(id =>
+            '<button class="edt-swatch" data-theme="' + id + '" title="' + EDT_THEMES[id].name +
+            '" style="background:' + EDT_THEMES[id].bg + '"></button>').join('') + '</div>';
+    container.appendChild(edtPop);
+    function edtApplyTheme(id) {
+        if (!EDT_THEMES[id]) id = EDT_DEFAULT_THEME;
+        widget.dataset.edtTheme = id;
+        [container, modalOverlay].forEach(el => {
+            if (!el) return;
+            el.style.setProperty('--ew-bg', EDT_THEMES[id].bg);
+            el.style.setProperty('--ew-op', EDT_THEMES[id].op);
+        });
+        edtPop.querySelectorAll('.edt-swatch').forEach(b => b.classList.toggle('is-on', b.dataset.theme === id));
+        edtData.theme = id;
+    }
+    widget._edtApplyTheme = edtApplyTheme;
+    edtThemeBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    edtThemeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = !edtPop.classList.contains('show');
+        edtPop.classList.toggle('show', open);
+        edtThemeBtn.classList.toggle('is-on', open);
+    });
+    edtPop.addEventListener('mousedown', (e) => e.stopPropagation());
+    edtPop.addEventListener('click', (e) => e.stopPropagation());
+    edtPop.querySelectorAll('.edt-swatch').forEach(b => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        edtApplyTheme(b.dataset.theme);
+        if (typeof saveBoard === 'function') saveBoard();
+    }));
+    document.addEventListener('click', () => { edtPop.classList.remove('show'); edtThemeBtn.classList.remove('is-on'); });
+    edtApplyTheme(widget.dataset.edtTheme || EDT_DEFAULT_THEME);
 
     const modalTitle      = modalOverlay.querySelector('.edt-modal-title');
     const modalDaysCheck   = modalOverlay.querySelector('.edt-modal-days-check');
@@ -1177,6 +1164,7 @@ function createEdtWidget() {
         if (!Array.isArray(edtData.days)) edtData.days = EDT_DEFAULT_DAYS.slice();
         if (!Array.isArray(edtData.courses)) edtData.courses = [];
         if (!edtData.colors || typeof edtData.colors !== 'object') edtData.colors = {};
+        if (edtData.theme) edtApplyTheme(edtData.theme); else edtData.theme = widget.dataset.edtTheme;
         drawEdt();
     }
 
@@ -1490,7 +1478,7 @@ function createEdtWidget() {
                 btnExportPdf.disabled = false;
             };
 
-            window.html2canvas(container, {
+            window.html2canvas(gridWrap, {
                 backgroundColor: '#ffffff',
                 scale: 2,
                 useCORS: true,

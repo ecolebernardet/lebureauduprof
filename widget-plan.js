@@ -10,6 +10,29 @@
 
 // ── CSS ───────────────────────────────────────────────────────────────────
 (function () {
+    // Police arrondie partagée avec les autres widgets (repli système si hors-ligne)
+    if (!document.getElementById('wpc-font')) {
+        const fl = document.createElement('link');
+        fl.id = 'wpc-font';
+        fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+        document.head.appendChild(fl);
+    }
+    // Taille des pastilles fenêtre (identique aux autres widgets)
+    if (!document.getElementById('wf-btns-size')) {
+        const wz = document.createElement('style');
+        wz.id = 'wf-btns-size';
+        wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+        `;
+        document.head.appendChild(wz);
+    }
+
     // Fonction utilitaire mini-barre collapse (injectée une seule fois)
     if (!window._wfMiniBarCollapse) {
         window._wfMiniBarCollapse = function(widget, label, opts) {
@@ -143,281 +166,327 @@
         const s = document.createElement('style');
         s.id = 'plan-widget-style';
         s.textContent = `
-        .widget[data-type="plan"] {
+        /* ═══ Nouveau graphisme (même charte que Tirage / Équipes / Liste) ═══ */
+        .widget[data-type="plan"],
+        .widget[data-type="plan"]:focus-within {
             min-width: unset;
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
         }
-
-        /* ── Conteneur principal ── */
+        /* ── Cadre coloré ── */
         .plan-container {
-            background: #ffffff;
-            border: 1.5px solid #d1d5db;
-            border-radius: 16px;
-            padding: 14px 16px 12px;
+            --pw-ink:   #14202E;
+            --pw-glass: rgba(255,255,255,0.62);
+            --pw-bg:    #7FD6A6;
+            --pw-op:    #23915A;
+            background-color: var(--pw-bg);
+            background-image:
+                radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+                radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+            border: none;
+            border-radius: 24px;
+            padding: 0 16px 16px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+            font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+            color: var(--pw-ink);
+            box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
             position: relative;
             user-select: none;
             overflow: hidden;
+            container-type: inline-size;
+            transition: background-color .3s;
         }
-
-        /* ── En-tête ── */
+        .widget[data-type="plan"]:hover .plan-container,
+        .widget[data-type="plan"]:focus-within .plan-container {
+            outline: 2px dashed rgba(20,32,46,0.35);
+            outline-offset: 2px;
+        }
+        /* ── En-tête : deux pastilles « verre » ── */
         .plan-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
+            gap: 10px;
+            padding: 14px 0 0;
+            flex-shrink: 0;
             cursor: move;
             user-select: none;
+            border: none;
+            background: transparent;
+        }
+        .plan-title, .plan-tools, .plan-glass {
+            background: var(--pw-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+        }
+        .plan-title, .plan-tools {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
         }
         .plan-title {
-            font-size: 13px;
-            font-weight: 800;
-            color: #374151;
-            letter-spacing: 0.3px;
+            padding: 7px 16px 7px 12px;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0;
+            color: var(--pw-ink);
+            white-space: nowrap;
+            overflow: hidden;
+            min-width: 0;
             pointer-events: none;
         }
+        .plan-title span { overflow: hidden; text-overflow: ellipsis; }
+        .plan-title svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--pw-op); }
+        .plan-tools { padding: 5px 12px 5px 6px; gap: 2px; flex-shrink: 0; }
+        @container (max-width: 460px) { .plan-title span { display: none; } .plan-title { padding: 7px 10px; } }
+        .plan-icon-btn {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; border: none; background: transparent;
+            color: var(--pw-ink); cursor: pointer; padding: 0;
+            transition: background .15s;
+        }
+        .plan-icon-btn svg { width: 18px; height: 18px; }
+        .plan-icon-btn:hover, .plan-icon-btn.is-on { background: rgba(20,32,46,0.12); }
+        .plan-hsep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
+        /* ── Panneau « Couleur du cadre » ── */
+        .plan-pop {
+            display: none;
+            position: absolute; top: 62px; right: 16px; z-index: 400;
+            width: 250px; max-width: calc(100% - 32px);
+            box-sizing: border-box;
+            flex-direction: column; gap: 10px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.96);
+            box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+            color: var(--pw-ink);
+            cursor: default;
+        }
+        .plan-pop.show { display: flex; }
+        .plan-pop-title { font-size: 13px; font-weight: 700; }
+        .plan-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+        .plan-swatch {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 2px solid rgba(20,32,46,0.15); padding: 0; cursor: pointer;
+        }
+        .plan-swatch.is-on { border-color: var(--pw-ink); box-shadow: 0 0 0 2px #fff inset; }
+        /* ── Plein écran : marge à gauche pour laisser visibles les onglets des panneaux ── */
+        .plan-container.wf-fullboard {
+            position: fixed !important;
+            inset: 0 !important;
+            left: 40px !important;
+            width: calc(100vw - 40px) !important;
+            height: 100% !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            outline: none !important;
+        }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .plan-container.wf-fullboard { height: 100dvh !important; padding: 0 10px 10px; }
+        }
 
-        /* ── Barre outils ── */
+        /* ── Barre d'outils (pastille « verre ») ── */
         .plan-toolbar {
             display: flex;
-            gap: 5px;
+            gap: 3px;
             align-items: center;
             flex-wrap: wrap;
+            padding: 4px;
+            border-radius: 18px;
+            flex-shrink: 0;
         }
         .plan-btn {
-            padding: 5px 10px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            font-size: 11px;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 10px;
+            justify-content: center;
+            border-radius: 999px;
+            border: none;
+            font-size: 14px;
             font-weight: 700;
+            font-family: inherit;
             cursor: pointer;
-            background: #f5f5f5;
-            color: #444;
+            background: transparent;
+            color: var(--pw-ink);
             transition: background .15s, transform .1s;
             display: flex;
             align-items: center;
             gap: 4px;
         }
-        .plan-btn:active { transform: scale(0.96); }
-        .plan-btn:hover { background: #e8e8e8; }
+        .plan-btn:active { transform: scale(0.94); }
+        .plan-btn:hover { background: rgba(20,32,46,0.08); }
         .plan-btn:disabled { opacity: 0.3; pointer-events: none; }
-        .plan-btn-lock-active {
-            background: #4a90e2;
-            color: white;
-            border-color: #357abd;
-        }
-        .plan-btn-lock-active:hover { background: #357abd; }
-        .plan-btn-danger { background: #fff0f0; color: #c0392b; border-color: #f5c6c6; }
-        .plan-btn-danger:hover { background: #fdd; }
-
-        /* ── Séparateur toolbar ── */
-        .plan-sep {
-            width: 1px;
-            height: 22px;
-            background: #e0e0e0;
-            flex-shrink: 0;
+        .plan-btn-lock-active { background: var(--pw-op); color: #fff; box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+        .plan-btn-lock-active:hover { background: var(--pw-op); filter: brightness(1.1); }
+        .plan-btn-danger { color: #C0392B; }
+        .plan-btn-danger:hover { background: rgba(192,57,43,0.1); }
+        .plan-sep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); flex-shrink: 0; margin: 0 3px; }
+        .plan-info {
+            font-size: 12px;
+            font-weight: 700;
+            color: rgba(20,32,46,0.6);
+            margin-left: auto;
+            padding: 0 10px;
+            white-space: nowrap;
         }
 
-        /* ── Zone SVG ── */
+        /* ── Zone du plan (zone blanche arrondie) ── */
         .plan-svg-zone {
             flex: 1;
-            background: #f8f9fa;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
+            background: rgba(255,255,255,0.94);
+            border: none;
+            border-radius: 18px;
+            box-shadow: inset 0 2px 8px rgba(10,20,35,0.08);
             overflow: hidden;
             position: relative;
             min-height: 200px;
         }
-        .plan-svg-zone svg {
-            display: block;
-            width: 100%;
-            height: 100%;
-            touch-action: none;
-        }
+        .plan-svg-zone svg { display: block; width: 100%; height: 100%; touch-action: none; }
 
-        /* ── Éléments SVG ── */
-        .plan-desk-group {
-            cursor: grab;
-        }
-        .plan-desk-group:active {
-            cursor: grabbing;
-        }
-        .plan-desk-group.plan-locked {
-            cursor: default;
-        }
-        .plan-desk-rect {
-            stroke: rgba(0,0,0,0.25);
-            stroke-width: 2;
-        }
-        .plan-desk-group.plan-selected .plan-desk-rect {
-            stroke: #4a90e2;
-            stroke-width: 6;
-        }
-        .plan-desk-group.plan-swap-pending .plan-desk-rect {
-            stroke: #f97316;
-            stroke-width: 7;
-        }
+        /* ── Éléments du plan ── */
+        .plan-desk-group { cursor: grab; }
+        .plan-desk-group:active { cursor: grabbing; }
+        .plan-desk-group.plan-locked { cursor: default; }
+        .plan-desk-rect { stroke: rgba(0,0,0,0.25); stroke-width: 2; }
+        .plan-desk-group.plan-selected .plan-desk-rect { stroke: var(--pw-op); stroke-width: 6; }
+        .plan-desk-group.plan-swap-pending .plan-desk-rect { stroke: #f97316; stroke-width: 7; }
         .plan-desk-label {
             fill: #000;
             font-size: 28px;
-            font-weight: 900;
+            font-weight: 700;
             text-anchor: middle;
             dominant-baseline: middle;
             pointer-events: none;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
             text-transform: uppercase;
         }
-        .plan-desk-label-light {
-            fill: #fff;
-        }
-        .plan-chair-rect {
-            fill: #2e7d32;
-        }
+        .plan-desk-label-light { fill: #fff; }
+        .plan-chair-rect { fill: #2e7d32; }
 
-        /* ── Contrôles zoom — coin bas droit du plan ── */
-        .plan-zoom-ctrl {
-            position: absolute;
-            right: 4px;
-            bottom: 4px;
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            z-index: 10;
-        }
+        /* ── Contrôles zoom ── */
+        .plan-zoom-ctrl { position: absolute; right: 6px; bottom: 6px; display: flex; flex-direction: column; gap: 4px; z-index: 10; }
         .plan-zoom-btn {
-            width: 28px;
-            height: 28px;
+            width: 30px; height: 30px;
             border-radius: 50%;
-            border: 1px solid #ddd;
-            background: white;
-            font-size: 14px;
-            font-weight: 900;
+            border: none;
+            background: #fff;
+            font-size: 14px; font-weight: 700;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px -2px rgba(10,20,35,0.35);
             transition: background .12s;
         }
-        .plan-zoom-btn:hover { background: #f0f0f0; }
+        .plan-zoom-btn:hover { background: #f4f6f9; }
 
-        /* ── Modal ajout élève ── */
+        /* ── Menu « Ajouter » ── */
+        .plan-add-menu {
+            display: none;
+            position: absolute;
+            top: 40px;
+            left: 0;
+            background: rgba(255,255,255,0.97);
+            border: none;
+            border-radius: 16px;
+            padding: 6px;
+            box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+            z-index: 200;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 150px;
+        }
+        .plan-add-menu.show { display: flex; }
+        .plan-add-menu-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 13px; font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--pw-ink);
+            text-align: left;
+        }
+        .plan-add-menu-item:hover { background: rgba(20,32,46,0.07); }
+
+        /* ── Modales (ajout d'un élève, modification) ── */
         .plan-modal-overlay {
+            --pw-ink: #14202E; --pw-op: #23915A;
             display: none;
             position: fixed;
             inset: 0;
             z-index: 99999;
-            background: rgba(0,0,0,0.55);
-            backdrop-filter: blur(3px);
+            background: rgba(10,20,35,0.35);
+            -webkit-backdrop-filter: blur(4px);
+                    backdrop-filter: blur(4px);
             align-items: center;
             justify-content: center;
+            font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
         }
         .plan-modal-overlay.show { display: flex; }
         .plan-modal-box {
-            background: #fff;
-            border-radius: 16px;
+            background: rgba(255,255,255,0.98);
+            border-radius: 20px;
             padding: 22px;
             width: 300px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            max-width: 92vw;
+            box-sizing: border-box;
+            box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+            color: var(--pw-ink);
         }
-        .plan-modal-box h3 {
-            margin: 0 0 14px;
-            font-size: 14px;
-            font-weight: 800;
-            color: #374151;
-        }
+        .plan-modal-box h3 { margin: 0 0 14px; font-size: 16px; font-weight: 700; color: var(--pw-ink); text-align: center; }
+        .plan-modal-box label { color: rgba(20,32,46,0.55) !important; }
         .plan-modal-input {
             width: 100%;
             box-sizing: border-box;
-            padding: 8px 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            padding: 9px 14px;
+            border: 1.5px solid rgba(20,32,46,0.12);
+            border-radius: 999px;
+            background: #F4F6F9;
             font-size: 14px;
             font-weight: 600;
+            font-family: inherit;
+            color: var(--pw-ink);
             outline: none;
             margin-bottom: 14px;
-            transition: border-color .2s;
+            transition: border-color .2s, background .2s;
         }
-        .plan-modal-input:focus { border-color: #4a90e2; }
+        .plan-modal-input:focus { border-color: var(--pw-op); background: #fff; }
+        .plan-edit-color-hex { border-radius: 999px !important; padding: 6px 12px !important; font-family: inherit; }
+        .plan-edit-color-hex:focus { border-color: var(--pw-op) !important; }
         .plan-modal-btns { display: flex; gap: 8px; }
-        .plan-modal-cancel {
+        .plan-modal-cancel, .plan-modal-ok, .plan-edit-cancel, .plan-edit-ok {
             flex: 1;
             padding: 9px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            background: #f5f5f5;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        .plan-modal-ok {
-            flex: 1;
-            padding: 9px;
-            border-radius: 8px;
+            border-radius: 999px;
             border: none;
-            background: #4a90e2;
-            color: white;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
+            font-family: inherit;
             cursor: pointer;
+            transition: background .15s, filter .15s, transform .1s;
         }
-        .plan-modal-ok:hover { background: #357abd; }
+        .plan-modal-cancel, .plan-edit-cancel { background: rgba(20,32,46,0.08); color: var(--pw-ink); }
+        .plan-modal-cancel:hover, .plan-edit-cancel:hover { background: rgba(20,32,46,0.15); }
+        .plan-modal-ok, .plan-edit-ok { background: var(--pw-op); color: #fff; }
+        .plan-modal-ok:hover, .plan-edit-ok:hover { filter: brightness(1.1); }
+        .plan-modal-btns button:active { transform: scale(0.96); }
 
-        /* ── Menu ajout ── */
-        .plan-add-menu {
-            display: none;
-            position: absolute;
-            top: 42px;
-            left: 0;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 8px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-            z-index: 200;
-            flex-direction: column;
-            gap: 2px;
-            min-width: 130px;
-        }
-        .plan-add-menu.show { display: flex; }
-        .plan-add-menu-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 7px 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            border: none;
-            background: transparent;
-            color: #374151;
-            text-align: left;
-        }
-        .plan-add-menu-item:hover { background: #f5f5f5; }
-
-        /* ── Info compteur ── */
-        .plan-info {
-            font-size: 11px;
-            color: #9ca3af;
-            margin-left: auto;
-        }
-
-        /* ── Resize handle ── */
+        /* ── Poignée de redimensionnement ── */
         .plan-resize-handle {
             position: absolute;
             right: 0; bottom: 0;
-            width: 18px; height: 18px;
+            width: 20px; height: 20px;
             cursor: se-resize;
-            background: linear-gradient(135deg, transparent 50%, #aaa 50%);
-            border-radius: 0 0 14px 0;
+            background: linear-gradient(135deg, transparent 50%, rgba(20,32,46,0.35) 50%);
+            border-radius: 0 0 24px 0;
             opacity: 0;
             transition: opacity .2s;
             z-index: 5;
@@ -427,31 +496,26 @@
         /* ── État réduit ── */
         .plan-container.wf-minimized > *:not(.plan-header) { display: none !important; }
         .plan-container.wf-minimized { gap: 0; }
-
-        /* ── État plein écran board ── */
-        .plan-container.wf-fullboard {
-            position: fixed !important;
-            inset: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            z-index: 9999 !important;
-            border-radius: 0 !important;
-        }
-
-        /* ── Téléphone : plein écran décalé de 40 px à gauche pour laisser
-           les onglets latéraux visibles, hauteur réelle de l'écran ── */
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
-            .plan-container.wf-fullboard {
-                left: 40px !important;
-                width: calc(100vw - 40px) !important;
-                height: 100dvh !important;
-                border: none !important;
-            }
-        }
         `;
         document.head.appendChild(s);
     }
 })();
+
+
+// Couleurs du cadre (mêmes que Tirage / Équipes / Liste de classe / Minuteur)
+const PLAN_THEMES = {
+    bleu:   { name: 'Bleu',    bg: '#8EC5F2', op: '#2F6FB3' },
+    vert:   { name: 'Vert',    bg: '#7FD6A6', op: '#23915A' },
+    jaune:  { name: 'Jaune',   bg: '#F6D86A', op: '#B9770E' },
+    rose:   { name: 'Rose',    bg: '#F4A9C0', op: '#C2456E' },
+    violet: { name: 'Violet',  bg: '#C2B2F0', op: '#6A4FC2' },
+    gris:   { name: 'Gris',    bg: '#D4DAE2', op: '#4A5868' },
+    noir:   { name: 'Ardoise', bg: '#4A525E', op: '#2F6FB3' }
+};
+const PLAN_DEFAULT_THEME = 'vert';
+const PLAN_ICON_PALETTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg>';
+const PLAN_ICON_HELP    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17.2h.01"/></svg>';
+const PLAN_ICON_TITLE   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M7.5 7h9"/><rect x="6.5" y="11" width="4" height="2.6" rx=".8"/><rect x="13.5" y="11" width="4" height="2.6" rx=".8"/><rect x="6.5" y="16" width="4" height="2.6" rx=".8"/><rect x="13.5" y="16" width="4" height="2.6" rx=".8"/></svg>';
 
 // ── Constantes plan ───────────────────────────────────────────────────────
 const PLAN_SVG_NS = "http://www.w3.org/2000/svg";
@@ -529,18 +593,22 @@ function createPlanWidget() {
     const header = document.createElement('div');
     header.className = 'plan-header';
     header.innerHTML = `
-        <span class="plan-title">🏫 Plan de classe</span>
-        <div class="wf-btns" style="margin-left:auto">
-            <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
-            <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
-            <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+        <div class="plan-title">${PLAN_ICON_TITLE}<span>Plan de classe</span></div>
+        <div class="plan-tools">
+            <button class="plan-icon-btn plan-theme-btn" title="Couleur du cadre">${PLAN_ICON_PALETTE}</button>
+            <span class="plan-hsep"></span>
+            <div class="wf-btns">
+                <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
+                <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
+                <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+            </div>
         </div>
     `;
     container.appendChild(header);
 
     // ── Barre d'outils ────────────────────────────────────────────────────
     const toolbar = document.createElement('div');
-    toolbar.className = 'plan-toolbar';
+    toolbar.className = 'plan-toolbar plan-glass';
 
     // Bouton verrouiller
     const btnLock = document.createElement('button');
@@ -663,7 +731,7 @@ function createPlanWidget() {
     const btnZoomReset = document.createElement('button');
     btnZoomReset.className = 'plan-btn';
     btnZoomReset.title = 'Zoom 1:1';
-    btnZoomReset.style.fontSize = '9px';
+    btnZoomReset.style.fontSize = '11px';
     btnZoomReset.textContent = '1:1';
 
     const btnZoomOut = document.createElement('button');
@@ -786,6 +854,44 @@ function createPlanWidget() {
         </div>
     `;
     document.body.appendChild(editOverlay);
+
+    // ── Couleur du cadre (palette, mémorisée dans la sauvegarde du tableau) ──
+    const planThemeBtn = container.querySelector('.plan-theme-btn');
+    const planPop = document.createElement('div');
+    planPop.className = 'plan-pop';
+    planPop.innerHTML = '<div class="plan-pop-title">Couleur du cadre</div><div class="plan-swatches">' +
+        Object.keys(PLAN_THEMES).map(id =>
+            '<button class="plan-swatch" data-theme="' + id + '" title="' + PLAN_THEMES[id].name +
+            '" style="background:' + PLAN_THEMES[id].bg + '"></button>').join('') + '</div>';
+    container.appendChild(planPop);
+    function planApplyTheme(id) {
+        if (!PLAN_THEMES[id]) id = PLAN_DEFAULT_THEME;
+        widget.dataset.planTheme = id;
+        [container, modalOverlay, editOverlay].forEach(el => {
+            if (!el) return;
+            el.style.setProperty('--pw-bg', PLAN_THEMES[id].bg);
+            el.style.setProperty('--pw-op', PLAN_THEMES[id].op);
+        });
+        planPop.querySelectorAll('.plan-swatch').forEach(b => b.classList.toggle('is-on', b.dataset.theme === id));
+        
+    }
+    widget._planApplyTheme = planApplyTheme;
+    planThemeBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    planThemeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = !planPop.classList.contains('show');
+        planPop.classList.toggle('show', open);
+        planThemeBtn.classList.toggle('is-on', open);
+    });
+    planPop.addEventListener('mousedown', (e) => e.stopPropagation());
+    planPop.addEventListener('click', (e) => e.stopPropagation());
+    planPop.querySelectorAll('.plan-swatch').forEach(b => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        planApplyTheme(b.dataset.theme);
+        if (typeof saveBoard === 'function') saveBoard();
+    }));
+    document.addEventListener('click', () => { planPop.classList.remove('show'); planThemeBtn.classList.remove('is-on'); });
+    planApplyTheme(widget.dataset.planTheme || PLAN_DEFAULT_THEME);
 
     // Palette de couleurs pour le picker
     const EDIT_PALETTE = [
@@ -1849,6 +1955,7 @@ function createPlanWidget() {
         wfClose.addEventListener('click', (e) => {
             e.stopPropagation();
             modalOverlay.remove();
+            editOverlay.remove();
             if (typeof snapshotNow === 'function') snapshotNow();
             widget.remove();
             if (typeof saveBoard === 'function') saveBoard();
@@ -1904,5 +2011,50 @@ function createPlanWidget() {
         };
     }
     if (typeof window.createWidget === 'function') doPatch();
+    else document.addEventListener('DOMContentLoaded', doPatch);
+})();
+
+// ── Couleur du cadre dans la sauvegarde du tableau (correspondance par ordre) ──
+(function patchThemePersistPlan() {
+    function patchBuild() {
+        const _orig = window.buildBoardState;
+        if (typeof _orig !== 'function' || _orig._planThemePatched) return;
+        const patched = function () {
+            const state = _orig.apply(this, arguments);
+            try {
+                const list = (state && Array.isArray(state.widgets)) ? state.widgets : (Array.isArray(state) ? state : []);
+                const saved = list.filter(w => w && w.type === 'plan');
+                document.querySelectorAll('.widget[data-type="plan"]').forEach((w, i) => {
+                    if (saved[i] && w.dataset.planTheme) saved[i].planTheme = w.dataset.planTheme;
+                });
+            } catch (e) {}
+            return state;
+        };
+        patched._planThemePatched = true;
+        window.buildBoardState = patched;
+    }
+    function patchRestore() {
+        const _orig = window.restoreBoardFromJSON;
+        if (typeof _orig !== 'function' || _orig._planThemePatched) return;
+        const patched = function (json) {
+            let themes = [];
+            try {
+                const parsed  = JSON.parse(json);
+                const widgets = Array.isArray(parsed) ? parsed : (parsed.widgets || []);
+                themes = widgets.filter(w => w && w.type === 'plan').map(w => w.planTheme || '');
+            } catch (e) {}
+            const res = _orig.apply(this, arguments);
+            const apply = () => document.querySelectorAll('.widget[data-type="plan"]').forEach((w, i) => {
+                if (themes[i] && typeof w._planApplyTheme === 'function') w._planApplyTheme(themes[i]);
+            });
+            apply();
+            setTimeout(apply, 250);
+            return res;
+        };
+        patched._planThemePatched = true;
+        window.restoreBoardFromJSON = patched;
+    }
+    function doPatch() { patchBuild(); patchRestore(); }
+    if (typeof window.buildBoardState === 'function' && typeof window.restoreBoardFromJSON === 'function') doPatch();
     else document.addEventListener('DOMContentLoaded', doPatch);
 })();

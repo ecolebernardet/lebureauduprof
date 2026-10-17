@@ -103,9 +103,35 @@ if (!document.getElementById('wf-btns-style')) {
     document.head.appendChild(ws);
 }
 
+// ── Taille des pastilles (identique à la calculatrice) ────────────────────
+if (!document.getElementById('wf-btns-size')) {
+    const wz = document.createElement('style');
+    wz.id = 'wf-btns-size';
+    wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+    `;
+    document.head.appendChild(wz);
+}
+
+// Police arrondie partagée avec la calculatrice (repli système si hors-ligne)
+if (!document.getElementById('wpc-font')) {
+    const fl = document.createElement('link');
+    fl.id = 'wpc-font';
+    fl.rel = 'stylesheet';
+    fl.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+    document.head.appendChild(fl);
+}
+
 // ── CSS ───────────────────────────────────────────────────────────────────
 (function () {
+    if (document.getElementById('deficalme2-style')) return;
     const s = document.createElement('style');
+    s.id = 'deficalme2-style';
     s.textContent = `
         .widget[data-type="deficalme2"] {
             min-width: unset;
@@ -114,133 +140,127 @@ if (!document.getElementById('wf-btns-style')) {
             box-shadow: none !important;
         }
 
-        /* ── Thème clair (body.menu-light) ── */
-        body.menu-light .dc2-container {
-            background: #f0f2f5;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-            color: #1a1a1a;
-        }
-        body.menu-light .dc2-controls {
-            background: #e2e6ea;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-        }
-        body.menu-light .dc2-label { opacity: 0.55; color: #1a1a1a; }
-        body.menu-light .dc2-mode-wrap { background: rgba(0,0,0,0.07); }
-        body.menu-light .dc2-mode-btn { border-color: rgba(0,0,0,0.12); color: rgba(0,0,0,0.5); }
-        body.menu-light .dc2-time-pill { background: rgba(0,0,0,0.07); border-color: rgba(0,0,0,0.12); }
-        body.menu-light .dc2-time-val { color: #1a1a1a; }
-        body.menu-light .dc2-url-input {
-            background: rgba(0,0,0,0.06);
-            border-color: rgba(0,0,0,0.15);
-            color: #1a1a1a;
-        }
-        body.menu-light .dc2-url-input::placeholder { color: rgba(0,0,0,0.35); }
-        body.menu-light .dc2-resize-handle {
-            background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.2) 50%);
-        }
-
+        /* ── Rectangle principal (fond pastel + reflet, comme la calculatrice) ── */
         .dc2-container {
-            background: #121212;
-            border-radius: 5px;
+            --dc2-ink:   #14202E;
+            --dc2-glass: rgba(255,255,255,0.62);
+            --dc2-bg:    #C2B2F0;
+            --dc2-op:    #6A4FC2;
+            --dc2-cover: #3E2D7A;
+
+            position: relative;
             display: flex;
             flex-direction: column;
+            gap: 12px;
             width: 600px;
+            padding: 14px 16px 16px;
+            box-sizing: border-box;
             overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            color: #fff;
-            position: relative;
+            border-radius: 24px;
+            background-color: var(--dc2-bg);
+            color: var(--dc2-ink);
+            font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+            box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
             user-select: none;
+            container-type: inline-size;
+            container-name: dc2cont;
+            transition: background-color .3s;
         }
-
-        /* ── Zone dessin (feuille de papier) ── */
-        .dc2-image-zone {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            background: #fdfcf8;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        .dc2-svg {
+        .dc2-container::before {
+            content: '';
             position: absolute;
             inset: 0;
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-        .dc2-pen {
             pointer-events: none;
-            transition: opacity 0.2s;
+            z-index: 0;
+            background:
+                radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+                radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+        }
+        .dc2-container > * { position: relative; z-index: 1; }
+        .widget[data-type="deficalme2"]:hover .dc2-container:not(.wf-fullboard),
+        .widget[data-type="deficalme2"]:focus-within .dc2-container:not(.wf-fullboard) {
+            outline: 2px dashed rgba(20,32,46,0.35);
+            outline-offset: 2px;
         }
 
-        .dc2-msg-start {
-            position: absolute;
-            inset: 0;
-            z-index: 10;
+        /* Contrôles masqués : seule l'image reste */
+        .dc2-container.dc2-transparent {
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0;
+        }
+        .dc2-container.dc2-transparent::before { display: none; }
+
+        /* ── En-tête : pastilles « verre » ── */
+        .dc2-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .dc2-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .dc2-title,
+        .dc2-tools {
+            display: flex;
+            align-items: center;
+            background: var(--dc2-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            border-radius: 999px;
+            box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+        }
+        .dc2-title {
+            gap: 8px;
+            padding: 7px 16px 7px 12px;
+            font-size: 15px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            min-width: 0;
+            pointer-events: none;
+        }
+        .dc2-title span { overflow: hidden; text-overflow: ellipsis; }
+        .dc2-title svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .dc2-tools { padding: 5px 12px 5px 6px; gap: 2px; flex-shrink: 0; }
+        .dc2-tools-slot { display: flex; align-items: center; gap: 2px; }
+        .dc2-sep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
+        @container dc2cont (max-width: 480px) {
+            .dc2-title span { display: none; }
+            .dc2-title { padding: 7px 10px; }
+        }
+
+        .dc2-icon-btn {
+            width: 32px; height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
-            text-align: center;
-            padding: 1rem;
-            font-size: 0.85rem;
-            font-weight: 700;
-            pointer-events: none;
-            color: #2d2a32;
-            opacity: 0.55;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--dc2-ink);
+            cursor: pointer;
+            padding: 0;
+            transition: background .15s;
         }
+        .dc2-icon-btn svg { width: 18px; height: 18px; }
+        .dc2-icon-btn:hover,
+        .dc2-icon-btn.is-on { background: rgba(20,32,46,0.12); }
+        .dc2-icon-btn:focus-visible { outline: 2px solid var(--dc2-ink); outline-offset: 2px; }
 
-        /* ── Barre micro (en bas) ── */
-        .dc2-mic-bar-wrap {
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            height: 5px;
-            background: rgba(0,0,0,0.08);
-            z-index: 8;
-        }
-        .dc2-mic-bar-fill {
-            height: 100%;
-            width: 0%;
-            background: #3b82f6;
-            transition: width 0.08s;
-        }
-
-        /* ── Barre progression (à droite) ── */
-        .dc2-prog-bar-wrap {
-            position: absolute;
-            top: 0; right: 0; bottom: 0;
-            width: 10px;
-            background: rgba(0,0,0,0.08);
-            z-index: 8;
-            display: flex;
-            flex-direction: column-reverse;
-        }
-        .dc2-prog-bar-fill {
-            width: 100%;
-            height: 0%;
-            background: #3b82f6;
-            transition: height 0.15s;
-        }
-        .dc2-percent-badge {
-            position: absolute;
-            top: 6px;
-            right: 15px;
-            font-size: 14px;
-            font-weight: 900;
-            color: #fff;
-            opacity: 0.9;
-            z-index: 9;
-            text-shadow: 0 1px 3px rgba(0,0,0,1);
-        }
-
-        /* ── Panneau contrôles ── */
-        .dc2-controls {
-            padding: 8px 12px 10px;
+        /* ── Carte des réglages ── */
+        .dc2-card {
             display: flex;
             flex-direction: column;
-            gap: 7px;
-            background: #1a1a1a;
-            border-bottom: 1px solid rgba(255,255,255,0.07);
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 18px;
+            background: var(--dc2-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
         }
         .dc2-row {
             display: flex;
@@ -255,73 +275,80 @@ if (!document.getElementById('wf-btns-style')) {
             flex-shrink: 0;
         }
         .dc2-label {
-            font-size: 9px;
-            font-weight: 900;
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            opacity: 0.4;
+            color: rgba(20,32,46,0.6);
             flex-shrink: 0;
         }
 
+        /* Choix du mode : boutons segmentés */
         .dc2-mode-wrap {
             display: flex;
-            background: rgba(255,255,255,0.06);
-            border-radius: 8px;
+            flex-wrap: wrap;
+            background: rgba(20,32,46,0.08);
+            border-radius: 999px;
             padding: 3px;
-            gap: 3px;
+            gap: 2px;
         }
         .dc2-mode-btn {
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
+            padding: 5px 11px;
+            border-radius: 999px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
             cursor: pointer;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: none;
             background: transparent;
-            color: rgba(255,255,255,0.5);
-            transition: all 0.15s;
+            color: rgba(20,32,46,0.7);
+            transition: background .15s, color .15s;
         }
+        .dc2-mode-btn:hover { background: rgba(255,255,255,0.7); }
         .dc2-mode-btn.active {
-            background: #3b82f6;
+            background: var(--dc2-op);
             color: #fff;
-            border-color: #3b82f6;
+            box-shadow: 0 2px 0 rgba(10,20,35,0.18);
         }
 
+        /* Durée / tolérance */
         .dc2-time-pill {
             display: flex;
             align-items: center;
             gap: 6px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 50px;
-            padding: 3px 10px;
+            background: rgba(255,255,255,0.82);
+            border-radius: 999px;
+            padding: 3px;
+            box-shadow: 0 2px 0 rgba(10,20,35,0.12);
         }
         .dc2-time-val {
-            font-size: 12px;
-            font-weight: 900;
+            font-size: 13px;
+            font-weight: 700;
             min-width: 42px;
             text-align: center;
+            font-variant-numeric: tabular-nums;
         }
         .dc2-time-btn {
             width: 22px;
             height: 22px;
             border-radius: 50%;
-            background: #3b82f6;
+            background: var(--dc2-op);
             border: none;
             color: #fff;
-            font-size: 13px;
-            font-weight: 900;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.15s;
+            padding: 0;
+            transition: transform .1s, filter .15s;
             user-select: none;
         }
+        .dc2-time-btn:hover { filter: brightness(1.08); }
         .dc2-time-btn:active { transform: scale(0.88); }
 
-        /* Colonne de réglages à droite (durée / tolérance) */
         .dc2-settings-col {
             display: flex;
             flex-direction: column;
@@ -330,110 +357,257 @@ if (!document.getElementById('wf-btns-style')) {
             margin-left: auto;
         }
         .dc2-settings-col .dc2-group { gap: 6px; }
-        .dc2-settings-col .dc2-label { min-width: 52px; text-align: right; }
-        .dc2-time-pill.dc2-compact { padding: 2px 6px; gap: 4px; }
-        .dc2-time-pill.dc2-compact .dc2-time-val { font-size: 11px; min-width: 34px; }
-        .dc2-time-pill.dc2-compact .dc2-time-btn { width: 17px; height: 17px; font-size: 11px; }
+        .dc2-settings-col .dc2-label { min-width: 62px; text-align: right; }
+        .dc2-time-pill.dc2-compact { padding: 2px; gap: 4px; }
+        .dc2-time-pill.dc2-compact .dc2-time-val { font-size: 12px; min-width: 36px; }
+        .dc2-time-pill.dc2-compact .dc2-time-btn { width: 19px; height: 19px; font-size: 12px; }
 
-        /* Boutons action flottants (sur le dessin, en bas à gauche) */
-        .dc2-action-row {
-            position: absolute;
-            bottom: 8px;
-            left: 15px;
-            z-index: 15;
-            display: flex;
-            gap: 6px;
-        }
-        .dc2-float-action-btn {
-            background: rgba(0,0,0,0.0);
-            border: 1px solid rgba(0,0,0,0.25);
-            color: rgba(0,0,0,0.55);
-            font-size: 9px;
-            font-weight: 900;
-            padding: 5px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            transition: all 0.2s;
-        }
-        .dc2-float-action-btn:hover {
-            background: rgba(0,0,0,0.8);
-            border-color: rgba(255,255,255,0.8);
-            color: #fff;
-        }
-        .dc2-float-action-btn:active { transform: scale(0.96); }
-        .dc2-float-action-btn.dc2-stop:hover { border-color: #ef4444; color: #ef4444; }
-        .dc2-float-action-btn.dc2-hidden { display: none !important; }
-        .dc2-float-action-btn.dc2-start,
-        .dc2-float-action-btn.dc2-start:hover {
-            background: #3b82f6 !important;
-            border-color: #3b82f6 !important;
-            color: #fff !important;
-        }
-        .dc2-float-action-btn.dc2-start:hover { opacity: 0.88; }
-        .dc2-float-action-btn.dc2-new,
-        .dc2-float-action-btn.dc2-new:hover {
-            background: #10b981 !important;
-            border-color: #10b981 !important;
-            color: #fff !important;
-        }
-        .dc2-float-action-btn.dc2-new:hover { opacity: 0.88; }
-
+        /* Image : adresse + import */
         .dc2-url-input {
             flex: 1;
-            background: rgba(255,255,255,0.07);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 7px;
-            color: #fff;
-            font-size: 10px;
-            padding: 4px 8px;
-            outline: none;
             min-width: 0;
-        }
-        .dc2-url-input::placeholder { color: rgba(255,255,255,0.35); }
-        .dc2-url-input:focus { border-color: #3b82f6; }
-        .dc2-url-btn {
-            padding: 4px 10px;
-            border-radius: 7px;
-            background: #3b82f6;
+            background: rgba(255,255,255,0.85);
             border: none;
-            color: #fff;
-            font-size: 10px;
-            font-weight: 800;
-            cursor: pointer;
-            white-space: nowrap;
+            border-radius: 999px;
+            color: var(--dc2-ink);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            outline: none;
+            box-shadow: inset 0 1px 3px rgba(10,20,35,0.12);
         }
-
-        .dc2-resize-handle {
-            position: absolute;
-            right: 0; bottom: 0;
-            width: 18px; height: 18px;
-            cursor: se-resize;
-            background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.25) 50%);
-            border-radius: 0 0 16px 0;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 20;
-        }
-        .dc2-container:hover .dc2-resize-handle { opacity: 1; }
-
-        /* En-tête (titre + boutons fenêtre) */
-        .dc2-header {
+        .dc2-url-input::placeholder { color: rgba(20,32,46,0.45); }
+        .dc2-url-input:focus { box-shadow: 0 0 0 2px var(--dc2-op); }
+        .dc2-url-btn {
+            width: 30px; height: 30px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            flex-shrink: 0;
+            border-radius: 50%;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            background: rgba(255,255,255,0.85);
+            color: var(--dc2-ink);
+            box-shadow: 0 2px 0 rgba(10,20,35,0.15);
+            transition: transform .08s, filter .15s;
         }
-        .dc2-title {
-            font-size: 12px;
-            font-weight: 900;
-            letter-spacing: 0.03em;
-            margin-right: auto;
+        .dc2-url-btn svg { width: 16px; height: 16px; }
+        .dc2-url-btn:hover { filter: brightness(1.05); }
+        .dc2-url-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(10,20,35,0.15); }
+
+        /* ── Zone image ── */
+        .dc2-image-zone {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #fdfcf8;
+            border-radius: 18px;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 8px 22px -12px rgba(10,20,35,0.6);
+            transition: background-color .3s;
+        }
+        .dc2-container.dc2-transparent .dc2-image-zone { border-radius: 18px; }
+
+        .dc2-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .dc2-pen {
             pointer-events: none;
-            white-space: nowrap;
+            transition: opacity 0.2s;
         }
 
-        /* Plein écran (fullboard) */
+        /* Message de départ dans une bulle « verre » */
+        .dc2-msg-start {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1rem;
+            pointer-events: none;
+        }
+        .dc2-msg-bubble {
+            padding: 12px 22px;
+            border-radius: 20px;
+            background: var(--dc2-bg);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            color: var(--dc2-ink);
+            font-size: clamp(13px, 2.4cqw, 22px);
+            font-weight: 700;
+            line-height: 1.35;
+            box-shadow: 0 8px 22px -12px rgba(10,20,35,0.6);
+        }
+
+        /* ── Barre micro (en bas de l'image) ── */
+        .dc2-mic-bar-wrap {
+            position: absolute;
+            bottom: 5px; left: 18px; right: 22px;
+            height: 5px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(20,32,46,0.10);
+            z-index: 8;
+        }
+        .dc2-mic-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 999px;
+            background: #22c55e;
+            transition: width 0.08s;
+        }
+
+        /* ── Barre de progression (à droite de l'image) ── */
+        .dc2-prog-bar-wrap {
+            position: absolute;
+            top: 12px; right: 8px; bottom: 12px;
+            width: 6px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(20,32,46,0.10);
+            z-index: 8;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        .dc2-prog-bar-fill {
+            width: 100%;
+            height: 0%;
+            border-radius: 999px;
+            background: var(--dc2-op);
+            transition: height 0.15s;
+        }
+        .dc2-percent-badge {
+            position: absolute;
+            top: 10px;
+            right: 22px;
+            z-index: 9;
+            padding: 3px 11px;
+            border-radius: 999px;
+            background: var(--dc2-bg);
+            color: var(--dc2-ink);
+            font-size: 14px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            box-shadow: 0 4px 14px -8px rgba(10,20,35,0.5);
+        }
+
+        /* ── Boutons d'action (sur l'image, en bas à gauche) ── */
+        .dc2-action-row {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            z-index: 15;
+            display: flex;
+            gap: 8px;
+        }
+        .dc2-float-action-btn,
+        .dc2-float-ctrl {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border: none;
+            border-radius: 999px;
+            background: var(--dc2-bg);
+            color: var(--dc2-ink);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 3px 0 rgba(10,20,35,0.18);
+            opacity: 0.7;
+            transition: opacity .2s, transform .08s, box-shadow .08s, filter .15s;
+        }
+        .dc2-float-action-btn:hover,
+        .dc2-float-ctrl:hover { opacity: 1; }
+        .dc2-float-action-btn:active,
+        .dc2-float-ctrl:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(10,20,35,0.18); }
+        .dc2-float-action-btn.dc2-stop:hover { color: #C0392B; }
+        .dc2-float-action-btn.dc2-hidden { display: none !important; }
+        /* Démarrer / Reprendre : couleur du thème, bien visible */
+        .dc2-float-action-btn.dc2-start {
+            background: var(--dc2-op);
+            color: #fff;
+            opacity: 1;
+            font-size: 14px;
+            padding: 9px 18px;
+        }
+        /* Nouveau défi : encre foncée, bien visible */
+        .dc2-float-action-btn.dc2-new {
+            background: var(--dc2-ink);
+            color: #fff;
+            opacity: 1;
+            font-size: 14px;
+            padding: 9px 18px;
+        }
+        .dc2-float-action-btn.dc2-start:hover,
+        .dc2-float-action-btn.dc2-new:hover { filter: brightness(1.1); }
+        .dc2-float-ctrl {
+            position: absolute;
+            bottom: 16px;
+            right: 24px;
+            z-index: 15;
+            opacity: 0.55;
+            font-size: 11px;
+            padding: 6px 12px;
+        }
+        .dc2-float-ctrl svg { width: 14px; height: 14px; }
+
+        /* ── Choix de la couleur ── */
+        .dc2-theme-pop {
+            position: absolute;
+            top: 58px;
+            right: 16px;
+            z-index: 30;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px 14px 14px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.95);
+            box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+        }
+        .dc2-theme-pop.open { display: flex; }
+        .dc2-pop-title { font-size: 13px; font-weight: 700; }
+        .dc2-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+        .dc2-swatch {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(20,32,46,0.15);
+            cursor: pointer;
+            padding: 0;
+        }
+        .dc2-swatch.is-on { border-color: var(--dc2-ink); box-shadow: 0 0 0 2px #fff inset; }
+
+        /* ── Poignée de redimensionnement (pointillés) ── */
+        .dc2-resize-handle {
+            position: absolute;
+            bottom: 6px; right: 6px;
+            width: 18px; height: 18px;
+            cursor: nwse-resize;
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 0.2s;
+            background: radial-gradient(circle, rgba(20,32,46,0.55) 1.3px, transparent 1.7px) 0 0 / 6px 6px;
+            -webkit-mask: linear-gradient(135deg, transparent 50%, #000 50%);
+                    mask: linear-gradient(135deg, transparent 50%, #000 50%);
+        }
+        .dc2-container:hover .dc2-resize-handle { opacity: 1; }
+        .dc2-container.dc2-transparent .dc2-resize-handle {
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 1.3px, transparent 1.7px) 0 0 / 6px 6px;
+        }
+
+        /* ── Plein écran : le fond pastel occupe tout l'écran ── */
         .dc2-container.wf-fullboard {
             position: fixed !important;
             inset: 0 !important;
@@ -441,22 +615,14 @@ if (!document.getElementById('wf-btns-style')) {
             height: 100% !important;
             z-index: 9999 !important;
             border-radius: 0 !important;
-            padding-left: 40px;
+            padding: 14px 16px 16px 44px;
             box-sizing: border-box;
-            background: #000 !important; /* même en thème clair */
         }
-        .dc2-container.wf-fullboard .dc2-image-zone {
-            align-self: center;
-            margin: auto 0;
+        .dc2-container.wf-fullboard.dc2-transparent {
+            background: var(--dc2-bg) !important;
+            padding: 14px 16px 16px 44px;
         }
-        .dc2-container.wf-fullboard .dc2-resize-handle { display: none; }
-
-        /* ── Téléphone : plein écran du bouton vert à la hauteur réelle de l'écran (la marge gauche laisse déjà les onglets visibles) ── */
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
-            .dc2-container.wf-fullboard {
-                height: 100dvh !important;
-            }
-        }
+        .dc2-container.wf-fullboard.dc2-transparent::before { display: block; }
         /* En plein écran, masquer les poignées du tableau (déplacer, pivoter, menu…) */
         .widget.dc2-is-full > .drag-handle,
         .widget.dc2-is-full > .widget-rotate-handle,
@@ -464,9 +630,47 @@ if (!document.getElementById('wf-btns-style')) {
         .widget.dc2-is-full > .widget-ctx-menu {
             display: none !important;
         }
+        .dc2-container.wf-fullboard .dc2-image-zone {
+            align-self: center;
+            margin: auto 0;
+        }
+        .dc2-container.wf-fullboard .dc2-resize-handle { display: none; }
+
+        /* ── Téléphone : plein écran à la hauteur réelle de l'écran (la marge gauche laisse les onglets visibles) ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .dc2-container.wf-fullboard {
+                height: 100dvh !important;
+                padding: calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)) 44px;
+            }
+        }
     `;
     document.head.appendChild(s);
 })();
+
+// ── Couleurs disponibles (mêmes teintes que la calculatrice) ─────────────
+// (cover non utilisé ici : le dessin se fait sur une feuille de papier)
+const DC2_THEMES = {
+    bleu:   { name: 'Bleu',   bg: '#8EC5F2', op: '#2F6FB3', cover: '#1F3F66' },
+    vert:   { name: 'Vert',   bg: '#7FD6A6', op: '#23915A', cover: '#1C5A3C' },
+    jaune:  { name: 'Jaune',  bg: '#F6D86A', op: '#B9770E', cover: '#6E4B10' },
+    rose:   { name: 'Rose',   bg: '#F4A9C0', op: '#C2456E', cover: '#7A2B47' },
+    violet: { name: 'Violet', bg: '#C2B2F0', op: '#6A4FC2', cover: '#3E2D7A' },
+    gris:   { name: 'Gris',   bg: '#D4DAE2', op: '#4A5868', cover: '#2E3A47' }
+};
+const DC2_DEFAULT_THEME = 'vert';
+
+// ── Icônes au trait (style calculatrice) ─────────────────────────────────
+const DC2_ICONS = {
+    image:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 9"/></svg>',
+    palette: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.4-1.9-.3-1 .4-2.1 1.5-2.1H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10z"/><circle cx="7.5" cy="11" r="1.1" fill="currentColor"/><circle cx="10.5" cy="7" r="1.1" fill="currentColor"/><circle cx="15" cy="7.5" r="1.1" fill="currentColor"/></svg>',
+    dice:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor"/><circle cx="15" cy="9" r="1.1" fill="currentColor"/><circle cx="9" cy="15" r="1.1" fill="currentColor"/><circle cx="15" cy="15" r="1.1" fill="currentColor"/></svg>',
+    eye:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+    eyeOff:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.9 8.4 2 12 2 12s3.6 7 10 7a9.9 9.9 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
+    panel:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><path d="M7 6.5h.01M10 6.5h.01"/></svg>',
+    pencil:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-5L16 4l4 4L9 19z"/><path d="M13.5 6.5l4 4"/><path d="M4 20l5-1"/></svg>',
+    folder:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>'
+};
+
 
 // ── Constantes ────────────────────────────────────────────────────────────
 const DC2_CONFIG = {
@@ -1088,7 +1292,7 @@ function createDeficalme2Widget() {
 
     const msgStart = document.createElement('div');
     msgStart.className = 'dc2-msg-start';
-    msgStart.innerHTML = '🤫 Restez silencieux<br>pour faire apparaître le dessin…';
+    msgStart.innerHTML = '<span class="dc2-msg-bubble">🤫 Restez silencieux<br>pour faire apparaître le dessin…</span>';
 
     const micBarWrap = document.createElement('div');
     micBarWrap.className = 'dc2-mic-bar-wrap';
@@ -1120,13 +1324,18 @@ function createDeficalme2Widget() {
     const header = document.createElement('div');
     header.className = 'dc2-header';
     header.innerHTML = `
-        <span class="dc2-title">✏️ Défi calme — Dessin</span>
-        <div class="wf-btns">
-            <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
-            <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
-            <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+        <div class="dc2-title">${DC2_ICONS.pencil}<span>Défi calme — Dessin</span></div>
+        <div class="dc2-tools">
+            <span class="dc2-tools-slot"></span>
+            <span class="dc2-sep"></span>
+            <div class="wf-btns">
+                <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
+                <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
+                <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+            </div>
         </div>
     `;
+    const toolsSlot = header.querySelector('.dc2-tools-slot');
     controls.appendChild(header);
 
     // Ligne 1 : Mode + Tolérance + Durée
@@ -1233,35 +1442,47 @@ function createDeficalme2Widget() {
 
     const btnImport = document.createElement('button');
     btnImport.className = 'dc2-url-btn';
-    btnImport.style.background = '#059669';
-    btnImport.textContent = '📁';
+    btnImport.innerHTML = DC2_ICONS.folder;
     btnImport.title = 'Importer un dessin SVG depuis votre appareil';
 
     const randBtn = document.createElement('button');
-    randBtn.className = 'dc2-url-btn';
-    randBtn.style.background = '#6366f1';
-    randBtn.textContent = '🎲';
+    randBtn.className = 'dc2-icon-btn';
+    randBtn.innerHTML = DC2_ICONS.dice;
     randBtn.title = 'Autre dessin';
 
     const btnApercu = document.createElement('button');
-    btnApercu.className = 'dc2-url-btn';
-    btnApercu.style.background = '#6366f1';
-    btnApercu.textContent = '👁';
+    btnApercu.className = 'dc2-icon-btn';
+    btnApercu.innerHTML = DC2_ICONS.eye;
     btnApercu.title = 'Aperçu';
 
     const btnTransp = document.createElement('button');
-    btnTransp.className = 'dc2-url-btn';
-    btnTransp.style.background = '#374151';
-    btnTransp.title = 'Masquer/afficher le panneau de contrôle';
-    btnTransp.textContent = '⬜';
+    btnTransp.className = 'dc2-icon-btn';
+    btnTransp.title = 'Masquer les contrôles';
+    btnTransp.innerHTML = DC2_ICONS.panel;
 
     row3.appendChild(imgLabel);
     row3.appendChild(btnImport);
     row3.appendChild(importFileInput);
     row3.appendChild(urlInput);
-    row3.appendChild(randBtn);
-    row3.appendChild(btnApercu);
-    row3.appendChild(btnTransp);
+
+    // Bouton couleur + fenêtre des couleurs (comme les réglages de la calculatrice)
+    const btnTheme = document.createElement('button');
+    btnTheme.className = 'dc2-icon-btn';
+    btnTheme.innerHTML = DC2_ICONS.palette;
+    btnTheme.title = 'Couleur';
+
+    const themePop = document.createElement('div');
+    themePop.className = 'dc2-theme-pop';
+    themePop.innerHTML = '<div class="dc2-pop-title">Couleur</div><div class="dc2-swatches">'
+        + Object.keys(DC2_THEMES).map(id => '<button class="dc2-swatch" data-theme="' + id + '" title="'
+        + DC2_THEMES[id].name + '" style="background:' + DC2_THEMES[id].bg + '"></button>').join('')
+        + '</div>';
+
+    // Outils dans la pastille de l'en-tête
+    toolsSlot.appendChild(btnTheme);
+    toolsSlot.appendChild(randBtn);
+    toolsSlot.appendChild(btnApercu);
+    toolsSlot.appendChild(btnTransp);
 
     // Boutons action flottants
     const btnRow = document.createElement('div');
@@ -1284,14 +1505,19 @@ function createDeficalme2Widget() {
     btnRow.appendChild(btnReset);
     imageZone.appendChild(btnRow);
 
-    controls.appendChild(row1);
-    controls.appendChild(row3);
+    // Réglages regroupés dans une carte « verre »
+    const card = document.createElement('div');
+    card.className = 'dc2-card';
+    card.appendChild(row1);
+    card.appendChild(row3);
+    controls.appendChild(card);
 
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'dc2-resize-handle';
 
     container.appendChild(controls);
     container.appendChild(imageZone);
+    container.appendChild(themePop);
     container.appendChild(resizeHandle);
     widget.appendChild(container);
 
@@ -1708,9 +1934,9 @@ function createDeficalme2Widget() {
     // ── Aperçu ────────────────────────────────────────────────────────────
     function setApercu(on) {
         apercuActive = on;
-        btnApercu.textContent = on ? '🙈' : '👁';
+        btnApercu.innerHTML = on ? DC2_ICONS.eyeOff : DC2_ICONS.eye;
         btnApercu.title = on ? 'Cacher le dessin' : 'Aperçu';
-        btnApercu.style.background = on ? '#ef4444' : '#6366f1';
+        btnApercu.classList.toggle('is-on', on);
         msgStart.style.visibility = on ? 'hidden' : '';
         updateUI();
     }
@@ -1751,37 +1977,55 @@ function createDeficalme2Widget() {
     btnTransp.addEventListener('click', () => {
         isTransparent = !isTransparent;
         controls.style.display = isTransparent ? 'none' : 'flex';
-        container.style.background = isTransparent ? 'transparent' : '';
-        container.style.boxShadow = isTransparent ? 'none' : '';
+        container.classList.toggle('dc2-transparent', isTransparent);
         widget.dataset.transparent = isTransparent ? 'true' : 'false';
-        floatBtn.style.display = isTransparent ? 'block' : 'none';
-        btnTransp.textContent = isTransparent ? '🔲' : '⬜';
-        btnTransp.title = isTransparent ? 'Afficher les contrôles' : 'Fond transparent';
-        btnTransp.style.background = isTransparent ? '#ef4444' : '#374151';
+        floatBtn.title = isTransparent ? 'Afficher les contrôles' : 'Masquer les contrôles';
+        closeThemePop();
+        if (_isMax) requestAnimationFrame(fitFullboard);
         saveBoard();
     });
 
+    // Bouton flottant (sur le dessin, en bas à droite) : afficher / masquer les contrôles
     const floatBtn = document.createElement('button');
-    const styleNormal = `
-        display: block; position: absolute; bottom: 8px; right: 15px; z-index: 15;
-        background: rgba(0,0,0,0.0); border: 1px solid rgba(0,0,0,0.2);
-        color: rgba(0,0,0,0.5); font-size: 8px; font-weight: 800; padding: 4px 8px;
-        border-radius: 6px; cursor: pointer;
-        text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s;
-    `;
-    const styleHover = `
-        display: block; position: absolute; bottom: 8px; right: 15px; z-index: 15;
-        background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.8);
-        color: rgba(255,255,255,0.85); font-size: 8px; font-weight: 800; padding: 4px 8px;
-        border-radius: 6px; cursor: pointer;
-        text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s;
-    `;
-    floatBtn.style.cssText = styleNormal;
-    floatBtn.onmouseover = () => { floatBtn.style.cssText = styleHover; };
-    floatBtn.onmouseout = () => { floatBtn.style.cssText = styleNormal; };
-    floatBtn.textContent = '🔲 Contrôles';
+    floatBtn.className = 'dc2-float-ctrl';
+    floatBtn.title = 'Masquer les contrôles';
+    floatBtn.innerHTML = DC2_ICONS.panel + '<span>Contrôles</span>';
     floatBtn.addEventListener('click', () => btnTransp.click());
     imageZone.appendChild(floatBtn);
+
+    // ── Couleur ───────────────────────────────────────────────────────────
+    let themeId = DC2_DEFAULT_THEME;
+    function setTheme(id) {
+        if (!DC2_THEMES[id]) id = DC2_DEFAULT_THEME;
+        themeId = id;
+        const t = DC2_THEMES[id];
+        container.style.setProperty('--dc2-bg', t.bg);
+        container.style.setProperty('--dc2-op', t.op);
+        widget.dataset.dcTheme = id;
+        themePop.querySelectorAll('.dc2-swatch').forEach(sw => sw.classList.toggle('is-on', sw.dataset.theme === id));
+    }
+    function closeThemePop() {
+        themePop.classList.remove('open');
+        btnTheme.classList.remove('is-on');
+    }
+    btnTheme.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = !themePop.classList.contains('open');
+        themePop.classList.toggle('open', open);
+        btnTheme.classList.toggle('is-on', open);
+    });
+    themePop.addEventListener('mousedown', (e) => e.stopPropagation());
+    themePop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sw = e.target.closest('.dc2-swatch');
+        if (!sw) return;
+        setTheme(sw.dataset.theme);
+        closeThemePop();
+        saveBoard();
+    });
+    // Pour une sauvegarde éventuelle (save-load.js)
+    widget._dcGetTheme = () => themeId;
+    widget._dcSetTheme = setTheme;
 
     // ── Boutons fenêtre ───────────────────────────────────────────────────
     const wfMin   = header.querySelector('[data-role="wf-min"]');
@@ -1794,7 +2038,8 @@ function createDeficalme2Widget() {
         if (!_isMax) { imageZone.style.width = ''; return; }
         const cs = getComputedStyle(container);
         const availW = container.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-        const availH = container.clientHeight - controls.offsetHeight;
+        const ctrlH = controls.offsetHeight ? controls.offsetHeight + (parseFloat(cs.rowGap) || 0) : 0;
+        const availH = container.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - ctrlH;
         imageZone.style.width = Math.max(100, Math.min(availW, availH * 16 / 9)) + 'px';
         updateUI();
     }
@@ -1932,7 +2177,10 @@ function createDeficalme2Widget() {
     makeDraggableRotate(widget);
 
     // Le dessin est construit une fois le widget dans la page (mesure des tracés)
+    setTheme(widget.dataset.dcTheme || DC2_DEFAULT_THEME);
     loadBuiltin(drawingIndex);
+    // À l'ouverture, le dessin est affiché (bouton « Cacher le dessin » ou Démarrer pour le masquer)
+    setApercu(true);
     // Sur téléphone : ouverture directe en plein écran (bouton vert)
     if (_wfIsPhoneLaunch() && !_isMax) wfMax.click();
     saveBoard();

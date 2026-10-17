@@ -98,9 +98,35 @@ if (!document.getElementById('wf-btns-style')) {
     document.head.appendChild(ws);
 }
 
+// ── Taille des pastilles (identique à la calculatrice) ────────────────────
+if (!document.getElementById('wf-btns-size')) {
+    const wz = document.createElement('style');
+    wz.id = 'wf-btns-size';
+    wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+    `;
+    document.head.appendChild(wz);
+}
+
+// Police arrondie partagée avec la calculatrice (repli système si hors-ligne)
+if (!document.getElementById('wpc-font')) {
+    const fl = document.createElement('link');
+    fl.id = 'wpc-font';
+    fl.rel = 'stylesheet';
+    fl.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+    document.head.appendChild(fl);
+}
+
 // ── CSS ───────────────────────────────────────────────────────────────────
 (function () {
+    if (document.getElementById('deficalme-style')) return;
     const s = document.createElement('style');
+    s.id = 'deficalme-style';
     s.textContent = `
         .widget[data-type="deficalme"] {
             min-width: unset;
@@ -109,79 +135,277 @@ if (!document.getElementById('wf-btns-style')) {
             box-shadow: none !important;
         }
 
-        /* ── Thème clair (body.menu-light) ── */
-        body.menu-light .dc-container {
-            background: #f0f2f5;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-            color: #1a1a1a;
-        }
-        body.menu-light .dc-controls {
-            background: #e2e6ea;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-        }
-        body.menu-light .dc-label {
-            opacity: 0.55;
-            color: #1a1a1a;
-        }
-        body.menu-light .dc-mode-wrap {
-            background: rgba(0,0,0,0.07);
-        }
-        body.menu-light .dc-mode-btn {
-            border-color: rgba(0,0,0,0.12);
-            color: rgba(0,0,0,0.5);
-        }
-        body.menu-light .dc-time-pill {
-            background: rgba(0,0,0,0.07);
-            border-color: rgba(0,0,0,0.12);
-        }
-        body.menu-light .dc-time-val {
-            color: #1a1a1a;
-        }
-        body.menu-light .dc-slider {
-            background: rgba(0,0,0,0.12);
-        }
-        body.menu-light .dc-url-input {
-            background: rgba(0,0,0,0.06);
-            border-color: rgba(0,0,0,0.15);
-            color: #1a1a1a;
-        }
-        body.menu-light .dc-url-input::placeholder {
-            color: rgba(0,0,0,0.35);
-        }
-        body.menu-light .dc-pixel-block {
-            background: #f0f2f5;
-        }
-        body.menu-light .dc-msg-start {
-            color: #1a1a1a;
-        }
-        body.menu-light .dc-resize-handle {
-            background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.2) 50%);
-        }
-
+        /* ── Rectangle principal (fond pastel + reflet, comme la calculatrice) ── */
         .dc-container {
-            background: #121212;
-            border: 0px solid rgba(255,255,255,0.12);
-			border-radius: 5px;
+            --dc-ink:   #14202E;
+            --dc-glass: rgba(255,255,255,0.62);
+            --dc-bg:    #C2B2F0;
+            --dc-op:    #6A4FC2;
+            --dc-cover: #3E2D7A;
+
+            position: relative;
             display: flex;
             flex-direction: column;
+            gap: 12px;
             width: 800px;
+            padding: 14px 16px 16px;
+            box-sizing: border-box;
             overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            color: #fff;
-            position: relative;
+            border-radius: 24px;
+            background-color: var(--dc-bg);
+            color: var(--dc-ink);
+            font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+            box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
             user-select: none;
+            container-type: inline-size;
+            container-name: dccont;
+            transition: background-color .3s;
+        }
+        .dc-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+                radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+        }
+        .dc-container > * { position: relative; z-index: 1; }
+        .widget[data-type="deficalme"]:hover .dc-container:not(.wf-fullboard),
+        .widget[data-type="deficalme"]:focus-within .dc-container:not(.wf-fullboard) {
+            outline: 2px dashed rgba(20,32,46,0.35);
+            outline-offset: 2px;
         }
 
-        /* ── Image zone ── */
+        /* Contrôles masqués : seule l'image reste */
+        .dc-container.dc-transparent {
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0;
+        }
+        .dc-container.dc-transparent::before { display: none; }
+
+        /* ── En-tête : pastilles « verre » ── */
+        .dc-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .dc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .dc-title,
+        .dc-tools {
+            display: flex;
+            align-items: center;
+            background: var(--dc-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            border-radius: 999px;
+            box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+        }
+        .dc-title {
+            gap: 8px;
+            padding: 7px 16px 7px 12px;
+            font-size: 15px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            min-width: 0;
+            pointer-events: none;
+        }
+        .dc-title span { overflow: hidden; text-overflow: ellipsis; }
+        .dc-title svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .dc-tools { padding: 5px 12px 5px 6px; gap: 2px; flex-shrink: 0; }
+        .dc-tools-slot { display: flex; align-items: center; gap: 2px; }
+        .dc-sep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
+        @container dccont (max-width: 480px) {
+            .dc-title span { display: none; }
+            .dc-title { padding: 7px 10px; }
+        }
+
+        .dc-icon-btn {
+            width: 32px; height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--dc-ink);
+            cursor: pointer;
+            padding: 0;
+            transition: background .15s;
+        }
+        .dc-icon-btn svg { width: 18px; height: 18px; }
+        .dc-icon-btn:hover,
+        .dc-icon-btn.is-on { background: rgba(20,32,46,0.12); }
+        .dc-icon-btn:focus-visible { outline: 2px solid var(--dc-ink); outline-offset: 2px; }
+
+        /* ── Carte des réglages ── */
+        .dc-card {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 18px;
+            background: var(--dc-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+        }
+        .dc-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .dc-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .dc-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(20,32,46,0.6);
+            flex-shrink: 0;
+        }
+
+        /* Choix du mode : boutons segmentés */
+        .dc-mode-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            background: rgba(20,32,46,0.08);
+            border-radius: 999px;
+            padding: 3px;
+            gap: 2px;
+        }
+        .dc-mode-btn {
+            padding: 5px 11px;
+            border-radius: 999px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: rgba(20,32,46,0.7);
+            transition: background .15s, color .15s;
+        }
+        .dc-mode-btn:hover { background: rgba(255,255,255,0.7); }
+        .dc-mode-btn.active {
+            background: var(--dc-op);
+            color: #fff;
+            box-shadow: 0 2px 0 rgba(10,20,35,0.18);
+        }
+
+        /* Durée / tolérance */
+        .dc-time-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.82);
+            border-radius: 999px;
+            padding: 3px;
+            box-shadow: 0 2px 0 rgba(10,20,35,0.12);
+        }
+        .dc-time-val {
+            font-size: 13px;
+            font-weight: 700;
+            min-width: 42px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+        .dc-time-btn {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--dc-op);
+            border: none;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: transform .1s, filter .15s;
+            user-select: none;
+        }
+        .dc-time-btn:hover { filter: brightness(1.08); }
+        .dc-time-btn:active { transform: scale(0.88); }
+
+        .dc-settings-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            margin-left: auto;
+        }
+        .dc-settings-col .dc-group { gap: 6px; }
+        .dc-settings-col .dc-label { min-width: 62px; text-align: right; }
+        .dc-time-pill.dc-compact { padding: 2px; gap: 4px; }
+        .dc-time-pill.dc-compact .dc-time-val { font-size: 12px; min-width: 36px; }
+        .dc-time-pill.dc-compact .dc-time-btn { width: 19px; height: 19px; font-size: 12px; }
+
+        /* Image : adresse + import */
+        .dc-url-input {
+            flex: 1;
+            min-width: 0;
+            background: rgba(255,255,255,0.85);
+            border: none;
+            border-radius: 999px;
+            color: var(--dc-ink);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            outline: none;
+            box-shadow: inset 0 1px 3px rgba(10,20,35,0.12);
+        }
+        .dc-url-input::placeholder { color: rgba(20,32,46,0.45); }
+        .dc-url-input:focus { box-shadow: 0 0 0 2px var(--dc-op); }
+        .dc-url-btn {
+            width: 30px; height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border-radius: 50%;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            background: rgba(255,255,255,0.85);
+            color: var(--dc-ink);
+            box-shadow: 0 2px 0 rgba(10,20,35,0.15);
+            transition: transform .08s, filter .15s;
+        }
+        .dc-url-btn svg { width: 16px; height: 16px; }
+        .dc-url-btn:hover { filter: brightness(1.05); }
+        .dc-url-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(10,20,35,0.15); }
+
+        /* ── Zone image ── */
         .dc-image-zone {
             position: relative;
             width: 100%;
             aspect-ratio: 16 / 9;
-            background: #000;
+            background: var(--dc-cover);
+            border-radius: 18px;
             overflow: hidden;
             flex-shrink: 0;
+            box-shadow: 0 8px 22px -12px rgba(10,20,35,0.6);
+            transition: background-color .3s;
         }
+        .dc-container.dc-transparent .dc-image-zone { border-radius: 18px; }
 
         .dc-image {
             width: 100%;
@@ -198,10 +422,10 @@ if (!document.getElementById('wf-btns-style')) {
             pointer-events: none;
             z-index: 5;
         }
-
         .dc-pixel-block {
-            background: #121212;
-            transition: opacity 0.2s ease;
+            background: var(--dc-cover);
+            box-shadow: inset 0 0 0 0.5px rgba(255,255,255,0.07);
+            transition: opacity 0.2s ease, background-color .3s;
         }
         .dc-pixel-block.dc-revealed { opacity: 0; }
 
@@ -231,7 +455,7 @@ if (!document.getElementById('wf-btns-style')) {
             z-index: 4;
         }
 
-
+        /* Message de départ dans une bulle « verre » */
         .dc-msg-start {
             position: absolute;
             inset: 0;
@@ -241,64 +465,47 @@ if (!document.getElementById('wf-btns-style')) {
             justify-content: center;
             text-align: center;
             padding: 1rem;
-            font-size: 0.85rem;
+            pointer-events: none;
+        }
+        .dc-msg-bubble {
+            padding: 12px 22px;
+            border-radius: 20px;
+            background: var(--dc-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            color: var(--dc-ink);
+            font-size: clamp(13px, 2.4cqw, 22px);
             font-weight: 700;
-            opacity: 0.45;
-            pointer-events: none;
-            color: #fff;
-        }
-
-        /* Aperçu avant défi */
-        .dc-preview-overlay {
-            position: absolute;
-            inset: 0;
-            z-index: 12;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0,0,0,0.45);
-            pointer-events: none;
-        }
-        .dc-preview-overlay.active { display: flex; }
-        .dc-preview-label {
-            font-size: 13px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #fff;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-        }
-        .dc-preview-countdown {
-            font-size: 52px;
-            font-weight: 900;
-            color: #fff;
-            text-shadow: 0 4px 16px rgba(0,0,0,0.8);
-            line-height: 1;
-            margin-top: 4px;
+            line-height: 1.35;
+            box-shadow: 0 8px 22px -12px rgba(10,20,35,0.6);
         }
 
         /* ── Barre micro (en bas de l'image) ── */
         .dc-mic-bar-wrap {
             position: absolute;
-            bottom: 0; left: 0; right: 0;
+            bottom: 5px; left: 18px; right: 22px;
             height: 5px;
-            background: rgba(255,255,255,0.08);
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.22);
             z-index: 8;
         }
         .dc-mic-bar-fill {
             height: 100%;
             width: 0%;
-            background: #3b82f6;
+            border-radius: 999px;
+            background: #22c55e;
             transition: width 0.08s;
         }
 
-        /* ── Barre progression (à droite de l'image) ── */
+        /* ── Barre de progression (à droite de l'image) ── */
         .dc-prog-bar-wrap {
             position: absolute;
-            top: 0; right: 0; bottom: 0;
-            width: 10px;
-            background: rgba(255,255,255,0.08);
+            top: 12px; right: 8px; bottom: 12px;
+            width: 6px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.22);
             z-index: 8;
             display: flex;
             flex-direction: column-reverse;
@@ -306,288 +513,136 @@ if (!document.getElementById('wf-btns-style')) {
         .dc-prog-bar-fill {
             width: 100%;
             height: 0%;
-            background: #3b82f6;
+            border-radius: 999px;
+            background: #fff;
             transition: height 0.15s;
         }
         .dc-percent-badge {
             position: absolute;
-            top: 6px;
-            right: 15px;
-            font-size: 14px;
-            font-weight: 900;
-            color: #fff;
-            opacity: 0.9;
+            top: 10px;
+            right: 22px;
             z-index: 9;
-            text-shadow: 0 1px 3px rgba(0,0,0,1);
+            padding: 3px 11px;
+            border-radius: 999px;
+            background: var(--dc-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            color: var(--dc-ink);
+            font-size: 14px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            box-shadow: 0 4px 14px -8px rgba(10,20,35,0.5);
         }
 
-        /* ── Panneau contrôles (compact, sous l'image) ── */
-        .dc-controls {
-            padding: 8px 12px 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
-            background: #1a1a1a;
-            border-bottom: 1px solid rgba(255,255,255,0.07);
-        }
-
-        .dc-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .dc-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-
-        .dc-label {
-            font-size: 9px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            opacity: 0.4;
-            flex-shrink: 0;
-        }
-
-        /* Mode selector */
-        .dc-mode-wrap {
-            display: flex;
-            flex-wrap: wrap;
-            background: rgba(255,255,255,0.06);
-            border-radius: 8px;
-            padding: 3px;
-            gap: 3px;
-        }
-        .dc-mode-btn {
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            cursor: pointer;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: transparent;
-            color: rgba(255,255,255,0.5);
-            transition: all 0.15s;
-        }
-        .dc-mode-btn.active {
-            background: #3b82f6;
-            color: #fff;
-            border-color: #3b82f6;
-        }
-
-        /* Durée */
-        .dc-time-pill {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 50px;
-            padding: 3px 10px;
-        }
-        .dc-time-val {
-            font-size: 12px;
-            font-weight: 900;
-            min-width: 42px;
-            text-align: center;
-        }
-        .dc-time-btn {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: #3b82f6;
-            border: none;
-            color: #fff;
-            font-size: 13px;
-            font-weight: 900;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.15s;
-            user-select: none;
-        }
-        .dc-time-btn:active { transform: scale(0.88); }
-
-        /* Colonne de réglages à droite (durée / tolérance) */
-        .dc-settings-col {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 4px;
-            margin-left: auto;
-        }
-        .dc-settings-col .dc-group { gap: 6px; }
-        .dc-settings-col .dc-label { min-width: 52px; text-align: right; }
-        .dc-time-pill.dc-compact { padding: 2px 6px; gap: 4px; }
-        .dc-time-pill.dc-compact .dc-time-val { font-size: 11px; min-width: 34px; }
-        .dc-time-pill.dc-compact .dc-time-btn { width: 17px; height: 17px; font-size: 11px; }
-
-        /* Sensibilité */
-        .dc-slider {
-            flex: 1;
-            height: 6px;
-            border-radius: 4px;
-            background: rgba(255,255,255,0.1);
-            accent-color: #3b82f6;
-            cursor: pointer;
-            min-width: 60px;
-        }
-        .dc-sens-val {
-            font-size: 10px;
-            font-weight: 900;
-            background: #3b82f6;
-            color: #fff;
-            padding: 1px 6px;
-            border-radius: 4px;
-            min-width: 28px;
-            text-align: center;
-        }
-
-        /* Boutons action */
-        .dc-btn-row {
-            display: flex;
-            gap: 6px;
-            justify-content: center;
-        }
-        .dc-action-btn {
-            flex: 1;
-            max-width: 160px;
-            padding: 7px 10px;
-            border-radius: 10px;
-            font-weight: 900;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            cursor: pointer;
-            border: none;
-            background: #3b82f6;
-            color: #fff;
-            transition: opacity 0.15s, transform 0.1s;
-        }
-        .dc-action-btn:active { transform: scale(0.96); }
-        .dc-action-btn:hover { opacity: 0.88; }
-        .dc-action-btn.dc-hidden { display: none !important; }
-        .dc-action-btn.dc-stop { background: #ef4444; }
-        .dc-action-btn.dc-new  { background: #10b981; }
-
-        /* Boutons action flottants (sur l'image, transparents hors survol) */
+        /* ── Boutons d'action (sur l'image, en bas à gauche) ── */
         .dc-action-row {
             position: absolute;
-            bottom: 8px;
-            left: 15px;
+            bottom: 16px;
+            left: 16px;
             z-index: 15;
             display: flex;
-            gap: 6px;
-        }
-        .dc-float-action-btn {
-            background: rgba(0,0,0,0.0);
-            border: 1px solid rgba(255,255,255,0.15);
-            color: rgba(255,255,255,0.55);
-            font-size: 9px;
-            font-weight: 900;
-            padding: 5px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            transition: all 0.2s;
-        }
-        .dc-float-action-btn:hover {
-            background: rgba(0,0,0,0.8);
-            border-color: rgba(255,255,255,0.8);
-            color: #fff;
-        }
-        .dc-float-action-btn:active { transform: scale(0.96); }
-        .dc-float-action-btn.dc-stop:hover { border-color: #ef4444; color: #ef4444; }
-        .dc-float-action-btn.dc-hidden { display: none !important; }
-        /* Le bouton Démarrer / Reprendre reste bien visible hors phase de lecture */
-        .dc-float-action-btn.dc-start {
-            background: #3b82f6 !important;
-            border-color: #3b82f6 !important;
-            color: #fff !important;
-        }
-        .dc-float-action-btn.dc-start:hover {
-            background: #3b82f6 !important;
-            border-color: #3b82f6 !important;
-            color: #fff !important;
-            opacity: 0.88;
-        }
-        /* Le bouton "Nouveau défi" reste bien visible une fois le défi stoppé */
-        .dc-float-action-btn.dc-new {
-            background: #10b981 !important;
-            border-color: #10b981 !important;
-            color: #fff !important;
-        }
-        .dc-float-action-btn.dc-new:hover {
-            background: #10b981 !important;
-            border-color: #10b981 !important;
-            color: #fff !important;
-            opacity: 0.88;
-        }
-
-        /* Image URL input */
-        .dc-url-input {
-            flex: 1;
-            background: rgba(255,255,255,0.07);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 7px;
-            color: #fff;
-            font-size: 10px;
-            padding: 4px 8px;
-            outline: none;
-            min-width: 0;
-        }
-        .dc-url-input::placeholder { color: rgba(255,255,255,0.25); }
-        .dc-url-input:focus { border-color: #3b82f6; }
-        .dc-url-btn {
-            padding: 4px 10px;
-            border-radius: 7px;
-            background: #3b82f6;
-            border: none;
-            color: #fff;
-            font-size: 10px;
-            font-weight: 800;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        /* Resize */
-        .dc-resize-handle {
-            position: absolute;
-            right: 0; bottom: 0;
-            width: 18px; height: 18px;
-            cursor: se-resize;
-            background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.25) 50%);
-            border-radius: 0 0 16px 0;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 20;
-        }
-        .dc-container:hover .dc-resize-handle { opacity: 1; }
-
-        /* En-tête (titre + boutons fenêtre) */
-        .dc-header {
-            display: flex;
-            align-items: center;
             gap: 8px;
         }
-        .dc-title {
+        .dc-float-action-btn,
+        .dc-float-ctrl {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border: none;
+            border-radius: 999px;
+            background: var(--dc-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            color: var(--dc-ink);
+            font-family: inherit;
             font-size: 12px;
-            font-weight: 900;
-            letter-spacing: 0.03em;
-            margin-right: auto;
-            pointer-events: none;
-            white-space: nowrap;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 3px 0 rgba(10,20,35,0.18);
+            opacity: 0.7;
+            transition: opacity .2s, transform .08s, box-shadow .08s, filter .15s;
+        }
+        .dc-float-action-btn:hover,
+        .dc-float-ctrl:hover { opacity: 1; }
+        .dc-float-action-btn:active,
+        .dc-float-ctrl:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(10,20,35,0.18); }
+        .dc-float-action-btn.dc-stop:hover { color: #C0392B; }
+        .dc-float-action-btn.dc-hidden { display: none !important; }
+        /* Démarrer / Reprendre : couleur du thème, bien visible */
+        .dc-float-action-btn.dc-start {
+            background: var(--dc-op);
+            color: #fff;
+            opacity: 1;
+            font-size: 14px;
+            padding: 9px 18px;
+        }
+        /* Nouveau défi : encre foncée, bien visible */
+        .dc-float-action-btn.dc-new {
+            background: var(--dc-ink);
+            color: #fff;
+            opacity: 1;
+            font-size: 14px;
+            padding: 9px 18px;
+        }
+        .dc-float-action-btn.dc-start:hover,
+        .dc-float-action-btn.dc-new:hover { filter: brightness(1.1); }
+        .dc-float-ctrl {
+            position: absolute;
+            bottom: 16px;
+            right: 24px;
+            z-index: 15;
+            opacity: 0.55;
+            font-size: 11px;
+            padding: 6px 12px;
+        }
+        .dc-float-ctrl svg { width: 14px; height: 14px; }
+
+        /* ── Choix de la couleur ── */
+        .dc-theme-pop {
+            position: absolute;
+            top: 58px;
+            right: 16px;
+            z-index: 30;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px 14px 14px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.95);
+            box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+        }
+        .dc-theme-pop.open { display: flex; }
+        .dc-pop-title { font-size: 13px; font-weight: 700; }
+        .dc-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+        .dc-swatch {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(20,32,46,0.15);
+            cursor: pointer;
+            padding: 0;
+        }
+        .dc-swatch.is-on { border-color: var(--dc-ink); box-shadow: 0 0 0 2px #fff inset; }
+
+        /* ── Poignée de redimensionnement (pointillés) ── */
+        .dc-resize-handle {
+            position: absolute;
+            bottom: 6px; right: 6px;
+            width: 18px; height: 18px;
+            cursor: nwse-resize;
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 0.2s;
+            background: radial-gradient(circle, rgba(20,32,46,0.55) 1.3px, transparent 1.7px) 0 0 / 6px 6px;
+            -webkit-mask: linear-gradient(135deg, transparent 50%, #000 50%);
+                    mask: linear-gradient(135deg, transparent 50%, #000 50%);
+        }
+        .dc-container:hover .dc-resize-handle { opacity: 1; }
+        .dc-container.dc-transparent .dc-resize-handle {
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 1.3px, transparent 1.7px) 0 0 / 6px 6px;
         }
 
-        /* Plein écran (fullboard) */
+        /* ── Plein écran : le fond pastel occupe tout l'écran ── */
         .dc-container.wf-fullboard {
             position: fixed !important;
             inset: 0 !important;
@@ -595,10 +650,14 @@ if (!document.getElementById('wf-btns-style')) {
             height: 100% !important;
             z-index: 9999 !important;
             border-radius: 0 !important;
-            padding-left: 40px;
+            padding: 14px 16px 16px 44px;
             box-sizing: border-box;
-            background: #000 !important; /* même en thème clair */
         }
+        .dc-container.wf-fullboard.dc-transparent {
+            background: var(--dc-bg) !important;
+            padding: 14px 16px 16px 44px;
+        }
+        .dc-container.wf-fullboard.dc-transparent::before { display: block; }
         /* En plein écran, masquer les poignées du tableau (déplacer, pivoter, menu…) */
         .widget.dc-is-full > .drag-handle,
         .widget.dc-is-full > .widget-rotate-handle,
@@ -612,15 +671,40 @@ if (!document.getElementById('wf-btns-style')) {
         }
         .dc-container.wf-fullboard .dc-resize-handle { display: none; }
 
-        /* ── Téléphone : plein écran du bouton vert à la hauteur réelle de l'écran (la marge gauche laisse déjà les onglets visibles) ── */
+        /* ── Téléphone : plein écran à la hauteur réelle de l'écran (la marge gauche laisse les onglets visibles) ── */
         @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
             .dc-container.wf-fullboard {
                 height: 100dvh !important;
+                padding: calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)) 44px;
             }
         }
     `;
     document.head.appendChild(s);
 })();
+
+// ── Couleurs disponibles (mêmes teintes que la calculatrice) ─────────────
+// cover = couleur qui cache l'image (pixels, pinceau, spirale)
+const DC_THEMES = {
+    bleu:   { name: 'Bleu',   bg: '#8EC5F2', op: '#2F6FB3', cover: '#1F3F66' },
+    vert:   { name: 'Vert',   bg: '#7FD6A6', op: '#23915A', cover: '#1C5A3C' },
+    jaune:  { name: 'Jaune',  bg: '#F6D86A', op: '#B9770E', cover: '#6E4B10' },
+    rose:   { name: 'Rose',   bg: '#F4A9C0', op: '#C2456E', cover: '#7A2B47' },
+    violet: { name: 'Violet', bg: '#C2B2F0', op: '#6A4FC2', cover: '#3E2D7A' },
+    gris:   { name: 'Gris',   bg: '#D4DAE2', op: '#4A5868', cover: '#2E3A47' }
+};
+const DC_DEFAULT_THEME = 'violet';
+
+// ── Icônes au trait (style calculatrice) ─────────────────────────────────
+const DC_ICONS = {
+    image:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 9"/></svg>',
+    palette: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.4-1.9-.3-1 .4-2.1 1.5-2.1H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10z"/><circle cx="7.5" cy="11" r="1.1" fill="currentColor"/><circle cx="10.5" cy="7" r="1.1" fill="currentColor"/><circle cx="15" cy="7.5" r="1.1" fill="currentColor"/></svg>',
+    dice:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor"/><circle cx="15" cy="9" r="1.1" fill="currentColor"/><circle cx="9" cy="15" r="1.1" fill="currentColor"/><circle cx="15" cy="15" r="1.1" fill="currentColor"/></svg>',
+    eye:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+    eyeOff:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.9 8.4 2 12 2 12s3.6 7 10 7a9.9 9.9 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
+    panel:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><path d="M7 6.5h.01M10 6.5h.01"/></svg>',
+    folder:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>'
+};
+
 
 // ── Constantes ────────────────────────────────────────────────────────────
 const DC_CONFIG = {
@@ -690,7 +774,7 @@ function createDeficalmeWidget() {
 
     const msgStart = document.createElement('div');
     msgStart.className = 'dc-msg-start';
-    msgStart.innerHTML = '🤫 Restez silencieux<br>pour révéler l\'image…';
+    msgStart.innerHTML = '<span class="dc-msg-bubble">🤫 Restez silencieux<br>pour révéler l\'image…</span>';
 
     const micBarWrap = document.createElement('div');
     micBarWrap.className = 'dc-mic-bar-wrap';
@@ -735,13 +819,18 @@ function createDeficalmeWidget() {
     const header = document.createElement('div');
     header.className = 'dc-header';
     header.innerHTML = `
-        <span class="dc-title">🤫 Défi calme</span>
-        <div class="wf-btns">
-            <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
-            <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
-            <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+        <div class="dc-title">${DC_ICONS.image}<span>Défi calme</span></div>
+        <div class="dc-tools">
+            <span class="dc-tools-slot"></span>
+            <span class="dc-sep"></span>
+            <div class="wf-btns">
+                <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
+                <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
+                <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+            </div>
         </div>
     `;
+    const toolsSlot = header.querySelector('.dc-tools-slot');
     controls.appendChild(header);
 
     // Ligne 1 : Mode + Durée
@@ -873,35 +962,47 @@ function createDeficalmeWidget() {
 
     const btnImport = document.createElement('button');
     btnImport.className = 'dc-url-btn';
-    btnImport.style.background = '#059669';
-    btnImport.textContent = '📁';
+    btnImport.innerHTML = DC_ICONS.folder;
     btnImport.title = 'Importer une image depuis votre appareil';
 
     const randBtn = document.createElement('button');
-    randBtn.className = 'dc-url-btn';
-    randBtn.style.background = '#6366f1';
-    randBtn.textContent = '🎲';
+    randBtn.className = 'dc-icon-btn';
+    randBtn.innerHTML = DC_ICONS.dice;
     randBtn.title = 'Image aléatoire';
 
     const btnTransp = document.createElement('button');
-    btnTransp.className = 'dc-url-btn';
-    btnTransp.style.background = '#374151';
-    btnTransp.title = 'Masquer/afficher le panneau de contrôle';
-    btnTransp.textContent = '⬜';
+    btnTransp.className = 'dc-icon-btn';
+    btnTransp.title = 'Masquer les contrôles';
+    btnTransp.innerHTML = DC_ICONS.panel;
 
     const btnApercu = document.createElement('button');
-    btnApercu.className = 'dc-url-btn';
-    btnApercu.style.background = '#6366f1';
-    btnApercu.textContent = '👁';
+    btnApercu.className = 'dc-icon-btn';
+    btnApercu.innerHTML = DC_ICONS.eye;
     btnApercu.title = 'Aperçu';
 
     row3.appendChild(imgLabel);
     row3.appendChild(btnImport);
     row3.appendChild(importFileInput);
     row3.appendChild(urlInput);
-    row3.appendChild(randBtn);
-    row3.appendChild(btnApercu);
-    row3.appendChild(btnTransp);
+
+    // Bouton couleur + fenêtre des couleurs (comme les réglages de la calculatrice)
+    const btnTheme = document.createElement('button');
+    btnTheme.className = 'dc-icon-btn';
+    btnTheme.innerHTML = DC_ICONS.palette;
+    btnTheme.title = 'Couleur';
+
+    const themePop = document.createElement('div');
+    themePop.className = 'dc-theme-pop';
+    themePop.innerHTML = '<div class="dc-pop-title">Couleur</div><div class="dc-swatches">'
+        + Object.keys(DC_THEMES).map(id => '<button class="dc-swatch" data-theme="' + id + '" title="'
+        + DC_THEMES[id].name + '" style="background:' + DC_THEMES[id].bg + '"></button>').join('')
+        + '</div>';
+
+    // Outils dans la pastille de l'en-tête
+    toolsSlot.appendChild(btnTheme);
+    toolsSlot.appendChild(randBtn);
+    toolsSlot.appendChild(btnApercu);
+    toolsSlot.appendChild(btnTransp);
 
     // Boutons action (flottants, sur l'image en bas à gauche)
     const btnRow = document.createElement('div');
@@ -924,8 +1025,12 @@ function createDeficalmeWidget() {
     btnRow.appendChild(btnReset);
     imageZone.appendChild(btnRow);
 
-    controls.appendChild(row1);
-    controls.appendChild(row3);
+    // Réglages regroupés dans une carte « verre »
+    const card = document.createElement('div');
+    card.className = 'dc-card';
+    card.appendChild(row1);
+    card.appendChild(row3);
+    controls.appendChild(card);
 
     // Poignée resize
     const resizeHandle = document.createElement('div');
@@ -933,6 +1038,7 @@ function createDeficalmeWidget() {
 
     container.appendChild(controls);
     container.appendChild(imageZone);
+    container.appendChild(themePop);
     container.appendChild(resizeHandle);
     widget.appendChild(container);
 
@@ -1174,7 +1280,7 @@ function createDeficalmeWidget() {
             brushSizeKey = sizeKey;
             brushCanvas.width = w + 2 * M; brushCanvas.height = h + 2 * M;
             ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = document.body.classList.contains('menu-light') ? '#f0f2f5' : '#121212';
+            ctx.fillStyle = getComputedStyle(container).getPropertyValue('--dc-cover').trim() || '#3E2D7A';
             ctx.fillRect(0, 0, w + 2 * M, h + 2 * M);
             brushDrawnIdx = 0;
         }
@@ -1970,15 +2076,10 @@ function createDeficalmeWidget() {
     // Bouton : « 👁 » (aperçu) quand l'image est cachée,
     // « 🙈 » (Cacher l'image) quand elle est visible
     function setApercuButton() {
-        if (apercuActive) {
-            btnApercu.textContent = '🙈';
-            btnApercu.title = 'Cacher l\'image';
-            btnApercu.style.background = '#ef4444';
-        } else {
-            btnApercu.textContent = '👁';
-            btnApercu.title = 'Aperçu';
-            btnApercu.style.background = '#6366f1';
-        }
+        btnApercu.innerHTML = apercuActive ? DC_ICONS.eyeOff : DC_ICONS.eye;
+        btnApercu.title = apercuActive ? 'Cacher l\'image' : 'Aperçu';
+        btnApercu.classList.toggle('is-on', apercuActive);
+        msgStart.style.visibility = apercuActive ? 'hidden' : '';
     }
     // Toute nouvelle image (🎲, 📁 ou URL) reste visible jusqu'au clic
     // sur « Cacher l'image » (ou sur Démarrer)
@@ -2008,52 +2109,64 @@ function createDeficalmeWidget() {
 
     btnApercu.addEventListener('click', toggleApercu);
 
-    // Fond transparent : cache le panneau de contrôle et rend le widget transparent
+    // Masquer les contrôles : seule l'image reste visible
     let isTransparent = false;
     btnTransp.addEventListener('click', () => {
         isTransparent = !isTransparent;
-        controls.style.display  = isTransparent ? 'none' : 'flex';
-        container.style.borderColor = isTransparent ? 'transparent' : '';
-        container.style.background  = isTransparent ? 'transparent' : '';
-        container.style.boxShadow   = isTransparent ? 'none' : '';
-        widget.dataset.transparent  = isTransparent ? 'true' : 'false';
-        // En mode transparent, un petit bouton flottant sur l'image permet de revenir
-        floatBtn.style.display = isTransparent ? 'flex' : 'none';
-        btnTransp.textContent  = isTransparent ? '🔲' : '⬜';
-        btnTransp.title        = isTransparent ? 'Afficher les contrôles' : 'Fond transparent';
-        btnTransp.style.background = isTransparent ? '#ef4444' : '#374151';
+        controls.style.display = isTransparent ? 'none' : 'flex';
+        container.classList.toggle('dc-transparent', isTransparent);
+        widget.dataset.transparent = isTransparent ? 'true' : 'false';
+        floatBtn.classList.toggle('is-on', isTransparent);
+        floatBtn.title = isTransparent ? 'Afficher les contrôles' : 'Masquer les contrôles';
+        closeThemePop();
+        if (_isMax) requestAnimationFrame(fitFullboard);
         saveBoard();
     });
 
-    // Bouton flottant pour sortir du mode transparent (visible sur l'image en bas à gauche)
+    // Bouton flottant (sur l'image, en bas à droite) : afficher / masquer les contrôles
     const floatBtn = document.createElement('button');
-    // État normal (au départ ou quand la souris sort)
-	const styleNormal = `
-		display: block; position: absolute; bottom: 8px; right: 15px; z-index: 15;
-		background: rgba(0,0,0,0.0); border: 1px solid rgba(255,255,255,0.1);
-		color: rgba(255, 255, 255, 0.5); font-size: 8px; font-weight: 800; padding: 4px 8px;
-		border-radius: 6px; cursor: pointer; 
-		text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s;
-	`;
-
-	// État au survol (moins opaque / plus visible)
-	const styleHover = `
-		display: block; position: absolute; bottom: 8px; right: 15px; z-index: 15;
-		background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.8);
-		color: rgba(255, 255, 255, 0.8); font-size: 8px; font-weight: 800; padding: 4px 8px;
-		border-radius: 6px; cursor: pointer; 
-		text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s;
-	`;
-
-	floatBtn.style.cssText = styleNormal;
-
-	// Gestion du survol
-	floatBtn.onmouseover = () => { floatBtn.style.cssText = styleHover; };
-	floatBtn.onmouseout = () => { floatBtn.style.cssText = styleNormal; };
-	
-    floatBtn.textContent = '🔲 Contrôles';
+    floatBtn.className = 'dc-float-ctrl';
+    floatBtn.title = 'Masquer les contrôles';
+    floatBtn.innerHTML = DC_ICONS.panel + '<span>Contrôles</span>';
     floatBtn.addEventListener('click', () => btnTransp.click());
     imageZone.appendChild(floatBtn);
+
+    // ── Couleur ───────────────────────────────────────────────────────────
+    let themeId = DC_DEFAULT_THEME;
+    function setTheme(id) {
+        if (!DC_THEMES[id]) id = DC_DEFAULT_THEME;
+        themeId = id;
+        const t = DC_THEMES[id];
+        container.style.setProperty('--dc-bg', t.bg);
+        container.style.setProperty('--dc-op', t.op);
+        container.style.setProperty('--dc-cover', t.cover);
+        widget.dataset.dcTheme = id;
+        themePop.querySelectorAll('.dc-swatch').forEach(sw => sw.classList.toggle('is-on', sw.dataset.theme === id));
+        brushDrawnIdx = -1;   // le pinceau / la spirale se redessinent avec la nouvelle couleur
+        updateUI();
+    }
+    function closeThemePop() {
+        themePop.classList.remove('open');
+        btnTheme.classList.remove('is-on');
+    }
+    btnTheme.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = !themePop.classList.contains('open');
+        themePop.classList.toggle('open', open);
+        btnTheme.classList.toggle('is-on', open);
+    });
+    themePop.addEventListener('mousedown', (e) => e.stopPropagation());
+    themePop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sw = e.target.closest('.dc-swatch');
+        if (!sw) return;
+        setTheme(sw.dataset.theme);
+        closeThemePop();
+        saveBoard();
+    });
+    // Pour une sauvegarde éventuelle (save-load.js)
+    widget._dcGetTheme = () => themeId;
+    widget._dcSetTheme = setTheme;
 
     // ── Boutons fenêtre ───────────────────────────────────────────────────
     const wfMin   = header.querySelector('[data-role="wf-min"]');
@@ -2066,7 +2179,8 @@ function createDeficalmeWidget() {
         if (!_isMax) { imageZone.style.width = ''; return; }
         const cs = getComputedStyle(container);
         const availW = container.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-        const availH = container.clientHeight - controls.offsetHeight;
+        const ctrlH = controls.offsetHeight ? controls.offsetHeight + (parseFloat(cs.rowGap) || 0) : 0;
+        const availH = container.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - ctrlH;
         imageZone.style.width = Math.max(100, Math.min(availW, availH * 16 / 9)) + 'px';
         updateUI();
     }
@@ -2257,7 +2371,10 @@ function createDeficalmeWidget() {
     makeDraggable(widget);
     makeDraggableRotate(widget);
 
+    setTheme(widget.dataset.dcTheme || DC_DEFAULT_THEME);
     generateGrid();
+    // À l'ouverture, l'image est affichée (bouton « Cacher l'image » ou Démarrer pour la masquer)
+    showNewImage();
     // Sur téléphone : ouverture directe en plein écran (bouton vert)
     if (_wfIsPhoneLaunch() && !_isMax) wfMax.click();
     saveBoard();

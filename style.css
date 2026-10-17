@@ -33,25 +33,24 @@
         body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
         body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.55); }
         /* Ligne repère limite basse du mode présentation */
+        /* Version discrète : trait fin et pâle, libellé court sans fond */
         #pres-limit-line {
             position: absolute;
             left: 0; right: 0;
             height: 0;
-            border-top: 2px dashed rgba(255, 80, 80, 0.6);
+            border-top: 1px dashed rgba(255, 80, 80, 0.28);
             z-index: 99990;
             pointer-events: none;
         }
         #pres-limit-line::after {
-            content: '← limite basse présentation →';
+            content: 'limite présentation';
             position: absolute;
-            right: 16px;
-            top: -18px;
-            font-size: 11px;
+            right: 12px;
+            top: -14px;
+            font-size: 9px;
             font-family: 'Segoe UI', system-ui, sans-serif;
-            color: rgba(255, 100, 100, 0.75);
-            background: rgba(0,0,0,0.25);
-            padding: 2px 8px;
-            border-radius: 4px;
+            letter-spacing: 0.3px;
+            color: rgba(255, 100, 100, 0.4);
             white-space: nowrap;
             pointer-events: none;
         }
@@ -733,27 +732,7 @@
 		#fab-btn:hover { background: #000; transform: scale(1.2); animation: none; box-shadow: 0 0px 10px rgba(120, 120,120,1); }
 		#fab-btn.menu-open { background: #555; border-color: #111; color: #fff; transform: rotate(135deg); padding-bottom: 10px; padding-left: 4px; animation: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
 		
-		@keyframes draw-fab-pulse-shadow {
-			0%   { box-shadow: 0 0 10px rgba(74, 144, 226, 0.4), 0 0 0 0   rgba(74, 144, 226, 0.5); }
-			90%  { box-shadow: 0 0 10px rgba(74, 144, 226, 0.4), 0 0 0 25px rgba(74, 144, 226, 0); }
-			100% { box-shadow: 0 0 10px rgba(74, 144, 226, 0.4), 0 0 0 0   rgba(74, 144, 226, 0); }
-		}
-		#draw-fab-btn {
-			position: fixed; bottom: 50px; right: 30px; z-index: 14000;
-			width: 70px; height: 70px; border-radius: 50%;
-			background: #1a1a2e; border: 2px solid #333;
-			color: #fff; font-size: 38px; cursor: pointer;
-			display: flex; align-items: center; justify-content: center;
-			box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-			transition: background .15s, transform .15s;
-			animation: draw-fab-pulse-shadow 1.5s ease-in-out infinite;
-		}
-		#draw-fab-btn:hover { background: #2a2a4a; transform: scale(1.1); animation: none; box-shadow: 0 0 10px rgba(74,144,226,0.8); }
-		#draw-fab-btn.draw-open { background: #888; border-color: #666; color: #fff; animation: none; transform: rotate(180deg); }
-		body.presentation-mode #draw-fab-btn { display: none; }
-		body.menu-light #draw-fab-btn { background: #fff; border-color: #4a90e2; color: #4a90e2; }
-		body.menu-light #draw-fab-btn:hover { background: #e8f0fb; }
-		body.menu-light #draw-fab-btn.draw-open { background: #888 !important; border-color: #666 !important; color: #fff !important; }
+		/* Bouton Dessin (#draw-fab-btn) : voir la section « BOUTON DESSIN » en fin de fichier */
 
 		/* Menu vertical principal */
 		#main-menu {
@@ -1384,48 +1363,13 @@
 			background: rgba(255,255,255,0.08); transition: background 0.2s;
 		}
 		#sticker-panel-resize-handle:hover::after { background: #f39c12; }
-		body.presentation-mode #sticker-panel,
-		/* ── Styles spans emoji/label dans les onglets latéraux ── */
-.tab-emoji { font-size: 44px; line-height: 1; display: block; text-align: center; }
-.tab-label { font-size: 17px; line-height: 1; display: block; text-align: center; letter-spacing: 0.5px; }
+		body.presentation-mode #sticker-panel { display: none !important; }
+/* (styles .tab-emoji / .tab-label supprimés : le survol des onglets est géré en CSS, voir « ONGLETS LATÉRAUX ») */
 
-body.presentation-mode #sticker-panel-tab { display: none !important; }
-		#sticker-panel-tab {
-			position: fixed;
-			left: -35px; top: calc(50% + 40px);
-			transform: translateY(-50%) rotate(-90deg);
-			transform-origin: center center;
-			width: 65px; height: 80px;
-			background: #111;
-			border: 1px solid #2e2e3a;
-			border-right: none;
-			border-radius: 15px 15px 15px 15px;
-			z-index: 50005;
-			cursor: pointer;
-			display: flex; align-items: center; justify-content: flex-start;
-			font-size: 10px; color: rgba(255,255,255,0.45);
-			font-weight : 600;
-			transition: width 0.05s, height 0.05s, transform 0.05s, opacity 0.1s, color 0.1s, background 0.1s;
-			letter-spacing: 1px;
-			box-shadow: 0px 0px 10px rgba(0,0,0,1);
-			opacity: 0.75;
-			white-space: nowrap;
-			flex-direction: column-reverse;
-		}
-		#sticker-panel-tab.tab-js-hover {
-			background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-			width: 130px; height: 80px;
-			padding: 0;
-			transform: translateY(-50%) rotate(0deg);
-			flex-direction: column;
-			gap: 4px;
-			font-size: 12px;
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-	z-index: 50010;
-}
-		#sticker-panel-tab.active { display: none !important; }
+
+		
+		
+		
 
 		/* Header */
 		#sticker-panel-header {
@@ -1555,8 +1499,6 @@ body.presentation-mode #sticker-panel-tab { display: none !important; }
 		.sp-close:hover { color: #fff; }
 
 
-
-
 /* ── Panneau Widgets ──────────────────────────────────────────────────── */
 :root { --widgets-panel-w: 85vw; }
 #widgets-panel {
@@ -1574,8 +1516,7 @@ body.presentation-mode #sticker-panel-tab { display: none !important; }
 }
 #widgets-panel.widgets-panel-open { left: 0; }
 #widgets-panel.widgets-panel-resizing { transition: none !important; }
-body.presentation-mode #widgets-panel,
-body.presentation-mode #widgets-panel-tab { display: none !important; }
+body.presentation-mode #widgets-panel { display: none !important; }
 
 #widgets-panel-resize-handle {
     position: absolute;
@@ -1595,44 +1536,6 @@ body.presentation-mode #widgets-panel-tab { display: none !important; }
 }
 #widgets-panel-resize-handle:hover::after { background: #8e44ad; }
 
-#widgets-panel-tab {
-    position: fixed;
-    left: -35px; top: calc(50% - 30px);
-    transform: translateY(-50%) rotate(-90deg);
-    transform-origin: center center;
-    width: 65px; height: 80px;
-    background: #111;
-    border: 1px solid #2e2e3a;
-    border-right: none;
-    border-radius: 15px 15px 15px 15px;
-    z-index: 50005;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: flex-start;
-    font-size: 10px; color: rgba(255,255,255,0.45);
-	font-weight : 600;
-    transition: width 0.05s, height 0.05s, transform 0.05s, opacity 0.1s, color 0.1s, background 0.1s;
-    letter-spacing: 1px;
-    box-shadow: 0px 0px 10px rgba(0,0,0,1);
-    opacity: 0.75;
-    white-space: nowrap;
-    flex-direction: column-reverse;
-    gap: 2px;
-}
-#widgets-panel-tab.tab-js-hover {
-    background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 130px; height: 80px;
-    padding: 0;
-    transform: translateY(-50%) rotate(0deg);
-    flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-	z-index: 50010;
-}
-#widgets-panel-tab.widgets-panel-tab-open { display: none !important; }
-#widgets-panel-tab.widgets-panel-resizing { transition: none !important; }
 
 #widgets-panel-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -1711,8 +1614,7 @@ body.menu-light .widgets-card-ico img { border-color: #bbb; }
 }
 #tools-panel.tools-panel-open { left: 0; }
 #tools-panel.tools-panel-resizing { transition: none !important; }
-body.presentation-mode #tools-panel,
-body.presentation-mode #tools-panel-tab { display: none !important; }
+body.presentation-mode #tools-panel { display: none !important; }
 
 /* Poignée resize */
 #tools-panel-resize-handle {
@@ -1734,44 +1636,7 @@ body.presentation-mode #tools-panel-tab { display: none !important; }
 #tools-panel-resize-handle:hover::after { background: #e67e22; }
 
 /* Onglet déclencheur */
-#tools-panel-tab {
-    position: fixed;
-    left: -35px; top: calc(50% - 100px);
-    transform: translateY(-50%) rotate(-90deg);
-    transform-origin: center center;
-    width: 65px; height: 80px;
-    background: #111;
-    border: 1px solid #2e2e3a;
-    border-right: none;
-    border-radius: 15px 15px 15px 15px;
-    z-index: 50005;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: flex-start;
-    font-size: 10px; color: rgba(255,255,255,0.45);
-	font-weight : 600;
-    transition: width 0.05s, height 0.05s, transform 0.05s, opacity 0.1s, color 0.1s, background 0.1s;
-    letter-spacing: 1px;
-    box-shadow: 0px 0px 10px rgba(0,0,0,1);
-    opacity: 0.75;
-    white-space: nowrap;
-    flex-direction: column-reverse;
-    gap: 2px;
-}
-#tools-panel-tab.tab-js-hover {
-    background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 130px; height: 80px;
-    padding: 0;
-    transform: translateY(-50%) rotate(0deg);
-    flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-	z-index: 50010;
-}
-#tools-panel-tab.tools-panel-tab-open { display: none !important; }
-#tools-panel-tab.tools-panel-resizing { transition: none !important; }
+
 
 /* En-tête */
 #tools-panel-header {
@@ -1859,8 +1724,7 @@ body.presentation-mode #tools-panel-tab { display: none !important; }
 }
 #activities-panel.act-panel-open { left: 0; }
 #activities-panel.act-panel-resizing { transition: none !important; }
-body.presentation-mode #activities-panel,
-body.presentation-mode #activities-panel-tab { display: none !important; }
+body.presentation-mode #activities-panel { display: none !important; }
 
 /* Poignée resize */
 #activities-panel-resize-handle {
@@ -1882,75 +1746,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
 #activities-panel-resize-handle:hover::after { background: #f39c12; }
 
 /* Onglet déclencheur */
-#activities-panel-tab {
-    position: fixed;
-    left: -35px; top: calc(50% - 170px);
-    transform: translateY(-50%) rotate(-90deg);
-    transform-origin: center center;
-    width: 65px; height: 80px;
-    background: #111;
-    border: 1px solid #2e2e3a;
-    border-right: none;
-    border-radius: 15px 15px 15px 15px;
-    z-index: 50005;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: flex-start;
-    font-size: 10px; color: rgba(255,255,255,0.45);
-	font-weight : 600;
-    transition: width 0.05s, height 0.05s, transform 0.05s, opacity 0.1s, color 0.1s, background 0.1s;
-    letter-spacing: 0.5px;
-    box-shadow: 0px 0px 10px rgba(0,0,0,1);
-    opacity: 0.75;
-    white-space: nowrap;
-    flex-direction: column-reverse;
-    gap: 2px;
-}
-#activities-panel-tab.tab-js-hover {
-    background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 130px; height: 80px;
-    padding: 0;
-    transform: translateY(-50%) rotate(0deg);
-    flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-	z-index: 50010;
-}
-#activities-panel-tab.act-panel-tab-open { display: none !important; }
-#activities-panel-tab.act-panel-resizing { transition: none !important; }
-#jeux-panel-tab .act-tab-ico,
-#jeux-panel-tab .act-tab-lbl,
-#activities-panel-tab .act-tab-ico,
-#activities-panel-tab .act-tab-lbl,
-#sticker-panel-tab .act-tab-ico,
-#sticker-panel-tab .act-tab-lbl,
-#widgets-panel-tab .act-tab-ico,
-#widgets-panel-tab .act-tab-lbl,
-#tools-panel-tab .act-tab-ico,
-#tools-panel-tab .act-tab-lbl,
-#projects-panel-tab .act-tab-ico,
-#projects-panel-tab .act-tab-lbl,
-#pres-mode-tab .act-tab-ico,
-#pres-mode-tab .act-tab-lbl,
-#display-panel-tab .act-tab-ico,
-#display-panel-tab .act-tab-lbl {
-    display: block;
-    line-height: 1;
-    white-space: normal;
-}
 
-#jeux-panel-tab .act-tab-ico,
-#activities-panel-tab .act-tab-ico,
-#sticker-panel-tab .act-tab-ico,
-#widgets-panel-tab .act-tab-ico,
-#tools-panel-tab .act-tab-ico,
-#projects-panel-tab .act-tab-ico,
-#pres-mode-tab .act-tab-ico,
-#display-panel-tab .act-tab-ico {
-    font-size: 20px;
-}
 
 /* En-tête */
 #act-panel-header,
@@ -2062,8 +1858,7 @@ body.presentation-mode #activities-panel-tab { display: none !important; }
 }
 #jeux-panel.jeux-panel-open { left: 0; }
 #jeux-panel.jeux-panel-resizing { transition: none !important; }
-body.presentation-mode #jeux-panel,
-body.presentation-mode #jeux-panel-tab { display: none !important; }
+body.presentation-mode #jeux-panel { display: none !important; }
 
 /* Poignée resize */
 #jeux-panel-resize-handle {
@@ -2085,45 +1880,7 @@ body.presentation-mode #jeux-panel-tab { display: none !important; }
 #jeux-panel-resize-handle:hover::after { background: #f39c12; }
 
 /* Onglet déclencheur — tout en haut de la pile d'onglets latéraux */
-#jeux-panel-tab {
-    position: fixed;
-    left: -35px; top: calc(50% - 240px);
-    transform: translateY(-50%) rotate(-90deg);
-    transform-origin: center center;
-    width: 65px; height: 80px;
-    background: #111;
-    border: 1px solid #2e2e3a;
-    border-right: none;
-    border-radius: 15px 15px 15px 15px;
-    z-index: 50005;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: flex-start;
-    font-size: 10px; color: rgba(255,255,255,0.45);
-	font-weight : 600;
-    transition: width 0.05s, height 0.05s, transform 0.05s, opacity 0.1s, color 0.1s, background 0.1s;
-    letter-spacing: 0.5px;
-    box-shadow: 0px 0px 10px rgba(0,0,0,1);
-    opacity: 0.75;
-    white-space: nowrap;
-    flex-direction: column-reverse;
-    gap: 2px;
-}
-#jeux-panel-tab.tab-js-hover {
-    background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 130px; height: 80px;
-    padding: 0;
-    transform: translateY(-50%) rotate(0deg);
-    flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-	z-index: 50010;
-}
-#jeux-panel-tab.jeux-panel-tab-open { display: none !important; }
-#jeux-panel-tab.jeux-panel-resizing { transition: none !important; }
-body.presentation-mode #jeux-panel-tab { display: none !important; }
+
 
 /* ── Panneau Projets ──────────────────────────────────────── */
 :root { --proj-panel-w: 30vw; }
@@ -2144,8 +1901,7 @@ body.presentation-mode #jeux-panel-tab { display: none !important; }
 
 #projects-panel.proj-panel-open { left: 0; }
 #projects-panel.proj-panel-resizing { transition: none !important; }
-body.presentation-mode #projects-panel,
-body.presentation-mode #projects-panel-tab { display: none !important; }
+body.presentation-mode #projects-panel { display: none !important; }
 
 /* Poignée de resize */
 #projects-panel-resize-handle {
@@ -2167,156 +1923,19 @@ body.presentation-mode #projects-panel-tab { display: none !important; }
 #projects-panel-resize-handle:hover::after { background: #4a90e2; }
 
 /* Onglet déclencheur */
-#projects-panel-tab {
-    position: fixed;
-    left: -35px; top: calc(50% + 110px);
-    transform: translateY(-50%) rotate(-90deg);
-    transform-origin: center center;
-    width: 65px; height: 80px;
-    background: #111;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-right: none;
-    border-radius: 15px 15px 15px 15px;
-    z-index: 50005;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: flex-start;
-    font-size: 10px; color: rgba(255,255,255,0.45);
-	font-weight : 600;
-    transition: width 0.05s, height 0.05s, transform 0.05s, opacity 0.1s, color 0.1s, background 0.1s;
-    letter-spacing: 1px;
-    box-shadow: 0px 0px 10px rgba(0,0,0,1);
-    opacity: 0.75;
-    white-space: nowrap;
-    flex-direction: column-reverse;
-    gap: 2px;
-}
-#projects-panel-tab.tab-js-hover {
-    background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 130px; height: 80px;
-    padding: 0;
-    transform: translateY(-50%) rotate(0deg);
-    flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-	z-index: 50010;
-}
-#projects-panel-tab.proj-panel-tab-open { display: none !important; }
-#projects-panel-tab.proj-panel-resizing { transition: none !important; }
+
 
 /* ── Onglet Mode Présentation (8e onglet) ─────────────────────── */
-#pres-mode-tab {
-    position: fixed;
-    left: -25px; top: calc(50% + 250px);
-    transform: translateY(-50%) rotate(-90deg);
-    transform-origin: center center;
-    width: 50px; height: 75px;
-    background: #1a2a3b;
-    border: 0px solid rgba(255,120,50,0.35);
-    border-right: none;
-    border-radius: 15px 15px 15px 15px;
-    z-index: 50005;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: flex-start;
-    font-size: 12px; color: rgba(100,170,235,0.65);
-	font-weight : 600;
-    transition: width 0.05s, height 0.05s, transform 0.05s, opacity 0.1s, color 0.1s, background 0.1s;
-    letter-spacing: 1px;
-    box-shadow: 0px 0px 10px rgba(255,255,255,1);
-    opacity: 0.75;
-    white-space: nowrap;
-    flex-direction: column-reverse;
-    gap: 2px;
-}
-#pres-mode-tab.tab-js-hover {
-    background: #243a52; color: rgba(100,170,235,0.95); opacity: 1;
-    width: 150px; height: 100px;
-    padding: 0;
-    transform: translateY(-50%) rotate(0deg);
-    flex-direction: column;
-    gap: 4px;
-    font-size: 10px;
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 30px;
-	z-index: 50010;
-}
+
+
 /* État actif (présentation ON) */
-#pres-mode-tab.pres-mode-tab-active {
-    background: #2a0a0a;
-    border-color: rgba(255,80,80,0.7);
-    color: rgba(255,100,100,0.9);
-    opacity: 0.33;
-}
-#pres-mode-tab.pres-mode-tab-active.tab-js-hover {
-    background: #3a0a0a;
-    color: #ff8080;
-    opacity: 1;
-}
+
+
 /* Toujours visible, même en mode présentation */
-body.presentation-mode #pres-mode-tab {
-    display: flex !important;
-    z-index: 100001;
-}
+
 
 /* ── Onglet Affichage (9e onglet) ─────────────────────── */
-#display-panel-tab {
-    position: fixed;
-    left: -35px; top: calc(50% + 180px);
-    transform: translateY(-50%) rotate(-90deg);
-    transform-origin: center center;
-    width: 65px; height: 80px;
-    background: #111;
-    border: 1px solid #2e2e3a;
-    border-right: none;
-    border-radius: 15px 15px 15px 15px;
-    z-index: 50005;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: flex-start;
-    font-size: 10px; color: rgba(255,255,255,0.45);
-	font-weight : 600;
-    transition: width 0.05s, height 0.05s, transform 0.05s, opacity 0.1s, color 0.1s, background 0.1s;
-    letter-spacing: 1px;
-    box-shadow: 0px 0px 10px rgba(0,0,0,1);
-    opacity: 0.75;
-    white-space: nowrap;
-    flex-direction: column-reverse;
-    gap: 2px;
-}
-#display-panel-tab.tab-js-hover {
-    background: #1a1a1a;
-    color: rgba(255,255,255,0.88);
-    opacity: 1;
-    z-index: 50020;
-    width: 130px; height: 80px;
-    padding: 0;
-    transform: translateY(-50%) rotate(0deg);
-    flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-}
-#display-panel-tab.display-panel-tab-open { display: none !important; }
-body.presentation-mode #display-panel-tab { display: none !important; }
-body.menu-light #display-panel-tab {
-    background: var(--panel-light-bg);
-    border-color: var(--panel-light-border);
-    color: var(--panel-light-muted);
-}
-body.menu-light #display-panel-tab.tab-js-hover {
-    background: var(--panel-light-bg2);
-    color: var(--panel-light-text);
-    opacity: 1;
-    z-index: 50020;
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-}
-body.menu-light #display-panel-tab.display-panel-tab-open { display: none !important; }
+
 
 /* ── Onglet Historique (10e onglet) ─────────────────────── */
 #history-panel-tab {
@@ -3000,25 +2619,13 @@ body.menu-light .disp-section-label, body.menu-light .hist-section-label {
 }
 
 
-
 /* ─── PANNEAU STICKERS ─────────────────────────────────────────────── */
 body.menu-light #sticker-panel {
     background: var(--panel-light-bg);
     border-right-color: var(--panel-light-border);
 }
-body.menu-light #sticker-panel-tab {
-    background: var(--panel-light-bg);
-    border-color: var(--panel-light-border);
-    color: var(--panel-light-muted);
-}
-body.menu-light #sticker-panel-tab.tab-js-hover {
-    background: var(--panel-light-bg2);
-    color: var(--panel-light-text);
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-}
-body.menu-light #sticker-panel-tab.active { display: none !important; }
+
+
 body.menu-light #sticker-panel-header {
     background: var(--panel-light-header-bg);
     border-bottom-color: var(--panel-light-border);
@@ -3068,19 +2675,8 @@ body.menu-light #widgets-panel {
     background: var(--panel-light-bg);
     border-right-color: var(--panel-light-border);
 }
-body.menu-light #widgets-panel-tab {
-    background: var(--panel-light-bg);
-    border-color: var(--panel-light-border);
-    color: var(--panel-light-muted);
-}
-body.menu-light #widgets-panel-tab.tab-js-hover {
-    background: var(--panel-light-bg2);
-    color: var(--panel-light-text);
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-}
-body.menu-light #widgets-panel-tab.widgets-panel-tab-open { display: none !important; }
+
+
 body.menu-light #widgets-panel-resize-handle::after { background: rgba(0,0,0,0.1); }
 body.menu-light #widgets-panel-resize-handle:hover::after { background: #8e44ad; }
 body.menu-light #widgets-panel-header {
@@ -3111,19 +2707,8 @@ body.menu-light #tools-panel {
     background: var(--panel-light-bg);
     border-right-color: var(--panel-light-border);
 }
-body.menu-light #tools-panel-tab {
-    background: var(--panel-light-bg);
-    border-color: var(--panel-light-border);
-    color: var(--panel-light-muted);
-}
-body.menu-light #tools-panel-tab.tab-js-hover {
-    background: var(--panel-light-bg2);
-    color: var(--panel-light-text);
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-}
-body.menu-light #tools-panel-tab.tools-panel-tab-open { display: none !important; }
+
+
 body.menu-light #tools-panel-resize-handle::after { background: rgba(0,0,0,0.1); }
 body.menu-light #tools-panel-resize-handle:hover::after { background: #e67e22; }
 body.menu-light #tools-panel-header {
@@ -3154,19 +2739,8 @@ body.menu-light #jeux-panel {
     background: var(--panel-light-bg);
     border-right-color: var(--panel-light-border);
 }
-body.menu-light #jeux-panel-tab {
-    background: var(--panel-light-bg);
-    border-color: var(--panel-light-border);
-    color: var(--panel-light-muted);
-}
-body.menu-light #jeux-panel-tab.tab-js-hover {
-    background: var(--panel-light-bg2);
-    color: var(--panel-light-text);
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-}
-body.menu-light #jeux-panel-tab.jeux-panel-tab-open { display: none !important; }
+
+
 body.menu-light #jeux-panel-resize-handle::after { background: rgba(0,0,0,0.1); }
 body.menu-light #jeux-panel-resize-handle:hover::after { background: #f39c12; }
 
@@ -3175,19 +2749,8 @@ body.menu-light #activities-panel {
     background: var(--panel-light-bg);
     border-right-color: var(--panel-light-border);
 }
-body.menu-light #activities-panel-tab {
-    background: var(--panel-light-bg);
-    border-color: var(--panel-light-border);
-    color: var(--panel-light-muted);
-}
-body.menu-light #activities-panel-tab.tab-js-hover {
-    background: var(--panel-light-bg2);
-    color: var(--panel-light-text);
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-}
-body.menu-light #activities-panel-tab.act-panel-tab-open { display: none !important; }
+
+
 body.menu-light #activities-panel-resize-handle::after { background: rgba(0,0,0,0.1); }
 body.menu-light #activities-panel-resize-handle:hover::after { background: #f39c12; }
 body.menu-light #act-panel-header,
@@ -3223,19 +2786,8 @@ body.menu-light #projects-panel {
     background: var(--panel-light-bg);
     border-right-color: var(--panel-light-border);
 }
-body.menu-light #projects-panel-tab {
-    background: var(--panel-light-bg);
-    border-color: var(--panel-light-border);
-    color: var(--panel-light-muted);
-}
-body.menu-light #projects-panel-tab.tab-js-hover {
-    background: var(--panel-light-bg2);
-    color: var(--panel-light-text);
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-}
-body.menu-light #projects-panel-tab.proj-panel-tab-open { display: none !important; }
+
+
 body.menu-light #projects-panel-resize-handle::after { background: rgba(0,0,0,0.1); }
 body.menu-light #projects-panel-resize-handle:hover::after { background: #4a90e2; }
 body.menu-light #proj-panel-header {
@@ -3925,14 +3477,9 @@ body.menu-light .panel-close-strip:active .pcs-ico { color: #e0443c; }
 
 
 /* ══════════════════════════════════════════════════════════════════
-   BARRE DESSIN : FAB masqué quand la barre est ouverte
-   + bouton de fermeture bien visible
+   BARRE DESSIN : bouton de fermeture bien visible
+   (le masquage du bouton Dessin est dans la section « BOUTON DESSIN »)
 ══════════════════════════════════════════════════════════════════ */
-#draw-fab-btn.draw-open {
-    opacity: 0;
-    pointer-events: none;
-    transform: scale(0.6);
-}
 body #draw-toolbar #draw-toolbar-close {
     width: 30px !important;
     height: 30px !important;
@@ -3960,3 +3507,247 @@ body #draw-toolbar #draw-toolbar-close:hover {
 }
 body #draw-toolbar #draw-toolbar-close:active { transform: scale(0.92); }
 body.menu-light #draw-toolbar #draw-toolbar-close { border-color: #c0392b !important; }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   ONGLETS LATÉRAUX (#side-tabs)
+   Remplace les anciennes règles par onglet (onglets tournés à -90°,
+   positionnés un par un, agrandis au survol par un script).
+   - une seule colonne centrée verticalement, en 3 familles
+   - liseré et icône à la couleur de chaque panneau (--tab-c)
+   - l'onglet du panneau ouvert reste visible et prend sa teinte
+   - libellé toujours lisible (utile au doigt / au stylet sur TBI)
+   - survol géré en CSS (plus de clignotement)
+══════════════════════════════════════════════════════════════════ */
+#side-tabs {
+    position: fixed;
+    top: 0; bottom: 0; left: 0;
+    z-index: 50005;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    pointer-events: none;           /* seuls les onglets captent les clics */
+    transition: transform .25s cubic-bezier(.4,0,.2,1), opacity .25s;
+}
+.side-tabs-group { display: flex; flex-direction: column; gap: 4px; }
+.side-tabs-sep  { height: 14px; flex-shrink: 0; }
+
+.side-tab {
+    --tab-w: 50px;
+    pointer-events: auto;
+    position: relative;
+    box-sizing: border-box;
+    width: var(--tab-w);
+    min-height: 50px;
+    margin: 0; padding: 6px 2px 5px 5px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    background: #141418;
+    color: rgba(255,255,255,0.62);
+    border: 1px solid #2e2e3a;
+    border-left: none;
+    border-radius: 0 12px 12px 0;
+    box-shadow: inset 3px 0 0 var(--tab-c), 2px 0 8px rgba(0,0,0,0.35);
+    font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: width .18s cubic-bezier(.4,0,.2,1), background .15s, color .15s, box-shadow .15s;
+}
+.side-tab-ico {
+    width: 22px; height: 22px; flex-shrink: 0;
+    fill: none; stroke: currentColor; stroke-width: 1.8;
+    stroke-linecap: round; stroke-linejoin: round;
+    color: var(--tab-c);
+    pointer-events: none;
+}
+.side-tab-ico circle { fill: currentColor; }
+.side-tab-lbl {
+    font-size: 9.5px; font-weight: 700; line-height: 1.1;
+    letter-spacing: 0; white-space: nowrap;
+    pointer-events: none;
+}
+
+/* Survol / focus clavier : l'onglet sort un peu du bord */
+.side-tab:hover,
+.side-tab:focus-visible {
+    width: calc(var(--tab-w) + 8px);
+    background: #1e1e24;
+    color: #fff;
+    box-shadow: inset 4px 0 0 var(--tab-c), 3px 0 12px rgba(0,0,0,0.45);
+}
+.side-tab:focus-visible { outline: 2px solid var(--tab-c); outline-offset: 2px; }
+.side-tab:active { transform: scale(0.97); }
+
+/* Panneau ouvert : l'onglet reste visible, teinté, « soudé » au panneau */
+#side-tabs .side-tab.is-open {
+    display: flex !important;
+    width: calc(var(--tab-w) + 8px);
+    background: color-mix(in srgb, var(--tab-c) 30%, #141418);
+    color: #fff;
+    border-color: var(--tab-c);
+    box-shadow: inset 5px 0 0 var(--tab-c), 3px 0 12px rgba(0,0,0,0.45);
+}
+#side-tabs .side-tab.is-open .side-tab-ico { color: #fff; }
+
+/* Badge « brouillon non enregistré » sur Tableaux */
+.side-tab-badge {
+    display: none;
+    position: absolute; top: 5px; right: 6px;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #f0c040;
+    box-shadow: 0 0 0 2px #141418;
+}
+.side-tab.has-draft .side-tab-badge { display: block; }
+
+/* Interrupteur du mode présentation */
+.side-tab-switch {
+    position: relative; display: block; flex-shrink: 0;
+    width: 22px; height: 12px; margin-top: 1px; border-radius: 6px;
+    background: rgba(255,255,255,0.22);
+    transition: background .15s;
+    pointer-events: none;
+}
+.side-tab-switch > span {
+    position: absolute; top: 2px; left: 2px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #fff;
+    transition: left .15s;
+}
+#pres-mode-tab.pres-mode-tab-active .side-tab-switch { background: var(--tab-c); }
+#pres-mode-tab.pres-mode-tab-active .side-tab-switch > span { left: 12px; }
+#pres-mode-tab { min-height: 62px; }
+
+/* Mode présentation : seuls « Présenter » reste, discret */
+body.presentation-mode #side-tabs { z-index: 100001; }
+body.presentation-mode #side-tabs .side-tab:not(#pres-mode-tab),
+body.presentation-mode #side-tabs .side-tabs-sep { display: none !important; }
+body.presentation-mode #pres-mode-tab { opacity: 0.4; }
+body.presentation-mode #pres-mode-tab:hover,
+body.presentation-mode #pres-mode-tab:focus-visible { opacity: 1; }
+/* Avec une souris : l'onglet se range presque entièrement hors de l'écran
+   et ressort quand on approche du bord gauche */
+@media (hover: hover) {
+    body.presentation-mode #side-tabs { transform: translateX(-38px); }
+    body.presentation-mode #side-tabs:hover,
+    body.presentation-mode #side-tabs:focus-within { transform: none; }
+}
+
+/* Mode page de garde : les onglets sont masqués */
+body.mode-pagegarde #side-tabs { display: none !important; }
+
+/* ── Mode clair ── */
+body.menu-light .side-tab {
+    background: var(--panel-light-bg);
+    color: #555;
+    border-color: var(--panel-light-border);
+    box-shadow: inset 3px 0 0 var(--tab-c), 2px 0 8px rgba(0,0,0,0.12);
+}
+body.menu-light .side-tab:hover,
+body.menu-light .side-tab:focus-visible {
+    background: #fff;
+    color: var(--panel-light-text);
+    box-shadow: inset 4px 0 0 var(--tab-c), 3px 0 12px rgba(0,0,0,0.18);
+}
+body.menu-light #side-tabs .side-tab.is-open {
+    background: color-mix(in srgb, var(--tab-c) 22%, #ffffff);
+    color: var(--panel-light-text);
+    border-color: var(--tab-c);
+    box-shadow: inset 5px 0 0 var(--tab-c), 3px 0 12px rgba(0,0,0,0.18);
+}
+body.menu-light #side-tabs .side-tab.is-open .side-tab-ico { color: color-mix(in srgb, var(--tab-c) 70%, #000); }
+body.menu-light .side-tab-badge { box-shadow: 0 0 0 2px var(--panel-light-bg); }
+body.menu-light .side-tab-switch { background: rgba(0,0,0,0.2); }
+body.menu-light #pres-mode-tab.pres-mode-tab-active .side-tab-switch { background: var(--tab-c); }
+
+/* ── Écrans peu hauts (ex. portable en 1366×768 avec barre de tâches) ── */
+@media (max-height: 560px) {
+    .side-tab { min-height: 40px; padding-top: 4px; padding-bottom: 4px; gap: 2px; }
+    .side-tab-ico { width: 19px; height: 19px; }
+    .side-tab-lbl { font-size: 8.5px; }
+    .side-tabs-group { gap: 3px; }
+    .side-tabs-sep { height: 8px; }
+    #pres-mode-tab { min-height: 52px; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   BOUTON DESSIN (#draw-fab-btn) — ouvre la barre Dessin & figures
+   - bleu plein, lisible sur tous les fonds (tableau vert, page blanche…)
+   - icône SVG (rendu identique sur tous les appareils)
+   - à la souris, il s'allonge et affiche « Dessiner »
+   - le halo ne pulse que 3 fois au chargement (plus d'animation sans fin
+     qui distrait les élèves et consomme du processeur)
+   - raccourci Alt+9
+══════════════════════════════════════════════════════════════════ */
+@keyframes dfab-halo {
+    0%   { box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 0 0    rgba(74,144,226,0.55); }
+    80%  { box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 0 18px rgba(74,144,226,0); }
+    100% { box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 0 0    rgba(74,144,226,0); }
+}
+#draw-fab-btn {
+    position: fixed;
+    right: 28px; bottom: 36px;
+    z-index: 14000;
+    box-sizing: border-box;
+    height: 58px; min-width: 58px;
+    padding: 0 17px;
+    display: flex; align-items: center; justify-content: center; gap: 0;
+    border: 2px solid rgba(255,255,255,0.9);
+    border-radius: 29px;
+    background: #4a90e2;
+    color: #fff;
+    font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    animation: dfab-halo 1.8s ease-out 0.8s 3;
+    transition: background .15s, gap .2s, transform .12s, opacity .2s, box-shadow .15s;
+}
+.dfab-ico {
+    width: 24px; height: 24px; flex-shrink: 0;
+    fill: none; stroke: currentColor; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+    pointer-events: none;
+}
+.dfab-lbl {
+    max-width: 0; overflow: hidden;
+    font-size: 15px; font-weight: 700; white-space: nowrap;
+    opacity: 0;
+    transition: max-width .22s cubic-bezier(.4,0,.2,1), opacity .15s;
+    pointer-events: none;
+}
+#draw-fab-btn:hover,
+#draw-fab-btn:focus-visible {
+    background: #3a7fd0;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+    animation: none;
+}
+@media (hover: hover) {
+    #draw-fab-btn:hover,
+    #draw-fab-btn:focus-visible { gap: 8px; }
+    #draw-fab-btn:hover .dfab-lbl,
+    #draw-fab-btn:focus-visible .dfab-lbl { max-width: 90px; opacity: 1; }
+}
+#draw-fab-btn:focus-visible { outline: 3px solid #f0c040; outline-offset: 3px; }
+#draw-fab-btn:active { transform: scale(0.94); }
+
+/* Mode clair : même bouton, contour bleu foncé au lieu de blanc */
+body.menu-light #draw-fab-btn { border-color: #1f5fa8; }
+
+/* Barre Dessin ouverte : le bouton s'efface (la barre a son propre ✖) */
+#draw-fab-btn.draw-open {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.6);
+    animation: none;
+}
+
+/* Masqué en mode présentation */
+body.presentation-mode #draw-fab-btn { display: none; }
+
+/* Respect du réglage « réduire les animations » du système */
+@media (prefers-reduced-motion: reduce) {
+    #draw-fab-btn { animation: none; }
+}

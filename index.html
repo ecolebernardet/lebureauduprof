@@ -542,7 +542,10 @@
 		</div>
 	</div>
 
-	<button id="draw-fab-btn" onclick="openMmPanel('draw')" title="Dessin &amp; Figures">✏️</button>
+	<button id="draw-fab-btn" onclick="openMmPanel('draw')" title="Dessin et figures (Alt+9)" aria-label="Dessin et figures">
+		<svg class="dfab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-4.8L15.6 4.8a2.3 2.3 0 0 1 3.3 0l.3.3a2.3 2.3 0 0 1 0 3.3L8.8 18.8z"/><path d="M13.8 6.6l3.6 3.6"/><path d="M4 20l4.8-1.2"/></svg>
+		<span class="dfab-lbl">Dessiner</span>
+	</button>
 	<div id="current-project-name"></div>
 
 	<!-- Stubs cachés : fab-btn et main-menu supprimés visuellement mais encore référencés par board.js -->
@@ -808,8 +811,6 @@ if (typeof closeMainMenu === 'undefined') {
 </script>
 
 <!-- === PANNEAU STICKERS ANIMÉS NOTO === -->
-<!-- Onglet déclencheur stickers -->
-<button id="sticker-panel-tab" onclick="toggleStickerPanel()" title="Visuels — Stickers, Émojis &amp; Images"><span class="act-tab-lbl">Visuels</span><span class="act-tab-ico">🖼️</span></button>
 
 <div id="sticker-panel">
 	<div id="sticker-panel-resize-handle" title="Redimensionner le panneau"></div>
@@ -1135,12 +1136,9 @@ function setVisuelsMode(mode) {
         if (!tab) return;
         var isOn = document.body.classList.contains('presentation-mode');
         tab.classList.toggle('pres-mode-tab-active', isOn);
-        // Mise à jour du contenu texte (état normal, sans hover)
-        if (!tab.classList.contains('tab-js-hover')) {
-            tab.innerHTML = isOn
-                ? '<span class="act-tab-lbl">Off</span><span class="act-tab-ico">📽️</span>'
-                : '<span class="act-tab-lbl">On</span><span class="act-tab-ico">📽️</span>';
-        }
+        // L'onglet affiche un interrupteur : il suffit de mettre à jour son état
+        tab.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+        tab.title = isOn ? 'Quitter le mode présentation (Alt+8)' : 'Mode présentation (Alt+8)';
     }
 
     // Patcher togglePresentationMode pour mettre à jour l'onglet
@@ -1581,8 +1579,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 		</div>
     </div>
 </div>
-<!-- Onglet déclencheur sur le bord gauche -->
-<button id="jeux-panel-tab" onclick="toggleJeuxPanel()" title="Jeux"><span class="act-tab-lbl">Jeux</span><span class="act-tab-ico">🎮</span></button>
 
 <script>
 // ── Panneaux Jeux et Activités : description en info-bulle au survol de la carte ──
@@ -1961,8 +1957,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 		</div>
     </div>
 </div>
-<!-- Onglet déclencheur sur le bord gauche -->
-<button id="activities-panel-tab" onclick="toggleActivitiesPanel()" title="Activités"><span class="act-tab-lbl">Activités</span><span class="act-tab-ico">🎲</span></button>
 
 <script>
 // ── Panneau Activités ──────────────────────────────────────────────
@@ -2108,8 +2102,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 		</div>
 	</div>
 </div>
-<!-- Onglet déclencheur sur le bord gauche -->
-<button id="widgets-panel-tab" onclick="toggleWidgetsPanel()" title="Widgets"><span class="act-tab-lbl">Widgets</span><span class="act-tab-ico">📦</span></button>
 
 <script>
 // ── Panneau Widgets ──────────────────────────────────────────────
@@ -2312,8 +2304,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 		</div>
 	</div>
 </div>
-<!-- Onglet déclencheur sur le bord gauche -->
-<button id="tools-panel-tab" onclick="toggleToolsPanel()" title="Outils"><span class="act-tab-lbl">Outils</span><span class="act-tab-ico">🧰</span></button>
 
 <script>
 // ── Panneau Outils ──────────────────────────────────────────────
@@ -2408,8 +2398,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         <div class="proj-panel-loading">Chargement…</div>
     </div>
 </div>
-<!-- Onglet déclencheur sur le bord gauche -->
-<button id="projects-panel-tab" onclick="toggleProjectsPanel()" title="Mes tableaux"><span class="act-tab-lbl">Tableaux</span><span class="act-tab-ico">📁</span></button>
 
 <script>
 // ── Resize du panneau Projets ──────────────────────────────────────────
@@ -2450,8 +2438,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 })();
 </script>
 
-<!-- Onglet Mode Présentation (8e onglet) -->
-<button id="pres-mode-tab" onclick="togglePresentationMode()" title="Mode présentation"><span class="act-tab-lbl">On</span><span class="act-tab-ico">📽️</span></button>
 
 <!-- ── Panneau Affichage ───────────────────────────────────────── -->
 <div id="display-panel">
@@ -2564,7 +2550,59 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
     </div>
 </div>
 </div>
-<button id="display-panel-tab" onclick="toggleDisplayPanel()" title="Affichage"><span class="act-tab-lbl">Écran</span><span class="act-tab-ico">🖥️</span></button>
+<!-- ══════════════════════════════════════════════════════════════════
+     ONGLETS LATÉRAUX — regroupés dans une seule colonne (#side-tabs)
+     3 familles séparées par un petit espace :
+       1) contenu : Jeux, Activités, Outils, Widgets, Visuels
+       2) gestion : Tableaux
+       3) affichage : Écran, Présenter
+     Chaque onglet a sa couleur (--tab-c), une icône SVG (rendu identique
+     sur tous les appareils), et un raccourci clavier Alt+1 … Alt+8.
+═══════════════════════════════════════════════════════════════════ -->
+<nav id="side-tabs" aria-label="Panneaux">
+    <div class="side-tabs-group">
+        <button id="jeux-panel-tab" class="side-tab" style="--tab-c:#9b6cf0" onclick="toggleJeuxPanel()" title="Jeux (Alt+1)" aria-controls="jeux-panel" aria-expanded="false">
+            <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 7h11a4.5 4.5 0 0 1 4.3 5.8l-1.2 4a2.6 2.6 0 0 1-4.5.9L14.5 16h-5l-1.6 1.7a2.6 2.6 0 0 1-4.5-.9l-1.2-4A4.5 4.5 0 0 1 6.5 7z"/><path d="M7.5 10v3M6 11.5h3"/><circle cx="15.5" cy="10.5" r=".6"/><circle cx="17.5" cy="12.5" r=".6"/></svg>
+            <span class="side-tab-lbl">Jeux</span>
+        </button>
+        <button id="activities-panel-tab" class="side-tab" style="--tab-c:#f39c12" onclick="toggleActivitiesPanel()" title="Activités (Alt+2)" aria-controls="activities-panel" aria-expanded="false">
+            <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r=".8"/><circle cx="15.5" cy="8.5" r=".8"/><circle cx="12" cy="12" r=".8"/><circle cx="8.5" cy="15.5" r=".8"/><circle cx="15.5" cy="15.5" r=".8"/></svg>
+            <span class="side-tab-lbl">Activités</span>
+        </button>
+        <button id="tools-panel-tab" class="side-tab" style="--tab-c:#2ecc71" onclick="toggleToolsPanel()" title="Outils (Alt+3)" aria-controls="tools-panel" aria-expanded="false">
+            <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M8.5 8V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/><path d="M10 13v2h4v-2"/></svg>
+            <span class="side-tab-lbl">Outils</span>
+        </button>
+        <button id="widgets-panel-tab" class="side-tab" style="--tab-c:#4a90e2" onclick="toggleWidgetsPanel()" title="Widgets (Alt+4)" aria-controls="widgets-panel" aria-expanded="false">
+            <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>
+            <span class="side-tab-lbl">Widgets</span>
+        </button>
+        <button id="sticker-panel-tab" class="side-tab" style="--tab-c:#e84393" onclick="toggleStickerPanel()" title="Visuels — stickers, émojis et images (Alt+5)" aria-controls="sticker-panel" aria-expanded="false">
+            <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M21 15.5l-4.5-4.5L6 19"/></svg>
+            <span class="side-tab-lbl">Visuels</span>
+        </button>
+    </div>
+    <div class="side-tabs-sep" aria-hidden="true"></div>
+    <div class="side-tabs-group">
+        <button id="projects-panel-tab" class="side-tab" style="--tab-c:#a0a8b4" onclick="toggleProjectsPanel()" title="Mes tableaux (Alt+6)" aria-controls="projects-panel" aria-expanded="false">
+            <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            <span class="side-tab-lbl">Tableaux</span>
+            <span class="side-tab-badge" title="Brouillon non enregistré"></span>
+        </button>
+    </div>
+    <div class="side-tabs-sep" aria-hidden="true"></div>
+    <div class="side-tabs-group">
+        <button id="display-panel-tab" class="side-tab" style="--tab-c:#a0a8b4" onclick="toggleDisplayPanel()" title="Écran : fond, thème, capture (Alt+7)" aria-controls="display-panel" aria-expanded="false">
+            <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/></svg>
+            <span class="side-tab-lbl">Écran</span>
+        </button>
+        <button id="pres-mode-tab" class="side-tab" style="--tab-c:#2ecc71" onclick="togglePresentationMode()" title="Mode présentation (Alt+8)" aria-pressed="false">
+            <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18"/><path d="M4.5 4v9a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V4"/><path d="M12 14v3M9 21l3-4 3 4"/></svg>
+            <span class="side-tab-lbl">Présenter</span>
+            <span class="side-tab-switch" aria-hidden="true"><span></span></span>
+        </button>
+    </div>
+</nav>
 
 
 
@@ -3263,96 +3301,95 @@ function toggleMediaCollapse(container) {
 </script>
 
 <script>
-/* ── Hover JS pour les onglets latéraux (anti-clignotement) ── */
+/* ── Onglets latéraux : état ouvert, badge brouillon, raccourcis clavier ──
+   Le survol est désormais géré uniquement en CSS (plus de réécriture du
+   contenu des onglets au passage de la souris, donc plus de clignotement). */
 (function() {
-    // [id, classe CSS panneau ouvert, emoji, label]
-    const TABS = [
-        ['jeux-panel-tab',       'jeux-panel-tab-open',         '🎮', 'Jeux'],
-        ['activities-panel-tab', 'act-panel-tab-open',          '🎲', 'Activités'],
-        ['tools-panel-tab',      'tools-panel-tab-open',        '🧰', 'Outils'],
-        ['widgets-panel-tab',    'widgets-panel-tab-open',      '📦', 'Widgets'],
-        ['sticker-panel-tab',    'active',                      '🖼️', 'Visuels'],
-        ['projects-panel-tab',   'proj-panel-tab-open',         '📁', 'Tableaux'],
-        ['pres-mode-tab',        '',                            '📽️', 'Présentation'],
-        ['display-panel-tab',    'display-panel-tab-open',      '🖥️', 'Écran'],
+    // [id onglet, id panneau, classe « ouvert » du panneau]
+    var TABS = [
+        ['jeux-panel-tab',       'jeux-panel',       'jeux-panel-open'],
+        ['activities-panel-tab', 'activities-panel', 'act-panel-open'],
+        ['tools-panel-tab',      'tools-panel',      'tools-panel-open'],
+        ['widgets-panel-tab',    'widgets-panel',    'widgets-panel-open'],
+        ['sticker-panel-tab',    'sticker-panel',    'active'],
+        ['projects-panel-tab',   'projects-panel',   'proj-panel-open'],
+        ['display-panel-tab',    'display-panel',    'display-panel-open'],
+        ['pres-mode-tab',        null,               null]
     ];
-    let currentHovered = null;
 
-    function isOpen(tab, openClass) {
-        return tab.classList.contains(openClass);
+    // L'onglet d'un panneau ouvert reste visible, prend la teinte du panneau
+    // et indique son état aux lecteurs d'écran (aria-expanded).
+    function syncTab(cfg) {
+        var tab = document.getElementById(cfg[0]);
+        var panel = cfg[1] && document.getElementById(cfg[1]);
+        if (!tab || !panel) return;
+        var open = panel.classList.contains(cfg[2]);
+        tab.classList.toggle('is-open', open);
+        tab.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    function getHoveredTab(mouseX, mouseY) {
-        for (const [id, openClass] of TABS) {
-            const tab = document.getElementById(id);
-            if (!tab || isOpen(tab, openClass)) continue;
-            const rect = tab.getBoundingClientRect();
-            if (mouseX >= rect.left && mouseX <= rect.right &&
-                mouseY >= rect.top  && mouseY <= rect.bottom) {
-                return tab;
-            }
-        }
-        return null;
+    // Petit point jaune sur « Tableaux » tant qu'un brouillon n'est pas enregistré
+    function syncDraftBadge() {
+        var tab = document.getElementById('projects-panel-tab');
+        if (!tab) return;
+        var draft = false;
+        try { draft = typeof isDraftMode === 'function' && !!isDraftMode(); } catch (e) {}
+        tab.classList.toggle('has-draft', draft);
     }
 
-    function openTab(tab, emoji, label) {
-        tab.innerHTML = '<span class="tab-emoji">' + emoji + '</span><span class="tab-label">' + label + '</span>';
-        tab.classList.add('tab-js-hover');
-        tab.style.zIndex = '50020';
-        tab.style.opacity = '1';
-        for (const [id] of TABS) {
-            const t = document.getElementById(id);
-            if (t && t !== tab) t.style.pointerEvents = 'none';
-        }
+    function openTabs() {
+        return TABS.map(function(c) { return document.getElementById(c[0]); })
+                   .filter(function(t) { return t && t.classList.contains('is-open'); });
     }
 
-    function closeTab(tab, emoji, label) {
-        tab.classList.remove('tab-js-hover');
-        tab.style.zIndex = '';
-        tab.style.opacity = '';
-        for (const [id] of TABS) {
-            const t = document.getElementById(id);
-            if (t) t.style.pointerEvents = '';
-        }
-        if (tab.id === 'pres-mode-tab') {
-            var isOn = document.body.classList.contains('presentation-mode');
-            tab.innerHTML = '<span class="act-tab-lbl">' + (isOn ? 'Off' : 'On') + '</span><span class="act-tab-ico">' + emoji + '</span>';
-        } else {
-            tab.innerHTML = '<span class="act-tab-lbl">' + label + '</span><span class="act-tab-ico">' + emoji + '</span>';
-        }
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        TABS.forEach(function(cfg) {
+            var panel = cfg[1] && document.getElementById(cfg[1]);
+            if (!panel) return;
+            syncTab(cfg);
+            new MutationObserver(function() { syncTab(cfg); })
+                .observe(panel, { attributes: true, attributeFilter: ['class'] });
+        });
+        syncDraftBadge();
+        setInterval(syncDraftBadge, 2000);
 
-    let openTimer = null;
-
-    document.addEventListener('mousemove', function(e) {
-        const hovered = getHoveredTab(e.clientX, e.clientY);
-        if (hovered !== currentHovered) {
-            // Fermer l'onglet courant immédiatement
-            if (currentHovered) {
-                const entry = TABS.find(t => t[0] === currentHovered.id);
-                if (entry) closeTab(currentHovered, entry[2], entry[3]);
-            }
-            currentHovered = hovered;
-
-            // Annuler tout timer d'ouverture en attente
-            clearTimeout(openTimer);
-
-            if (currentHovered) {
-                const entry = TABS.find(t => t[0] === currentHovered.id);
-                // Petit délai pour laisser l'ancien onglet finir sa transition de fermeture
-                openTimer = setTimeout(function() {
-                    if (currentHovered && entry) openTab(currentHovered, entry[2], entry[3]);
-                }, 30);
-            }
+        // Bouton Dessin : la barre peut aussi s'ouvrir sans passer par lui
+        // (bouton ✏️ d'un PDF, « Tracés géométriques »…). board.js ne met alors
+        // pas à jour le bouton, qui restait affiché par-dessus la barre.
+        // On suit donc directement l'affichage de la barre.
+        var drawTb = document.getElementById('draw-toolbar');
+        if (drawTb && typeof _updateDrawFabBtn === 'function') {
+            new MutationObserver(function() { _updateDrawFabBtn(); })
+                .observe(drawTb, { attributes: true, attributeFilter: ['style'] });
+            _updateDrawFabBtn();
         }
     });
 
-    document.addEventListener('mouseleave', function() {
-        clearTimeout(openTimer);
-        if (currentHovered) {
-            const entry = TABS.find(t => t[0] === currentHovered.id);
-            if (entry) closeTab(currentHovered, entry[2], entry[3]);
-            currentHovered = null;
+    // Raccourcis : Alt+1 … Alt+8 ouvrent/ferment les onglets dans l'ordre,
+    // Échap ferme le panneau ouvert.
+    document.addEventListener('keydown', function(e) {
+        if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code !== 'Digit9') {
+            var n = /^Digit([1-8])$/.exec(e.code || '');
+            if (!n) return;
+            var tab = document.getElementById(TABS[+n[1] - 1][0]);
+            if (!tab || tab.offsetParent === null) return; // onglet masqué (ex. mode présentation)
+            e.preventDefault();
+            tab.click();
+            return;
+        }
+        // Alt+9 : ouvre / ferme la barre Dessin
+        if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'Digit9') {
+            var fab = document.getElementById('draw-fab-btn');
+            var tb  = document.getElementById('draw-toolbar');
+            e.preventDefault();
+            if (tb && tb.style.display && tb.style.display !== 'none' && typeof stopDrawing === 'function') stopDrawing();
+            else if (fab && fab.getClientRects().length) fab.click(); // (offsetParent vaut toujours null pour un élément « fixed »)
+            return;
+        }
+        if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            var opened = openTabs();
+            if (!opened.length) return;
+            opened.forEach(function(t) { t.click(); });
         }
     });
 })();

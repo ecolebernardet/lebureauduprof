@@ -211,7 +211,7 @@ function _wfIsPhoneLaunch() {
         width:  340px;
         height: 500px;
         min-width:  220px;
-        min-height: 324px;
+        min-height: 200px;
         overflow: hidden;
         resize: none;
         box-sizing: border-box;
@@ -269,6 +269,27 @@ function _wfIsPhoneLaunch() {
         -webkit-mask: linear-gradient(135deg, transparent 50%, #000 50%);
                 mask: linear-gradient(135deg, transparent 50%, #000 50%);
     }
+
+    /* Poignées des bords : droite (largeur) et bas (hauteur) */
+    .radar-resize-handle.rh-e,
+    .radar-resize-handle.rh-s {
+        background: none;
+        -webkit-mask: none;
+                mask: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .radar-resize-handle.rh-e { top: 40px; bottom: 40px; right: 0; width: 10px; height: auto; cursor: ew-resize; }
+    .radar-resize-handle.rh-s { left: 40px; right: 40px; bottom: 0; height: 10px; width: auto; cursor: ns-resize; }
+    .radar-resize-handle.rh-e::after,
+    .radar-resize-handle.rh-s::after {
+        content: '';
+        border-radius: 999px;
+        background: rgba(20,32,46,0.35);
+    }
+    .radar-resize-handle.rh-e::after { width: 4px; height: 36px; }
+    .radar-resize-handle.rh-s::after { width: 36px; height: 4px; }
     .widget[data-type="radar"]:hover .radar-resize-handle,
     .widget[data-type="radar"]:focus-within .radar-resize-handle { opacity: 1; }
 
@@ -382,8 +403,9 @@ function _wfIsPhoneLaunch() {
     /* ── Zone radar ── */
     .radar-box-wrap {
         position: relative;
-        width: 210px;
-        height: 210px;
+        width: var(--box, 210px);
+        height: var(--box, 210px);
+        transition: width .3s ease, height .3s ease;
         flex-shrink: 0;
         display: flex;
         align-items: center;
@@ -538,7 +560,8 @@ function _wfIsPhoneLaunch() {
         max-height: 170px;
         opacity: 1;
     }
-    .radar-controls.hidden { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; pointer-events: none; }
+    .radar-controls.hidden { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; pointer-events: none;
+        position: absolute; visibility: hidden; }   /* sort du flux : pas de bande vide en bas */
     .radar-slider-row {
         display: flex;
         align-items: center;
@@ -674,7 +697,9 @@ function _wfIsPhoneLaunch() {
             var contentZone = widget.querySelector('.widget-content');
             contentZone.innerHTML =
                 '<div class="radar-outer">'
-              +   '<div class="radar-resize-handle"></div>'
+              +   '<div class="radar-resize-handle" data-dir="se" title="Redimensionner"></div>'
+              +   '<div class="radar-resize-handle rh-e" data-dir="e" title="Largeur"></div>'
+              +   '<div class="radar-resize-handle rh-s" data-dir="s" title="Hauteur"></div>'
               +   '<div class="radar-alert-flash"></div>'
               +   '<div class="radar-scale-wrap">'
               +     '<div class="radar-widget">'
@@ -840,72 +865,69 @@ function _wfIsPhoneLaunch() {
 
             // ── Dimensions de référence ──
             var REF_W = 340, REF_H = 500;
-            var RATIO = REF_H / REF_W;
+            var radarInner = widget.querySelector('.radar-widget');
 
+            // Le contenu remplit toute la place : il est agrandi selon la plus petite
+            // dimension, centré, et le radar profite de la hauteur en plus
+            // (ou de la place libérée quand les réglages sont masqués).
             function rescale() {
+                var W, H;
                 if (isMax) {
-                    // Plein écran : le contenu est agrandi au maximum et centré
-                    var fw = outer.clientWidth  || window.innerWidth;
-                    var fh = outer.clientHeight || window.innerHeight;
-                    var fs = Math.min(fw / REF_W, fh / REF_H) * 0.96;
-                    scaleWrap.style.width     = REF_W + 'px';
-                    scaleWrap.style.height    = REF_H + 'px';
-                    scaleWrap.style.left      = Math.round((fw - REF_W * fs) / 2) + 'px';
-                    scaleWrap.style.top       = Math.round((fh - REF_H * fs) / 2) + 'px';
-                    scaleWrap.style.transform = 'scale(' + fs + ')';
-                    return;
+                    W = outer.clientWidth  || window.innerWidth;
+                    H = outer.clientHeight || window.innerHeight;
+                } else {
+                    W = outer.offsetWidth;
+                    H = outer.offsetHeight;
                 }
-                var ow = outer.offsetWidth || REF_W;
-                var s  = ow / REF_W;
-                outer.style.height        = Math.round(ow * RATIO) + 'px';
+                if (!W || !H) return;   // widget réduit (caché)
+                var m = isMax ? 0.96 : 1;
+                var s = Math.min(W * m / REF_W, H * m / REF_H);
+                var availH = H * m / s;
+                var extra = availH - REF_H;
+                var ctrl = widget.querySelector('.radar-controls');
+                if (ctrl && ctrl.classList.contains('hidden')) extra += ctrl.scrollHeight + 18;
+                var box = Math.min(290, 210 + Math.max(0, extra));
+                radarInner.style.height = availH + 'px';
+                radarInner.style.setProperty('--box', box + 'px');
                 scaleWrap.style.width     = REF_W + 'px';
-                scaleWrap.style.height    = REF_H + 'px';
-                scaleWrap.style.left      = '0px';
-                scaleWrap.style.top       = '0px';
+                scaleWrap.style.height    = availH + 'px';
+                scaleWrap.style.left      = Math.round((W - REF_W * s) / 2) + 'px';
+                scaleWrap.style.top       = Math.round((H - availH * s) / 2) + 'px';
                 scaleWrap.style.transform = 'scale(' + s + ')';
             }
 
-            // ── Resize proportionnel ──
-            var resizeHandle = outer.querySelector('.radar-resize-handle');
-            resizeHandle.addEventListener('mousedown', function (e) {
-                if (isMax) return;
-                e.preventDefault();
-                e.stopPropagation();
-                var startX = e.clientX;
-                var startW = outer.offsetWidth;
-
-                function onMove(ev) {
-                    var newW = Math.max(220, startW + (ev.clientX - startX));
-                    outer.style.width = newW + 'px';
-                    rescale();
+            // ── Redimensionnement libre : coin (les deux), bord droit (largeur), bord bas (hauteur) ──
+            var MIN_W = 220, MIN_H = 200;
+            outer.querySelectorAll('.radar-resize-handle').forEach(function (handle) {
+                var dir = handle.dataset.dir || 'se';
+                function start(x0, y0, isTouch) {
+                    var startW = outer.offsetWidth, startH = outer.offsetHeight;
+                    function apply(x, y) {
+                        if (dir.indexOf('e') >= 0) outer.style.width  = Math.max(MIN_W, startW + (x - x0)) + 'px';
+                        if (dir.indexOf('s') >= 0) outer.style.height = Math.max(MIN_H, startH + (y - y0)) + 'px';
+                        rescale();
+                    }
+                    function onMouse(ev) { apply(ev.clientX, ev.clientY); }
+                    function onTouch(ev) { ev.preventDefault(); apply(ev.touches[0].clientX, ev.touches[0].clientY); }
+                    function end() {
+                        document.removeEventListener(isTouch ? 'touchmove' : 'mousemove', isTouch ? onTouch : onMouse);
+                        document.removeEventListener(isTouch ? 'touchend' : 'mouseup', end);
+                        if (typeof saveBoard === 'function') saveBoard();
+                    }
+                    document.addEventListener(isTouch ? 'touchmove' : 'mousemove', isTouch ? onTouch : onMouse, isTouch ? { passive: false } : undefined);
+                    document.addEventListener(isTouch ? 'touchend' : 'mouseup', end);
                 }
-                function onUp() {
-                    document.removeEventListener('mousemove', onMove);
-                    document.removeEventListener('mouseup', onUp);
-                    if (typeof saveBoard === 'function') saveBoard();
-                }
-                document.addEventListener('mousemove', onMove);
-                document.addEventListener('mouseup', onUp);
+                handle.addEventListener('mousedown', function (e) {
+                    if (isMax) return;
+                    e.preventDefault(); e.stopPropagation();
+                    start(e.clientX, e.clientY, false);
+                });
+                handle.addEventListener('touchstart', function (e) {
+                    if (isMax) return;
+                    e.preventDefault(); e.stopPropagation();
+                    start(e.touches[0].clientX, e.touches[0].clientY, true);
+                }, { passive: false });
             });
-            resizeHandle.addEventListener('touchstart', function (e) {
-                if (isMax) return;
-                e.preventDefault();
-                e.stopPropagation();
-                var startX = e.touches[0].clientX;
-                var startW = outer.offsetWidth;
-                function onMove(ev) {
-                    var newW = Math.max(220, startW + (ev.touches[0].clientX - startX));
-                    outer.style.width = newW + 'px';
-                    rescale();
-                }
-                function onEnd() {
-                    document.removeEventListener('touchmove', onMove);
-                    document.removeEventListener('touchend',  onEnd);
-                    if (typeof saveBoard === 'function') saveBoard();
-                }
-                document.addEventListener('touchmove', onMove, { passive: false });
-                document.addEventListener('touchend',  onEnd);
-            }, { passive: false });
 
             rescale();
 
@@ -1191,6 +1213,7 @@ function _wfIsPhoneLaunch() {
                 controlsVisible = !controlsVisible;
                 controlsEl.classList.toggle('hidden', !controlsVisible);
                 toggleBtn.classList.toggle('is-off', !controlsVisible);
+                rescale();
             });
 
             // ── Boutons fenêtre : réduire / plein écran / fermer ──────────
@@ -1255,7 +1278,7 @@ function _wfIsPhoneLaunch() {
             outer.addEventListener('mousemove', function (e) {
                 if (isMax) { outer.style.cursor = ''; return; }
                 if (e.target.closest('button, input')) { return; }
-                if (e.target.closest('.radar-resize-handle')) { outer.style.cursor = 'nwse-resize'; return; }
+                if (e.target.closest('.radar-resize-handle')) { outer.style.cursor = ''; return; }
                 outer.style.cursor = 'move';
             });
             outer.addEventListener('mouseleave', function () {

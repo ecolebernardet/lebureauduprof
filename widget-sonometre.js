@@ -201,7 +201,7 @@ function _wfIsPhoneLaunch() {
         width:  300px;
         height: 560px;
         min-width:  220px;
-        min-height: 411px;
+        min-height: 200px;
         overflow: hidden;
         resize: none;
         box-sizing: border-box;
@@ -257,6 +257,27 @@ function _wfIsPhoneLaunch() {
         -webkit-mask: linear-gradient(135deg, transparent 50%, #000 50%);
                 mask: linear-gradient(135deg, transparent 50%, #000 50%);
     }
+
+    /* Poignées des bords : droite (largeur) et bas (hauteur) */
+    .sono-resize-handle.rh-e,
+    .sono-resize-handle.rh-s {
+        background: none;
+        -webkit-mask: none;
+                mask: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .sono-resize-handle.rh-e { top: 40px; bottom: 40px; right: 0; width: 10px; height: auto; cursor: ew-resize; }
+    .sono-resize-handle.rh-s { left: 40px; right: 40px; bottom: 0; height: 10px; width: auto; cursor: ns-resize; }
+    .sono-resize-handle.rh-e::after,
+    .sono-resize-handle.rh-s::after {
+        content: '';
+        border-radius: 999px;
+        background: rgba(20,32,46,0.35);
+    }
+    .sono-resize-handle.rh-e::after { width: 4px; height: 36px; }
+    .sono-resize-handle.rh-s::after { width: 36px; height: 4px; }
     .widget[data-type="sonometre"]:hover .sono-resize-handle,
     .widget[data-type="sonometre"]:focus-within .sono-resize-handle {
         opacity: 1;
@@ -271,8 +292,12 @@ function _wfIsPhoneLaunch() {
 
     /* ── Widget intérieur (taille de référence 300×560) ── */
     .sono-widget {
+        --g: 1;        /* agrandissement de la jauge */
+        --v: 44px;     /* taille du chiffre */
+        --b: 48px;     /* hauteur des barres */
         position: relative;
         width: 300px;
+        height: 560px; /* hauteur de référence : le contenu remplit tout le widget */
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -333,6 +358,9 @@ function _wfIsPhoneLaunch() {
 
     /* ── Carte de mesure ── */
     .sono-card {
+        flex: 1 1 auto;
+        min-height: 0;
+        justify-content: center;
         width: 100%;
         box-sizing: border-box;
         display: flex;
@@ -350,8 +378,9 @@ function _wfIsPhoneLaunch() {
     /* ── Jauge semi-circulaire ── */
     .sono-gauge-wrap {
         position: relative;
-        width: 220px;
-        height: 120px;
+        width: calc(220px * var(--g));
+        height: calc(120px * var(--g));
+        transition: width .3s ease, height .3s ease;
         overflow: visible;
     }
     .sono-gauge-wrap svg {
@@ -370,12 +399,12 @@ function _wfIsPhoneLaunch() {
         margin-top: 2px;
     }
     .sono-db-value {
-        font-size: 44px;
+        font-size: var(--v);
         font-weight: 700;
         line-height: 1;
         font-variant-numeric: tabular-nums;
         letter-spacing: -1px;
-        transition: color 0.3s;
+        transition: color 0.3s, font-size .3s ease;
         color: var(--so-ink);
     }
     .sono-db-unit {
@@ -402,7 +431,9 @@ function _wfIsPhoneLaunch() {
         display: flex;
         align-items: flex-end;
         gap: 3px;
-        height: 48px;
+        height: var(--b);
+        transition: height .3s ease;
+        overflow: hidden;
         width: 100%;
         justify-content: center;
         padding: 0 4px;
@@ -593,7 +624,7 @@ function _wfIsPhoneLaunch() {
             }
             var contentZone = widget.querySelector('.widget-content');
             contentZone.innerHTML = ''
-                + '<div class="sono-outer"><div class="sono-resize-handle"></div><div class="sono-scale-wrap"><div class="sono-widget">'
+                + '<div class="sono-outer"><div class="sono-resize-handle" data-dir="se" title="Redimensionner"></div><div class="sono-resize-handle rh-e" data-dir="e" title="Largeur"></div><div class="sono-resize-handle rh-s" data-dir="s" title="Hauteur"></div><div class="sono-scale-wrap"><div class="sono-widget">'
                 + '<div class="sono-header">'
                 +   '<div class="sono-title">' + ICON_MIC + '<span>Sonom\u00E8tre</span></div>'
                 +   '<div class="sono-tools">'
@@ -683,74 +714,96 @@ function _wfIsPhoneLaunch() {
 
             // ── Mise à l'échelle ──────────────────────────────────────────
             const REF_W = 300, REF_H = 560;
-            const RATIO = REF_H / REF_W;
 
+            // ── Remplissage : l'espace en plus (widget plus haut, réglages
+            // masqués) est réparti entre la jauge (limitée par la largeur),
+            // le chiffre et les barres.
+            var BASE_G = 1, BASE_V = 44, BASE_B = 48;
+            var barMaxH = BASE_B - 2;
+            function setFill(g, v, b) {
+                sonoInner.style.setProperty('--g', g);
+                sonoInner.style.setProperty('--v', v + 'px');
+                sonoInner.style.setProperty('--b', b + 'px');
+                barMaxH = b - 2;
+            }
+            // Hauteur naturelle du contenu à la taille de base (réglages compris s'ils sont affichés)
+            function naturalHeight() {
+                setFill(BASE_G, BASE_V, BASE_B);
+                var ctrl = widget.querySelector('.sono-controls');
+                var prevH = sonoInner.style.height, prevD = ctrl.style.display;
+                sonoInner.style.height = 'auto';
+                ctrl.style.display = 'none';
+                var h = sonoInner.offsetHeight;
+                sonoInner.style.height = prevH;
+                ctrl.style.display = prevD;
+                if (!ctrl.classList.contains('hidden')) h += ctrl.scrollHeight + 10;
+                return h;
+            }
+
+            // Le contenu remplit toute la place : il est agrandi selon la plus
+            // petite dimension et centré ; la hauteur en plus agrandit la mesure.
             function rescale() {
+                var W, H;
                 if (isMax) {
-                    // Plein écran : on agrandit au maximum et on centre
-                    var fw = outer.clientWidth  || window.innerWidth;
-                    var fh = outer.clientHeight || window.innerHeight;
-                    var innerH = sonoInner.offsetHeight || REF_H;
-                    var fs = Math.min(fw / REF_W, fh / innerH) * 0.96;
-                    scaleWrap.style.width     = REF_W + 'px';
-                    scaleWrap.style.height    = REF_H + 'px';
-                    scaleWrap.style.left      = Math.round((fw - REF_W * fs) / 2) + 'px';
-                    scaleWrap.style.top       = Math.round((fh - innerH * fs) / 2) + 'px';
-                    scaleWrap.style.transform = 'scale(' + fs + ')';
-                    return;
+                    W = outer.clientWidth  || window.innerWidth;
+                    H = outer.clientHeight || window.innerHeight;
+                } else {
+                    W = outer.offsetWidth;
+                    H = outer.offsetHeight;
                 }
-                var ow = outer.offsetWidth || REF_W;
-                var s  = ow / REF_W;
-                outer.style.height        = Math.round(ow * RATIO) + 'px';
+                if (!W || !H) return;   // widget réduit (caché)
+                var m = isMax ? 0.96 : 1;
+                var N = naturalHeight();
+                var s = Math.min(W * m / REF_W, H * m / N);
+                var availH = H * m / s;
+                var free = availH - N;
+                if (free > 0) {
+                    var g = Math.min(1.12, 1 + free / 120);           // jauge
+                    var rest = free - 120 * (g - 1);
+                    var dv = Math.min(36, rest * 0.25);                // chiffre
+                    var db = Math.min(170, rest - dv);                 // barres (le reste centre la carte)
+                    setFill(g, BASE_V + dv, BASE_B + db);
+                }
+                sonoInner.style.height    = availH + 'px';
                 scaleWrap.style.width     = REF_W + 'px';
-                scaleWrap.style.height    = REF_H + 'px';
-                scaleWrap.style.left      = '0px';
-                scaleWrap.style.top       = '0px';
+                scaleWrap.style.height    = availH + 'px';
+                scaleWrap.style.left      = Math.round((W - REF_W * s) / 2) + 'px';
+                scaleWrap.style.top       = Math.round((H - availH * s) / 2) + 'px';
                 scaleWrap.style.transform = 'scale(' + s + ')';
             }
 
-            // ── Resize proportionnel custom ───────────────────────────────
-            var resizeHandle = outer.querySelector('.sono-resize-handle');
-            resizeHandle.addEventListener('mousedown', function(e) {
-                if (isMax) return;
-                e.preventDefault();
-                e.stopPropagation();
-                var startX  = e.clientX;
-                var startW  = outer.offsetWidth;
-
-                document.addEventListener('mousemove', onResizeMove);
-                document.addEventListener('mouseup',   onResizeUp);
-
-                function onResizeMove(ev) {
-                    var newW = Math.max(220, startW + (ev.clientX - startX));
-                    outer.style.width = newW + 'px';
-                    rescale();
+            // ── Redimensionnement libre : coin (les deux), bord droit (largeur), bord bas (hauteur) ──
+            var MIN_W = 220, MIN_H = 200;
+            outer.querySelectorAll('.sono-resize-handle').forEach(function (handle) {
+                var dir = handle.dataset.dir || 'se';
+                function start(x0, y0, isTouch) {
+                    var startW = outer.offsetWidth, startH = outer.offsetHeight;
+                    function apply(x, y) {
+                        if (dir.indexOf('e') >= 0) outer.style.width  = Math.max(MIN_W, startW + (x - x0)) + 'px';
+                        if (dir.indexOf('s') >= 0) outer.style.height = Math.max(MIN_H, startH + (y - y0)) + 'px';
+                        rescale();
+                    }
+                    function onMouse(ev) { apply(ev.clientX, ev.clientY); }
+                    function onTouch(ev) { ev.preventDefault(); apply(ev.touches[0].clientX, ev.touches[0].clientY); }
+                    function end() {
+                        document.removeEventListener(isTouch ? 'touchmove' : 'mousemove', isTouch ? onTouch : onMouse);
+                        document.removeEventListener(isTouch ? 'touchend' : 'mouseup', end);
+                        if (typeof saveBoard === 'function') saveBoard();
+                    }
+                    document.addEventListener(isTouch ? 'touchmove' : 'mousemove', isTouch ? onTouch : onMouse, isTouch ? { passive: false } : undefined);
+                    document.addEventListener(isTouch ? 'touchend' : 'mouseup', end);
                 }
-                function onResizeUp() {
-                    document.removeEventListener('mousemove', onResizeMove);
-                    document.removeEventListener('mouseup',   onResizeUp);
-                    if (typeof saveBoard === 'function') saveBoard();
-                }
+                handle.addEventListener('mousedown', function (e) {
+                    if (isMax) return;
+                    e.preventDefault(); e.stopPropagation();
+                    start(e.clientX, e.clientY, false);
+                });
+                handle.addEventListener('touchstart', function (e) {
+                    if (isMax) return;
+                    e.preventDefault(); e.stopPropagation();
+                    start(e.touches[0].clientX, e.touches[0].clientY, true);
+                }, { passive: false });
             });
-            resizeHandle.addEventListener('touchstart', function(e) {
-                if (isMax) return;
-                e.preventDefault();
-                e.stopPropagation();
-                var startX = e.touches[0].clientX;
-                var startW = outer.offsetWidth;
-                function onMove(ev) {
-                    var newW = Math.max(220, startW + (ev.touches[0].clientX - startX));
-                    outer.style.width = newW + 'px';
-                    rescale();
-                }
-                function onEnd() {
-                    document.removeEventListener('touchmove', onMove);
-                    document.removeEventListener('touchend',  onEnd);
-                    if (typeof saveBoard === 'function') saveBoard();
-                }
-                document.addEventListener('touchmove', onMove, { passive: false });
-                document.addEventListener('touchend',  onEnd);
-            }, { passive: false });
 
             rescale();
 
@@ -829,7 +882,7 @@ function _wfIsPhoneLaunch() {
                     const avg = sum / step;
                     // lissage léger
                     barHistory[i] = barHistory[i] * 0.6 + avg * 0.4;
-                    const h = Math.max(2, Math.round((barHistory[i] / 255) * 46));
+                    const h = Math.max(2, Math.round((barHistory[i] / 255) * barMaxH));
                     const t = getThresholds();
                     const lvl = rawToLevel(barHistory[i]);
                     const barColor = lvl < t.calm ? C_CALM : lvl < t.agitated ? C_MID : C_LOUD;
@@ -915,13 +968,15 @@ function _wfIsPhoneLaunch() {
             var toggleBtn  = widget.querySelector('.sono-toggle-controls');
             var controlsEl = widget.querySelector('.sono-controls');
             var controlsVisible = true;
+            // Réglages masqués : la mesure s'agrandit pour remplir le widget
+            function fitContent() { rescale(); }
+
             toggleBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 controlsVisible = !controlsVisible;
                 controlsEl.classList.toggle('hidden', !controlsVisible);
+                fitContent();
                 toggleBtn.classList.toggle('is-on', !controlsVisible);
-                // En plein écran, recentrer après l'animation d'ouverture/fermeture
-                if (isMax) setTimeout(rescale, 320);
             });
 
             // ── Couleur ───────────────────────────────────────────────────

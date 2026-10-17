@@ -28,7 +28,8 @@
 //                                       dob = 'AAAA-MM-JJ' ou '' (saisie/affichage en JJ/MM/AAAA)
 //   ClasseListe.normDob(txt) / formatDob(iso) → conversions de dates de naissance
 //                                       classId omis = classe active
-//   ClasseListe.getClass(classId)     → { id, name, students:[…] } ou null
+//   ClasseListe.getClass(classId)     → { id, name, prof, students:[…] } ou null
+//   ClasseListe.getTeacher(classId) / setTeacher(classId, nom) → enseignant propre à la classe
 //   ClasseListe.getLevels(classId)    → ['CE1','CE2'] (classe de 2 à 8 niveaux) ou [] (un seul niveau)
 //   ClasseListe.setLevels(classId, levels) → définit les niveaux (de 2 à 8)
 //                                       Si la classe a plusieurs niveaux, chaque élève porte son
@@ -176,7 +177,7 @@ function _wfIsPhoneLaunch() {
             onChange(cb) { listeners.add(cb); return () => listeners.delete(cb); },
 
             getClasses() {
-                return data.classes.map(c => ({ id: c.id, name: c.name, count: c.students.length, levels: levelsOf(c).slice() }));
+                return data.classes.map(c => ({ id: c.id, name: c.name, count: c.students.length, levels: levelsOf(c).slice(), prof: this.getTeacher(c.id) || '' }));
             },
             getActiveId() {
                 if (data.activeId && find(data.activeId)) return data.activeId;
@@ -208,6 +209,19 @@ function _wfIsPhoneLaunch() {
                 data.activeId = id;
                 commit(source);
                 return id;
+            },
+            /** Nom de l'enseignant propre à la classe
+             *  (undefined si jamais renseigné pour cette classe, '' si effacé) */
+            getTeacher(id) {
+                const c = find(id || this.getActiveId());
+                return c && typeof c.prof === 'string' ? c.prof : undefined;
+            },
+            setTeacher(id, name, source) {
+                const c = find(id); if (!c) return;
+                const v = String(name || '').trim();
+                if (c.prof === v) return;
+                c.prof = v;
+                commit(source);
             },
             renameClass(id, name, source) {
                 const c = find(id); name = (name || '').trim();
@@ -342,8 +356,19 @@ if (!window.ClasseEdition) {
             const d = new Date(), y = d.getFullYear();
             return d.getMonth() >= 7 ? y + '-' + (y + 1) : (y - 1) + '-' + y;   // année scolaire à partir d'août
         }
-        function getProf() { return lsGet(LS_PROF); }
-        function setProf(v) { lsSet(LS_PROF, String(v || '').trim()); }
+        // Enseignant : propre à chaque classe. L'ancienne valeur commune
+        // (localStorage) sert seulement de valeur par défaut tant que la
+        // classe n'a pas son propre enseignant.
+        function getProf(classId) {
+            const CL = window.ClasseListe;
+            const own = CL && typeof CL.getTeacher === 'function' ? CL.getTeacher(classId) : undefined;
+            return own !== undefined ? own : lsGet(LS_PROF);
+        }
+        function setProf(v, classId) {
+            const CL = window.ClasseListe;
+            if (classId && CL && typeof CL.setTeacher === 'function') CL.setTeacher(classId, v);
+            else lsSet(LS_PROF, String(v || '').trim());
+        }
         function getYear() { return lsGet(LS_YEAR).trim() || autoYear(); }
         function setYear(v) { lsSet(LS_YEAR, String(v || '').trim()); }
 
@@ -430,7 +455,7 @@ if (!window.ClasseEdition) {
             return {
                 cls, students, levels, multi, groups,
                 mode: CL.getSortMode(id),
-                prof: getProf(), year: getYear(),
+                prof: getProf(id), year: getYear(),
                 label: multi ? levels.join(' / ') : cls.name
             };
         }
@@ -683,18 +708,33 @@ if (!window.ClasseEdition) {
 
 (function () {
 
+    // ── Police arrondie partagée avec les autres widgets (repli système si hors-ligne)
+    if (!document.getElementById('wpc-font')) {
+        const fl = document.createElement('link');
+        fl.id = 'wpc-font';
+        fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+        document.head.appendChild(fl);
+    }
+
     // ── CSS injecté une seule fois ────────────────────────────────────────
     const STYLE = `
-    /* ── Widget transparent ── */
-    .widget[data-type="classe"] {
+    /* ── Widget transparent : classe-outer porte tout le visuel ── */
+    .widget[data-type="classe"],
+    .widget[data-type="classe"]:focus-within {
         min-width: unset;
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
     }
 
-    /* ── Wrapper externe ── */
+    /* ── Wrapper externe (taille + ombre) ── */
     .widget[data-type="classe"] .classe-outer {
+        --cl-ink:   #14202E;
+        --cl-glass: rgba(255,255,255,0.62);
+        --cl-bg:    #C2B2F0;
+        --cl-op:    #6A4FC2;
+
         position: relative;
         width: 800px;
         height: 600px;
@@ -703,47 +743,125 @@ if (!window.ClasseEdition) {
         overflow: hidden;
         resize: none;
         box-sizing: border-box;
-        border-radius: 16px;
+        border-radius: 24px;
+        box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
+        outline: none;
     }
     .widget[data-type="classe"] .classe-outer::-webkit-resizer { display: none; }
+    .widget[data-type="classe"]:hover .classe-outer,
+    .widget[data-type="classe"]:focus-within .classe-outer {
+        outline: 2px dashed rgba(20,32,46,0.35);
+        outline-offset: 2px;
+    }
 
-    /* ── Container intérieur plein ── */
+    /* ── Cadre coloré ── */
     .classe-inner {
         width: 100%;
         height: 100%;
         display: flex;
         flex-direction: column;
-        background: #ffffff;
-        border: 1.5px solid #d1d5db;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 4px 18px rgba(0,0,0,0.12);
-        font-family: 'Segoe UI', system-ui, sans-serif;
-        color: #374151;
-        user-select: none;
+        gap: 10px;
+        padding: 0 16px 16px;
         box-sizing: border-box;
+        background-color: var(--cl-bg);
+        background-image:
+            radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+            radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+        border-radius: 24px;
+        overflow: hidden;
+        font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+        color: var(--cl-ink);
+        user-select: none;
         position: relative;
+        container-type: size;
+        transition: background-color .3s;
     }
 
-    /* ── Header ── */
+    /* ── En-tête : deux pastilles « verre » ── */
     .classe-header {
-        background: #ffffff;
-        border-bottom: 1px solid #e5e7eb;
-        padding: 10px 14px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 8px;
+        gap: 10px;
+        padding: 14px 0 0;
         flex-shrink: 0;
         cursor: move;
     }
-    .classe-header-title {
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: 0.3px;
-        flex-grow: 1;
-        color: #374151;
+    .classe-title,
+    .classe-tools,
+    .classe-glass {
+        background: var(--cl-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+    }
+    .classe-title,
+    .classe-tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+    }
+    .classe-title {
+        padding: 7px 16px 7px 12px;
+        font-size: 15px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        min-width: 0;
         pointer-events: none;
+    }
+    .classe-title span { overflow: hidden; text-overflow: ellipsis; }
+    .classe-title svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--cl-op); }
+    .classe-tools { padding: 5px 12px 5px 6px; gap: 2px; flex-shrink: 0; }
+    @container (max-width: 460px) { .classe-title span { display: none; } .classe-title { padding: 7px 10px; } }
+
+    .classe-icon-btn {
+        width: 32px; height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        color: var(--cl-ink);
+        cursor: pointer;
+        padding: 0;
+        transition: background .15s;
+    }
+    .classe-icon-btn svg { width: 18px; height: 18px; }
+    .classe-icon-btn:hover,
+    .classe-icon-btn.is-on { background: rgba(20,32,46,0.12); }
+    .classe-icon-btn:focus-visible { outline: 2px solid var(--cl-ink); outline-offset: 2px; }
+    .classe-sep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
+
+    /* ── Onglets Enregistrement / Édition (sélecteur segmenté) ── */
+    .classe-modes {
+        display: flex;
+        flex-shrink: 0;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 999px;
+    }
+    .classe-mode {
+        flex: 1;
+        padding: 7px 10px;
+        border: none;
+        border-radius: 999px;
+        background: transparent;
+        color: rgba(20,32,46,0.6);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background .15s, color .15s;
+    }
+    .classe-mode:hover { background: rgba(20,32,46,0.08); }
+    .classe-mode.active {
+        background: #fff;
+        color: var(--cl-op);
+        box-shadow: 0 2px 6px -2px rgba(10,20,35,0.35);
     }
 
     /* ── Onglets classes ── */
@@ -751,120 +869,133 @@ if (!window.ClasseEdition) {
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
-        padding: 6px 10px;
+        padding: 4px;
         align-items: center;
         flex-shrink: 0;
-        border-bottom: 1px solid #e5e7eb;
+        border-radius: 18px;
     }
     .classe-tab {
-        padding: 3px 10px;
-        border-radius: 6px;
-        font-size: 10px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 12px;
         font-weight: 700;
         cursor: pointer;
-        border: 1px solid #e0e0e0;
-        transition: all .15s;
+        border: none;
+        transition: background .15s, color .15s;
         font-family: inherit;
-        background: #f0f0f0;
-        color: #999;
-        max-width: 160px;
+        background: transparent;
+        color: rgba(20,32,46,0.65);
+        max-width: 180px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    .classe-tab:hover { border-color: #9ca3af; }
-    .classe-tab.active { background: #6366f1; border-color: #6366f1; color: #fff; }
-    .classe-tab-add { background: #f0f4ff; border-color: #c7d2fe; color: #6366f1; }
+    .classe-tab:hover { background: rgba(20,32,46,0.08); }
+    .classe-tab.active { background: var(--cl-op); color: #fff; box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+    .classe-tab-add { background: #fff; color: var(--cl-op); box-shadow: 0 2px 6px -2px rgba(10,20,35,0.3); }
+    .classe-tab-add:hover { background: #f4f6f9; }
+    .classe-tab-tools { margin-left: auto; display: flex; gap: 4px; }
     .classe-tab-tool {
-        padding: 3px 6px;
-        border-radius: 6px;
-        border: 1px solid #e5e7eb;
+        width: 30px; height: 30px;
+        padding: 0;
+        border-radius: 50%;
+        border: none;
         background: #fff;
         cursor: pointer;
-        font-size: 11px;
+        font-size: 13px;
         line-height: 1;
         font-family: inherit;
-        transition: background .15s;
+        box-shadow: 0 2px 6px -2px rgba(10,20,35,0.3);
+        transition: background .15s, box-shadow .15s;
     }
-    .classe-tab-tool:hover { background: #f3f4f6; }
-    .classe-tab-tools { margin-left: auto; display: flex; gap: 4px; }
+    .classe-tab-tool:hover { background: #f4f6f9; }
+    .classe-tab-tool.is-on { box-shadow: 0 0 0 2px var(--cl-op); }
 
-    /* ── Barre d'ajout ── */
+    /* ── Zone de saisie : ajout + outils (pastille « verre ») ── */
+    .classe-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 20px;
+        flex-shrink: 0;
+    }
     .classe-addbar {
         display: flex;
         gap: 6px;
-        padding: 10px 12px 6px;
         flex-shrink: 0;
     }
     .classe-add-input {
         flex: 1;
         min-width: 0;
-        padding: 7px 10px;
-        border-radius: 8px;
-        border: 1.5px solid #d1d5db;
-        font-size: 12px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1.5px solid rgba(20,32,46,0.12);
+        background: #fff;
+        font-size: 13px;
         font-family: inherit;
         font-weight: 600;
-        color: #374151;
+        color: var(--cl-ink);
         user-select: text;
         transition: border-color .15s;
     }
-    .classe-add-input:focus { outline: none; border-color: #6366f1; }
+    .classe-add-input:focus { outline: none; border-color: var(--cl-op); }
     .classe-btn {
-        padding: 7px 12px;
-        border-radius: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
         border: none;
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 700;
         cursor: pointer;
-        transition: background .15s, transform .1s;
+        transition: filter .15s, background .15s, transform .1s;
         font-family: inherit;
-        background: #6366f1;
+        background: var(--cl-op);
         color: #fff;
         white-space: nowrap;
+        box-shadow: 0 3px 0 rgba(0,0,0,0.22);
     }
-    .classe-btn:hover  { background: #4f46e5; }
-    .classe-btn:active { transform: scale(0.96); }
-    .classe-btn-soft { background: #f3f4f6; color: #4b5563; }
-    .classe-btn-soft:hover { background: #e5e7eb; }
-    .classe-btn-danger { background: #f87171; color: #fff; }
-    .classe-btn-danger:hover { background: #ef4444; }
+    .classe-btn:hover  { filter: brightness(1.1); }
+    .classe-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.22); }
+    .classe-btn-soft { background: #fff; color: var(--cl-ink); box-shadow: 0 2px 6px -2px rgba(10,20,35,0.3); }
+    .classe-btn-soft:hover { filter: none; background: #f4f6f9; }
+    .classe-btn-soft:active { box-shadow: 0 1px 3px -1px rgba(10,20,35,0.3); }
+    .classe-btn-danger { background: #fff; color: #C0392B; box-shadow: 0 2px 6px -2px rgba(10,20,35,0.3); }
 
     /* ── Barre d'outils ── */
     .classe-toolbar {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
-        padding: 0 12px 8px;
         flex-shrink: 0;
     }
-    .classe-toolbar .classe-btn { padding: 5px 10px; font-size: 10px; }
+    .classe-toolbar .classe-btn { padding: 6px 12px; font-size: 11px; }
+    .classe-clear-btn { color: #C0392B !important; }
 
     /* ── Niveaux (classe de 2 à 8 niveaux) ── */
     .classe-add-level {
-        padding: 7px 6px;
-        border-radius: 8px;
-        border: 1.5px solid #d1d5db;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1.5px solid rgba(20,32,46,0.12);
         font-size: 12px;
         font-family: inherit;
         font-weight: 700;
-        color: #4f46e5;
+        color: var(--cl-op);
         background: #fff;
         cursor: pointer;
         user-select: none;
     }
-    .classe-add-level:focus { outline: none; border-color: #6366f1; }
+    .classe-add-level:focus { outline: none; border-color: var(--cl-op); }
     .classe-niv {
         min-width: 34px; max-width: 56px; height: 22px;
-        border-radius: 6px;
+        border-radius: 999px;
         border: 1px solid #c7d2fe;
         background: #eef2ff;
         color: #4f46e5;
         font-size: 10px;
-        font-weight: 800;
+        font-weight: 700;
         cursor: pointer;
         flex-shrink: 0;
-        padding: 0 4px;
+        padding: 0 6px;
         font-family: inherit;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -874,31 +1005,7 @@ if (!window.ClasseEdition) {
     .classe-niv[data-i="1"] { border-color: #99f6e4; background: #f0fdfa; color: #0d9488; }
     .classe-niv[data-i="2"] { border-color: #fde68a; background: #fffbeb; color: #b45309; }
 
-    /* ── Onglets Enregistrement / Édition ── */
-    .classe-modes {
-        display: flex;
-        flex-shrink: 0;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    .classe-mode {
-        flex: 1;
-        padding: 8px 6px 6px;
-        border: none;
-        border-bottom: 3px solid transparent;
-        background: transparent;
-        color: #9ca3af;
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.3px;
-        text-transform: uppercase;
-        font-family: inherit;
-        cursor: pointer;
-        transition: color .15s, border-color .15s;
-    }
-    .classe-mode:hover { color: #6b7280; }
-    .classe-mode.active { color: #374151; border-bottom-color: #6366f1; }
-
-    /* ── Panneau Édition ── */
+    /* ── Panneau Édition (zone blanche arrondie) ── */
     .classe-edition {
         display: none;
         flex: 1;
@@ -906,21 +1013,23 @@ if (!window.ClasseEdition) {
         overflow-y: auto;
         flex-direction: column;
         gap: 12px;
-        padding: 12px;
+        padding: 14px;
+        background: rgba(255,255,255,0.92);
+        border-radius: 18px;
+        box-shadow: inset 0 2px 8px rgba(10,20,35,0.08);
         scrollbar-width: thin;
-        scrollbar-color: #d1d5db transparent;
+        scrollbar-color: rgba(20,32,46,0.25) transparent;
     }
     .classe-inner[data-mode="doc"] .classe-edition { display: flex; }
-    .classe-inner[data-mode="doc"] .classe-addbar,
-    .classe-inner[data-mode="doc"] .classe-toolbar,
+    .classe-inner[data-mode="doc"] .classe-controls,
     .classe-inner[data-mode="doc"] .classe-list,
     .classe-inner[data-mode="doc"] .classe-footer { display: none; }
-    .classe-edit-info { font-size: 11px; font-weight: 700; color: #6b7280; }
+    .classe-edit-info { font-size: 13px; font-weight: 700; color: rgba(20,32,46,0.75); }
     .classe-edit-fields { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
     .classe-edit-field {
-        display: flex; flex-direction: column; gap: 3px;
-        font-size: 9px; font-weight: 800; text-transform: uppercase;
-        color: #9ca3af; letter-spacing: .3px;
+        display: flex; flex-direction: column; gap: 4px;
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        color: rgba(20,32,46,0.55); letter-spacing: .4px;
     }
     .classe-edit-field .classe-add-input { flex: none; width: 190px; }
     .classe-edit-field .classe-edit-year { width: 110px; }
@@ -932,20 +1041,21 @@ if (!window.ClasseEdition) {
     .classe-doc-card {
         display: flex; align-items: center; gap: 12px;
         padding: 12px 14px;
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
+        background: #F4F6F9;
+        border: 1.5px solid rgba(20,32,46,0.08);
+        border-radius: 16px;
         cursor: pointer;
         text-align: left;
         font-family: inherit;
-        color: #374151;
-        transition: box-shadow .15s, transform .1s, border-color .15s;
+        color: var(--cl-ink);
+        box-shadow: 0 2px 0 rgba(20,32,46,0.06);
+        transition: box-shadow .15s, transform .1s, border-color .15s, background .15s;
     }
-    .classe-doc-card:hover { border-color: var(--c); box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .classe-doc-card:hover { background: #fff; border-color: var(--c); box-shadow: 0 6px 16px -10px rgba(10,20,35,0.5); }
     .classe-doc-card:active { transform: scale(0.98); }
     .classe-doc-card:disabled { opacity: .55; cursor: wait; }
     .classe-doc-ico {
-        width: 38px; height: 38px; border-radius: 50%;
+        width: 40px; height: 40px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
         font-size: 18px; flex-shrink: 0;
         background: var(--t);
@@ -953,43 +1063,43 @@ if (!window.ClasseEdition) {
     }
     .classe-doc-card:hover .classe-doc-ico { background: var(--c); }
     .classe-doc-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .classe-doc-txt b { font-size: 12px; font-weight: 800; text-transform: uppercase; }
-    .classe-doc-txt small { font-size: 10px; color: #6b7280; font-weight: 500; }
-    .classe-edit-status { font-size: 11px; font-weight: 600; color: #9ca3af; min-height: 16px; word-break: break-all; }
-    .classe-edit-status.ok  { color: #059669; }
-    .classe-edit-status.err { color: #dc2626; }
+    .classe-doc-txt b { font-size: 13px; font-weight: 700; }
+    .classe-doc-txt small { font-size: 11px; color: rgba(20,32,46,0.6); font-weight: 600; }
+    .classe-edit-status { font-size: 12px; font-weight: 600; color: rgba(20,32,46,0.55); min-height: 16px; word-break: break-all; }
+    .classe-edit-status.ok  { color: #23915A; }
+    .classe-edit-status.err { color: #C0392B; }
 
-    /* ── Sélecteur de tri ── */
+    /* ── Sélecteurs segmentés (tri, affichage) ── */
     .classe-sortgroup {
         display: inline-flex;
         align-items: center;
-        gap: 0;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        overflow: hidden;
-        background: #f3f4f6;
+        gap: 2px;
+        padding: 3px;
+        border-radius: 999px;
+        background: #fff;
+        box-shadow: 0 2px 6px -2px rgba(10,20,35,0.3);
     }
     .classe-sort-label {
-        padding: 0 8px;
-        font-size: 10px;
+        padding: 0 6px 0 8px;
+        font-size: 11px;
         font-weight: 700;
-        color: #4b5563;
+        color: rgba(20,32,46,0.65);
         white-space: nowrap;
     }
     .classe-sort-opt, .classe-view-opt {
-        padding: 5px 10px;
+        padding: 4px 10px;
         border: none;
-        border-left: 1px solid #e5e7eb;
+        border-radius: 999px;
         background: transparent;
-        color: #6b7280;
-        font-size: 10px;
+        color: rgba(20,32,46,0.65);
+        font-size: 11px;
         font-weight: 700;
         font-family: inherit;
         cursor: pointer;
         transition: background .15s, color .15s;
     }
-    .classe-sort-opt:hover, .classe-view-opt:hover { background: #e5e7eb; }
-    .classe-sort-opt.active, .classe-view-opt.active { background: #6366f1; color: #fff; }
+    .classe-sort-opt:hover, .classe-view-opt:hover { background: rgba(20,32,46,0.08); }
+    .classe-sort-opt.active, .classe-view-opt.active { background: var(--cl-op); color: #fff; }
 
     /* ── Présentation « une colonne par niveau » ── */
     .classe-list[data-view="levels"] { grid-auto-flow: row; align-items: start; }
@@ -997,9 +1107,9 @@ if (!window.ClasseEdition) {
     .classe-col-head {
         position: sticky; top: 0; z-index: 1;
         text-align: center;
-        font-size: 11px; font-weight: 800;
-        padding: 4px 6px;
-        border-radius: 8px;
+        font-size: 12px; font-weight: 700;
+        padding: 5px 8px;
+        border-radius: 999px;
         background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
@@ -1010,7 +1120,6 @@ if (!window.ClasseEdition) {
     .classe-col-head[data-i="5"] { background: #f7fee7; color: #4d7c0f; border-color: #d9f99d; }
     .classe-col-head[data-i="6"] { background: #faf5ff; color: #7e22ce; border-color: #e9d5ff; }
     .classe-col-head[data-i="7"] { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
-    /* Beaucoup de niveaux : colonnes d'une largeur minimale, défilement horizontal si besoin */
     .classe-list[data-view="levels"][data-cols="4"],
     .classe-list[data-view="levels"][data-cols="5"],
     .classe-list[data-view="levels"][data-cols="6"],
@@ -1018,12 +1127,12 @@ if (!window.ClasseEdition) {
     .classe-list[data-view="levels"][data-cols="8"] { overflow-x: auto; }
     .classe-list[data-view="levels"] .classe-niv { min-width: 30px; max-width: 30px; padding: 0 2px; }
 
-    /* ── Liste élèves ── */
+    /* ── Liste élèves (zone blanche arrondie) ── */
     .classe-list {
         flex: 1;
         min-height: 0;
         overflow-y: auto;
-        padding: 4px 12px 10px;
+        padding: 12px 14px;
         display: grid;
         /* 2 colonnes : 1re moitié à gauche, 2e moitié à droite
            (le nombre de lignes est fixé en JS = moitié des élèves) */
@@ -1031,14 +1140,17 @@ if (!window.ClasseEdition) {
         grid-auto-flow: column;
         gap: 6px 12px;
         align-content: start;
+        background: rgba(255,255,255,0.92);
+        border-radius: 18px;
+        box-shadow: inset 0 2px 8px rgba(10,20,35,0.08);
         scrollbar-width: thin;
-        scrollbar-color: #d1d5db transparent;
+        scrollbar-color: rgba(20,32,46,0.25) transparent;
     }
     .classe-empty {
         grid-column: 1 / -1;
         text-align: center;
-        color: #9ca3af;
-        font-size: 12px;
+        color: rgba(20,32,46,0.55);
+        font-size: 14px;
         font-weight: 600;
         line-height: 1.6;
         padding: 30px 10px;
@@ -1048,46 +1160,47 @@ if (!window.ClasseEdition) {
         display: flex;
         align-items: center;
         gap: 5px;
-        background: #f8f9fa;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
+        background: #F4F6F9;
+        border: 1.5px solid rgba(20,32,46,0.08);
+        border-radius: 12px;
         padding: 3px 6px;
+        box-shadow: 0 2px 0 rgba(20,32,46,0.05);
     }
     .classe-row.just-added { animation: classeJustAdded 1.6s ease-out; }
     @keyframes classeJustAdded {
-        0%, 40% { background: #e0e7ff; border-color: #6366f1; }
-        100%    { background: #f8f9fa; border-color: #e5e7eb; }
+        0%, 40% { background: #fff; border-color: var(--cl-op); }
+        100%    { background: #F4F6F9; border-color: rgba(20,32,46,0.08); }
     }
     .classe-num {
         width: 20px;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 700;
-        color: #9ca3af;
+        color: rgba(20,32,46,0.4);
         text-align: right;
         flex-shrink: 0;
     }
     .classe-in {
         min-width: 0;
         flex: 1;
-        border: 1px solid transparent;
+        border: 1.5px solid transparent;
         background: transparent;
         font-family: inherit;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 700;
-        padding: 4px 5px;
-        border-radius: 5px;
-        color: #374151;
+        padding: 4px 6px;
+        border-radius: 8px;
+        color: var(--cl-ink);
         user-select: text;
     }
-    .classe-in:hover { background: #fff; border-color: #e5e7eb; }
-    .classe-in:focus { outline: none; background: #fff; border-color: #6366f1; }
-    .classe-in-nom { font-weight: 500; color: #6b7280; }
+    .classe-in:hover { background: #fff; border-color: rgba(20,32,46,0.1); }
+    .classe-in:focus { outline: none; background: #fff; border-color: var(--cl-op); }
+    .classe-in-nom { font-weight: 600; color: rgba(20,32,46,0.6); }
     .classe-in-dob {
-        flex: 0 0 84px; width: 84px;
-        font-size: 11px; font-weight: 500; color: #6b7280;
+        flex: 0 0 88px; width: 88px;
+        font-size: 12px; font-weight: 600; color: rgba(20,32,46,0.6);
         text-align: center;
     }
-    .classe-in-dob::placeholder { color: #c4c9d1; }
+    .classe-in-dob::placeholder { color: rgba(20,32,46,0.25); }
     /* 3 colonnes ou plus (un niveau par colonne) : la date passe sur une 2e ligne */
     .classe-list[data-cols="3"] .classe-row,
     .classe-list[data-cols="4"] .classe-row,
@@ -1105,43 +1218,43 @@ if (!window.ClasseEdition) {
         width: calc(100% - 25px); margin-left: 25px;
         text-align: left;
     }
-    .classe-list[data-mode="nom"] .classe-in-nom    { font-weight: 700; color: #374151; }
-    .classe-list[data-mode="nom"] .classe-in-prenom { font-weight: 500; color: #6b7280; }
+    .classe-list[data-mode="nom"] .classe-in-nom    { font-weight: 700; color: var(--cl-ink); }
+    .classe-list[data-mode="nom"] .classe-in-prenom { font-weight: 600; color: rgba(20,32,46,0.6); }
     .classe-sexe {
         width: 26px; height: 22px;
-        border-radius: 6px;
-        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        border: 1.5px solid rgba(20,32,46,0.1);
         background: #fff;
-        color: #9ca3af;
-        font-size: 10px;
-        font-weight: 800;
+        color: rgba(20,32,46,0.4);
+        font-size: 11px;
+        font-weight: 700;
         cursor: pointer;
         flex-shrink: 0;
         padding: 0;
         font-family: inherit;
         transition: all .15s;
     }
-    .classe-sexe[data-s="F"] { color: #16a34a; border-color: #bbf7d0; background: #f0fdf4; }
-    .classe-sexe[data-s="G"] { color: #ea580c; border-color: #fed7aa; background: #fff7ed; }
+    .classe-sexe[data-s="F"] { color: #15803D; border-color: #BBF7D0; background: #ECFDF3; }
+    .classe-sexe[data-s="G"] { color: #C2410C; border-color: #FED7AA; background: #FFF4EA; }
     .classe-del {
-        width: 20px; height: 20px;
+        width: 22px; height: 22px;
         border-radius: 50%;
         border: none;
         background: transparent;
-        color: #d1d5db;
-        font-size: 14px;
+        color: rgba(20,32,46,0.25);
+        font-size: 15px;
         line-height: 1;
         cursor: pointer;
         flex-shrink: 0;
         padding: 0;
         transition: all .15s;
     }
-    .classe-del:hover { background: #fee2e2; color: #dc2626; }
+    .classe-del:hover { background: #fde8e6; color: #C0392B; }
 
-    /* ── Footer ── */
+    /* ── Footer (pastille « verre ») ── */
     .classe-footer {
-        padding: 8px 12px 10px;
-        border-top: 1px solid #e5e7eb;
+        padding: 6px 6px 6px 14px;
+        border-radius: 999px;
         display: flex;
         flex-wrap: wrap;
         align-items: center;
@@ -1149,11 +1262,27 @@ if (!window.ClasseEdition) {
         gap: 6px;
         flex-shrink: 0;
     }
-    .classe-stats { font-size: 10px; color: #9ca3af; font-weight: 600; }
-    .classe-stats.ok  { color: #059669; }
-    .classe-stats.err { color: #dc2626; }
-    .classe-use { display: flex; gap: 6px; align-items: center; font-size: 10px; font-weight: 700; color: #6b7280; }
-    .classe-use .classe-btn { padding: 5px 10px; font-size: 10px; }
+    .classe-stats { font-size: 12px; color: rgba(20,32,46,0.7); font-weight: 700; }
+    .classe-stats.ok  { color: #23915A; }
+    .classe-stats.err { color: #C0392B; }
+    .classe-use { display: flex; gap: 6px; align-items: center; font-size: 11px; font-weight: 700; color: rgba(20,32,46,0.65); }
+    .classe-use .classe-btn { padding: 6px 12px; font-size: 11px; }
+
+    /* ── Petits cadres : on compacte ── */
+    @container (max-height: 520px) {
+        .classe-inner { gap: 7px; }
+        .classe-header { padding-top: 10px; }
+        .classe-title { padding: 5px 12px 5px 10px; font-size: 13px; }
+        .classe-tools { padding: 3px 10px 3px 4px; }
+        .classe-icon-btn { width: 28px; height: 28px; }
+        .classe-mode { padding: 4px 10px; }
+        .classe-tab { padding: 3px 10px; }
+        .classe-tab-tool { width: 26px; height: 26px; }
+        .classe-controls { padding: 6px; gap: 6px; }
+        .classe-add-input { padding: 6px 12px; }
+        .classe-btn { padding: 6px 12px; }
+        .classe-list { padding: 8px 10px; }
+    }
 
     /* ── Modal ── */
     .classe-modal-overlay {
@@ -1161,29 +1290,30 @@ if (!window.ClasseEdition) {
         position: absolute;
         inset: 0;
         z-index: 200;
-        background: rgba(0,0,0,0.35);
-        backdrop-filter: blur(4px);
+        background: rgba(10,20,35,0.35);
+        -webkit-backdrop-filter: blur(4px);
+                backdrop-filter: blur(4px);
         align-items: center;
         justify-content: center;
         padding: 20px;
-        border-radius: 16px;
+        border-radius: inherit;
         box-sizing: border-box;
     }
     .classe-modal-overlay.open { display: flex; }
     .classe-modal-box {
-        background: #fff;
+        background: rgba(255,255,255,0.97);
         padding: 20px;
-        border-radius: 12px;
+        border-radius: 18px;
         width: 100%;
-        max-width: 340px;
-        color: #374151;
-        box-shadow: 0 16px 40px rgba(0,0,0,0.2);
+        max-width: 360px;
+        color: var(--cl-ink);
+        box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
         box-sizing: border-box;
     }
-    .classe-modal-title { font-size: 13px; font-weight: 800; text-align: center; margin-bottom: 7px; color: #374151; }
+    .classe-modal-title { font-size: 15px; font-weight: 700; text-align: center; margin-bottom: 7px; }
     .classe-modal-text {
-        font-size: 12px; color: #6b7280; text-align: center; line-height: 1.5;
-        font-weight: 500; white-space: pre-line; margin: 0 0 4px;
+        font-size: 13px; color: rgba(20,32,46,0.7); text-align: center; line-height: 1.5;
+        font-weight: 600; white-space: pre-line; margin: 0 0 4px;
     }
     .classe-modal-text:empty { display: none; }
     .classe-modal-input, .classe-modal-textarea {
@@ -1191,55 +1321,81 @@ if (!window.ClasseEdition) {
         width: 100%;
         box-sizing: border-box;
         margin-top: 8px;
-        padding: 8px 10px;
-        border-radius: 8px;
-        border: 1.5px solid #d1d5db;
-        font-size: 12px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1.5px solid rgba(20,32,46,0.15);
+        font-size: 13px;
+        font-weight: 600;
         font-family: inherit;
-        color: #374151;
+        color: var(--cl-ink);
         user-select: text;
     }
-    .classe-modal-textarea { resize: vertical; min-height: 130px; }
-    .classe-modal-input:focus, .classe-modal-textarea:focus { outline: none; border-color: #6366f1; }
+    .classe-modal-textarea { resize: vertical; min-height: 130px; border-radius: 14px; }
+    .classe-modal-input:focus, .classe-modal-textarea:focus { outline: none; border-color: var(--cl-op); }
     .classe-modal-btns { display: flex; gap: 8px; margin-top: 14px; }
     .classe-modal-btn {
-        flex: 1; padding: 8px; border: none; border-radius: 8px;
-        font-weight: 700; font-size: 11px; cursor: pointer; font-family: inherit;
-        transition: background .15s, transform .1s;
+        flex: 1; padding: 9px; border: none; border-radius: 999px;
+        font-weight: 700; font-size: 12px; cursor: pointer; font-family: inherit;
+        transition: background .15s, filter .15s, transform .1s;
     }
     .classe-modal-btn:active { transform: scale(0.96); }
-    .classe-modal-cancel { background: #f3f4f6; color: #6b7280; }
-    .classe-modal-cancel:hover { background: #e5e7eb; }
+    .classe-modal-cancel { background: rgba(20,32,46,0.08); color: var(--cl-ink); }
+    .classe-modal-cancel:hover { background: rgba(20,32,46,0.15); }
+    .classe-modal-confirm { background: var(--cl-op); color: #fff; }
+    .classe-modal-confirm.danger { background: #C0392B; }
+    .classe-modal-confirm:hover { filter: brightness(1.1); }
 
-    /* ── Popup aide ── */
-    .classe-help-popup {
+    /* ── Panneaux (aide, couleur) ── */
+    .classe-panel {
         display: none;
         position: absolute;
-        top: 42px;
-        right: 10px;
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        padding: 12px 14px;
-        width: 270px;
-        font-size: 11px;
-        color: #4b5563;
-        z-index: 10;
-        line-height: 1.6;
+        top: 62px;
+        right: 16px;
+        width: 320px;
+        max-width: calc(100% - 32px);
+        max-height: calc(100% - 80px);
+        overflow-y: auto;
+        box-sizing: border-box;
+        z-index: 30;
+        flex-direction: column;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.96);
+        box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+        color: var(--cl-ink);
     }
-    .classe-help-popup.show { display: block; }
-    .classe-help-popup h4 { margin: 0 0 8px; font-size: 12px; color: #374151; font-weight: 800; }
+    .classe-panel.show { display: flex; }
+    .classe-panel-title { font-size: 13px; font-weight: 700; }
+    .classe-help-list { margin: 0; padding-left: 18px; font-size: 12px; font-weight: 600; line-height: 1.5; color: rgba(20,32,46,0.85); }
+    .classe-help-list li { margin-bottom: 4px; }
+    .classe-help-list b { font-weight: 700; }
+    .classe-help-list em { font-style: normal; font-weight: 700; color: var(--cl-op); }
+    .classe-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+    .classe-swatch {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        border: 2px solid rgba(20,32,46,0.15);
+        cursor: pointer;
+        padding: 0;
+    }
+    .classe-swatch.is-on { border-color: var(--cl-ink); box-shadow: 0 0 0 2px #fff inset; }
 
-    /* ── Téléphone : plein écran du bouton vert, décalé de 40 px à gauche
-       pour laisser les onglets latéraux visibles, hauteur réelle de l'écran ── */
+    /* ── Plein écran du bouton vert (classe .wf-max) ──
+       Marge à gauche pour laisser visibles les onglets des panneaux latéraux */
+    .widget.wf-max[data-type="classe"] .classe-outer { outline: none !important; }
+    .widget.wf-max[data-type="classe"] .classe-header { cursor: default; }
+    .widget.wf-max[data-type="classe"] .classe-inner {
+        left: 40px !important;
+        width: calc(100vw - 40px) !important;
+    }
+
+    /* ── Téléphone : plein écran, hauteur réelle de l'écran ── */
     @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
         .widget.wf-max[data-type="classe"] .classe-inner {
-            left: 40px !important;
-            width: calc(100vw - 40px) !important;
             height: 100dvh !important;
-            border: none !important;
             border-radius: 0 !important;
+            padding: 0 10px 10px;
         }
     }
 
@@ -1250,6 +1406,21 @@ if (!window.ClasseEdition) {
         s.id = 'classe-widget-style';
         s.textContent = STYLE;
         document.head.appendChild(s);
+    }
+
+    // ── Taille des pastilles fenêtre (identique au Visualiseur / Tirage) ──
+    if (!document.getElementById('wf-btns-size')) {
+        const wz = document.createElement('style');
+        wz.id = 'wf-btns-size';
+        wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+        `;
+        document.head.appendChild(wz);
     }
 
     // Injecter le CSS des boutons wf si pas déjà fait (normalement par widget-monnaie / tirage)
@@ -1280,6 +1451,23 @@ if (!window.ClasseEdition) {
     const CL_MIN_W     = 300;
     const CL_MIN_H     = 240;
     const CL_LABEL     = '📋 Liste de classe';
+
+    // Couleurs du cadre (mêmes que le Visualiseur / Tirage / Équipes)
+    const CL_THEMES = {
+        bleu:   { name: 'Bleu',    bg: '#8EC5F2', op: '#2F6FB3' },
+        vert:   { name: 'Vert',    bg: '#7FD6A6', op: '#23915A' },
+        jaune:  { name: 'Jaune',   bg: '#F6D86A', op: '#B9770E' },
+        rose:   { name: 'Rose',    bg: '#F4A9C0', op: '#C2456E' },
+        violet: { name: 'Violet',  bg: '#C2B2F0', op: '#6A4FC2' },
+        gris:   { name: 'Gris',    bg: '#D4DAE2', op: '#4A5868' },
+        noir:   { name: 'Ardoise', bg: '#4A525E', op: '#2F6FB3' }
+    };
+    const CL_DEFAULT_THEME = 'violet';
+
+    // ── Icônes ────────────────────────────────────────────────────────────
+    const CL_ICON_LIST    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4V3h6v1"/><path d="M8.5 10h7M8.5 14h7M8.5 18h4"/></svg>';
+    const CL_ICON_HELP    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17.2h.01"/></svg>';
+    const CL_ICON_PALETTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg>';
 
     // ── Analyse d'un texte (saisie, collage, fichier .txt/.csv) ───────────
     // Accepte : un prénom par ligne | prénoms séparés par des virgules |
@@ -1314,41 +1502,50 @@ if (!window.ClasseEdition) {
                         <span class="classe-doc-ico">${k.icon}</span>
                         <span class="classe-doc-txt"><b>${k.title}</b><small>${k.desc}</small></span>
                     </button>`).join('');
+        const swatches = Object.keys(CL_THEMES).map(id =>
+            '<button class="classe-swatch" data-theme="' + id + '" title="' + CL_THEMES[id].name +
+            '" style="background:' + CL_THEMES[id].bg + '"></button>'
+        ).join('');
         return `
         <div class="classe-inner">
             <div class="classe-header">
-                <div class="classe-header-title">${CL_LABEL}</div>
-                <div class="wf-btns" style="margin-left:auto">
-                    <button class="classe-help-btn-wf" title="Aide" onmousedown="event.stopPropagation()" style="width:22px;height:22px;border-radius:50%;border:1px solid #bbb;background:#f5f5f5;color:#666;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;font-family:inherit;">?</button>
-                    <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"      onmousedown="event.stopPropagation()"></button>
-                    <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"  onmousedown="event.stopPropagation()"></button>
-                    <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"       onmousedown="event.stopPropagation()"></button>
+                <div class="classe-title">${CL_ICON_LIST}<span>Liste de classe</span></div>
+                <div class="classe-tools">
+                    <button class="classe-icon-btn classe-theme-btn" title="Couleur du cadre" onmousedown="event.stopPropagation()">${CL_ICON_PALETTE}</button>
+                    <button class="classe-icon-btn classe-help-btn" title="Aide" onmousedown="event.stopPropagation()">${CL_ICON_HELP}</button>
+                    <span class="classe-sep"></span>
+                    <div class="wf-btns">
+                        <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"      onmousedown="event.stopPropagation()"></button>
+                        <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"  onmousedown="event.stopPropagation()"></button>
+                        <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"       onmousedown="event.stopPropagation()"></button>
+                    </div>
                 </div>
             </div>
-            <div class="classe-help-popup">
-                <h4>💡 Comment ça marche</h4>
-                <p>• Tapez un prénom puis <b>Entrée</b> pour l'ajouter.<br>
-                • <b>📋 Coller une liste</b> : un prénom par ligne (ou séparés par des virgules).
-                Format complet accepté : <em>Prénom;NOM;sexe</em><br>
-                • La liste est <b>toujours triée par ordre alphabétique</b> : un nouvel élève se place directement au bon endroit.
-                Choisissez le tri par <b>Prénom</b> ou par <b>Nom</b> avec les boutons « Trier par ».<br>
-                • <b>Onglet Édition</b> : génère en PDF la liste de classe, la feuille de pointage, les grandes et petites étiquettes
-                et les fiches de suivi de la classe active. Le tri Prénom / Nom choisi est appliqué aux documents.<br>
-                • <b>Classe à plusieurs niveaux (2 à 8)</b> : cliquez sur <b>🎓</b> pour les définir (ex : <em>CE1, CE2</em>).
-                Choisissez ensuite le niveau des nouveaux élèves à côté du champ d'ajout ; cliquez sur le niveau d'un élève pour le changer.
-                Le bouton <b>Affichage</b> permet de présenter la liste en <b>2 colonnes</b> ou avec <b>une colonne par niveau</b>.<br>
-                • <b>Date de naissance</b> : tapez les chiffres (ex : <em>12032015</em>), les « / » s'ajoutent tout seuls.
-                Import possible avec <em>Prénom;NOM;sexe;niveau;JJ/MM/AAAA</em>.<br>
-                • Cliquez sur un prénom/nom pour le corriger, sur <b>F / G</b> pour changer le sexe (couleur dans le tirage).<br>
-                • Plusieurs classes possibles (onglets). La classe active est proposée par défaut
-                dans les widgets <b>Tirage</b> et <b>Équipes</b>.<br>
-                • Les listes sont mémorisées sur cet ordinateur.</p>
+            <div class="classe-panel classe-help-popup">
+                <div class="classe-panel-title">Aide</div>
+                <ul class="classe-help-list">
+                    <li>Tapez un prénom puis <b>Entrée</b> pour l'ajouter.</li>
+                    <li><b>Coller une liste</b> : un prénom par ligne (ou séparés par des virgules). Format complet accepté : <em>Prénom;NOM;sexe</em></li>
+                    <li>La liste est <b>toujours triée par ordre alphabétique</b> : un nouvel élève se place directement au bon endroit. Choisissez le tri par <b>Prénom</b> ou par <b>Nom</b> avec « Trier par ».</li>
+                    <li><b>Onglet Édition</b> : génère en PDF la liste de classe, la feuille de pointage, les grandes et petites étiquettes et les fiches de suivi de la classe active. Le tri choisi s'applique aux documents.</li>
+                    <li><b>Classe à plusieurs niveaux (2 à 8)</b> : cliquez sur <b>🎓</b> pour les définir (ex : <em>CE1, CE2</em>). Choisissez le niveau des nouveaux élèves à côté du champ d'ajout ; cliquez sur le niveau d'un élève pour le changer. <b>Affichage</b> présente la liste en <b>2 colonnes</b> ou <b>une colonne par niveau</b>.</li>
+                    <li><b>Date de naissance</b> : tapez les chiffres (ex : <em>12032015</em>), les « / » s'ajoutent tout seuls. Import possible avec <em>Prénom;NOM;sexe;niveau;JJ/MM/AAAA</em>.</li>
+                    <li>Cliquez sur un prénom/nom pour le corriger, sur <b>F / G</b> pour changer le sexe (couleur dans le tirage).</li>
+                    <li>Plusieurs classes possibles (onglets). La classe active est proposée par défaut dans les widgets <b>Tirage</b> et <b>Équipes</b>.</li>
+                    <li><b>👤</b> (ou le champ « Enseignant de la classe » de l'onglet Édition) : nom de l'enseignant, propre à chaque classe ; il apparaît sur les documents PDF.</li>
+                    <li>Les listes sont mémorisées sur cet ordinateur. La palette change la couleur du cadre.</li>
+                </ul>
             </div>
-            <div class="classe-modes">
+            <div class="classe-panel classe-theme-popup">
+                <div class="classe-panel-title">Couleur du cadre</div>
+                <div class="classe-swatches">${swatches}</div>
+            </div>
+            <div class="classe-modes classe-glass">
                 <button class="classe-mode active" data-mode="edit">👥 Enregistrement</button>
                 <button class="classe-mode" data-mode="doc">🖨️ Édition</button>
             </div>
-            <div class="classe-tabs"></div>
+            <div class="classe-tabs classe-glass"></div>
+            <div class="classe-controls classe-glass">
             <div class="classe-addbar">
                 <input type="text" class="classe-add-input" placeholder="Ajouter un prénom puis Entrée…" autocomplete="off">
                 <select class="classe-add-level" title="Niveau des nouveaux élèves" style="display:none;"></select>
@@ -1371,11 +1568,12 @@ if (!window.ClasseEdition) {
                 <button class="classe-btn classe-btn-soft classe-clear-btn">🗑️ Vider</button>
                 <input type="file" class="classe-file-input" accept=".txt,.csv" style="display:none;">
             </div>
+            </div>
             <div class="classe-list"></div>
             <div class="classe-edition">
                 <div class="classe-edit-info"></div>
                 <div class="classe-edit-fields">
-                    <label class="classe-edit-field">Enseignant
+                    <label class="classe-edit-field">Enseignant de la classe
                         <input type="text" class="classe-add-input classe-edit-prof" placeholder="ex : M. PROF" autocomplete="off">
                     </label>
                     <label class="classe-edit-field">Année scolaire
@@ -1391,7 +1589,7 @@ if (!window.ClasseEdition) {
                 </div>
                 <div class="classe-edit-status">Choisissez un document : il sera généré en PDF pour la classe active.</div>
             </div>
-            <div class="classe-footer">
+            <div class="classe-footer classe-glass">
                 <div class="classe-stats">--</div>
                 <div class="classe-use">
                     Utiliser dans :
@@ -1407,7 +1605,7 @@ if (!window.ClasseEdition) {
                     <textarea class="classe-modal-textarea"></textarea>
                     <div class="classe-modal-btns">
                         <button class="classe-modal-btn classe-modal-cancel">Annuler</button>
-                        <button class="classe-modal-btn classe-modal-confirm" style="background:#6366f1;color:#fff;">Confirmer</button>
+                        <button class="classe-modal-btn classe-modal-confirm">Confirmer</button>
                     </div>
                 </div>
             </div>
@@ -1557,7 +1755,9 @@ if (!window.ClasseEdition) {
         const useTirageBtn = widget.querySelector('.classe-use-tirage');
         const useEquipBtn  = widget.querySelector('.classe-use-equipes');
         const modalOverlay = widget.querySelector('.classe-modal-overlay');
-        const helpBtn      = widget.querySelector('.classe-help-btn-wf');
+        const helpBtn      = widget.querySelector('.classe-help-btn');
+        const themeBtn     = widget.querySelector('.classe-theme-btn');
+        const themePopup   = widget.querySelector('.classe-theme-popup');
         const helpPopup    = widget.querySelector('.classe-help-popup');
         const wfMin        = widget.querySelector('[data-role="wf-min"]');
         const wfMax        = widget.querySelector('[data-role="wf-max"]');
@@ -1682,18 +1882,41 @@ if (!window.ClasseEdition) {
         outer.addEventListener('keydown', onEscape);
         cleanups.push(() => outer.removeEventListener('keydown', onEscape));
 
-        // ── Aide popup ────────────────────────────────────────────────────
-        if (helpBtn && helpPopup) {
-            helpBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                helpPopup.classList.toggle('show');
-            });
-            helpBtn.addEventListener('mouseover', () => { helpBtn.style.background = '#e0e0e0'; helpBtn.style.color = '#333'; });
-            helpBtn.addEventListener('mouseout',  () => { helpBtn.style.background = '#f5f5f5'; helpBtn.style.color = '#666'; });
-            const closeHelp = () => helpPopup.classList.remove('show');
-            document.addEventListener('click', closeHelp);
-            cleanups.push(() => document.removeEventListener('click', closeHelp));
+        // ── Panneaux aide / couleur ───────────────────────────────────────
+        const panels = [[helpBtn, helpPopup], [themeBtn, themePopup]].filter(p => p[0] && p[1]);
+        function closePanels() {
+            panels.forEach(([b, p]) => { p.classList.remove('show'); b.classList.remove('is-on'); });
         }
+        panels.forEach(([btn, panel]) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const open = !panel.classList.contains('show');
+                closePanels();
+                panel.classList.toggle('show', open);
+                btn.classList.toggle('is-on', open);
+            });
+            panel.addEventListener('click', (e) => e.stopPropagation());
+        });
+        document.addEventListener('click', closePanels);
+        cleanups.push(() => document.removeEventListener('click', closePanels));
+
+        // ── Couleur du cadre (mémorisée dans le tableau) ──────────────────
+        function applyTheme(id) {
+            if (!CL_THEMES[id]) id = CL_DEFAULT_THEME;
+            widget.dataset.classeTheme = id;
+            outer.style.setProperty('--cl-bg', CL_THEMES[id].bg);
+            outer.style.setProperty('--cl-op', CL_THEMES[id].op);
+            widget.querySelectorAll('.classe-swatch').forEach(s =>
+                s.classList.toggle('is-on', s.dataset.theme === id));
+        }
+        widget.querySelectorAll('.classe-swatch').forEach(s => {
+            s.addEventListener('click', (e) => {
+                e.stopPropagation();
+                applyTheme(s.dataset.theme);
+                if (typeof saveBoard === 'function') saveBoard();
+            });
+        });
+        applyTheme(widget.dataset.classeTheme || CL_DEFAULT_THEME);
 
         // ── Modal générique ───────────────────────────────────────────────
         // opts : { title, text, input:{value,placeholder}, textarea:{placeholder},
@@ -1715,7 +1938,7 @@ if (!window.ClasseEdition) {
             if (opts.input)    { mInput.value = opts.input.value || ''; mInput.placeholder = opts.input.placeholder || ''; }
             if (opts.textarea) { mArea.value = ''; mArea.placeholder = opts.textarea.placeholder || ''; }
             mConfirm.textContent      = opts.confirmLabel || 'Confirmer';
-            mConfirm.style.background = opts.danger ? '#f87171' : '#6366f1';
+            mConfirm.classList.toggle('danger', !!opts.danger);
 
             const submit = () => {
                 const val = opts.input ? mInput.value.trim() : (opts.textarea ? mArea.value : '');
@@ -1773,7 +1996,8 @@ if (!window.ClasseEdition) {
                 const tab = document.createElement('button');
                 tab.className   = 'classe-tab' + (c.id === activeId ? ' active' : '');
                 tab.textContent = c.name + ' (' + c.count + ')';
-                tab.title       = c.name;
+                const prof = CE ? CE.getProf(c.id) : (c.prof || '');
+                tab.title       = c.name + (prof ? ' — ' + prof : '');
                 tab.addEventListener('click', () => { CL.setActive(c.id, widget); refreshAll(); });
                 tabsEl.appendChild(tab);
             });
@@ -1834,7 +2058,7 @@ if (!window.ClasseEdition) {
                 const cur = activeClass();
                 const lv = cur && cur.levels ? cur.levels : [];
                 levelsBtn.title = 'Niveaux de la classe' + (lv.length ? ' : ' + lv.join(' / ') : ' (un seul niveau)');
-                if (lv.length) { levelsBtn.style.background = '#eef2ff'; levelsBtn.style.borderColor = '#c7d2fe'; }
+                if (lv.length) levelsBtn.classList.add('is-on');
             }
             levelsBtn.addEventListener('click', () => {
                 const cls = activeClass(); if (!cls) return;
@@ -1854,6 +2078,32 @@ if (!window.ClasseEdition) {
                 });
             });
 
+            const profBtn = document.createElement('button');
+            profBtn.className = 'classe-tab-tool';
+            profBtn.textContent = '👤';
+            {
+                const cur = activeClass();
+                const p = cur && CE ? CE.getProf(cur.id) : '';
+                profBtn.title = 'Enseignant de la classe' + (p ? ' : ' + p : ' (non renseigné)');
+                if (p) profBtn.classList.add('is-on');
+            }
+            profBtn.addEventListener('click', () => {
+                const cls = activeClass(); if (!cls || !CE) return;
+                showModal({
+                    title: 'Enseignant de la classe',
+                    text: '« ' + cls.name + ' » — ce nom apparaît sur les documents PDF de cette classe.',
+                    input: { value: CE.getProf(cls.id), placeholder: 'ex : Mme MARTIN' },
+                    allowEmpty: true,
+                    confirmLabel: 'Enregistrer',
+                    onConfirm: (val) => {
+                        CE.setProf(val, cls.id);
+                        refreshAll(true);
+                        flash(val.trim() ? '✓ Enseignant : ' + val.trim() : '✓ Enseignant effacé', 'ok');
+                    }
+                });
+            });
+
+            tools.appendChild(profBtn);
             tools.appendChild(levelsBtn);
             tools.appendChild(renameBtn);
             tools.appendChild(delBtn);
@@ -2273,12 +2523,19 @@ if (!window.ClasseEdition) {
             const n  = cls.students.length;
             const lv = cls.levels || [];
             editInfo.textContent = cls.name + ' · ' + n + ' élève' + (n > 1 ? 's' : '') + (lv.length >= 2 ? ' · ' + lv.join(' / ') : '');
+            // Enseignant de la classe active (sans écraser une saisie en cours)
+            if (CE && document.activeElement !== profInput) profInput.value = CE.getProf(cls.id);
         }
 
         if (CE) {
-            profInput.value = CE.getProf();
+            profInput.value = CE.getProf(CL.getActiveId());
             yearInput.value = CE.getYear();
-            profInput.addEventListener('change', () => CE.setProf(profInput.value));
+            profInput.addEventListener('change', () => {
+                const cls = activeClass(); if (!cls) return;
+                CE.setProf(profInput.value, cls.id);
+                renderTabs();
+                editFlash('✓ Enseignant de « ' + cls.name + ' » enregistré', 'ok');
+            });
             yearInput.addEventListener('change', () => { CE.setYear(yearInput.value); yearInput.value = CE.getYear(); });
         }
 
@@ -2286,7 +2543,7 @@ if (!window.ClasseEdition) {
             if (docBusy) return;
             if (!CE) { editFlash('Module Édition indisponible.', 'err'); return; }
             const cls = activeClass(); if (!cls) return;
-            CE.setProf(profInput.value);
+            CE.setProf(profInput.value, cls.id);
             CE.setYear(yearInput.value);
             docBusy = true;
             docBtns.forEach(b => b.disabled = true);
@@ -2441,6 +2698,7 @@ if (!window.ClasseEdition) {
                         if (widget.dataset.classeSavedLeft) match.classeSavedLeft = widget.dataset.classeSavedLeft;
                         if (widget.dataset.classeSavedTop)  match.classeSavedTop  = widget.dataset.classeSavedTop;
                         if (widget.dataset.classeData)      match.classeData      = widget.dataset.classeData;
+                        if (widget.dataset.classeTheme)     match.classeTheme     = widget.dataset.classeTheme;
                     }
                 });
                 return state;
@@ -2476,7 +2734,9 @@ if (!window.ClasseEdition) {
                             outer.className = 'classe-outer';
                             widget.appendChild(outer);
                         }
-                        if (!outer.querySelector('.classe-inner')) {
+                        // Repartir du nouveau gabarit (les anciennes sauvegardes
+                        // contiennent l'ancien graphisme)
+                        if (!outer.querySelector('.classe-controls')) {
                             outer.innerHTML = classeInnerHTML();
                         }
 
@@ -2485,6 +2745,7 @@ if (!window.ClasseEdition) {
 
                         if (saved) {
                             if (saved.classeData)      widget.dataset.classeData      = saved.classeData;
+                            if (saved.classeTheme)     widget.dataset.classeTheme     = saved.classeTheme;
                             if (saved.classeSavedLeft) widget.dataset.classeSavedLeft = saved.classeSavedLeft;
                             if (saved.classeSavedTop)  widget.dataset.classeSavedTop  = saved.classeSavedTop;
                             const w = saved.classeW || parseFloat(widget.dataset.classeW);

@@ -36,18 +36,33 @@ function _wfIsPhoneLaunch() {
 
 (function () {
 
+    // ── Police arrondie partagée avec les autres widgets (repli système si hors-ligne)
+    if (!document.getElementById('wpc-font')) {
+        const fl = document.createElement('link');
+        fl.id = 'wpc-font';
+        fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+        document.head.appendChild(fl);
+    }
+
     // ── CSS injecté une seule fois ────────────────────────────────────────
     const STYLE = `
-    /* ── Widget transparent ── */
-    .widget[data-type="liste-edition"] {
+    /* ── Widget transparent : ledit-outer porte tout le visuel ── */
+    .widget[data-type="liste-edition"],
+    .widget[data-type="liste-edition"]:focus-within {
         min-width: unset;
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
     }
 
-    /* ── Wrapper externe ── */
+    /* ── Wrapper externe (taille + ombre) ── */
     .widget[data-type="liste-edition"] .ledit-outer {
+        --le-ink:   #14202E;
+        --le-glass: rgba(255,255,255,0.62);
+        --le-bg:    #F4A9C0;
+        --le-op:    #C2456E;
+
         position: relative;
         width: 640px;
         height: 460px;
@@ -56,79 +71,128 @@ function _wfIsPhoneLaunch() {
         overflow: hidden;
         resize: none;
         box-sizing: border-box;
-        border-radius: 16px;
+        border-radius: 24px;
+        box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
+        outline: none;
     }
     .widget[data-type="liste-edition"] .ledit-outer::-webkit-resizer { display: none; }
+    .widget[data-type="liste-edition"]:hover .ledit-outer,
+    .widget[data-type="liste-edition"]:focus-within .ledit-outer {
+        outline: 2px dashed rgba(20,32,46,0.35);
+        outline-offset: 2px;
+    }
 
-    /* ── Container intérieur ── */
+    /* ── Cadre coloré ── */
     .ledit-inner {
         width: 100%;
         height: 100%;
         display: flex;
         flex-direction: column;
-        background: #ffffff;
-        border: 1.5px solid #d1d5db;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 4px 18px rgba(0,0,0,0.12);
-        font-family: 'Segoe UI', system-ui, sans-serif;
-        color: #374151;
-        user-select: none;
+        gap: 10px;
+        padding: 0 16px 16px;
         box-sizing: border-box;
+        background-color: var(--le-bg);
+        background-image:
+            radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+            radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+        border-radius: 24px;
+        overflow: hidden;
+        font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+        color: var(--le-ink);
+        user-select: none;
         position: relative;
+        container-type: size;
+        transition: background-color .3s;
     }
 
-    /* ── Header ── */
+    /* ── En-tête : deux pastilles « verre » ── */
     .ledit-header {
-        background: #ffffff;
-        border-bottom: 1px solid #e5e7eb;
-        padding: 10px 14px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 8px;
+        gap: 10px;
+        padding: 14px 0 0;
         flex-shrink: 0;
         cursor: move;
     }
-    .ledit-header-title {
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: 0.3px;
-        flex-grow: 1;
-        color: #374151;
+    .ledit-title,
+    .ledit-tools,
+    .ledit-tabs {
+        background: var(--le-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+    }
+    .ledit-title,
+    .ledit-tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+    }
+    .ledit-title {
+        padding: 7px 16px 7px 12px;
+        font-size: 15px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        min-width: 0;
         pointer-events: none;
     }
+    .ledit-title span { overflow: hidden; text-overflow: ellipsis; }
+    .ledit-title svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--le-op); }
+    .ledit-tools { padding: 5px 12px 5px 6px; gap: 2px; flex-shrink: 0; }
+    @container (max-width: 460px) { .ledit-title span { display: none; } .ledit-title { padding: 7px 10px; } }
 
-    /* ── Onglets classes ── */
+    .ledit-icon-btn {
+        width: 32px; height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        color: var(--le-ink);
+        cursor: pointer;
+        padding: 0;
+        transition: background .15s;
+    }
+    .ledit-icon-btn svg { width: 18px; height: 18px; }
+    .ledit-icon-btn:hover,
+    .ledit-icon-btn.is-on { background: rgba(20,32,46,0.12); }
+    .ledit-icon-btn:focus-visible { outline: 2px solid var(--le-ink); outline-offset: 2px; }
+    .ledit-sep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
+
+    /* ── Onglets classes (pastille « verre ») ── */
     .ledit-tabs {
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
-        padding: 6px 10px;
+        padding: 4px;
         align-items: center;
         flex-shrink: 0;
-        border-bottom: 1px solid #e5e7eb;
+        border-radius: 18px;
     }
     .ledit-tab {
-        padding: 3px 10px;
-        border-radius: 6px;
-        font-size: 10px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 12px;
         font-weight: 700;
         cursor: pointer;
-        border: 1px solid #e0e0e0;
-        transition: all .15s;
+        border: none;
+        transition: background .15s, color .15s;
         font-family: inherit;
-        background: #f0f0f0;
-        color: #999;
-        max-width: 160px;
+        background: transparent;
+        color: rgba(20,32,46,0.65);
+        max-width: 180px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    .ledit-tab:hover { border-color: #9ca3af; }
-    .ledit-tab.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+    .ledit-tab:hover { background: rgba(20,32,46,0.08); }
+    .ledit-tab.active { background: var(--le-op); color: #fff; box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
 
-    /* ── Panneau Édition ── */
+    /* ── Panneau Édition (zone blanche arrondie) ── */
     .ledit-body {
         flex: 1;
         min-height: 0;
@@ -136,63 +200,68 @@ function _wfIsPhoneLaunch() {
         display: flex;
         flex-direction: column;
         gap: 12px;
-        padding: 12px;
+        padding: 14px;
+        background: rgba(255,255,255,0.92);
+        border-radius: 18px;
+        box-shadow: inset 0 2px 8px rgba(10,20,35,0.08);
         scrollbar-width: thin;
-        scrollbar-color: #d1d5db transparent;
+        scrollbar-color: rgba(20,32,46,0.25) transparent;
     }
-    .ledit-info { font-size: 11px; font-weight: 700; color: #6b7280; }
+    .ledit-info { font-size: 13px; font-weight: 700; color: rgba(20,32,46,0.75); }
     .ledit-fields { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
     .ledit-field {
-        display: flex; flex-direction: column; gap: 3px;
-        font-size: 9px; font-weight: 800; text-transform: uppercase;
-        color: #9ca3af; letter-spacing: .3px;
+        display: flex; flex-direction: column; gap: 4px;
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        color: rgba(20,32,46,0.55); letter-spacing: .4px;
     }
     .ledit-input {
-        padding: 7px 10px;
-        border-radius: 8px;
-        border: 1.5px solid #d1d5db;
-        font-size: 12px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1.5px solid rgba(20,32,46,0.12);
+        background: #fff;
+        font-size: 13px;
         font-family: inherit;
         font-weight: 600;
-        color: #374151;
+        color: var(--le-ink);
         user-select: text;
         transition: border-color .15s;
         width: 190px;
         box-sizing: border-box;
     }
-    .ledit-input:focus { outline: none; border-color: #6366f1; }
-    .ledit-input.ledit-year { width: 110px; }
+    .ledit-input:focus { outline: none; border-color: var(--le-op); }
+    .ledit-input.ledit-year { width: 120px; }
 
-    /* ── Sélecteur de tri ── */
+    /* ── Sélecteur de tri (segmenté) ── */
     .ledit-sortgroup {
         display: inline-flex;
         align-items: center;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        overflow: hidden;
-        background: #f3f4f6;
+        gap: 2px;
+        padding: 3px;
+        border-radius: 999px;
+        background: #fff;
+        box-shadow: 0 2px 6px -2px rgba(10,20,35,0.3);
     }
     .ledit-sort-label {
-        padding: 0 8px;
-        font-size: 10px;
+        padding: 0 6px 0 8px;
+        font-size: 11px;
         font-weight: 700;
-        color: #4b5563;
+        color: rgba(20,32,46,0.65);
         white-space: nowrap;
     }
     .ledit-sort-opt {
-        padding: 7px 10px;
+        padding: 5px 12px;
         border: none;
-        border-left: 1px solid #e5e7eb;
+        border-radius: 999px;
         background: transparent;
-        color: #6b7280;
-        font-size: 10px;
+        color: rgba(20,32,46,0.65);
+        font-size: 11px;
         font-weight: 700;
         font-family: inherit;
         cursor: pointer;
         transition: background .15s, color .15s;
     }
-    .ledit-sort-opt:hover { background: #e5e7eb; }
-    .ledit-sort-opt.active { background: #6366f1; color: #fff; }
+    .ledit-sort-opt:hover { background: rgba(20,32,46,0.08); }
+    .ledit-sort-opt.active { background: var(--le-op); color: #fff; }
 
     /* ── Cartes documents ── */
     .ledit-doc-grid {
@@ -203,20 +272,21 @@ function _wfIsPhoneLaunch() {
     .ledit-doc-card {
         display: flex; align-items: center; gap: 12px;
         padding: 12px 14px;
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
+        background: #F4F6F9;
+        border: 1.5px solid rgba(20,32,46,0.08);
+        border-radius: 16px;
         cursor: pointer;
         text-align: left;
         font-family: inherit;
-        color: #374151;
-        transition: box-shadow .15s, transform .1s, border-color .15s;
+        color: var(--le-ink);
+        box-shadow: 0 2px 0 rgba(20,32,46,0.06);
+        transition: box-shadow .15s, transform .1s, border-color .15s, background .15s;
     }
-    .ledit-doc-card:hover { border-color: var(--c); box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .ledit-doc-card:hover { background: #fff; border-color: var(--c); box-shadow: 0 6px 16px -10px rgba(10,20,35,0.5); }
     .ledit-doc-card:active { transform: scale(0.98); }
     .ledit-doc-card:disabled { opacity: .55; cursor: wait; }
     .ledit-doc-ico {
-        width: 38px; height: 38px; border-radius: 50%;
+        width: 40px; height: 40px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
         font-size: 18px; flex-shrink: 0;
         background: var(--t);
@@ -224,51 +294,86 @@ function _wfIsPhoneLaunch() {
     }
     .ledit-doc-card:hover .ledit-doc-ico { background: var(--c); }
     .ledit-doc-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .ledit-doc-txt b { font-size: 12px; font-weight: 800; text-transform: uppercase; }
-    .ledit-doc-txt small { font-size: 10px; color: #6b7280; font-weight: 500; }
-    .ledit-status { font-size: 11px; font-weight: 600; color: #9ca3af; min-height: 16px; word-break: break-all; }
-    .ledit-status.ok  { color: #059669; }
-    .ledit-status.err { color: #dc2626; }
+    .ledit-doc-txt b { font-size: 13px; font-weight: 700; }
+    .ledit-doc-txt small { font-size: 11px; color: rgba(20,32,46,0.6); font-weight: 600; }
+    .ledit-status { font-size: 12px; font-weight: 600; color: rgba(20,32,46,0.55); min-height: 16px; word-break: break-all; }
+    .ledit-status.ok  { color: #23915A; }
+    .ledit-status.err { color: #C0392B; }
 
     /* ── Message (module absent) ── */
     .ledit-missing {
         text-align: center;
-        color: #dc2626;
-        font-size: 12px;
+        color: #C0392B;
+        font-size: 13px;
         font-weight: 600;
         line-height: 1.6;
         padding: 30px 10px;
     }
 
-    /* ── Popup aide ── */
-    .ledit-help-popup {
+    /* ── Petits cadres : on compacte ── */
+    @container (max-height: 420px) {
+        .ledit-inner { gap: 7px; }
+        .ledit-header { padding-top: 10px; }
+        .ledit-title { padding: 5px 12px 5px 10px; font-size: 13px; }
+        .ledit-tools { padding: 3px 10px 3px 4px; }
+        .ledit-icon-btn { width: 28px; height: 28px; }
+        .ledit-tab { padding: 3px 10px; }
+        .ledit-body { padding: 10px; gap: 10px; }
+        .ledit-doc-card { padding: 8px 10px; }
+        .ledit-doc-ico { width: 32px; height: 32px; font-size: 15px; }
+    }
+
+    /* ── Panneaux (aide, couleur) ── */
+    .ledit-panel {
         display: none;
         position: absolute;
-        top: 42px;
-        right: 10px;
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        padding: 12px 14px;
-        width: 270px;
-        font-size: 11px;
-        color: #4b5563;
-        z-index: 10;
-        line-height: 1.6;
+        top: 62px;
+        right: 16px;
+        width: 300px;
+        max-width: calc(100% - 32px);
+        max-height: calc(100% - 80px);
+        overflow-y: auto;
+        box-sizing: border-box;
+        z-index: 30;
+        flex-direction: column;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.96);
+        box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+        color: var(--le-ink);
     }
-    .ledit-help-popup.show { display: block; }
-    .ledit-help-popup h4 { margin: 0 0 8px; font-size: 12px; color: #374151; font-weight: 800; }
+    .ledit-panel.show { display: flex; }
+    .ledit-panel-title { font-size: 13px; font-weight: 700; }
+    .ledit-help-list { margin: 0; padding-left: 18px; font-size: 12px; font-weight: 600; line-height: 1.5; color: rgba(20,32,46,0.85); }
+    .ledit-help-list li { margin-bottom: 4px; }
+    .ledit-help-list ul { margin: 2px 0 0; padding-left: 16px; }
+    .ledit-help-list b { font-weight: 700; }
+    .ledit-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ledit-swatch {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        border: 2px solid rgba(20,32,46,0.15);
+        cursor: pointer;
+        padding: 0;
+    }
+    .ledit-swatch.is-on { border-color: var(--le-ink); box-shadow: 0 0 0 2px #fff inset; }
 
-    /* ── Téléphone : plein écran du bouton vert, décalé de 40 px à gauche
-       pour laisser les onglets latéraux visibles, hauteur réelle de l'écran ── */
+    /* ── Plein écran du bouton vert (classe .wf-max) ──
+       Marge à gauche pour laisser visibles les onglets des panneaux latéraux */
+    .widget.wf-max[data-type="liste-edition"] .ledit-outer { outline: none !important; }
+    .widget.wf-max[data-type="liste-edition"] .ledit-header { cursor: default; }
+    .widget.wf-max[data-type="liste-edition"] .ledit-inner {
+        left: 40px !important;
+        width: calc(100vw - 40px) !important;
+    }
+
+    /* ── Téléphone : plein écran, hauteur réelle de l'écran ── */
     @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
         .widget.wf-max[data-type="liste-edition"] .ledit-inner {
-            left: 40px !important;
-            width: calc(100vw - 40px) !important;
             height: 100dvh !important;
-            border: none !important;
             border-radius: 0 !important;
+            padding: 0 10px 10px;
         }
     }
 
@@ -279,6 +384,21 @@ function _wfIsPhoneLaunch() {
         s.id = 'ledit-widget-style';
         s.textContent = STYLE;
         document.head.appendChild(s);
+    }
+
+    // ── Taille des pastilles fenêtre (identique au Visualiseur / Tirage) ──
+    if (!document.getElementById('wf-btns-size')) {
+        const wz = document.createElement('style');
+        wz.id = 'wf-btns-size';
+        wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+        `;
+        document.head.appendChild(wz);
     }
 
     // Injecter le CSS des boutons wf si pas déjà fait
@@ -311,6 +431,23 @@ function _wfIsPhoneLaunch() {
     const LE_MIN_H     = 240;
     const LE_LABEL     = '🖨️ Liste — Édition';
 
+    // Couleurs du cadre (mêmes que le Visualiseur / Tirage / Équipes / Liste de classe)
+    const LE_THEMES = {
+        bleu:   { name: 'Bleu',    bg: '#8EC5F2', op: '#2F6FB3' },
+        vert:   { name: 'Vert',    bg: '#7FD6A6', op: '#23915A' },
+        jaune:  { name: 'Jaune',   bg: '#F6D86A', op: '#B9770E' },
+        rose:   { name: 'Rose',    bg: '#F4A9C0', op: '#C2456E' },
+        violet: { name: 'Violet',  bg: '#C2B2F0', op: '#6A4FC2' },
+        gris:   { name: 'Gris',    bg: '#D4DAE2', op: '#4A5868' },
+        noir:   { name: 'Ardoise', bg: '#4A525E', op: '#2F6FB3' }
+    };
+    const LE_DEFAULT_THEME = 'rose';
+
+    // ── Icônes ────────────────────────────────────────────────────────────
+    const LE_ICON_PRINT   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8V3.5h10V8"/><rect x="3.5" y="8" width="17" height="8.5" rx="2"/><path d="M7 14h10v6.5H7z"/><circle cx="17" cy="11" r=".9" fill="currentColor" stroke="none"/></svg>';
+    const LE_ICON_HELP    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17.2h.01"/></svg>';
+    const LE_ICON_PALETTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg>';
+
     // ── HTML interne partagé (création + restauration) ────────────────────
     function leditInnerHTML() {
         const CE = window.ClasseEdition;
@@ -319,36 +456,54 @@ function _wfIsPhoneLaunch() {
                     <span class="ledit-doc-ico">${k.icon}</span>
                     <span class="ledit-doc-txt"><b>${k.title}</b><small>${k.desc}</small></span>
                 </button>`).join('');
+        const swatches = Object.keys(LE_THEMES).map(id =>
+            '<button class="ledit-swatch" data-theme="' + id + '" title="' + LE_THEMES[id].name +
+            '" style="background:' + LE_THEMES[id].bg + '"></button>'
+        ).join('');
         return `
         <div class="ledit-inner">
             <div class="ledit-header">
-                <div class="ledit-header-title">${LE_LABEL}</div>
-                <div class="wf-btns" style="margin-left:auto">
-                    <button class="ledit-help-btn" title="Aide" onmousedown="event.stopPropagation()" style="width:22px;height:22px;border-radius:50%;border:1px solid #bbb;background:#f5f5f5;color:#666;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;font-family:inherit;">?</button>
-                    <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"      onmousedown="event.stopPropagation()"></button>
-                    <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"  onmousedown="event.stopPropagation()"></button>
-                    <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"       onmousedown="event.stopPropagation()"></button>
+                <div class="ledit-title">${LE_ICON_PRINT}<span>Liste — Édition</span></div>
+                <div class="ledit-tools">
+                    <button class="ledit-icon-btn ledit-theme-btn" title="Couleur du cadre" onmousedown="event.stopPropagation()">${LE_ICON_PALETTE}</button>
+                    <button class="ledit-icon-btn ledit-help-btn" title="Aide" onmousedown="event.stopPropagation()">${LE_ICON_HELP}</button>
+                    <span class="ledit-sep"></span>
+                    <div class="wf-btns">
+                        <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"      onmousedown="event.stopPropagation()"></button>
+                        <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"  onmousedown="event.stopPropagation()"></button>
+                        <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"       onmousedown="event.stopPropagation()"></button>
+                    </div>
                 </div>
             </div>
-            <div class="ledit-help-popup">
-                <h4>💡 Comment ça marche</h4>
-                <p>• Choisissez la <b>classe</b> avec les onglets (la classe active est la même que dans le widget « Liste de classe »).<br>
-                • Indiquez l'<b>enseignant</b> et l'<b>année scolaire</b> : ils figurent sur les documents.<br>
-                • Le tri <b>Prénom / Nom</b> est appliqué aux documents.<br>
-                • Cliquez sur un document pour le générer en <b>PDF</b> :<br>
-                &nbsp;&nbsp;– liste de classe (tableau A4)<br>
-                &nbsp;&nbsp;– feuille de pointage (15 cases)<br>
-                &nbsp;&nbsp;– grandes étiquettes (8 par page)<br>
-                &nbsp;&nbsp;– petites étiquettes (27 par page)<br>
-                &nbsp;&nbsp;– fiches de suivi (2 fiches A5 par page)<br>
-                • Les élèves se saisissent dans le widget <b>Liste de classe</b>.<br>
-                • Connexion Internet requise au premier usage (bibliothèque PDF).</p>
+            <div class="ledit-panel ledit-help-popup">
+                <div class="ledit-panel-title">Aide</div>
+                <ul class="ledit-help-list">
+                    <li>Choisissez la <b>classe</b> avec les onglets (la classe active est la même que dans le widget « Liste de classe »).</li>
+                    <li>Indiquez l'<b>enseignant de la classe</b> (propre à chaque classe) et l'<b>année scolaire</b> : ils figurent sur les documents.</li>
+                    <li>Le tri <b>Prénom / Nom</b> est appliqué aux documents.</li>
+                    <li>Cliquez sur un document pour le générer en <b>PDF</b> :
+                        <ul>
+                            <li>liste de classe (tableau A4)</li>
+                            <li>feuille de pointage (15 cases)</li>
+                            <li>grandes étiquettes (8 par page)</li>
+                            <li>petites étiquettes (27 par page)</li>
+                            <li>fiches de suivi (2 fiches A5 par page)</li>
+                        </ul>
+                    </li>
+                    <li>Les élèves se saisissent dans le widget <b>Liste de classe</b>.</li>
+                    <li>Connexion Internet requise au premier usage (bibliothèque PDF).</li>
+                    <li>La palette change la couleur du cadre.</li>
+                </ul>
+            </div>
+            <div class="ledit-panel ledit-theme-popup">
+                <div class="ledit-panel-title">Couleur du cadre</div>
+                <div class="ledit-swatches">${swatches}</div>
             </div>
             <div class="ledit-tabs"></div>
             <div class="ledit-body">
                 <div class="ledit-info"></div>
                 <div class="ledit-fields">
-                    <label class="ledit-field">Enseignant
+                    <label class="ledit-field">Enseignant de la classe
                         <input type="text" class="ledit-input ledit-prof" placeholder="ex : M. PROF" autocomplete="off">
                     </label>
                     <label class="ledit-field">Année scolaire
@@ -493,6 +648,8 @@ function _wfIsPhoneLaunch() {
         const docBtns    = widget.querySelectorAll('.ledit-doc-card');
         const helpBtn    = widget.querySelector('.ledit-help-btn');
         const helpPopup  = widget.querySelector('.ledit-help-popup');
+        const themeBtn   = widget.querySelector('.ledit-theme-btn');
+        const themePopup = widget.querySelector('.ledit-theme-popup');
         const wfMin      = widget.querySelector('[data-role="wf-min"]');
         const wfMax      = widget.querySelector('[data-role="wf-max"]');
         const wfClose    = widget.querySelector('[data-role="wf-close"]');
@@ -607,18 +764,41 @@ function _wfIsPhoneLaunch() {
         outer.addEventListener('keydown', onEscape);
         cleanups.push(() => outer.removeEventListener('keydown', onEscape));
 
-        // ── Aide popup ────────────────────────────────────────────────────
-        if (helpBtn && helpPopup) {
-            helpBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                helpPopup.classList.toggle('show');
-            });
-            helpBtn.addEventListener('mouseover', () => { helpBtn.style.background = '#e0e0e0'; helpBtn.style.color = '#333'; });
-            helpBtn.addEventListener('mouseout',  () => { helpBtn.style.background = '#f5f5f5'; helpBtn.style.color = '#666'; });
-            const closeHelp = () => helpPopup.classList.remove('show');
-            document.addEventListener('click', closeHelp);
-            cleanups.push(() => document.removeEventListener('click', closeHelp));
+        // ── Panneaux aide / couleur ───────────────────────────────────────
+        const panels = [[helpBtn, helpPopup], [themeBtn, themePopup]].filter(p => p[0] && p[1]);
+        function closePanels() {
+            panels.forEach(([b, p]) => { p.classList.remove('show'); b.classList.remove('is-on'); });
         }
+        panels.forEach(([btn, panel]) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const open = !panel.classList.contains('show');
+                closePanels();
+                panel.classList.toggle('show', open);
+                btn.classList.toggle('is-on', open);
+            });
+            panel.addEventListener('click', (e) => e.stopPropagation());
+        });
+        document.addEventListener('click', closePanels);
+        cleanups.push(() => document.removeEventListener('click', closePanels));
+
+        // ── Couleur du cadre (mémorisée dans le tableau) ──────────────────
+        function applyTheme(id) {
+            if (!LE_THEMES[id]) id = LE_DEFAULT_THEME;
+            widget.dataset.leditTheme = id;
+            outer.style.setProperty('--le-bg', LE_THEMES[id].bg);
+            outer.style.setProperty('--le-op', LE_THEMES[id].op);
+            widget.querySelectorAll('.ledit-swatch').forEach(s =>
+                s.classList.toggle('is-on', s.dataset.theme === id));
+        }
+        widget.querySelectorAll('.ledit-swatch').forEach(s => {
+            s.addEventListener('click', (e) => {
+                e.stopPropagation();
+                applyTheme(s.dataset.theme);
+                if (typeof saveBoard === 'function') saveBoard();
+            });
+        });
+        applyTheme(widget.dataset.leditTheme || LE_DEFAULT_THEME);
 
         // ── Poignée de redimensionnement custom ───────────────────────────
         function setupResize() {
@@ -700,7 +880,8 @@ function _wfIsPhoneLaunch() {
                 const tab = document.createElement('button');
                 tab.className   = 'ledit-tab' + (c.id === activeId ? ' active' : '');
                 tab.textContent = c.name + ' (' + c.count + ')';
-                tab.title       = c.name;
+                const prof = CE.getProf(c.id);
+                tab.title       = c.name + (prof ? ' — ' + prof : '');
                 tab.addEventListener('click', () => { CL.setActive(c.id, widget); refreshAll(); });
                 tabsEl.appendChild(tab);
             });
@@ -717,6 +898,8 @@ function _wfIsPhoneLaunch() {
             const n  = cls.students.length;
             const lv = cls.levels || [];
             infoEl.textContent = cls.name + ' · ' + n + ' élève' + (n > 1 ? 's' : '') + (lv.length >= 2 ? ' · ' + lv.join(' / ') : '');
+            // Enseignant de la classe active (sans écraser une saisie en cours)
+            if (document.activeElement !== profInput) profInput.value = CE.getProf(cls.id);
         }
 
         function refreshAll() {
@@ -726,9 +909,13 @@ function _wfIsPhoneLaunch() {
         }
 
         // ── Enseignant / année scolaire ───────────────────────────────────
-        profInput.value = CE.getProf();
+        profInput.value = CE.getProf(CL.getActiveId());
         yearInput.value = CE.getYear();
-        profInput.addEventListener('change', () => CE.setProf(profInput.value));
+        profInput.addEventListener('change', () => {
+            const cls = activeClass(); if (!cls) return;
+            CE.setProf(profInput.value, cls.id);
+            editFlash('✓ Enseignant de « ' + cls.name + ' » enregistré', 'ok');
+        });
         yearInput.addEventListener('change', () => { CE.setYear(yearInput.value); yearInput.value = CE.getYear(); });
 
         // ── Tri Prénom / Nom ──────────────────────────────────────────────
@@ -744,7 +931,7 @@ function _wfIsPhoneLaunch() {
         docBtns.forEach(btn => btn.addEventListener('click', async () => {
             if (docBusy) return;
             const cls = activeClass(); if (!cls) return;
-            CE.setProf(profInput.value);
+            CE.setProf(profInput.value, cls.id);
             CE.setYear(yearInput.value);
             docBusy = true;
             docBtns.forEach(b => b.disabled = true);
@@ -855,6 +1042,7 @@ function _wfIsPhoneLaunch() {
                         match.leditCollapsed = collapsed;
                         if (widget.dataset.leditSavedLeft) match.leditSavedLeft = widget.dataset.leditSavedLeft;
                         if (widget.dataset.leditSavedTop)  match.leditSavedTop  = widget.dataset.leditSavedTop;
+                        if (widget.dataset.leditTheme)     match.leditTheme     = widget.dataset.leditTheme;
                     }
                 });
                 return state;
@@ -890,7 +1078,9 @@ function _wfIsPhoneLaunch() {
                             outer.className = 'ledit-outer';
                             widget.appendChild(outer);
                         }
-                        if (!outer.querySelector('.ledit-inner')) {
+                        // Repartir du nouveau gabarit (les anciennes sauvegardes
+                        // contiennent l'ancien graphisme)
+                        if (!outer.querySelector('.ledit-tools')) {
                             outer.innerHTML = leditInnerHTML();
                         }
 
@@ -900,6 +1090,7 @@ function _wfIsPhoneLaunch() {
                         if (saved) {
                             if (saved.leditSavedLeft) widget.dataset.leditSavedLeft = saved.leditSavedLeft;
                             if (saved.leditSavedTop)  widget.dataset.leditSavedTop  = saved.leditSavedTop;
+                            if (saved.leditTheme)     widget.dataset.leditTheme     = saved.leditTheme;
                             const w = saved.leditW || parseFloat(widget.dataset.leditW);
                             const h = saved.leditH || parseFloat(widget.dataset.leditH);
                             if (w > 0) { outer.style.width  = w + 'px'; widget.dataset.leditW = w; }

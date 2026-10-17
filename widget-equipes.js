@@ -17,6 +17,43 @@
 //      </div>
 // =========================================================================
 
+
+// ─────────────────────────────────────────────────────────────────────────
+// DÉPLACEMENT DES WIDGETS DEPUIS N'IMPORTE QUELLE ZONE LIBRE
+// (fonction partagée entre les widgets, définie une seule fois)
+// Renvoie true si l'appui (souris / doigt) peut lancer le déplacement :
+// pas sur un champ à remplir, un bouton, un lien, une zone cliquable
+// (sélecteurs « extra »), ni sur une barre de défilement. Au doigt, un
+// appui dans une liste qui défile sert à faire défiler, pas à déplacer.
+// ─────────────────────────────────────────────────────────────────────────
+if (!window.bdpCanDragFrom) {
+    window.bdpCanDragFrom = function (e, root, extra) {
+        const t = e.target;
+        if (!t || !t.closest || !root || !root.contains(t)) return false;
+        if (e.type === 'mousedown' && e.button !== 0) return false;
+        if (e.touches && e.touches.length > 1) return false;
+        let sel = 'input, textarea, select, option, button, a, label, ' +
+                  '[contenteditable=""], [contenteditable="true"], .wf-btns, [data-nodrag]';
+        if (extra) sel += ', ' + extra;
+        const hit = t.closest(sel);
+        if (hit && root.contains(hit)) return false;
+        const pt = e.touches ? e.touches[0] : e;
+        for (let el = t; el && el.nodeType === 1; el = el.parentElement) {
+            const cs   = getComputedStyle(el);
+            const canY = /(auto|scroll)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 1;
+            const canX = /(auto|scroll)/.test(cs.overflowX) && el.scrollWidth  > el.clientWidth  + 1;
+            if (canY || canX) {
+                if (e.touches) return false;           // au doigt : on laisse défiler
+                const r = el.getBoundingClientRect();
+                if (canY && pt.clientX > r.left + el.clientLeft + el.clientWidth)  return false; // barre verticale
+                if (canX && pt.clientY > r.top  + el.clientTop  + el.clientHeight) return false; // barre horizontale
+            }
+            if (el === root) break;
+        }
+        return true;
+    };
+}
+
 (function () {
 
     function isPhoneNow() {
@@ -823,6 +860,14 @@
             padding: 0 10px 10px;
         }
     }
+    /* ── Déplacement : clic-glisser n'importe où sur une zone libre du cadre ── */
+    .equipes-inner { cursor: move; }
+    .equipes-inner input, .equipes-inner textarea { cursor: text; }
+    .equipes-inner select, .equipes-inner button:not(:disabled) { cursor: pointer; }
+    .equipes-inner label, .equipes-panel, .equipes-modal-overlay { cursor: default; }
+    .widget.wf-max[data-type="equipes"] .equipes-inner,
+    .widget.phone-fs[data-type="equipes"] .equipes-inner { cursor: default; }
+
     `;
 
     if (!document.getElementById('equipes-widget-style')) {
@@ -942,6 +987,7 @@
             <div class="equipes-panel equipes-help-popup">
                 <div class="equipes-panel-title">Aide</div>
                 <ul class="equipes-help-list">
+                    <li>Pour <b>déplacer</b> le widget : cliquez-glissez sur n'importe quelle zone libre du cadre.</li>
                     <li>Utilisez une liste de classe, ou importez un fichier (.txt ou .csv).<br>Format : <em>Prénom;NOM;sexe;NIVEAU;date</em></li>
                     <li>Cliquez sur un prénom pour le marquer absent (il ne sera pas inclus).</li>
                     <li>Choisissez le nombre d'équipes (2 à 8), puis <em>Former les équipes</em> : elles sont équilibrées par genre et par niveau.</li>
@@ -1031,19 +1077,22 @@
             outer.addEventListener('pointerdown', stopIfNotHeader);
         }
 
-        // ── Header draggable (une seule fois) ─────────────────────────────
-        const equipesHeader = widget.querySelector('.equipes-header');
-        if (equipesHeader && !equipesHeader._dragInit) {
-            equipesHeader._dragInit = true;
-            const onHeaderDown = (e) => {
+        // ── Déplacement : clic-glisser n'importe où sur le widget ─────────
+        //    (sauf champs à remplir, boutons, zones cliquables, panneaux,
+        //     barres de défilement ; désactivé en plein écran)
+        const dragRoot = widget.querySelector('.equipes-inner');
+        if (dragRoot && !dragRoot._dragInit) {
+            dragRoot._dragInit = true;
+            const onDragDown = (e) => {
+                if (_isMax || widget.classList.contains('phone-fs')) return;
                 if (typeof isDrawMode !== 'undefined' && (isDrawMode || isEraserMode)) return;
-                if (e.target.closest('button')) return;
+                if (!window.bdpCanDragFrom(e, dragRoot, '.equipes-pill, .equipes-panel, .equipes-modal-overlay')) return;
                 if (typeof bringToFront === 'function') bringToFront(widget);
                 widget.focus();
                 if (typeof startWidgetDrag === 'function') startWidgetDrag(e.touches ? e.touches[0] : e, widget);
             };
-            equipesHeader.addEventListener('mousedown',  onHeaderDown);
-            equipesHeader.addEventListener('touchstart', onHeaderDown, { passive: false });
+            dragRoot.addEventListener('mousedown',  onDragDown);
+            dragRoot.addEventListener('touchstart', onDragDown, { passive: false });
         }
 
         // ── Références DOM ────────────────────────────────────────────────

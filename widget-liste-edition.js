@@ -34,6 +34,43 @@ function _wfIsPhoneLaunch() {
     return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────
+// DÉPLACEMENT DES WIDGETS DEPUIS N'IMPORTE QUELLE ZONE LIBRE
+// (fonction partagée entre les widgets, définie une seule fois)
+// Renvoie true si l'appui (souris / doigt) peut lancer le déplacement :
+// pas sur un champ à remplir, un bouton, un lien, une zone cliquable
+// (sélecteurs « extra »), ni sur une barre de défilement. Au doigt, un
+// appui dans une liste qui défile sert à faire défiler, pas à déplacer.
+// ─────────────────────────────────────────────────────────────────────────
+if (!window.bdpCanDragFrom) {
+    window.bdpCanDragFrom = function (e, root, extra) {
+        const t = e.target;
+        if (!t || !t.closest || !root || !root.contains(t)) return false;
+        if (e.type === 'mousedown' && e.button !== 0) return false;
+        if (e.touches && e.touches.length > 1) return false;
+        let sel = 'input, textarea, select, option, button, a, label, ' +
+                  '[contenteditable=""], [contenteditable="true"], .wf-btns, [data-nodrag]';
+        if (extra) sel += ', ' + extra;
+        const hit = t.closest(sel);
+        if (hit && root.contains(hit)) return false;
+        const pt = e.touches ? e.touches[0] : e;
+        for (let el = t; el && el.nodeType === 1; el = el.parentElement) {
+            const cs   = getComputedStyle(el);
+            const canY = /(auto|scroll)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 1;
+            const canX = /(auto|scroll)/.test(cs.overflowX) && el.scrollWidth  > el.clientWidth  + 1;
+            if (canY || canX) {
+                if (e.touches) return false;           // au doigt : on laisse défiler
+                const r = el.getBoundingClientRect();
+                if (canY && pt.clientX > r.left + el.clientLeft + el.clientWidth)  return false; // barre verticale
+                if (canX && pt.clientY > r.top  + el.clientTop  + el.clientHeight) return false; // barre horizontale
+            }
+            if (el === root) break;
+        }
+        return true;
+    };
+}
+
 (function () {
 
     // ── Police arrondie partagée avec les autres widgets (repli système si hors-ligne)
@@ -377,6 +414,14 @@ function _wfIsPhoneLaunch() {
         }
     }
 
+    /* ── Déplacement : clic-glisser n'importe où sur une zone libre du cadre ── */
+    .ledit-inner { cursor: move; }
+    .ledit-inner input, .ledit-inner textarea { cursor: text; }
+    .ledit-inner select, .ledit-inner button:not(:disabled) { cursor: pointer; }
+    .ledit-inner label, .ledit-panel, .ledit-modal-overlay { cursor: default; }
+    .widget.wf-max[data-type="liste-edition"] .ledit-inner,
+    .widget.phone-fs[data-type="liste-edition"] .ledit-inner { cursor: default; }
+
     `;
 
     if (!document.getElementById('ledit-widget-style')) {
@@ -478,6 +523,7 @@ function _wfIsPhoneLaunch() {
             <div class="ledit-panel ledit-help-popup">
                 <div class="ledit-panel-title">Aide</div>
                 <ul class="ledit-help-list">
+                    <li>Pour <b>déplacer</b> le widget : cliquez-glissez sur n'importe quelle zone libre du cadre.</li>
                     <li>Choisissez la <b>classe</b> avec les onglets (la classe active est la même que dans le widget « Liste de classe »).</li>
                     <li>Indiquez l'<b>enseignant de la classe</b> (propre à chaque classe) et l'<b>année scolaire</b> : ils figurent sur les documents.</li>
                     <li>Le tri <b>Prénom / Nom</b> est appliqué aux documents.</li>
@@ -619,20 +665,22 @@ function _wfIsPhoneLaunch() {
             cleanups.push(() => outer.removeEventListener(ev, stopEvt));
         });
 
-        // ── Header draggable (une seule fois) ─────────────────────────────
-        const header = widget.querySelector('.ledit-header');
-        if (header && !header._dragInit) {
-            header._dragInit = true;
-            const onHeaderDown = (e) => {
-                if (_isMax) return;
+        // ── Déplacement : clic-glisser n'importe où sur le widget ─────────
+        //    (sauf champs à remplir, boutons, zones cliquables, panneaux,
+        //     barres de défilement ; désactivé en plein écran)
+        const dragRoot = widget.querySelector('.ledit-inner');
+        if (dragRoot && !dragRoot._dragInit) {
+            dragRoot._dragInit = true;
+            const onDragDown = (e) => {
+                if (_isMax || widget.classList.contains('phone-fs')) return;
                 if (typeof isDrawMode !== 'undefined' && (isDrawMode || isEraserMode)) return;
-                if (e.target.closest('button')) return;
+                if (!window.bdpCanDragFrom(e, dragRoot, '.ledit-panel')) return;
                 if (typeof bringToFront === 'function') bringToFront(widget);
                 widget.focus();
                 if (typeof startWidgetDrag === 'function') startWidgetDrag(e.touches ? e.touches[0] : e, widget);
             };
-            header.addEventListener('mousedown',  onHeaderDown);
-            header.addEventListener('touchstart', onHeaderDown, { passive: false });
+            dragRoot.addEventListener('mousedown',  onDragDown);
+            dragRoot.addEventListener('touchstart', onDragDown, { passive: false });
         }
 
         // ── Références DOM ────────────────────────────────────────────────

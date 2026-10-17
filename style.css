@@ -3775,3 +3775,28 @@ body.menu-light #image-panel-tabs { padding-left: 16px; }
 .proj-panel-item-wrap { margin-left: 8px; }
 .proj-panel-sep,
 #proj-panel-draft-banner { margin-left: 8px; }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   BANDE À GAUCHE DES PANNEAUX OUVERTS : couleur unie
+   Le panneau ouvert commence après la colonne d'onglets (58 px).
+   Sans ceci, cette bande laissait voir le tableau assombri par
+   l'ombre du panneau (effet de dégradé). On la remplit avec la
+   couleur du panneau (background: inherit → suit le mode clair/sombre).
+   Les onglets restent par-dessus (z-index 50005 > 50000).
+══════════════════════════════════════════════════════════════════ */
+#jeux-panel.jeux-panel-open::before,
+#activities-panel.act-panel-open::before,
+#tools-panel.tools-panel-open::before,
+#widgets-panel.widgets-panel-open::before,
+#sticker-panel.active::before,
+#projects-panel.proj-panel-open::before,
+#display-panel.display-panel-open::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    right: 100%;
+    width: var(--side-tabs-w);
+    background: inherit;
+    pointer-events: none;
+}

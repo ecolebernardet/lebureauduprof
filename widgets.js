@@ -348,6 +348,32 @@ function _updateActionBarCompact(widget) {
 }
 
 // =========================================================================
+// WIDGETS SANS POIGNÉE DE DÉPLACEMENT ✥ NI BOUTON DE ROTATION ↻
+// =========================================================================
+// Tous les widgets des fichiers widget-jeu-*.js :
+//   - widget-jeu-battle-*.js → data-type "battle-…" (ex. "battle-arrondis")
+//   - autres widget-jeu-*.js → data-type "jeu-…"    (ex. "jeu-labyrinthe")
+function _isWidgetWithoutHandles(type) {
+    return typeof type === 'string' && (type.startsWith('battle-') || type.startsWith('jeu-'));
+}
+
+// Règle CSS indispensable : les widgets battle construisent leur propre HTML
+// (createBattleXxxWidget) et court-circuitent createWidget. C'est donc ce
+// CSS qui masque leurs poignées, qu'ils soient nouveaux ou restaurés.
+(function _injectNoHandlesCss() {
+    const css =
+        '.widget[data-type^="battle-"] > .drag-handle,' +
+        '.widget[data-type^="battle-"] > .widget-rotate-handle,' +
+        '.widget[data-type^="jeu-"] > .drag-handle,' +
+        '.widget[data-type^="jeu-"] > .widget-rotate-handle' +
+        '{ display: none !important; }';
+    const style = document.createElement('style');
+    style.id = 'no-handles-jeu-battle';
+    style.textContent = css;
+    (document.head || document.documentElement).appendChild(style);
+})();
+
+// =========================================================================
 // CRÉATION DE WIDGET
 // =========================================================================
 function createWidget(type, x = null, y = null, doSnapshot = true) {
@@ -385,9 +411,11 @@ function createWidget(type, x = null, y = null, doSnapshot = true) {
         if (widget.dataset.background !== "true") bringToFront(widget);
     });
 
+    // Pas de poignée ✥ ni de bouton ↻ pour les widgets battle-* et jeu-*
+    const _noHandles = _isWidgetWithoutHandles(type);
     widget.innerHTML = `
-        <div class="drag-handle" title="Déplacer">✥</div>
-        <div class="widget-rotate-handle" title="Faire pivoter">↻</div>
+        ${_noHandles ? '' : '<div class="drag-handle" title="Déplacer">✥</div>'}
+        ${_noHandles ? '' : '<div class="widget-rotate-handle" title="Faire pivoter">↻</div>'}
         <div class="widget-action-bar">
             <div class="widget-menu-handle" onclick="toggleCtxMenu(this.closest('.widget,.shape-widget'))" title="Menu">☰</div>
             <div class="widget-pin-handle" onclick="togglePin(this.closest('.widget, .shape-widget'))" title="Épingler">📌</div>

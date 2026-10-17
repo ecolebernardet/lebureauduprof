@@ -568,6 +568,11 @@
     /* ── Plein écran du bouton vert (classe .wf-max) ── */
     .widget.wf-max[data-type="tirage"] .tirage-outer { outline: none !important; }
     .widget.wf-max[data-type="tirage"] .tirage-header { cursor: default; }
+    /* Marge à gauche pour laisser visibles les onglets des panneaux latéraux */
+    .widget.wf-max[data-type="tirage"] .tirage-inner {
+        left: 40px !important;
+        width: calc(100vw - 40px) !important;
+    }
 
     /* ── Téléphone : plein écran du bouton vert ──
        Décalé de 40 px à gauche pour laisser les onglets latéraux

@@ -1,6 +1,11 @@
 // =========================================================================
 // WIDGET ÉQUIPES ÉQUILIBRÉES — Le Bureau du Prof
 // Inspiré de outils_equipes.html (OutilsProfs)
+// Graphisme aligné sur le Tirage au sort / Visualiseur : cadre coloré
+// arrondi, pastilles « verre », police Quicksand, icônes SVG, couleur du
+// cadre au choix (mémorisée dans la sauvegarde du tableau : equipesTheme).
+// Les équipes formées s'affichent PAR-DESSUS les prénoms, sur un calque
+// qui floute l'arrière-plan.
 //
 // 📌 Intégration dans index.html :
 //   1. Ajouter avant </body> (après widgets.js) :
@@ -19,380 +24,629 @@
         return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
     }
 
+    // ── Police arrondie partagée avec les autres widgets (repli système si hors-ligne)
+    if (!document.getElementById('wpc-font')) {
+        const fl = document.createElement('link');
+        fl.id = 'wpc-font';
+        fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+        document.head.appendChild(fl);
+    }
+
     // ── CSS injecté une seule fois ────────────────────────────────────────
     const STYLE = `
-    /* ── Widget transparent ── */
-    .widget[data-type="equipes"] {
+    /* ── Widget transparent : equipes-outer porte tout le visuel ── */
+    .widget[data-type="equipes"],
+    .widget[data-type="equipes"]:focus-within {
         min-width: unset;
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
     }
 
-    /* ── Wrapper externe ── */
+    /* ── Wrapper externe (taille + ombre) ── */
     .widget[data-type="equipes"] .equipes-outer {
+        --eq-ink:   #14202E;
+        --eq-glass: rgba(255,255,255,0.62);
+        --eq-bg:    #7FD6A6;
+        --eq-op:    #23915A;
+
         position: relative;
         width: 800px;
         height: 600px;
         min-width: 300px;
-        min-height: 220px;
+        min-height: 260px;
         overflow: hidden;
         resize: none;
         box-sizing: border-box;
-        border-radius: 16px;
+        border-radius: 24px;
+        box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
+        outline: none;
     }
     .widget[data-type="equipes"] .equipes-outer::-webkit-resizer { display: none; }
+    .widget[data-type="equipes"]:hover .equipes-outer,
+    .widget[data-type="equipes"]:focus-within .equipes-outer {
+        outline: 2px dashed rgba(20,32,46,0.35);
+        outline-offset: 2px;
+    }
 
-    /* ── Container intérieur plein ── */
+    /* ── Cadre coloré ── */
     .equipes-inner {
         width: 100%;
         height: 100%;
         display: flex;
         flex-direction: column;
-        background: #ffffff;
-        border: 1.5px solid #d1d5db;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 4px 18px rgba(0,0,0,0.12);
-        font-family: 'Segoe UI', system-ui, sans-serif;
-        color: #374151;
-        user-select: none;
+        gap: 10px;
+        padding: 0 16px 16px;
         box-sizing: border-box;
+        background-color: var(--eq-bg);
+        background-image:
+            radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+            radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+        border-radius: 24px;
+        overflow: hidden;
+        font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+        color: var(--eq-ink);
+        user-select: none;
         position: relative;
+        container-type: size;
+        transition: background-color .3s;
     }
 
-    /* ── Header ── */
+    /* ── En-tête : deux pastilles « verre » ── */
     .equipes-header {
-        background: #ffffff;
-        border-bottom: 1px solid #e5e7eb;
-        padding: 10px 14px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 8px;
+        gap: 10px;
+        padding: 14px 0 0;
         flex-shrink: 0;
         cursor: move;
+        position: relative;
+        z-index: 6;
     }
-    .equipes-header-title {
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: 0.3px;
-        flex-grow: 1;
-        color: #374151;
+    .equipes-title,
+    .equipes-tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--eq-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        border-radius: 999px;
+        box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+    }
+    .equipes-title {
+        padding: 7px 16px 7px 12px;
+        font-size: 15px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        min-width: 0;
         pointer-events: none;
     }
+    .equipes-title span { overflow: hidden; text-overflow: ellipsis; }
+    .equipes-title svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--eq-op); }
+    .equipes-tools { padding: 5px 12px 5px 6px; gap: 2px; flex-shrink: 0; }
+    @container (max-width: 460px) { .equipes-title span { display: none; } .equipes-title { padding: 7px 10px; } }
 
-    /* ── Import zone ── */
+    .equipes-icon-btn {
+        width: 32px; height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        color: var(--eq-ink);
+        cursor: pointer;
+        padding: 0;
+        transition: background .15s;
+    }
+    .equipes-icon-btn svg { width: 18px; height: 18px; }
+    .equipes-icon-btn:hover,
+    .equipes-icon-btn.is-on { background: rgba(20,32,46,0.12); }
+    .equipes-icon-btn:focus-visible { outline: 2px solid var(--eq-ink); outline-offset: 2px; }
+    .equipes-sep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
+
+    /* ── Scène : tout ce qui est sous l'en-tête (le calque des équipes s'y pose) ── */
+    .equipes-stage {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* ── Zone d'import (avant chargement d'une liste) ── */
     .equipes-import-zone {
-        padding: 24px 16px;
+        flex: 1;
+        min-height: 0;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        flex: 1;
+        gap: 12px;
+        padding: 20px;
+        text-align: center;
+        background: rgba(255,255,255,0.92);
+        border-radius: 18px;
+        box-shadow: inset 0 2px 8px rgba(10,20,35,0.08);
+    }
+    .equipes-import-ico svg {
+        width: clamp(40px, 12cqmin, 90px);
+        height: clamp(40px, 12cqmin, 90px);
+        color: var(--eq-op);
+        opacity: .75;
+    }
+    .equipes-import-msg {
+        font-size: clamp(13px, 3cqmin, 20px);
+        font-weight: 600;
+        line-height: 1.4;
+        max-width: 460px;
+        color: rgba(20,32,46,0.8);
+    }
+    .equipes-import-btns {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
     }
     .equipes-import-btn {
-        padding: 7px 16px;
-        border-radius: 8px;
-        border: none;
-        font-size: 11px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: background .15s, transform .1s;
         font-family: inherit;
-        background: #4a90e2;
+        font-size: clamp(13px, 2.6cqmin, 18px);
+        font-weight: 700;
+        border: none;
+        border-radius: 999px;
+        padding: 10px 22px;
+        cursor: pointer;
+        background: var(--eq-op);
         color: #fff;
+        box-shadow: 0 3px 0 rgba(0,0,0,0.25);
+        transition: filter .15s, transform .1s;
     }
-    .equipes-import-btn:hover { background: #357abd; }
-    .equipes-import-btn:active { transform: scale(0.96); }
+    .equipes-import-btn:hover { filter: brightness(1.1); }
+    .equipes-import-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+    .equipes-class-btn { background: var(--eq-ink) !important; }
+    .equipes-open-teams-btn {
+        background: #fff !important;
+        color: var(--eq-op) !important;
+        box-shadow: 0 3px 0 rgba(20,32,46,0.15) !important;
+    }
     .equipes-status {
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 600;
-        color: #9ca3af;
-        text-align: center;
+        color: rgba(20,32,46,0.55);
     }
-    .equipes-status.ok  { color: #059669; }
-    .equipes-status.err { color: #dc2626; }
+    .equipes-status.ok  { color: #23915A; }
+    .equipes-status.err { color: #C0392B; }
 
-    /* ── Onglets niveau ── */
+    /* ── Filtres niveau (pastille « verre ») ── */
     .equipes-level-tabs {
         display: none;
         flex-wrap: wrap;
         gap: 4px;
-        padding: 6px 10px;
+        padding: 4px;
         align-items: center;
         flex-shrink: 0;
-        border-bottom: 1px solid #e5e7eb;
+        background: var(--eq-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        border-radius: 18px;
+        box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
     }
     .equipes-level-tab {
-        padding: 3px 9px;
-        border-radius: 6px;
-        font-size: 10px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 11px;
         font-weight: 700;
         text-transform: uppercase;
+        letter-spacing: .4px;
         cursor: pointer;
-        border: 1px solid #ddd;
-        transition: all .15s;
+        border: none;
+        transition: background .15s, color .15s;
         font-family: inherit;
-        background: #f5f5f5;
-        color: #666;
+        background: transparent;
+        color: rgba(20,32,46,0.6);
+    }
+    .equipes-level-tab[data-level]:hover { background: rgba(20,32,46,0.08); }
+    .equipes-change-class-btn,
+    .equipes-open-tab {
+        height: 30px;
+        display: flex; align-items: center; justify-content: center;
+        background: #fff;
+        color: var(--eq-op);
+        box-shadow: 0 2px 6px -2px rgba(10,20,35,0.3);
+    }
+    .equipes-change-class-btn { width: 30px; padding: 0; }
+    .equipes-open-tab {
+        margin-right: auto;
+        gap: 6px;
+        padding: 0 12px;
+        text-transform: none;
+        letter-spacing: 0;
+    }
+    .equipes-change-class-btn:hover,
+    .equipes-open-tab:hover { background: #f4f6f9; }
+    .equipes-change-class-btn svg,
+    .equipes-open-tab svg { width: 16px; height: 16px; flex-shrink: 0; }
+    @container (max-width: 520px) {
+        .equipes-open-tab span { display: none; }
+        .equipes-open-tab { width: 30px; padding: 0; }
     }
 
-    /* ── Grille élèves (présence) ── */
+    /* ── Grille élèves (zone blanche arrondie) ── */
     .equipes-body {
-        padding: 8px 12px 6px;
+        padding: 12px 14px;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
         overflow-y: auto;
         min-height: 0;
-        max-height: 42%;
-        flex-shrink: 1;
+        flex: 1 1 auto;
+        background: rgba(255,255,255,0.92);
+        border-radius: 18px;
+        box-shadow: inset 0 2px 8px rgba(10,20,35,0.08);
         scrollbar-width: thin;
-        scrollbar-color: #d1d5db transparent;
-        --pill-fs: 8px;
-        --pill-pad: 2px;
-        --pill-gap: 2px;
+        scrollbar-color: rgba(20,32,46,0.25) transparent;
+        --pill-fs: 9px;
+        --pill-pad: 4px;
+        --pill-gap: 4px;
     }
     .equipes-level-label {
-        font-size: 9px;
+        font-size: var(--pill-label-fs, 11px);
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-top: 8px;
-        margin-bottom: 4px;
+        letter-spacing: 1.5px;
+        line-height: 1.2;
+        margin-top: var(--pill-gap, 6px);
+        margin-bottom: calc(var(--pill-gap, 6px) * 0.7);
         text-align: center;
-        color: #6b7280;
+        color: rgba(20,32,46,0.6);
     }
+    .equipes-body > div:first-child .equipes-level-label { margin-top: 0; }
     .equipes-grid {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(var(--pill-cols, 5), minmax(0, 1fr));
         gap: var(--pill-gap, 4px);
     }
     .equipes-pill {
-		padding : 2px;
-        border-radius: 6px;
-        font-size: var(--pill-fs, 8px);
+        min-width: 0;
+        line-height: 1.2;
+        padding: var(--pill-pad, 4px) 4px;
+        border-radius: 10px;
+        font-size: var(--pill-fs, 9px);
         font-weight: 700;
         text-align: center;
         cursor: pointer;
-        background: #f8f9fa;
-        border: 1px solid #e5e7eb;
-        transition: all .15s;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        -webkit-tap-highlight-color: transparent;
-        color: #374151;
-    }
-    .equipes-pill:hover { border-color: #9ca3af; background: #f0f2f5; }
-    .equipes-pill.girl { color: #16a34a; border-color: #bbf7d0; background: #f0fdf4; }
-    .equipes-pill.girl:hover { background: #dcfce7; }
-    .equipes-pill.boy  { color: #ea580c; border-color: #fed7aa; background: #fff7ed; }
-    .equipes-pill.boy:hover  { background: #ffedd5; }
-    .equipes-pill.absent {
-        background: #f9fafb !important;
-        color: #d1d5db !important;
-        text-decoration: line-through;
-        border-color: #e5e7eb !important;
-        opacity: 0.6;
-        transform: scale(0.94);
-    }
-
-    /* ── Panneau de configuration ── */
-    .equipes-config {
-        padding: 8px 12px;
-        flex-shrink: 0;
-        border-top: 1px solid #e5e7eb;
-        display: none;
-    }
-    .equipes-config-label {
-        font-size: 9px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #9ca3af;
-        text-align: center;
-        margin-bottom: 6px;
-    }
-    .equipes-selector {
-        display: flex;
-        justify-content: center;
-        gap: 5px;
-        flex-wrap: wrap;
-        margin-bottom: 8px;
-    }
-    .equipes-num-btn {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        font-size: 11px;
-        font-weight: 800;
-        cursor: pointer;
-        border: 1px solid #e5e7eb;
-        background: #f9fafb;
-        color: #374151;
-        transition: all .15s;
+        background: #F4F6F9;
+        border: 1.5px solid rgba(20,32,46,0.1);
+        box-shadow: 0 2px 0 rgba(20,32,46,0.07);
+        transition: background .15s, border-color .15s, transform .15s, opacity .15s;
         display: flex;
         align-items: center;
         justify-content: center;
+        white-space: normal;
+        overflow-wrap: normal;
+        word-break: normal;
+        overflow: hidden;
+        -webkit-tap-highlight-color: transparent;
+        color: var(--eq-ink);
+    }
+    .equipes-pill:hover { border-color: rgba(20,32,46,0.25); transform: translateY(-1px); }
+    .equipes-pill.girl { color: #15803D; border-color: #BBF7D0; background: #ECFDF3; }
+    .equipes-pill.girl:hover { background: #DCFCE7; border-color: #86EFAC; }
+    .equipes-pill.boy  { color: #C2410C; border-color: #FED7AA; background: #FFF4EA; }
+    .equipes-pill.boy:hover  { background: #FFEDD5; border-color: #FDBA74; }
+    .equipes-pill.absent {
+        background: rgba(20,32,46,0.03) !important;
+        color: rgba(20,32,46,0.3) !important;
+        text-decoration: line-through;
+        border: 1.5px dashed rgba(20,32,46,0.15) !important;
+        box-shadow: none;
+        opacity: 0.75;
+        transform: scale(0.95);
+    }
+
+    /* ── Réglages : nombre d'équipes + bouton (pastille « verre ») ── */
+    .equipes-config {
+        display: none;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        margin: 0 auto;
+        max-width: 100%;
+        box-sizing: border-box;
+        padding: 8px 12px;
+        background: var(--eq-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        border-radius: 22px;
+        box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+    }
+    .equipes-config-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: rgba(20,32,46,0.7);
+    }
+    .equipes-selector {
+        display: flex;
+        gap: 2px;
+        padding: 3px;
+        background: #fff;
+        border-radius: 999px;
+        box-shadow: inset 0 2px 6px rgba(10,20,35,0.1);
+    }
+    .equipes-num-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        color: var(--eq-ink);
+        transition: background .15s, color .15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
         font-family: inherit;
     }
-    .equipes-num-btn:hover { border-color: #9ca3af; background: #f0f2f5; }
+    .equipes-num-btn:hover { background: rgba(20,32,46,0.08); }
     .equipes-num-btn.selected {
-        background: #4a90e2;
+        background: var(--eq-op);
         color: #fff;
-        border-color: #4a90e2;
+        box-shadow: 0 2px 0 rgba(0,0,0,0.2);
     }
-    .equipes-generate-btn {
-        display: block;
-        width: 50%;
-        margin: 0 auto;
-        padding: 7px 16px;
-        font-size: 11px;
+    .equipes-generate-btn,
+    .equipes-view-btn {
+        padding: 9px 20px;
+        font-size: clamp(13px, 2.4cqmin, 17px);
         font-weight: 700;
-        border-radius: 8px;
+        border-radius: 999px;
         border: none;
         cursor: pointer;
-        transition: background .15s, transform .1s;
         font-family: inherit;
-        background: #4a90e2;
+        background: var(--eq-op);
         color: #fff;
+        box-shadow: 0 3px 0 rgba(0,0,0,0.25);
+        transition: filter .15s, transform .1s;
     }
-    .equipes-generate-btn:hover { background: #357abd; }
-    .equipes-generate-btn:active { transform: scale(0.96); }
+    .equipes-view-btn { background: #fff; color: var(--eq-op); box-shadow: 0 3px 0 rgba(20,32,46,0.15); }
+    .equipes-generate-btn:hover,
+    .equipes-view-btn:hover { filter: brightness(1.08); }
+    .equipes-generate-btn:active,
+    .equipes-view-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
 
-    /* ── Résultats équipes ── */
+    /* ── Calque des équipes : par-dessus les prénoms, arrière-plan flouté ── */
+    .equipes-teams-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+        box-sizing: border-box;
+        border-radius: 18px;
+        background: rgba(255,255,255,0.22);
+        -webkit-backdrop-filter: blur(12px) saturate(1.1);
+                backdrop-filter: blur(12px) saturate(1.1);
+        box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.45);
+        container-type: size;
+    }
+    .equipes-teams-overlay.open { display: flex; animation: eqFadeIn .25s ease both; }
+    @keyframes eqFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .equipes-teams-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    .equipes-teams-title,
+    .equipes-teams-actions {
+        display: flex;
+        align-items: center;
+        background: var(--eq-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        border-radius: 999px;
+        box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+    }
+    .equipes-teams-title {
+        gap: 8px;
+        padding: 7px 14px;
+        font-size: 15px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        min-width: 0;
+    }
+    .equipes-teams-title small {
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(20,32,46,0.6);
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .equipes-teams-actions { margin-left: auto; gap: 2px; padding: 4px; flex-shrink: 0; }
+    .equipes-act-btn {
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: none;
+        background: transparent;
+        color: var(--eq-ink);
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background .15s, filter .15s;
+    }
+    .equipes-act-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .equipes-act-btn:hover { background: rgba(20,32,46,0.1); }
+    .equipes-act-btn:disabled { opacity: .5; cursor: default; }
+    .equipes-act-btn.primary { background: var(--eq-op); color: #fff; }
+    .equipes-act-btn.primary:hover { filter: brightness(1.1); }
+    .equipes-act-btn.danger { color: #C0392B; }
+    @container (max-width: 700px) {
+        .equipes-act-btn span { display: none; }
+        .equipes-act-btn { width: 32px; padding: 0; justify-content: center; }
+        .equipes-teams-title small { display: none; }
+    }
+
     .equipes-results-wrapper {
         flex: 1;
         min-height: 0;
-        display: none;
         position: relative;
-        flex-direction: column;
+        display: flex;
     }
     .equipes-results {
         flex: 1;
         overflow-y: auto;
-        padding: 8px 10px;
         min-height: 0;
         scrollbar-width: none;
-        display: block;
     }
     .equipes-results::-webkit-scrollbar { display: none; }
+    .equipes-results-grid {
+        --team-fs: 16px;
+        display: grid;
+        grid-template-columns: repeat(var(--team-cols, 2), minmax(0, 1fr));
+        gap: var(--team-gap, 10px);
+        align-items: start;
+    }
+    .equipes-team-card {
+        min-width: 0;
+        background: rgba(255,255,255,0.95);
+        border-radius: 16px;
+        border-top: 5px solid var(--team-color, var(--eq-op));
+        padding: calc(var(--team-fs) * 0.55) calc(var(--team-fs) * 0.7) calc(var(--team-fs) * 0.6);
+        box-shadow: 0 10px 22px -14px rgba(10,20,35,0.6);
+        animation: eqCardIn .35s cubic-bezier(.175,.885,.32,1.275) both;
+        animation-delay: calc(var(--i, 0) * 60ms);
+    }
+    @keyframes eqCardIn {
+        from { opacity: 0; transform: translateY(10px) scale(.96); }
+        to   { opacity: 1; transform: none; }
+    }
+    .equipes-team-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding-bottom: calc(var(--team-fs) * 0.35);
+        margin-bottom: calc(var(--team-fs) * 0.35);
+        border-bottom: 1.5px solid rgba(20,32,46,0.08);
+    }
+    .equipes-team-title {
+        font-size: calc(var(--team-fs) * 1.0);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: var(--team-color, var(--eq-op));
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+    .equipes-team-stats { display: flex; gap: 4px; flex-shrink: 0; }
+    .equipes-chip {
+        font-size: max(9px, calc(var(--team-fs) * 0.55));
+        font-weight: 700;
+        padding: 1px 7px;
+        border-radius: 999px;
+        line-height: 1.5;
+    }
+    .equipes-chip.f { background: #ECFDF3; color: #15803D; }
+    .equipes-chip.m { background: #FFF4EA; color: #C2410C; }
+    .equipes-team-member {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--team-fs) * 0.35);
+        font-size: var(--team-fs);
+        font-weight: 700;
+        line-height: 1.3;
+        padding: calc(var(--team-fs) * 0.1) 0;
+        min-width: 0;
+    }
+    .equipes-tag {
+        font-size: max(8px, calc(var(--team-fs) * 0.5));
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 999px;
+        color: #fff;
+        min-width: 2.6em;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .equipes-member-name {
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .equipes-name-f { color: #15803D; }
+    .equipes-name-m { color: #C2410C; }
 
-    /* ── Boutons de défilement tactiles ── */
+    /* ── Boutons de défilement (si les équipes ne tiennent pas) ── */
     .equipes-scroll-btn {
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
         width: 44px;
         height: 28px;
-        border-radius: 20px;
-        border: 1.5px solid #d1d5db;
+        border-radius: 999px;
+        border: none;
         background: rgba(255,255,255,0.95);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        color: #6b7280;
-        font-size: 14px;
+        box-shadow: 0 4px 12px -4px rgba(10,20,35,0.45);
+        color: var(--eq-op);
+        font-size: 13px;
         font-weight: 900;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 10;
+        z-index: 2;
         opacity: 0;
         pointer-events: none;
         transition: opacity .2s, background .15s;
         line-height: 1;
     }
-    .equipes-scroll-btn.visible {
-        opacity: 1;
-        pointer-events: auto;
-    }
-    .equipes-scroll-btn:hover { background: #f0f4ff; border-color: #4a90e2; color: #4a90e2; }
-    .equipes-scroll-btn:active { background: #dbeafe; transform: translateX(-50%) scale(0.95); }
+    .equipes-scroll-btn.visible { opacity: 1; pointer-events: auto; }
+    .equipes-scroll-btn:hover { background: #fff; }
+    .equipes-scroll-btn:active { transform: translateX(-50%) scale(0.95); }
     .equipes-scroll-up   { top: 4px; }
     .equipes-scroll-down { bottom: 4px; }
-    .equipes-results-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 7px;
-    }
-    .equipes-results-grid.cols-4 {
-        grid-template-columns: repeat(4, 1fr);
-    }
-    .equipes-team-card {
-        border-radius: 10px;
-        padding: 8px;
-        background: #f8f9fa;
-        border: 1px solid #e5e7eb;
-    }
-    .equipes-team-header {
-        border-bottom: 1px solid #e5e7eb;
-        margin-bottom: 5px;
-        padding-bottom: 3px;
-    }
-    .equipes-team-title {
-        font-weight: 900;
-        font-size: 12px;
-        color: #374151;
-        text-transform: uppercase;
-        display: block;
-    }
-    .equipes-team-stats {
-        font-size: 9px;
-        color: #9ca3af;
-        display: block;
-        line-height: 1.4;
-    }
-    .equipes-team-member {
-        display: flex;
-        align-items: center;
-        margin-bottom: 3px;
-        font-size: 15px;
-        font-weight: 700;
-    }
-    .equipes-results-grid.cols-4 .equipes-team-member {
-        font-size: 18px;
-    }
-    .equipes-tag {
-        font-size: 8px;
-        font-weight: 700;
-        margin-right: 5px;
-        padding: 1px 5px;
-        border-radius: 999px;
-        color: #fff;
-        min-width: 28px;
-        text-align: center;
-        flex-shrink: 0;
-    }
-    .equipes-name-f { color: #16a34a; }
-    .equipes-name-m { color: #ea580c; }
 
-    /* ── Footer RàZ ── */
-    .equipes-footer {
-        padding: 0 12px 10px;
-        flex-shrink: 0;
-        display: none;
+    /* ── Petits cadres : on compacte ── */
+    @container (max-height: 520px) {
+        .equipes-inner { gap: 7px; }
+        .equipes-stage { gap: 7px; }
+        .equipes-header { padding-top: 10px; }
+        .equipes-title { padding: 5px 12px 5px 10px; font-size: 13px; }
+        .equipes-tools { padding: 3px 10px 3px 4px; }
+        .equipes-icon-btn { width: 28px; height: 28px; }
+        .equipes-level-tab { padding: 3px 10px; }
+        .equipes-change-class-btn, .equipes-open-tab { height: 26px; }
+        .equipes-change-class-btn { width: 26px; }
+        .equipes-body { padding: 8px 10px; }
+        .equipes-config { padding: 5px 10px; gap: 6px 10px; }
+        .equipes-num-btn { width: 26px; height: 26px; font-size: 12px; }
+        .equipes-generate-btn, .equipes-view-btn { padding: 6px 14px; }
     }
-    .equipes-reset-btn {
-        display: block;
-        margin: 0 auto;
-        width: 30%;
-        min-width: 180px;
-        padding: 7px 16px;
-        border-radius: 8px;
-        font-size: 11px;
-        font-weight: 700;
-        cursor: pointer;
-        border: none;
-        font-family: inherit;
-        background: #f87171;
-        color: #fff;
-        transition: background .15s, transform .1s;
+    @container (max-height: 380px) {
+        .equipes-config-label { display: none; }
     }
-    .equipes-reset-btn:hover { background: #ef4444; }
-    .equipes-reset-btn:active { transform: scale(0.98); }
 
     /* ── Modal confirmation ── */
     .equipes-modal-overlay {
@@ -400,39 +654,41 @@
         position: absolute;
         inset: 0;
         z-index: 200;
-        background: rgba(0,0,0,0.35);
-        backdrop-filter: blur(4px);
+        background: rgba(10,20,35,0.35);
+        -webkit-backdrop-filter: blur(4px);
+                backdrop-filter: blur(4px);
         align-items: center;
         justify-content: center;
         padding: 20px;
-        border-radius: 16px;
+        border-radius: inherit;
         box-sizing: border-box;
     }
     .equipes-modal-overlay.open { display: flex; }
     .equipes-modal-box {
-        background: #fff;
+        background: rgba(255,255,255,0.97);
         padding: 20px;
-        border-radius: 12px;
+        border-radius: 18px;
         width: 100%;
-        max-width: 290px;
-        color: #374151;
-        box-shadow: 0 16px 40px rgba(0,0,0,0.2);
+        max-width: 320px;
+        color: var(--eq-ink);
+        box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
     }
     .equipes-modal-title {
-        font-size: 13px;
-        font-weight: 800;
+        font-size: 15px;
+        font-weight: 700;
         text-align: center;
         margin-bottom: 7px;
-        color: #374151;
     }
     .equipes-modal-text {
-        font-size: 12px;
-        color: #6b7280;
+        font-size: 13px;
+        color: rgba(20,32,46,0.7);
         text-align: center;
         line-height: 1.5;
-        font-weight: 500;
+        font-weight: 600;
         white-space: pre-line;
+        margin: 0;
     }
+    .equipes-modal-text:empty { display: none; }
     .equipes-modal-btns {
         display: flex;
         gap: 8px;
@@ -440,98 +696,80 @@
     }
     .equipes-modal-btn {
         flex: 1;
-        padding: 8px;
+        padding: 9px;
         border: none;
-        border-radius: 8px;
+        border-radius: 999px;
         font-weight: 700;
-        font-size: 11px;
+        font-size: 12px;
         cursor: pointer;
         font-family: inherit;
-        transition: background .15s, transform .1s;
+        transition: background .15s, filter .15s, transform .1s;
     }
     .equipes-modal-btn:active { transform: scale(0.96); }
-    .equipes-modal-cancel { background: #f3f4f6; color: #6b7280; }
-    .equipes-modal-cancel:hover { background: #e5e7eb; }
+    .equipes-modal-cancel { background: rgba(20,32,46,0.08); color: var(--eq-ink); }
+    .equipes-modal-cancel:hover { background: rgba(20,32,46,0.15); }
+    .equipes-modal-confirm { background: var(--eq-op); color: #fff; }
+    .equipes-modal-confirm:hover { filter: brightness(1.1); }
     .equipes-modal-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-height: 220px; overflow-y: auto; }
     .equipes-modal-list:empty { display: none; }
     .equipes-modal-list button {
-        padding: 8px 10px; border-radius: 8px; border: 1px solid #c7d2fe; background: #f0f4ff;
-        color: #4f46e5; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
-        transition: background .15s;
+        padding: 9px 12px; border-radius: 999px; border: 1.5px solid rgba(20,32,46,0.12); background: #fff;
+        color: var(--eq-op); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
+        transition: background .15s, border-color .15s;
     }
-    .equipes-modal-list button:hover { background: #e0e7ff; }
-    .equipes-modal-list button.file { border-color: #e5e7eb; background: #f9fafb; color: #6b7280; }
-    .equipes-modal-list button.file:hover { background: #f3f4f6; }
-    .equipes-class-btn { background: #6366f1 !important; }
-    .equipes-class-btn:hover { background: #4f46e5 !important; }
-
-    /* ── Popup aide ── */
-    .equipes-help-popup {
-        display: none;
-        position: absolute;
-        top: 42px;
-        right: 10px;
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        padding: 12px 14px;
-        width: 260px;
-        font-size: 11px;
-        color: #4b5563;
-        z-index: 10;
-        line-height: 1.6;
-    }
-    .equipes-help-popup.show { display: block; }
-    .equipes-help-popup h4 {
-        margin: 0 0 8px;
-        font-size: 12px;
-        color: #374151;
-        font-weight: 800;
-    }
-
-    /* ── Footer : actions sur les équipes (sauvegarde, PDF, effacer) ── */
-    .equipes-footer-row {
-        display: flex;
-        gap: 6px;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    .equipes-foot-btn {
-        padding: 7px 14px;
-        border-radius: 8px;
-        font-size: 11px;
-        font-weight: 700;
-        cursor: pointer;
-        border: none;
-        font-family: inherit;
-        color: #fff;
-        transition: background .15s, transform .1s;
-    }
-    .equipes-foot-btn:active { transform: scale(0.96); }
-    .equipes-save-btn { background: #10b981; }
-    .equipes-save-btn:hover { background: #059669; }
-    .equipes-pdf-btn  { background: #6366f1; }
-    .equipes-pdf-btn:hover  { background: #4f46e5; }
-    .equipes-footer .equipes-reset-btn { width: auto; min-width: 0; margin: 0; }
-    .equipes-open-teams-btn { background: #0ea5e9 !important; }
-    .equipes-open-teams-btn:hover { background: #0284c7 !important; }
-
-    /* ── Champ de saisie dans la modale (nom de sauvegarde) ── */
+    .equipes-modal-list button:hover { background: #F4F6F9; border-color: var(--eq-op); }
+    .equipes-modal-list button.file { color: rgba(20,32,46,0.7); }
+    .equipes-modal-list button.file:hover { border-color: rgba(20,32,46,0.3); }
     .equipes-modal-input {
         display: block;
         width: 100%;
         box-sizing: border-box;
         margin-top: 10px;
-        padding: 8px 10px;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 12px;
+        padding: 9px 14px;
+        border: 1.5px solid rgba(20,32,46,0.15);
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
         font-family: inherit;
-        color: #374151;
+        color: var(--eq-ink);
         user-select: text;
     }
-    .equipes-modal-input:focus { outline: none; border-color: #4a90e2; box-shadow: 0 0 0 2px #dbeafe; }
+    .equipes-modal-input:focus { outline: none; border-color: var(--eq-op); }
+
+    /* ── Panneaux (aide, couleur) ── */
+    .equipes-panel {
+        display: none;
+        position: absolute;
+        top: 62px;
+        right: 16px;
+        width: 300px;
+        max-width: calc(100% - 32px);
+        max-height: calc(100% - 80px);
+        overflow-y: auto;
+        box-sizing: border-box;
+        z-index: 30;
+        flex-direction: column;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.96);
+        box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+        color: var(--eq-ink);
+    }
+    .equipes-panel.show { display: flex; }
+    .equipes-panel-title { font-size: 13px; font-weight: 700; }
+    .equipes-help-list { margin: 0; padding-left: 18px; font-size: 12px; font-weight: 600; line-height: 1.5; color: rgba(20,32,46,0.85); }
+    .equipes-help-list li { margin-bottom: 4px; }
+    .equipes-help-list em { font-style: normal; font-weight: 700; color: var(--eq-op); }
+    .equipes-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+    .equipes-swatch {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        border: 2px solid rgba(20,32,46,0.15);
+        cursor: pointer;
+        padding: 0;
+    }
+    .equipes-swatch.is-on { border-color: var(--eq-ink); box-shadow: 0 0 0 2px #fff inset; }
 
     /* La règle .widget { touch-action: none } du tableau bloque aussi le
        défilement au doigt : on le réautorise dans la liste des prénoms et
@@ -542,12 +780,8 @@
     .widget[data-type="equipes"] .equipes-inner button { touch-action: manipulation; }
 
     /* ── Téléphone : plein écran (classe .phone-fs posée par index.html) ──
-       Le cadre fait 800×600 px par défaut : en plein écran il doit
-       remplir tout l'écran du téléphone. */
-    /* Décalage à gauche pour laisser les onglets latéraux visibles
-       (ils dépassent d'environ 34 px du bord), et passage sous les
-       onglets (z-index 50005) et sous les panneaux (50000) pour qu'on
-       puisse toujours les ouvrir. */
+       Décalage à gauche pour laisser les onglets latéraux visibles, et
+       passage sous les onglets (z-index 50005) et les panneaux (50000). */
     .widget.phone-fs[data-type="equipes"] {
         left: 40px !important;
         width: calc(100vw - 40px) !important;
@@ -560,71 +794,35 @@
         min-width: 0 !important;
         min-height: 0 !important;
         border-radius: 0 !important;
+        outline: none !important;
     }
     .widget.phone-fs[data-type="equipes"] .equipes-inner {
         border-radius: 0 !important;
-        border: none !important;
+        padding: 0 10px 10px;
     }
     .widget.phone-fs[data-type="equipes"] .equipes-header {
         cursor: default;
         padding-right: 56px; /* laisse la place au bouton ⤡ de sortie du plein écran */
     }
-    .widget.phone-fs[data-type="equipes"] .equipes-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .widget.phone-fs[data-type="equipes"] .equipes-generate-btn {
-        width: auto;
-        min-width: 0;
-        max-width: 260px;
-    }
-    /* Résultats : 2 équipes par ligne au maximum sur un écran étroit */
-    .widget.phone-fs[data-type="equipes"] .equipes-results-grid,
-    .widget.phone-fs[data-type="equipes"] .equipes-results-grid.cols-4 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .widget.phone-fs[data-type="equipes"] .equipes-results-grid.cols-4 .equipes-team-member {
-        font-size: 15px;
-    }
-    .widget.phone-fs[data-type="equipes"] .equipes-modal-overlay {
-        border-radius: 0;
+
+    /* ── Plein écran du bouton vert (classe .wf-max) ── */
+    .widget.wf-max[data-type="equipes"] .equipes-outer { outline: none !important; }
+    .widget.wf-max[data-type="equipes"] .equipes-header { cursor: default; }
+    /* Marge à gauche pour laisser visibles les onglets des panneaux latéraux */
+    .widget.wf-max[data-type="equipes"] .equipes-inner {
+        left: 40px !important;
+        width: calc(100vw - 40px) !important;
     }
 
-
-    /* ── Téléphone : plein écran du bouton vert (classe .wf-max) ──
-       Décalé de 40 px à gauche pour laisser les onglets latéraux
-       visibles, et hauteur réelle de l'écran (barres du navigateur
-       déduites). */
     @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
         .widget.wf-max[data-type="equipes"] .equipes-inner {
             left: 40px !important;
             width: calc(100vw - 40px) !important;
             height: 100dvh !important;
-            border: none !important;
             border-radius: 0 !important;
-        }
-        .widget.wf-max[data-type="equipes"] .equipes-header {
-            cursor: default;
-        }
-        .widget.wf-max[data-type="equipes"] .equipes-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-        .widget.wf-max[data-type="equipes"] .equipes-generate-btn {
-            width: auto;
-            min-width: 0;
-            max-width: 260px;
-        }
-        .widget.wf-max[data-type="equipes"] .equipes-results-grid,
-        .widget.wf-max[data-type="equipes"] .equipes-results-grid.cols-4 {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-        .widget.wf-max[data-type="equipes"] .equipes-results-grid.cols-4 .equipes-team-member {
-            font-size: 15px;
-        }
-        .widget.wf-max[data-type="equipes"] .equipes-modal-overlay {
-            border-radius: 0;
+            padding: 0 10px 10px;
         }
     }
-
     `;
 
     if (!document.getElementById('equipes-widget-style')) {
@@ -634,13 +832,28 @@
         document.head.appendChild(s);
     }
 
-    // Injecter le CSS des boutons wf si pas déjà fait
+    // ── Taille des pastilles fenêtre (identique au Visualiseur / Tirage) ──
+    if (!document.getElementById('wf-btns-size')) {
+        const wz = document.createElement('style');
+        wz.id = 'wf-btns-size';
+        wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+        `;
+        document.head.appendChild(wz);
+    }
+
+    // Injecter le CSS des boutons wf si pas déjà fait (normalement par un autre widget)
     if (!document.getElementById('wf-btns-style')) {
         const ws = document.createElement('style');
         ws.id = 'wf-btns-style';
         ws.textContent = `
-    .wf-btns { display:flex; gap:5px; align-items:center; flex-shrink:0; }
-    .wf-btn { width:13px; height:13px; border-radius:50%; border:none; cursor:pointer;
+    .wf-btns { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+    .wf-btn { width:22px; height:22px; border-radius:50%; border:none; cursor:pointer;
         display:flex; align-items:center; justify-content:center; font-size:0;
         transition:filter .15s, transform .1s; flex-shrink:0; position:relative; }
     .wf-btn:hover { filter:brightness(0.82); transform:scale(1.15); }
@@ -648,10 +861,10 @@
     .wf-btn-min   { background:#febc2e; }
     .wf-btn-max   { background:#28c840; }
     .wf-btn-close { background:#ff5f57; }
-    .wf-btns:hover .wf-btn::after { font-size:8px; font-weight:900; color:rgba(0,0,0,0.5); line-height:1; }
+    .wf-btns:hover .wf-btn::after { font-size:14px; font-weight:900; color:rgba(0,0,0,0.5); line-height:1; }
     .wf-btns:hover .wf-btn-min::after   { content:'−'; }
-    .wf-btns:hover .wf-btn-max::after   { content:'⤢'; font-size:7px; }
-    .wf-btns:hover .wf-btn-close::after { content:'×'; font-size:10px; }
+    .wf-btns:hover .wf-btn-max::after   { content:'⤢'; font-size:12px; }
+    .wf-btns:hover .wf-btn-close::after { content:'×'; font-size:17px; }
         `;
         document.head.appendChild(ws);
     }
@@ -662,64 +875,124 @@
         'CM1': '#ef4444', 'CM2': '#22c55e', 'AUTRE': '#a855f7'
     };
     const EQUIPES_LEVEL_ORDER = ['CP','CE1','CE2','CM1','CM2','AUTRE'];
-    const EQUIPES_THEME       = '#4a90e2';
+    const EQUIPES_THEME       = 'var(--eq-op)';   // couleur d'accent du cadre choisi
     const ALGORITHM_ITERATIONS = 300;
     const TEAM_MIN = 2;
     const TEAM_MAX = 8;
     const DEFAULT_TEAM_COUNT = 4;
     const SAVE_FILE_TYPE = 'bdp-equipes'; // identifiant des fichiers .json d'équipes
 
+    // Couleur de chaque équipe (bandeau de la carte + titre)
+    const TEAM_COLORS = ['#2F6FB3', '#C2456E', '#23915A', '#B9770E', '#6A4FC2', '#0E8A9A', '#C0392B', '#4A5868'];
+
+    // Taille automatique des étiquettes prénoms (voir updatePillScale)
+    const PILL_FS_MIN = 6;
+    const PILL_FS_MAX = 30;
+    const PILL_COLS   = [5, 4, 6, 3, 7, 8, 2, 9, 10];
+
+    // Taille automatique du texte des équipes (voir fitTeams)
+    const TEAM_FS_MIN = 11;
+    const TEAM_FS_MAX = 44;
+
+    // Couleurs du cadre (mêmes que le Visualiseur / Tirage)
+    const EQUIPES_THEMES = {
+        bleu:   { name: 'Bleu',    bg: '#8EC5F2', op: '#2F6FB3' },
+        vert:   { name: 'Vert',    bg: '#7FD6A6', op: '#23915A' },
+        jaune:  { name: 'Jaune',   bg: '#F6D86A', op: '#B9770E' },
+        rose:   { name: 'Rose',    bg: '#F4A9C0', op: '#C2456E' },
+        violet: { name: 'Violet',  bg: '#C2B2F0', op: '#6A4FC2' },
+        gris:   { name: 'Gris',    bg: '#D4DAE2', op: '#4A5868' },
+        noir:   { name: 'Ardoise', bg: '#4A525E', op: '#2F6FB3' }
+    };
+    const DEFAULT_THEME = 'vert';
+
+    // ── Icônes ────────────────────────────────────────────────────────────
+    const ICON_USERS   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.9.3 5 2.6 5 5.8"/></svg>';
+    const ICON_HELP    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17.2h.01"/></svg>';
+    const ICON_PALETTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg>';
+    const ICON_FOLDER  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+    const ICON_OPEN    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4 17v1.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V17"/></svg>';
+    const ICON_SAVE    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M8 4v5h7V4"/><rect x="8" y="13" width="8" height="5" rx="1"/></svg>';
+    const ICON_PDF     = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>';
+    const ICON_SHUFFLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h4v4"/><path d="M4 20 20 4"/><path d="M20 16v4h-4"/><path d="M15 15l5 5"/><path d="M4 4l5 5"/></svg>';
+    const ICON_LIST    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="7" height="7" rx="2"/><rect x="13.5" y="4" width="7" height="7" rx="2"/><rect x="3.5" y="14" width="7" height="6" rx="2"/><rect x="13.5" y="14" width="7" height="6" rx="2"/></svg>';
+    const ICON_TRASH   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 12.5A1.5 1.5 0 0 0 8.5 21h7a1.5 1.5 0 0 0 1.5-1.5L18 7"/></svg>';
+
     // ── HTML interne partagé (création + restauration) ────────────────────
     function equipesInnerHTML() {
+        const swatches = Object.keys(EQUIPES_THEMES).map(id =>
+            '<button class="equipes-swatch" data-theme="' + id + '" title="' + EQUIPES_THEMES[id].name +
+            '" style="background:' + EQUIPES_THEMES[id].bg + '"></button>'
+        ).join('');
         return `
         <div class="equipes-inner">
             <div class="equipes-header">
-                <div class="equipes-header-title">👥 Équipes équilibrées</div>
-                <div class="wf-btns" style="margin-left:auto">
-                    <button class="equipes-help-btn-wf" title="Aide" onmousedown="event.stopPropagation()" style="width:22px;height:22px;border-radius:50%;border:1px solid #bbb;background:#f5f5f5;color:#666;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;font-family:inherit;">?</button>
-                    <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"      onmousedown="event.stopPropagation()"></button>
-                    <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"  onmousedown="event.stopPropagation()"></button>
-                    <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"       onmousedown="event.stopPropagation()"></button>
+                <div class="equipes-title">${ICON_USERS}<span>Équipes équilibrées</span></div>
+                <div class="equipes-tools">
+                    <button class="equipes-icon-btn equipes-theme-btn" title="Couleur du cadre" onmousedown="event.stopPropagation()">${ICON_PALETTE}</button>
+                    <button class="equipes-icon-btn equipes-help-btn" title="Aide" onmousedown="event.stopPropagation()">${ICON_HELP}</button>
+                    <span class="equipes-sep"></span>
+                    <div class="wf-btns">
+                        <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"      onmousedown="event.stopPropagation()"></button>
+                        <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"  onmousedown="event.stopPropagation()"></button>
+                        <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"       onmousedown="event.stopPropagation()"></button>
+                    </div>
                 </div>
             </div>
-            <div class="equipes-help-popup">
-                <h4>💡 Comment ça marche</h4>
-                <p>• Utilisez une liste de classe (widget 📋) ou importez un fichier (.txt ou .csv)<br>
-                Format : <em>Prénom;NOM;sexe;NIVEAU;date</em><br><br>
-                • Cliquez sur un élève pour le marquer absent (il ne sera pas inclus).<br>
-                • Choisissez le nombre d'équipes (2 à 8).<br>
-                • L'algorithme équilibre les équipes par genre et par niveau.<br><br>
-                • 💾 « Enregistrer » télécharge les équipes dans un fichier .json.<br>
-                • 📥 « Ouvrir des équipes » recharge un fichier .json enregistré.<br>
-                • 📄 « Exporter en PDF » télécharge un fichier .pdf des équipes.</p>
+            <div class="equipes-panel equipes-help-popup">
+                <div class="equipes-panel-title">Aide</div>
+                <ul class="equipes-help-list">
+                    <li>Utilisez une liste de classe, ou importez un fichier (.txt ou .csv).<br>Format : <em>Prénom;NOM;sexe;NIVEAU;date</em></li>
+                    <li>Cliquez sur un prénom pour le marquer absent (il ne sera pas inclus).</li>
+                    <li>Choisissez le nombre d'équipes (2 à 8), puis <em>Former les équipes</em> : elles sont équilibrées par genre et par niveau.</li>
+                    <li>Les équipes s'affichent par-dessus la liste. <em>Prénoms</em> revient à la liste, <em>Refaire</em> forme de nouvelles équipes.</li>
+                    <li><em>Enregistrer</em> télécharge les équipes (.json), le bouton d'ouverture les recharge, <em>PDF</em> crée un fichier à imprimer.</li>
+                    <li>La palette change la couleur du cadre.</li>
+                </ul>
             </div>
-            <div class="equipes-import-zone">
-                <button class="equipes-import-btn equipes-class-btn" style="display:none;">📋 Utiliser une liste de classe</button>
-                <button class="equipes-import-btn">📄 Importer une liste d'élèves</button>
-                <button class="equipes-import-btn equipes-open-teams-btn">📥 Ouvrir des équipes (.json)</button>
-                <input type="file" class="equipes-teams-file-input" accept=".json,application/json" style="display:none;">
-                <input type="file" class="equipes-file-input" accept=".txt,.csv" style="display:none;">
-                <div class="equipes-status">Format : Prénom;NOM;sexe;NIVEAU;date</div>
+            <div class="equipes-panel equipes-theme-popup">
+                <div class="equipes-panel-title">Couleur du cadre</div>
+                <div class="equipes-swatches">${swatches}</div>
             </div>
-            <div class="equipes-level-tabs"></div>
-            <div class="equipes-body" style="display:none;"></div>
-            <div class="equipes-config">
-                <div class="equipes-config-label">Nombre d'équipes</div>
-                <div class="equipes-selector"></div>
-                <button class="equipes-generate-btn">⚖️ Générer les équipes</button>
-            </div>
-            <div class="equipes-results-wrapper">
-                <button class="equipes-scroll-btn equipes-scroll-up" title="Défiler vers le haut">▲</button>
-                <div class="equipes-results">
-                    <div class="equipes-results-grid"></div>
+            <div class="equipes-stage">
+                <div class="equipes-import-zone">
+                    <div class="equipes-import-ico">${ICON_USERS}</div>
+                    <div class="equipes-import-msg">Chargez une liste d'élèves pour former des équipes équilibrées.</div>
+                    <div class="equipes-import-btns">
+                        <button class="equipes-import-btn equipes-class-btn" style="display:none;">📋 Utiliser une liste de classe</button>
+                        <button class="equipes-import-btn equipes-file-btn">📄 Importer une liste d'élèves</button>
+                        <button class="equipes-import-btn equipes-open-teams-btn">📥 Ouvrir des équipes (.json)</button>
+                    </div>
+                    <input type="file" class="equipes-teams-file-input" accept=".json,application/json" style="display:none;">
+                    <input type="file" class="equipes-file-input" accept=".txt,.csv" style="display:none;">
+                    <div class="equipes-status">Format : Prénom;NOM;sexe;NIVEAU;date</div>
                 </div>
-                <button class="equipes-scroll-btn equipes-scroll-down" title="Défiler vers le bas">▼</button>
-            </div>
-            <div class="equipes-footer">
-                <div class="equipes-footer-row">
-                    <button class="equipes-foot-btn equipes-save-btn" title="Enregistrer ces équipes dans un fichier .json">💾 Enregistrer (.json)</button>
-                    <button class="equipes-foot-btn equipes-pdf-btn" title="Exporter les équipes en PDF">📄 Exporter en PDF</button>
-                    <button class="equipes-reset-btn">⚠️ Effacer les équipes</button>
+                <div class="equipes-level-tabs"></div>
+                <div class="equipes-body" style="display:none;"></div>
+                <div class="equipes-config">
+                    <span class="equipes-config-label">Nombre d'équipes</span>
+                    <div class="equipes-selector"></div>
+                    <button class="equipes-generate-btn">⚖️ Former les équipes</button>
+                    <button class="equipes-view-btn" style="display:none;">👥 Voir les équipes</button>
+                </div>
+                <div class="equipes-teams-overlay">
+                    <div class="equipes-teams-bar">
+                        <div class="equipes-teams-title"><span class="equipes-teams-count">Équipes</span><small class="equipes-teams-sub"></small></div>
+                        <div class="equipes-teams-actions">
+                            <button class="equipes-act-btn equipes-back-btn" title="Revenir à la liste des prénoms">${ICON_LIST}<span>Prénoms</span></button>
+                            <button class="equipes-act-btn equipes-redo-btn" title="Former de nouvelles équipes">${ICON_SHUFFLE}<span>Refaire</span></button>
+                            <button class="equipes-act-btn equipes-save-btn" title="Enregistrer ces équipes dans un fichier .json">${ICON_SAVE}<span>Enregistrer</span></button>
+                            <button class="equipes-act-btn equipes-pdf-btn" title="Exporter les équipes en PDF">${ICON_PDF}<span>PDF</span></button>
+                            <button class="equipes-act-btn danger equipes-reset-btn" title="Effacer les équipes">${ICON_TRASH}<span>Effacer</span></button>
+                        </div>
+                    </div>
+                    <div class="equipes-results-wrapper">
+                        <button class="equipes-scroll-btn equipes-scroll-up" title="Défiler vers le haut">▲</button>
+                        <div class="equipes-results">
+                            <div class="equipes-results-grid"></div>
+                        </div>
+                        <button class="equipes-scroll-btn equipes-scroll-down" title="Défiler vers le bas">▼</button>
+                    </div>
                 </div>
             </div>
             <div class="equipes-modal-overlay">
@@ -730,7 +1003,7 @@
                     <div class="equipes-modal-list"></div>
                     <div class="equipes-modal-btns">
                         <button class="equipes-modal-btn equipes-modal-cancel">Annuler</button>
-                        <button class="equipes-modal-btn equipes-modal-confirm" style="background:#4a90e2;color:#fff;">Confirmer</button>
+                        <button class="equipes-modal-btn equipes-modal-confirm">Confirmer</button>
                     </div>
                 </div>
             </div>
@@ -747,9 +1020,7 @@
         // Bloquer la remontée mousedown depuis l'intérieur
         outer.addEventListener('mousedown', e => e.stopPropagation());
 
-        // Même chose au doigt / au stylet : sans ça, le toucher sur un prénom
-        // remonte jusqu'au tableau, qui le prend pour un déplacement du widget
-        // et annule le clic. On laisse passer l'en-tête (il sert à déplacer).
+        // Même chose au doigt / au stylet (on laisse passer l'en-tête, qui sert à déplacer)
         if (!outer._touchGuard) {
             outer._touchGuard = true;
             const stopIfNotHeader = (e) => {
@@ -776,31 +1047,37 @@
         }
 
         // ── Références DOM ────────────────────────────────────────────────
-        const importZone    = widget.querySelector('.equipes-import-zone');
-        const importBtn     = widget.querySelector('.equipes-import-btn:not(.equipes-class-btn):not(.equipes-open-teams-btn)');
-        const openTeamsBtn  = widget.querySelector('.equipes-open-teams-btn');
+        const importZone     = widget.querySelector('.equipes-import-zone');
+        const importBtn      = widget.querySelector('.equipes-file-btn');
+        const openTeamsBtn   = widget.querySelector('.equipes-open-teams-btn');
         const teamsFileInput = widget.querySelector('.equipes-teams-file-input');
-        const saveBtn       = widget.querySelector('.equipes-save-btn');
-        const pdfBtn        = widget.querySelector('.equipes-pdf-btn');
-        const modalInput    = widget.querySelector('.equipes-modal-input');
-        const classBtn      = widget.querySelector('.equipes-class-btn');
-        const fileInput     = widget.querySelector('.equipes-file-input');
-        const statusEl      = widget.querySelector('.equipes-status');
-        const levelTabs     = widget.querySelector('.equipes-level-tabs');
-        const body          = widget.querySelector('.equipes-body');
-        const configPanel   = widget.querySelector('.equipes-config');
-        const selector      = widget.querySelector('.equipes-selector');
-        const generateBtn   = widget.querySelector('.equipes-generate-btn');
-        const resultsWrapper = widget.querySelector('.equipes-results-wrapper');
-        const resultsPanel  = widget.querySelector('.equipes-results');
-        const resultsGrid   = widget.querySelector('.equipes-results-grid');
-        const scrollUpBtn   = widget.querySelector('.equipes-scroll-up');
-        const scrollDownBtn = widget.querySelector('.equipes-scroll-down');
-        const footer        = widget.querySelector('.equipes-footer');
-        const resetBtn      = widget.querySelector('.equipes-reset-btn');
-        const modalOverlay  = widget.querySelector('.equipes-modal-overlay');
-        const helpBtn       = widget.querySelector('.equipes-help-btn-wf');
-        const helpPopup     = widget.querySelector('.equipes-help-popup');
+        const classBtn       = widget.querySelector('.equipes-class-btn');
+        const fileInput      = widget.querySelector('.equipes-file-input');
+        const statusEl       = widget.querySelector('.equipes-status');
+        const levelTabs      = widget.querySelector('.equipes-level-tabs');
+        const body           = widget.querySelector('.equipes-body');
+        const configPanel    = widget.querySelector('.equipes-config');
+        const selector       = widget.querySelector('.equipes-selector');
+        const generateBtn    = widget.querySelector('.equipes-generate-btn');
+        const viewBtn        = widget.querySelector('.equipes-view-btn');
+        const teamsOverlay   = widget.querySelector('.equipes-teams-overlay');
+        const teamsCountEl   = widget.querySelector('.equipes-teams-count');
+        const teamsSubEl     = widget.querySelector('.equipes-teams-sub');
+        const backBtn        = widget.querySelector('.equipes-back-btn');
+        const redoBtn        = widget.querySelector('.equipes-redo-btn');
+        const saveBtn        = widget.querySelector('.equipes-save-btn');
+        const pdfBtn         = widget.querySelector('.equipes-pdf-btn');
+        const resetBtn       = widget.querySelector('.equipes-reset-btn');
+        const resultsPanel   = widget.querySelector('.equipes-results');
+        const resultsGrid    = widget.querySelector('.equipes-results-grid');
+        const scrollUpBtn    = widget.querySelector('.equipes-scroll-up');
+        const scrollDownBtn  = widget.querySelector('.equipes-scroll-down');
+        const modalOverlay   = widget.querySelector('.equipes-modal-overlay');
+        const modalInput     = widget.querySelector('.equipes-modal-input');
+        const helpBtn        = widget.querySelector('.equipes-help-btn');
+        const helpPopup      = widget.querySelector('.equipes-help-popup');
+        const themeBtn       = widget.querySelector('.equipes-theme-btn');
+        const themePopup     = widget.querySelector('.equipes-theme-popup');
 
         // ── Boutons fenêtre wf-btns ───────────────────────────────────────
         const wfMin   = widget.querySelector('[data-role="wf-min"]');
@@ -809,9 +1086,7 @@
         let _isMax = false;
 
         function equipesCollapse() {
-            // En plein écran (bouton vert) : on en sort d'abord
             if (_isMax) setMax(false);
-            // En plein écran téléphone : on en sort d'abord pour retrouver la taille normale
             if (widget.classList.contains('phone-fs') && typeof window.exitPhoneFullscreen === 'function') {
                 window.exitPhoneFullscreen(widget);
             }
@@ -828,12 +1103,10 @@
             widget.dataset.leftPercent = (widget.offsetLeft / curW)  * 100;
             widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
 
-            // Cacher le contenu et les poignées
             outer.style.display = 'none';
             widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle')
                   .forEach(el => el.style.display = 'none');
 
-            // Dimensionner le widget en mini-barre et le placer en haut à gauche
             const COLLAPSED_W = 300, COLLAPSED_H = 50, GAP = 10, MARGIN_TOP = 8;
             const others = Array.from(document.querySelectorAll('.widget')).filter(w =>
                 w !== widget && w.dataset.collapsed === '1'
@@ -852,7 +1125,6 @@
             if (wc) { wc.style.padding = '0'; wc.style.background = 'transparent'; wc.style.borderRadius = '0'; }
             widget.dataset.collapsed = '1';
 
-            // Créer la mini-barre
             const miniBar = document.createElement('div');
             miniBar.className = 'equipes-mini-bar';
             miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
@@ -873,7 +1145,6 @@
             miniBar.appendChild(expandBtn);
             widget.appendChild(miniBar);
 
-            // Mini-barre draggable
             miniBar.addEventListener('pointerdown', (e) => {
                 if (e.target === expandBtn || expandBtn.contains(e.target)) return;
                 e.stopPropagation(); e.preventDefault();
@@ -903,10 +1174,8 @@
             const savedLeft = parseFloat(widget.dataset.equipesLeftSaved);
             const savedTop  = parseFloat(widget.dataset.equipesTopSaved);
 
-            // Supprimer la mini-barre
             widget.querySelectorAll('.equipes-mini-bar').forEach(el => el.remove());
 
-            // Réinitialiser tous les styles inline du widget (comme une actualisation)
             widget.removeAttribute('style');
             widget.style.left = (!isNaN(savedLeft) ? savedLeft : widget.offsetLeft) + 'px';
             widget.style.top  = (!isNaN(savedTop)  ? savedTop  : widget.offsetTop)  + 'px';
@@ -916,16 +1185,13 @@
 
             widget.dataset.collapsed = '0';
 
-            // Réafficher et redimensionner outer
             outer.style.display = '';
             outer.style.width   = savedW + 'px';
             outer.style.height  = savedH + 'px';
 
-            // Réinjecter le HTML interne et réinitialiser (comme l'actualisation)
             outer.innerHTML = equipesInnerHTML();
             initEquipesWidget(widget);
 
-            // Mettre à jour les % de position
             const curW  = window.innerWidth;
             const curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
             widget.dataset.leftPercent = (widget.offsetLeft / curW)  * 100;
@@ -934,7 +1200,6 @@
             if (typeof saveBoard === 'function') saveBoard();
         }
 
-        // Exposer expand sur le widget pour que la mini-barre de restauration puisse l'appeler
         widget._equipesExpand = equipesExpand;
 
         if (wfMin) {
@@ -942,8 +1207,7 @@
             wfMin.addEventListener('mousedown',   (e) => { e.stopPropagation(); });
             wfMin.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); equipesCollapse(); });
         }
-        // Plein écran (bouton vert). Sur téléphone, il est activé dès
-        // l'ouverture du widget (voir createEquipesWidget).
+        // Plein écran (bouton vert). Sur téléphone, il est activé dès l'ouverture.
         function setMax(on) {
             _isMax = !!on;
             const inner = widget.querySelector('.equipes-inner');
@@ -964,7 +1228,7 @@
                 inner.style.zIndex = '';
                 inner.style.borderRadius = '';
             }
-            requestAnimationFrame(() => { if (typeof updatePillScale === 'function') updatePillScale(); });
+            requestAnimationFrame(() => { updatePillScale(); fitTeams(); });
         }
         widget._wfSetMax = setMax;
         if (wfMax) {
@@ -973,8 +1237,6 @@
                 setMax(!_isMax);
             });
         }
-        // Au doigt, en plein écran : un appui dans le widget ne doit pas remonter
-        // jusqu'au tableau (qui le prendrait pour un déplacement et annulerait le clic)
         const _maxInner = widget.querySelector('.equipes-inner');
         if (_maxInner) {
             const stopInMax = (e) => { if (_isMax) e.stopPropagation(); };
@@ -991,16 +1253,45 @@
             });
         }
 
-        // ── Aide popup ────────────────────────────────────────────────────
-        if (helpBtn && helpPopup) {
-            helpBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                helpPopup.classList.toggle('show');
-            });
-            helpBtn.addEventListener('mouseover', () => { helpBtn.style.background = '#e0e0e0'; helpBtn.style.color = '#333'; });
-            helpBtn.addEventListener('mouseout',  () => { helpBtn.style.background = '#f5f5f5'; helpBtn.style.color = '#666'; });
-            document.addEventListener('click', () => helpPopup.classList.remove('show'));
+        // ── Panneaux aide / couleur ───────────────────────────────────────
+        const panels = [[helpBtn, helpPopup], [themeBtn, themePopup]].filter(p => p[0] && p[1]);
+        function closePanels() {
+            panels.forEach(([b, p]) => { p.classList.remove('show'); b.classList.remove('is-on'); });
         }
+        panels.forEach(([btn, panel]) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const open = !panel.classList.contains('show');
+                closePanels();
+                panel.classList.toggle('show', open);
+                btn.classList.toggle('is-on', open);
+            });
+            panel.addEventListener('click', (e) => e.stopPropagation());
+        });
+        if (!widget._equipesPanelsDocClose) {
+            widget._equipesPanelsDocClose = true;
+            document.addEventListener('click', () => {
+                widget.querySelectorAll('.equipes-panel.show').forEach(p => p.classList.remove('show'));
+                widget.querySelectorAll('.equipes-icon-btn.is-on').forEach(b => b.classList.remove('is-on'));
+            });
+        }
+
+        // ── Couleur du cadre (mémorisée dans le tableau) ──────────────────
+        function applyTheme(id) {
+            if (!EQUIPES_THEMES[id]) id = DEFAULT_THEME;
+            widget.dataset.equipesTheme = id;
+            outer.style.setProperty('--eq-bg', EQUIPES_THEMES[id].bg);
+            outer.style.setProperty('--eq-op', EQUIPES_THEMES[id].op);
+            widget.querySelectorAll('.equipes-swatch').forEach(s =>
+                s.classList.toggle('is-on', s.dataset.theme === id));
+        }
+        widget.querySelectorAll('.equipes-swatch').forEach(s => {
+            s.addEventListener('click', (e) => {
+                e.stopPropagation();
+                applyTheme(s.dataset.theme);
+                if (typeof saveBoard === 'function') saveBoard();
+            });
+        });
 
         // ── État ──────────────────────────────────────────────────────────
         let allStudents    = [];
@@ -1008,40 +1299,14 @@
         let selectedCount  = DEFAULT_TEAM_COUNT;
         let currentLevel   = 'tous';
         let savedTeams     = null;
-        let classId        = widget.dataset.equipesClassId || null; // liste de classe liée (widget-liste-de-classe)
-
-        // Restaurer depuis dataset si données présentes
-        if (widget.dataset.equipesStudents) {
-            try {
-                allStudents = JSON.parse(widget.dataset.equipesStudents);
-                absentSet   = new Set(JSON.parse(widget.dataset.equipesAbsents || '[]'));
-                selectedCount = parseInt(widget.dataset.equipesCount || DEFAULT_TEAM_COUNT);
-                savedTeams  = widget.dataset.equipesTeams ? JSON.parse(widget.dataset.equipesTeams) : null;
-                showLoadedState();
-                if (savedTeams) renderTeams(savedTeams);
-            } catch(e) { console.warn('equipes: erreur restauration dataset', e); }
-        } else if (window.ClasseListe && window.ClasseListe.getStudents().length) {
-            // Classe active du widget-liste-de-classe
-            loadFromClass(window.ClasseListe.getActiveId());
-        } else {
-            // Chercher liste dans localStorage (partagée avec tirage)
-            try {
-                const saved = localStorage.getItem('tirage_students_list') || localStorage.getItem('maListeEleves');
-                if (saved) {
-                    const raw = JSON.parse(saved);
-                    allStudents = normalizeStudents(raw);
-                    setStatus('✓ ' + allStudents.length + ' élève(s) (liste mémorisée)', 'ok');
-                    showLoadedState();
-                }
-            } catch(e) {}
-        }
+        let teamsVisible   = false;
+        let classId        = widget.dataset.equipesClassId || null; // liste de classe liée
 
         // ── Normalisation des données élèves ─────────────────────────────
         // Supporte le format tirage (prenom/nom/sexe/niveau) et le format outils (identite/sexe/niveau)
         function normalizeStudents(raw) {
             return raw.map((s, i) => {
                 if (s.prenom !== undefined) {
-                    // Format widget-tirage : {id, prenom, nom, sexe, niveau}
                     return {
                         id:     s.id !== undefined ? s.id : i,
                         prenom: s.prenom,
@@ -1050,7 +1315,6 @@
                         niveau: (s.niveau || 'AUTRE').trim().toUpperCase()
                     };
                 } else if (s.identite !== undefined) {
-                    // Format outils_equipes : {id, identite, sexe, niveau}
                     const parts = s.identite.trim().split(' ');
                     return {
                         id:     s.id !== undefined ? s.id : i,
@@ -1091,19 +1355,16 @@
                 });
             });
             if (!students.length) { setStatus('Aucun élève trouvé.', 'err'); return; }
-            // Un import de fichier remplace la liaison à une liste de classe
             classId = null;
             delete widget.dataset.equipesClassId;
-            allStudents = students;
-            absentSet   = new Set();
-            savedTeams  = null;
+            allStudents  = students;
+            absentSet    = new Set();
+            currentLevel = 'tous';
             setStatus('✓ ' + students.length + ' élève(s) chargé(s)', 'ok');
             try { localStorage.setItem('tirage_students_list', JSON.stringify(allStudents)); } catch(e) {}
+            resetResults();
             persistData();
             showLoadedState();
-            resultsGrid.innerHTML = '';
-            resultsWrapper.style.display = 'none';
-            footer.style.display = 'none';
         }
 
         // ── Liste de classe (widget-liste-de-classe) ──────────────────────
@@ -1119,8 +1380,7 @@
         function resetResults() {
             savedTeams = null;
             resultsGrid.innerHTML = '';
-            resultsWrapper.style.display = 'none';
-            footer.style.display = 'none';
+            setTeamsVisible(false);
         }
 
         function loadFromClass(id) {
@@ -1135,11 +1395,10 @@
             widget.dataset.equipesClassId = id;
             allStudents  = normalizeStudents(list);
             absentSet    = new Set();
-            savedTeams   = null;
             currentLevel = 'tous';
+            resetResults();
             persistData();
             showLoadedState();
-            resetResults();
         }
 
         function showClassPicker() {
@@ -1171,23 +1430,23 @@
             refreshClassBtn();
             const CL = window.ClasseListe;
             if (!classId || !CL) return;
-            if (!CL.getClass(classId)) {           // classe supprimée : on garde la liste actuelle
+            if (!CL.getClass(classId)) {
                 classId = null;
                 delete widget.dataset.equipesClassId;
                 return;
             }
-            const fresh   = normalizeStudents(CL.getStudents(classId));
-            const byId    = new Map(fresh.map(s => [String(s.id), s]));
+            const fresh = normalizeStudents(CL.getStudents(classId));
+            const byId  = new Map(fresh.map(s => [String(s.id), s]));
             absentSet = new Set(Array.from(absentSet).filter(id => byId.has(String(id))));
             if (savedTeams) {
-                // mêmes équipes, avec les noms à jour ; les élèves retirés disparaissent
                 savedTeams = savedTeams.map(t => t.map(s => byId.get(String(s.id))).filter(Boolean));
                 if (!savedTeams.some(t => t.length)) savedTeams = null;
             }
             allStudents = fresh;
             persistData();
             showLoadedState();
-            if (savedTeams) renderTeams(savedTeams); else resetResults();
+            if (savedTeams) { renderTeams(savedTeams); setTeamsVisible(teamsVisible); }
+            else resetResults();
         }
 
         if (window.ClasseListe) {
@@ -1200,15 +1459,15 @@
             widget._equipesClassOff = () => window.removeEventListener('bdp-classes-changed', onClassChange);
         }
         if (classBtn) classBtn.addEventListener('click', showClassPicker);
-        refreshClassBtn();
 
         function showLoadedState() {
             importZone.style.display  = 'none';
             body.style.display        = 'flex';
-            configPanel.style.display = 'block';
+            configPanel.style.display = 'flex';
             buildLevelTabs();
             buildSelector();
             renderAttendance();
+            updateViewBtn();
         }
 
         function setStatus(msg, cls) {
@@ -1221,6 +1480,7 @@
             widget.dataset.equipesAbsents  = JSON.stringify(Array.from(absentSet));
             widget.dataset.equipesCount    = selectedCount;
             widget.dataset.equipesTeams    = savedTeams ? JSON.stringify(savedTeams) : '';
+            widget.dataset.equipesTeamsHidden = (savedTeams && !teamsVisible) ? '1' : '';
         }
 
         // ── Onglets niveau ────────────────────────────────────────────────
@@ -1232,28 +1492,24 @@
             levelTabs.innerHTML = '';
             levelTabs.style.display = 'flex';
 
-            // Bouton "Changer de classe"
             const changeBtn = document.createElement('button');
             changeBtn.className = 'equipes-level-tab equipes-change-class-btn';
             changeBtn.title = 'Charger une autre liste (classe ou fichier)';
-            changeBtn.textContent = '📂';
-            changeBtn.style.cssText = 'background:#f0f4ff;border-color:#c7d9f8;color:#4a90e2;';
+            changeBtn.innerHTML = ICON_FOLDER;
             changeBtn.addEventListener('click', showClassPicker);
             levelTabs.appendChild(changeBtn);
 
-            // Bouton "Ouvrir des équipes" (fichier .json)
-            const savedTab = document.createElement('button');
-            savedTab.className = 'equipes-level-tab equipes-open-tab';
-            savedTab.title = 'Ouvrir un fichier d\'équipes (.json)';
-            savedTab.textContent = '📥 Ouvrir des équipes';
-            savedTab.style.cssText = 'margin-right:auto;background:#f0f9ff;border-color:#bae6fd;color:#0284c7;text-transform:none;';
-            savedTab.addEventListener('click', openTeamsFile);
-            levelTabs.appendChild(savedTab);
+            const openTab = document.createElement('button');
+            openTab.className = 'equipes-level-tab equipes-open-tab';
+            openTab.title = 'Ouvrir un fichier d\'équipes (.json)';
+            openTab.innerHTML = ICON_OPEN + '<span>Ouvrir des équipes</span>';
+            openTab.addEventListener('click', openTeamsFile);
+            levelTabs.appendChild(openTab);
 
             if (niveaux.length > 1) {
                 levelTabs.appendChild(makeTab('Tous', 'tous'));
                 niveaux.forEach(niv => levelTabs.appendChild(makeTab(niv, niv)));
-                setActiveTab('tous');
+                setActiveTab(currentLevel);
             }
         }
 
@@ -1267,13 +1523,11 @@
         }
 
         function setActiveTab(value) {
-            levelTabs.querySelectorAll('.equipes-level-tab').forEach(t => {
-                if (!t.dataset.level) return; // boutons 📂 / 📥 : garder leur style
+            levelTabs.querySelectorAll('.equipes-level-tab[data-level]').forEach(t => {
                 const isActive = t.dataset.level === value;
                 const color    = t.dataset.level === 'tous' ? EQUIPES_THEME : getLevelColor(t.dataset.level);
-                t.style.backgroundColor = isActive ? color  : '#f0f0f0';
-                t.style.borderColor     = isActive ? color  : '#e0e0e0';
-                t.style.color           = isActive ? '#fff' : '#999';
+                t.style.backgroundColor = isActive ? color  : '';
+                t.style.color           = isActive ? '#fff' : '';
             });
         }
 
@@ -1310,12 +1564,10 @@
         }
 
         function displayName(s) {
-            return hasDupPrenom(s.prenom) ? s.prenom + ' ' + (s.nom.charAt(0) || '') + '.' : s.prenom;
+            return hasDupPrenom(s.prenom) ? s.prenom + ' ' + ((s.nom || '').charAt(0) || '') + '.' : s.prenom;
         }
 
-        // Toucher fiable sur téléphone/tablette : un appui court (sans glisser,
-        // pour ne pas gêner le défilement de la liste) déclenche l'action dès
-        // que le doigt se lève. À la souris, on garde le clic habituel.
+        // Toucher fiable sur téléphone/tablette (voir widget-tirage)
         let lastTouchTap = 0;
         function onTap(el, fn) {
             let start = null;
@@ -1327,14 +1579,14 @@
                 if (e.pointerType === 'mouse' || !start) return;
                 const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
                 start = null;
-                if (moved > 10) return;            // c'était un défilement
+                if (moved > 10) return;
                 lastTouchTap = Date.now();
                 e.preventDefault();
                 fn();
             });
             el.addEventListener('pointercancel', () => { start = null; });
             el.addEventListener('click', () => {
-                if (Date.now() - lastTouchTap < 600) return; // déjà traité au toucher
+                if (Date.now() - lastTouchTap < 600) return;
                 fn();
             });
         }
@@ -1380,6 +1632,7 @@
                 block.appendChild(grid);
                 body.appendChild(block);
             });
+            updatePillScale();
         }
 
         function toggleAbsent(id) {
@@ -1393,7 +1646,7 @@
         // ── Algorithme de génération d'équipes ────────────────────────────
         generateBtn.addEventListener('click', generateBalancedTeams);
 
-        function isFemale(s) { return s.sexe.toLowerCase().startsWith('f'); }
+        function isFemale(s) { return (s.sexe || '').toLowerCase().startsWith('f'); }
 
         function getTeamStats(team) {
             const stats = { f: 0, m: 0, total: team.length, levels: {} };
@@ -1413,7 +1666,7 @@
             return stats;
         }
 
-        // Score = pénalités (plus bas = mieux) ; on ANNULE l'échange si newScore >= currentScore
+        // Score = pénalités (plus bas = mieux)
         function calculateScore(stats1, stats2) {
             let score = 0;
             score += Math.abs(stats1.f - stats2.f) * 10;
@@ -1436,25 +1689,21 @@
                 return;
             }
 
-            // Distribution initiale aléatoire
             let teams = Array.from({ length: selectedCount }, () => []);
             const shuffled = [...present].sort(() => Math.random() - 0.5);
             shuffled.forEach((s, idx) => teams[idx % selectedCount].push(s));
 
-            // Optimisation par échanges (300 itérations)
             for (let iter = 0; iter < ALGORITHM_ITERATIONS; iter++) {
                 for (let i = 0; i < teams.length; i++) {
                     for (let j = i + 1; j < teams.length; j++) {
                         const currentScore = calculateScore(getTeamStats(teams[i]), getTeamStats(teams[j]));
                         for (let x = 0; x < teams[i].length; x++) {
                             for (let y = 0; y < teams[j].length; y++) {
-                                // Tenter l'échange
                                 const tmp = teams[i][x];
                                 teams[i][x] = teams[j][y];
                                 teams[j][y] = tmp;
                                 const newScore = calculateScore(getTeamStats(teams[i]), getTeamStats(teams[j]));
                                 if (newScore >= currentScore) {
-                                    // Annuler si pas d'amélioration
                                     teams[j][y] = teams[i][x];
                                     teams[i][x] = tmp;
                                 }
@@ -1465,62 +1714,141 @@
             }
 
             savedTeams = teams;
-            persistData();
             renderTeams(teams);
+            setTeamsVisible(true);
+            persistData();
         }
 
-        // ── Rendu des équipes ─────────────────────────────────────────────
+        // ── Calque des équipes ────────────────────────────────────────────
+        function sortByLevel(team) {
+            return [...team].sort((a, b) => {
+                const ia = EQUIPES_LEVEL_ORDER.indexOf(a.niveau);
+                const ib = EQUIPES_LEVEL_ORDER.indexOf(b.niveau);
+                return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.prenom.localeCompare(b.prenom);
+            });
+        }
+
+        function teamColor(idx) { return TEAM_COLORS[idx % TEAM_COLORS.length]; }
+
         function renderTeams(teams) {
             resultsGrid.innerHTML = '';
-            resultsGrid.classList.toggle('cols-4', teams.length >= 4);
+            const multiLevel = new Set(allStudents.map(s => s.niveau)).size > 1;
+            const total = teams.reduce((n, t) => n + t.length, 0);
+
+            teamsCountEl.textContent = teams.length + ' équipes';
+            teamsSubEl.textContent   = total + ' élève' + (total > 1 ? 's' : '') +
+                (currentLevel !== 'tous' && !multiLevel ? '' : '');
 
             teams.forEach((team, idx) => {
                 const stats = getTeamStats(team);
                 const card = document.createElement('div');
                 card.className = 'equipes-team-card';
+                card.style.setProperty('--team-color', teamColor(idx));
+                card.style.setProperty('--i', idx);
 
                 const header = document.createElement('div');
                 header.className = 'equipes-team-header';
-                header.innerHTML = `<span class="equipes-team-title">Équipe ${idx + 1}</span><span class="equipes-team-stats">${stats.f}F / ${stats.m}G</span>`;
+                header.innerHTML =
+                    `<span class="equipes-team-title">Équipe ${idx + 1}</span>` +
+                    `<span class="equipes-team-stats">` +
+                        `<span class="equipes-chip f" title="Filles">${stats.f} F</span>` +
+                        `<span class="equipes-chip m" title="Garçons">${stats.m} G</span>` +
+                    `</span>`;
                 card.appendChild(header);
 
-                // Trier par niveau
-                const sorted = [...team].sort((a, b) => {
-                    const ia = EQUIPES_LEVEL_ORDER.indexOf(a.niveau);
-                    const ib = EQUIPES_LEVEL_ORDER.indexOf(b.niveau);
-                    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-                });
-
-                sorted.forEach(s => {
-                    const color     = getLevelColor(s.niveau);
+                sortByLevel(team).forEach(s => {
                     const nameClass = isFemale(s) ? 'equipes-name-f' : 'equipes-name-m';
                     const member    = document.createElement('div');
                     member.className = 'equipes-team-member';
-                    member.innerHTML = `<span class="equipes-tag" style="background:${color}">${s.niveau}</span><span class="${nameClass}">${displayName(s)}</span>`;
+                    const tag = multiLevel
+                        ? `<span class="equipes-tag" style="background:${getLevelColor(s.niveau)}">${esc(s.niveau)}</span>`
+                        : '';
+                    member.innerHTML = tag + `<span class="equipes-member-name ${nameClass}" title="${esc(s.prenom + ' ' + (s.nom || ''))}">${esc(displayName(s))}</span>`;
                     card.appendChild(member);
                 });
 
                 resultsGrid.appendChild(card);
             });
-
-            resultsWrapper.style.display = 'flex';
-            footer.style.display       = 'block';
-            updateScrollButtons();
         }
 
-        // ── RàZ équipes ───────────────────────────────────────────────────
-        resetBtn.addEventListener('click', () => {
-            showConfirm('Effacer les équipes ?', 'Les équipes générées seront supprimées.', () => {
-                savedTeams = null;
-                resultsGrid.innerHTML = '';
-                resultsWrapper.style.display = 'none';
-                footer.style.display       = 'none';
-                persistData();
-            });
-        });
+        function setTeamsVisible(on) {
+            teamsVisible = !!on && !!(savedTeams && savedTeams.length);
+            teamsOverlay.classList.toggle('open', teamsVisible);
+            updateViewBtn();
+            if (teamsVisible) {
+                resultsPanel.scrollTop = 0;
+                requestAnimationFrame(fitTeams);
+            }
+        }
 
-        // Restaurer les équipes sauvegardées
-        if (savedTeams) renderTeams(savedTeams);
+        function updateViewBtn() {
+            if (viewBtn) viewBtn.style.display = (!teamsVisible && savedTeams && savedTeams.length) ? '' : 'none';
+        }
+
+        // Plus grande taille de texte qui fait tenir toutes les équipes
+        // sans défilement ni prénom coupé ; le nombre de colonnes suit la place.
+        function fitTeams() {
+            if (widget._equipesTeamFitting) return;
+            if (!teamsVisible || !resultsPanel.clientHeight) return;
+            const n = resultsGrid.children.length;
+            if (!n) return;
+            widget._equipesTeamFitting = true;
+            try {
+                const w = resultsPanel.clientWidth;
+                let cols = n <= 4 ? n : (n <= 6 ? 3 : 4);
+                if (w < 520) cols = Math.min(cols, 2);
+                else if (w < 700) cols = Math.min(cols, 3);
+                resultsGrid.style.setProperty('--team-cols', cols);
+
+                const apply = (fs) => {
+                    resultsGrid.style.setProperty('--team-fs', fs.toFixed(1) + 'px');
+                    resultsGrid.style.setProperty('--team-gap', Math.max(8, fs * 0.55).toFixed(1) + 'px');
+                };
+                const fits = () => {
+                    if (resultsPanel.scrollHeight > resultsPanel.clientHeight + 1) return false;
+                    const names = resultsGrid.querySelectorAll('.equipes-member-name');
+                    for (let i = 0; i < names.length; i++) {
+                        if (names[i].scrollWidth > names[i].clientWidth + 1) return false;
+                    }
+                    return true;
+                };
+
+                resultsPanel.style.overflowY = 'hidden';
+                let best;
+                apply(TEAM_FS_MAX);
+                if (fits()) best = TEAM_FS_MAX;
+                else {
+                    apply(TEAM_FS_MIN);
+                    if (!fits()) best = TEAM_FS_MIN;          // trop d'élèves : on défilera
+                    else {
+                        let lo = TEAM_FS_MIN, hi = TEAM_FS_MAX;
+                        while (hi - lo > 0.25) {
+                            const mid = (lo + hi) / 2;
+                            apply(mid);
+                            if (fits()) lo = mid; else hi = mid;
+                        }
+                        best = lo;
+                    }
+                }
+                apply(best);
+            } finally {
+                resultsPanel.style.overflowY = '';
+                widget._equipesTeamFitting = false;
+                updateScrollButtons();
+            }
+        }
+
+        if (viewBtn) viewBtn.addEventListener('click', () => { setTeamsVisible(true); persistData(); });
+        if (backBtn) backBtn.addEventListener('click', () => { setTeamsVisible(false); persistData(); });
+        if (redoBtn) redoBtn.addEventListener('click', generateBalancedTeams);
+
+        // ── Effacer les équipes ───────────────────────────────────────────
+        resetBtn.addEventListener('click', () => {
+            showConfirm('Effacer les équipes ?', 'Les équipes formées seront supprimées.', () => {
+                resetResults();
+                persistData();
+            }, 'Effacer');
+        });
 
         // ── Modal ─────────────────────────────────────────────────────────
         function showAlert(text) {
@@ -1591,16 +1919,18 @@
 
         function flashButton(btn, text) {
             if (!btn) return;
-            const old = btn.textContent;
-            btn.textContent = text;
+            const label = btn.querySelector('span');
+            const target = label || btn;
+            const old = target.textContent;
+            target.textContent = text;
             btn.disabled = true;
-            setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1600);
+            setTimeout(() => { target.textContent = old; btn.disabled = false; }, 1600);
         }
 
         function safeFileName(name) {
             return (name || 'equipes')
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // accents
-                .replace(/[\/\\:*?"<>|]+/g, '-')                   // caractères interdits
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[\/\\:*?"<>|]+/g, '-')
                 .replace(/\s+/g, '_')
                 .replace(/^[-_.]+|[-_.]+$/g, '')
                 .slice(0, 80) || 'equipes';
@@ -1656,7 +1986,7 @@
             modalInput.style.display = 'block';
             modalInput.value = def;
             modalInput.onkeydown = (e) => {
-                e.stopPropagation(); // éviter les raccourcis clavier du tableau
+                e.stopPropagation();
                 if (e.key === 'Enter')  { e.preventDefault(); doSave(); }
                 if (e.key === 'Escape') { e.preventDefault(); closeModal(); }
             };
@@ -1710,11 +2040,11 @@
             const teams     = set.teams.map(t => normalizeStudents(t));
             const fromTeams = [].concat(...teams);
             allStudents   = (Array.isArray(set.students) && set.students.length) ? normalizeStudents(set.students) : fromTeams;
-            set = Object.assign({}, set, { teams: teams });
             absentSet     = new Set((set.absents || []).map(String));
-            selectedCount = Math.min(TEAM_MAX, Math.max(TEAM_MIN, set.teams.length));
+            selectedCount = Math.min(TEAM_MAX, Math.max(TEAM_MIN, teams.length));
             currentLevel  = 'tous';
-            savedTeams    = set.teams;
+            savedTeams    = teams;
+            teamsVisible  = true;
 
             const CL = window.ClasseListe;
             if (set.classId && CL && CL.getClass(set.classId)) {
@@ -1725,30 +2055,22 @@
             } else {
                 classId = null;
                 delete widget.dataset.equipesClassId;
-                persistData();
                 showLoadedState();
                 renderTeams(savedTeams);
+                setTeamsVisible(true);
+                persistData();
             }
             if (typeof saveBoard === 'function') saveBoard();
         }
 
         // =================================================================
-        // EXPORT PDF (via la fenêtre d'impression du navigateur)
+        // EXPORT PDF
         // =================================================================
         function esc(str) {
             return String(str == null ? '' : str).replace(/[&<>"']/g, c => (
                 { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
 
-        function sortByLevel(team) {
-            return [...team].sort((a, b) => {
-                const ia = EQUIPES_LEVEL_ORDER.indexOf(a.niveau);
-                const ib = EQUIPES_LEVEL_ORDER.indexOf(b.niveau);
-                return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.prenom.localeCompare(b.prenom);
-            });
-        }
-
-        // Chargement de jsPDF à la demande (une seule fois pour toute la page)
         const JSPDF_URLS = [
             'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
             'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
@@ -1768,7 +2090,7 @@
                 document.head.appendChild(sc);
             });
             window._equipesJsPDFPromise = tryUrl(0).catch(err => {
-                window._equipesJsPDFPromise = null; // permettre un nouvel essai
+                window._equipesJsPDFPromise = null;
                 throw err;
             });
             return window._equipesJsPDFPromise;
@@ -1797,7 +2119,6 @@
             const dateTxt = formatDate(new Date(), true);
             const multiLevel = new Set(allStudents.map(s => s.niveau)).size > 1;
 
-            // ── En-tête ──
             let y = M + 6;
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(20);
@@ -1810,7 +2131,6 @@
             doc.text(dateTxt.charAt(0).toUpperCase() + dateTxt.slice(1), M, y);
             y += 8;
 
-            // ── Grille de cartes ──
             const cols  = savedTeams.length <= 4 ? 2 : 3;
             const GAP   = 5;
             const cardW = (PAGE_W - 2 * M - GAP * (cols - 1)) / cols;
@@ -1826,17 +2146,19 @@
                     const idx = r + k;
                     const x = M + k * (cardW + GAP);
                     const st = getTeamStats(team);
+                    const tc = hexToRgb(teamColor(idx));
 
-                    // Cadre
                     doc.setDrawColor(...BORDER);
                     doc.setLineWidth(0.4);
                     doc.setFillColor(248, 249, 250);
                     doc.roundedRect(x, y, cardW, rowH, 3, 3, 'FD');
+                    // Bandeau de couleur de l'équipe
+                    doc.setFillColor(...tc);
+                    doc.rect(x + 3, y, cardW - 6, 1.6, 'F');
 
-                    // Titre + stats
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(13);
-                    doc.setTextColor(...GRAY_DARK);
+                    doc.setTextColor(...tc);
                     doc.text('ÉQUIPE ' + (idx + 1), x + PAD, y + PAD + 4.5);
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(8);
@@ -1846,7 +2168,6 @@
                     doc.setLineWidth(0.3);
                     doc.line(x + PAD, y + HEAD_H + 1, x + cardW - PAD, y + HEAD_H + 1);
 
-                    // Membres
                     let ly = y + HEAD_H + PAD + 3.5;
                     sortByLevel(team).forEach(s => {
                         let nx = x + PAD;
@@ -1869,7 +2190,6 @@
                 y += rowH + GAP;
             }
 
-            // ── Absents ──
             const absents = allStudents
                 .filter(s => absentSet.has(String(s.id)))
                 .map(s => s.prenom + (s.nom ? ' ' + s.nom : ''));
@@ -1888,20 +2208,21 @@
 
         function exportTeamsPDF() {
             if (!savedTeams || !savedTeams.length) return;
-            const oldLabel = pdfBtn.textContent;
-            pdfBtn.textContent = '⏳ Création…';
+            const label = pdfBtn.querySelector('span');
+            const oldLabel = label.textContent;
+            label.textContent = 'Création…';
             pdfBtn.disabled = true;
             loadJsPDF()
                 .then(JsPDF => {
                     const { doc, fileName } = buildTeamsPDF(JsPDF);
                     doc.save(fileName);
-                    pdfBtn.textContent = oldLabel;
+                    label.textContent = oldLabel;
                     pdfBtn.disabled = false;
                     flashButton(pdfBtn, '✓ PDF créé');
                 })
                 .catch(err => {
                     console.warn('equipes: export PDF', err);
-                    pdfBtn.textContent = oldLabel;
+                    label.textContent = oldLabel;
                     pdfBtn.disabled = false;
                     showAlert("Impossible de créer le PDF.\nVérifiez la connexion Internet (la bibliothèque PDF est chargée en ligne au premier export).");
                 });
@@ -1911,7 +2232,7 @@
         if (pdfBtn)       pdfBtn.addEventListener('click', exportTeamsPDF);
         if (openTeamsBtn) openTeamsBtn.addEventListener('click', openTeamsFile);
 
-        // ── Boutons de défilement tactiles pour equipes-results ───────────
+        // ── Boutons de défilement tactiles pour les équipes ───────────────
         const SCROLL_STEP = 120;
 
         function updateScrollButtons() {
@@ -1922,11 +2243,8 @@
             scrollDownBtn.classList.toggle('visible', canDown);
         }
 
-        if (resultsPanel) {
-            resultsPanel.addEventListener('scroll', updateScrollButtons);
-        }
+        resultsPanel.addEventListener('scroll', updateScrollButtons);
 
-        // Scroll au clic (avec répétition maintien appui)
         function makeScrollHandler(direction) {
             let interval = null;
             function doScroll() {
@@ -1947,35 +2265,70 @@
             };
         }
 
-        if (scrollUpBtn) {
-            const h = makeScrollHandler(-1);
-            scrollUpBtn.addEventListener('pointerdown', h.start);
-            scrollUpBtn.addEventListener('pointerup',   h.stop);
-            scrollUpBtn.addEventListener('pointerleave',h.stop);
-            scrollUpBtn.addEventListener('pointercancel',h.stop);
-        }
-        if (scrollDownBtn) {
-            const h = makeScrollHandler(1);
-            scrollDownBtn.addEventListener('pointerdown', h.start);
-            scrollDownBtn.addEventListener('pointerup',   h.stop);
-            scrollDownBtn.addEventListener('pointerleave',h.stop);
-            scrollDownBtn.addEventListener('pointercancel',h.stop);
-        }
+        [[scrollUpBtn, -1], [scrollDownBtn, 1]].forEach(([btn, dir]) => {
+            if (!btn) return;
+            const h = makeScrollHandler(dir);
+            btn.addEventListener('pointerdown',   h.start);
+            btn.addEventListener('pointerup',     h.stop);
+            btn.addEventListener('pointerleave',  h.stop);
+            btn.addEventListener('pointercancel', h.stop);
+        });
 
-        // ── Mise à l'échelle des pills selon la largeur du widget ─────────
+        // ── Taille automatique des étiquettes prénoms ─────────────────────
+        // Plus grande taille qui tient ENTIÈREMENT dans le cadre blanc.
+        function applyPillScale(fs, cols) {
+            body.style.setProperty('--pill-fs',  fs.toFixed(1) + 'px');
+            body.style.setProperty('--pill-pad', Math.max(2, fs * 0.3).toFixed(1) + 'px');
+            body.style.setProperty('--pill-gap', Math.max(3, fs * 0.35).toFixed(1) + 'px');
+            body.style.setProperty('--pill-label-fs', Math.max(8, Math.min(13, fs * 0.6)).toFixed(1) + 'px');
+            body.style.setProperty('--pill-cols', cols);
+        }
+        function pillsFit() {
+            if (body.scrollHeight > body.clientHeight) return false;
+            if (body.scrollWidth  > body.clientWidth)  return false;
+            const pills = body.querySelectorAll('.equipes-pill');
+            for (let i = 0; i < pills.length; i++) {
+                if (pills[i].scrollWidth > pills[i].clientWidth) return false;
+            }
+            return true;
+        }
+        function bestSizeFor(cols, mustBeat) {
+            applyPillScale(PILL_FS_MAX, cols);
+            if (pillsFit()) return PILL_FS_MAX;
+            let lo = Math.max(PILL_FS_MIN, mustBeat);
+            applyPillScale(lo, cols);
+            if (!pillsFit()) return -Infinity;
+            let hi = PILL_FS_MAX;
+            while (hi - lo > 0.25) {
+                const mid = (lo + hi) / 2;
+                applyPillScale(mid, cols);
+                if (pillsFit()) lo = mid; else hi = mid;
+            }
+            return lo;
+        }
         function updatePillScale() {
-            const _inner = widget.querySelector('.equipes-inner');
-            const w = (_isMax && _inner ? _inner.offsetWidth : outer.offsetWidth) || 420;
-            const minW = 300, maxW = 700;
-            let t = Math.max(0, Math.min(1, (w - minW) / (maxW - minW)));
-            // Plein écran téléphone : écran étroit mais prénoms lisibles au doigt
-            if (widget.classList.contains('phone-fs') || (_isMax && isPhoneNow())) t = Math.max(t, 0.6);
-            const fs  = (9  + t * 7).toFixed(1)  + 'px';
-            const pad = (4  + t * 5).toFixed(1)  + 'px';
-            const gap = (4  + t * 5).toFixed(1)  + 'px';
-            body.style.setProperty('--pill-fs',  fs);
-            body.style.setProperty('--pill-pad', pad);
-            body.style.setProperty('--pill-gap', gap);
+            if (widget._equipesFitting) return;
+            if (!body.offsetParent || !body.clientHeight) return;
+            widget._equipesFitting = true;
+            try {
+                body.style.overflowY = 'hidden';
+                const nbPills = body.querySelectorAll('.equipes-pill').length;
+                let best = -Infinity, bestCols = 5;
+                for (const cols of PILL_COLS) {
+                    if (cols !== 5 && cols > Math.max(2, nbPills)) continue;
+                    const fs = bestSizeFor(cols, best);
+                    if (fs > best + 0.3) { best = fs; bestCols = cols; }
+                    if (best >= PILL_FS_MAX) break;
+                }
+                if (best === -Infinity) {
+                    best = PILL_FS_MIN;
+                    bestCols = Math.max(3, Math.min(10, Math.floor(body.clientWidth / 60)));
+                }
+                applyPillScale(best, bestCols);
+            } finally {
+                body.style.overflowY = '';
+                widget._equipesFitting = false;
+            }
         }
 
         // ── Poignée de redimensionnement custom ───────────────────────────
@@ -1992,7 +2345,7 @@
                 handle.setPointerCapture(e.pointerId);
                 const startX = e.clientX, startY = e.clientY;
                 const startW = outer.offsetWidth,  startH = outer.offsetHeight;
-                const minW = 300, minH = 220;
+                const minW = 300, minH = 260;
 
                 function onMove(ev) {
                     ev.preventDefault();
@@ -2014,21 +2367,51 @@
         // ── Sauvegarder la taille via ResizeObserver ──────────────────────
         if (window.ResizeObserver) {
             const ro = new ResizeObserver(() => {
-                // Ne pas mémoriser la taille plein écran du téléphone (sinon, rouvert
-                // sur ordinateur, le widget garderait la taille de l'écran du téléphone)
                 if (outer.dataset.collapsed !== '1' && !widget.classList.contains('phone-fs')) {
                     if (outer.offsetWidth  > 0) widget.dataset.equipesW = outer.offsetWidth;
                     if (outer.offsetHeight > 0) widget.dataset.equipesH = outer.offsetHeight;
                 }
                 updatePillScale();
+                fitTeams();
             });
             ro.observe(outer);
-            updatePillScale();
+            ro.observe(body);
+            ro.observe(teamsOverlay);
             const guard = new MutationObserver(() => {
                 if (!document.contains(widget)) { ro.disconnect(); guard.disconnect(); }
             });
             guard.observe(document.body, { childList: true, subtree: true });
         }
+
+        // =================================================================
+        // DÉMARRAGE : thème + données (en dernier, tout est défini)
+        // =================================================================
+        applyTheme(widget.dataset.equipesTheme || DEFAULT_THEME);
+        refreshClassBtn();
+
+        if (widget.dataset.equipesStudents) {
+            try {
+                allStudents   = JSON.parse(widget.dataset.equipesStudents);
+                absentSet     = new Set(JSON.parse(widget.dataset.equipesAbsents || '[]').map(String));
+                selectedCount = parseInt(widget.dataset.equipesCount || DEFAULT_TEAM_COUNT);
+                savedTeams    = widget.dataset.equipesTeams ? JSON.parse(widget.dataset.equipesTeams) : null;
+                const hidden  = widget.dataset.equipesTeamsHidden === '1';
+                showLoadedState();
+                if (savedTeams) { renderTeams(savedTeams); setTeamsVisible(!hidden); }
+            } catch(e) { console.warn('equipes: erreur restauration dataset', e); }
+        } else if (window.ClasseListe && window.ClasseListe.getStudents().length) {
+            loadFromClass(window.ClasseListe.getActiveId());
+        } else {
+            try {
+                const saved = localStorage.getItem('tirage_students_list') || localStorage.getItem('maListeEleves');
+                if (saved) {
+                    allStudents = normalizeStudents(JSON.parse(saved));
+                    setStatus('✓ ' + allStudents.length + ' élève(s) (liste mémorisée)', 'ok');
+                    showLoadedState();
+                }
+            } catch(e) {}
+        }
+        requestAnimationFrame(() => { updatePillScale(); fitTeams(); });
     };
 
     // =========================================================================
@@ -2042,7 +2425,6 @@
         widget.className = 'widget';
         widget.dataset.type = 'equipes';
         widget.dataset.transparent = 'true';
-        // Le widget s'ouvre à 100px du bord gauche du board.
         widget.style.cssText = `left:100px; top:${pos.y}px;`;
         widget.tabIndex = 0;
 
@@ -2065,8 +2447,8 @@
         makeDraggableRotate(widget);
         bringToFront(widget);
         widget.focus();
-        initEquipesWidget(widget);
-        // Sur téléphone : ouverture directe en plein écran (bouton vert).
+        try { initEquipesWidget(widget); }
+        catch (e) { console.error('Équipes : erreur à l\'ouverture', e); }
         if (isPhoneNow() && widget._wfSetMax) widget._wfSetMax(true);
         saveBoard();
         return widget;
@@ -2087,7 +2469,6 @@
                 const collapsed = widget.dataset.collapsed === '1';
                 if (!outer) return;
 
-                // Quand réduit, corriger leftPercent/topPercent avec la position d'origine
                 if (collapsed) {
                     const origLeft = parseFloat(widget.dataset.equipesLeftSaved);
                     const origTop  = parseFloat(widget.dataset.equipesTopSaved);
@@ -2110,13 +2491,15 @@
                         match.topPercent  = parseFloat(widget.dataset.topPercent);
                     }
                     match.equipesCollapsed  = collapsed;
-                    if (widget.dataset.equipesLeftSaved) match.equipesLeftSaved = widget.dataset.equipesLeftSaved;
-                    if (widget.dataset.equipesTopSaved)  match.equipesTopSaved  = widget.dataset.equipesTopSaved;
-                    if (widget.dataset.equipesStudents)  match.equipesStudents  = widget.dataset.equipesStudents;
-                    if (widget.dataset.equipesAbsents)   match.equipesAbsents   = widget.dataset.equipesAbsents;
-                    if (widget.dataset.equipesCount)     match.equipesCount     = widget.dataset.equipesCount;
-                    if (widget.dataset.equipesTeams)     match.equipesTeams     = widget.dataset.equipesTeams;
-                    if (widget.dataset.equipesClassId)   match.equipesClassId   = widget.dataset.equipesClassId;
+                    if (widget.dataset.equipesLeftSaved)   match.equipesLeftSaved   = widget.dataset.equipesLeftSaved;
+                    if (widget.dataset.equipesTopSaved)    match.equipesTopSaved    = widget.dataset.equipesTopSaved;
+                    if (widget.dataset.equipesStudents)    match.equipesStudents    = widget.dataset.equipesStudents;
+                    if (widget.dataset.equipesAbsents)     match.equipesAbsents     = widget.dataset.equipesAbsents;
+                    if (widget.dataset.equipesCount)       match.equipesCount       = widget.dataset.equipesCount;
+                    if (widget.dataset.equipesTeams)       match.equipesTeams       = widget.dataset.equipesTeams;
+                    if (widget.dataset.equipesClassId)     match.equipesClassId     = widget.dataset.equipesClassId;
+                    if (widget.dataset.equipesTheme)       match.equipesTheme       = widget.dataset.equipesTheme;
+                    if (widget.dataset.equipesTeamsHidden) match.equipesTeamsHidden = widget.dataset.equipesTeamsHidden;
                 }
             });
             return state;
@@ -2126,15 +2509,11 @@
     // =========================================================================
     // HOOK restoreBoardFromJSON — reconstruire + réinitialiser après chargement
     // =========================================================================
-    // =========================================================================
-    // HOOK restoreBoardFromJSON — reconstruire + réinitialiser après chargement
-    // =========================================================================
     (function patchRestoreEquipes() {
         function doPatch() {
             const _orig = window.restoreBoardFromJSON;
             if (typeof _orig !== 'function') return;
             window.restoreBoardFromJSON = function (json) {
-                // Pré-parser : stocker les données equipes dans un tableau ordonné
                 let equipesList = [];
                 try {
                     const parsed  = JSON.parse(json);
@@ -2153,27 +2532,29 @@
                             outer.className = 'equipes-outer';
                             widget.appendChild(outer);
                         }
-                        if (!outer.querySelector('.equipes-inner')) {
+                        // Toujours repartir du nouveau gabarit (les anciennes sauvegardes
+                        // contiennent l'ancien graphisme)
+                        if (!outer.querySelector('.equipes-stage')) {
                             outer.innerHTML = equipesInnerHTML();
                         }
 
-                        // Correspondance par index d'ordre
                         const saved = equipesList[idx];
 
                         if (saved) {
-                            if (saved.equipesStudents)  widget.dataset.equipesStudents  = saved.equipesStudents;
-                            if (saved.equipesAbsents)   widget.dataset.equipesAbsents   = saved.equipesAbsents;
-                            if (saved.equipesCount)     widget.dataset.equipesCount     = saved.equipesCount;
-                            if (saved.equipesTeams)     widget.dataset.equipesTeams     = saved.equipesTeams;
-                            if (saved.equipesClassId)   widget.dataset.equipesClassId   = saved.equipesClassId;
-                            if (saved.equipesLeftSaved) widget.dataset.equipesLeftSaved = saved.equipesLeftSaved;
-                            if (saved.equipesTopSaved)  widget.dataset.equipesTopSaved  = saved.equipesTopSaved;
+                            if (saved.equipesStudents)    widget.dataset.equipesStudents    = saved.equipesStudents;
+                            if (saved.equipesAbsents)     widget.dataset.equipesAbsents     = saved.equipesAbsents;
+                            if (saved.equipesCount)       widget.dataset.equipesCount       = saved.equipesCount;
+                            if (saved.equipesTeams)       widget.dataset.equipesTeams       = saved.equipesTeams;
+                            if (saved.equipesClassId)     widget.dataset.equipesClassId     = saved.equipesClassId;
+                            if (saved.equipesTheme)       widget.dataset.equipesTheme       = saved.equipesTheme;
+                            if (saved.equipesTeamsHidden) widget.dataset.equipesTeamsHidden = saved.equipesTeamsHidden;
+                            if (saved.equipesLeftSaved)   widget.dataset.equipesLeftSaved   = saved.equipesLeftSaved;
+                            if (saved.equipesTopSaved)    widget.dataset.equipesTopSaved    = saved.equipesTopSaved;
                             const w = saved.equipesW || parseFloat(widget.dataset.equipesW);
                             const h = saved.equipesH || parseFloat(widget.dataset.equipesH);
                             if (w > 0) { outer.style.width  = w + 'px'; widget.dataset.equipesW = w; }
                             if (h > 0) { outer.style.height = h + 'px'; widget.dataset.equipesH = h; }
 
-                            // Restaurer position d'origine si le widget était réduit
                             if (saved.equipesCollapsed) {
                                 const origLeft = parseFloat(saved.equipesLeftSaved);
                                 const origTop  = parseFloat(saved.equipesTopSaved);
@@ -2203,7 +2584,6 @@
                             if (wc) { wc.style.padding = '0'; wc.style.background = 'transparent'; wc.style.borderRadius = '0'; }
                             widget.dataset.collapsed = '1';
 
-                            // Créer la mini-barre
                             if (!widget.querySelector('.equipes-mini-bar')) {
                                 const miniBar = document.createElement('div');
                                 miniBar.className = 'equipes-mini-bar';

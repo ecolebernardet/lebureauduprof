@@ -62,7 +62,7 @@
         '  font-family:"Nunito","Segoe UI",system-ui,sans-serif;}',
         '#accueil.acc-hide{opacity:0;transition:opacity .35s ease;}',
         '#accueil.acc-hide .acc-card{transform:translateY(12px) scale(.98);transition:transform .35s ease;}',
-        '.acc-card{pointer-events:auto;position:relative;width:min(760px,100%);max-height:calc(100vh - 48px);overflow:auto;',
+        '.acc-card{pointer-events:auto;position:relative;width:min(800px,100%);max-height:calc(100vh - 48px);overflow:auto;',
         '  box-sizing:border-box;padding:26px 28px 18px;border-radius:26px;',
         '  background:rgba(255,255,255,.86);border:1px solid rgba(255,255,255,.7);',
         '  -webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);',
@@ -79,8 +79,11 @@
         '.acc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-right:40px;margin-bottom:18px;}',
         '.acc-hello{font-size:15px;font-weight:700;color:#7b4fe0;letter-spacing:.3px;margin:0 0 2px;}',
         '.acc-title{font-size:30px;font-weight:900;margin:0;line-height:1.1;letter-spacing:-.3px;}',
+        '.acc-brand{display:flex;align-items:center;gap:14px;}',
+        '.acc-logo{height:68px;width:auto;max-width:150px;flex-shrink:0;object-fit:contain;border-radius:14px;',
+        '  background:#fff;box-shadow:0 4px 14px rgba(40,30,70,.18);}',
         '.acc-time{text-align:right;flex-shrink:0;}',
-        '.acc-intro{font-size:14px;line-height:1.5;color:#4a4660;margin:6px 0 0;max-width:470px;}',
+        '.acc-intro{font-size:14px;line-height:1.5;color:#4a4660;margin:12px 0 0;max-width:470px;}',
         '.acc-intro b{color:#2a2440;}',
         '.acc-pdf{display:flex;align-items:center;gap:14px;margin:0 0 14px;padding:12px 14px;border-radius:16px;',
         '  background:linear-gradient(120deg,#fff1f0,#fff8ee);border:1px solid #f6cfc9;}',
@@ -93,7 +96,8 @@
         '  color:#fff;background:linear-gradient(120deg,#e5484d,#c0392b);box-shadow:0 4px 12px rgba(229,72,77,.3);',
         '  transition:transform .12s,filter .15s;touch-action:manipulation;}',
         '.acc-pdf-btn:hover{transform:translateY(-2px);filter:brightness(1.06);}',
-        '.acc-points{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;padding:0;list-style:none;}',
+        '.acc-points{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 14px;padding:0;list-style:none;}',
+        '.acc-points li{white-space:nowrap;}',
         '.acc-points li{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(123,79,224,.09);color:#5f3cc4;}',
         '.acc-clock{font-size:44px;font-weight:900;line-height:1;letter-spacing:-1px;font-variant-numeric:tabular-nums;',
         '  background:linear-gradient(120deg,#4a90e2,#9b6cf0);-webkit-background-clip:text;background-clip:text;color:transparent;}',
@@ -154,6 +158,7 @@
         '  .acc-head{flex-direction:column;align-items:flex-start;gap:6px;margin-bottom:12px;}',
         '  .acc-time{text-align:left;}',
         '  .acc-title{font-size:22px;} .acc-clock{font-size:30px;}',
+        '  .acc-brand{gap:10px;} .acc-logo{height:46px;border-radius:10px;}',
         '  .acc-intro{font-size:12.5px;} .acc-points{display:none;}',
         '  .acc-pdf{flex-wrap:wrap;gap:10px;padding:10px;} .acc-pdf-ico{width:36px;height:36px;} .acc-pdf-txt{font-size:12px;}',
         '  .acc-pdf-btn{width:100%;}',
@@ -208,13 +213,16 @@
             '<div class="acc-card" role="dialog" aria-label="Accueil">' +
               '<button type="button" class="acc-close" title="Fermer (Échap)" aria-label="Fermer">✕</button>' +
               '<div class="acc-head">' +
-                '<div><p class="acc-hello">Bonjour !</p><h1 class="acc-title">Le Bureau du Prof</h1>' +
+                '<div><div class="acc-brand">' +
+                  '<img class="acc-logo" src="pics/logo-le-bureau-du-prof.jpg" alt="Logo Le Bureau du Prof" onerror="this.remove()">' +
+                  '<div><p class="acc-hello">Bonjour !</p><h1 class="acc-title">Le Bureau du Prof</h1></div>' +
+                '</div>' +
                   '<p class="acc-intro">Votre <b>tableau blanc numérique</b> pour la classe : écrivez, dessinez, projetez vos documents ' +
                   'et lancez en un clic des <b>jeux</b>, des <b>activités</b> et des <b>outils</b> pensés pour l\'école, au TBI, au VPI ou sur ordinateur.</p>' +
-                  '<ul class="acc-points"><li>Gratuit</li><li>Sans compte</li><li>Tableaux enregistrés sur cet appareil</li><li>Fonctionne à la souris, au stylet et au doigt</li></ul>' +
                 '</div>' +
                 '<div class="acc-time"><div class="acc-clock">--:--</div><div class="acc-date"></div></div>' +
               '</div>' +
+              '<ul class="acc-points"><li>Gratuit</li><li>Sans compte</li><li>Tableaux enregistrés sur cet appareil</li><li>Fonctionne au stylet et au doigt</li></ul>' +
               '<div class="acc-pdf">' +
                 '<span class="acc-pdf-ico">' + svg('pdf') + '</span>' +
                 '<span class="acc-pdf-txt"><strong>Projetez et annotez vos PDF</strong>' +

@@ -1394,7 +1394,7 @@
 			grid-template-columns: repeat(3, 1fr);
 			gap: 6px;
 			padding: 12px 8px;
-			margin-left: 42px; /* laisse libre la bande de fermeture (ligne bleue comprise) */
+			margin-left: 0;
 			border-bottom: 2px solid #4a90e2;
 			flex-shrink: 0;
 			background: linear-gradient(180deg, #1c1c28, #14141c);
@@ -3424,59 +3424,6 @@ body.menu-light #board-quick-menu button:active {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   BANDE DE FERMETURE : toute la partie gauche des panneaux latéraux
-   (la marge de 50px déjà réservée dans chaque panneau)
-══════════════════════════════════════════════════════════════════ */
-.panel-close-strip {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 40px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-around;
-    background: rgba(255,255,255,0.02);
-    border-right: 1px solid rgba(255,255,255,0.06);
-    cursor: pointer;
-    z-index: 20;
-    user-select: none;
-    touch-action: manipulation;
-    transition: background 0.15s, border-color 0.15s;
-}
-.panel-close-strip .pcs-ico {
-    font-size: 16px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.25);
-    pointer-events: none;
-    transition: color 0.15s, transform 0.15s;
-}
-.panel-close-strip:hover,
-.panel-close-strip:active {
-    background: rgba(255,95,87,0.15);
-    border-right-color: rgba(255,95,87,0.5);
-}
-.panel-close-strip:hover .pcs-ico,
-.panel-close-strip:active .pcs-ico {
-    color: #ff5f57;
-    transform: translateX(-3px);
-}
-body.menu-light .panel-close-strip {
-    background: rgba(0,0,0,0.03);
-    border-right-color: rgba(0,0,0,0.08);
-}
-body.menu-light .panel-close-strip .pcs-ico { color: rgba(0,0,0,0.25); }
-body.menu-light .panel-close-strip:hover,
-body.menu-light .panel-close-strip:active {
-    background: rgba(255,95,87,0.12);
-    border-right-color: rgba(255,95,87,0.5);
-}
-body.menu-light .panel-close-strip:hover .pcs-ico,
-body.menu-light .panel-close-strip:active .pcs-ico { color: #e0443c; }
-
-
-/* ══════════════════════════════════════════════════════════════════
    BARRE DESSIN : bouton de fermeture bien visible
    (le masquage du bouton Dessin est dans la section « BOUTON DESSIN »)
 ══════════════════════════════════════════════════════════════════ */
@@ -3751,3 +3698,80 @@ body.presentation-mode #draw-fab-btn { display: none; }
 @media (prefers-reduced-motion: reduce) {
     #draw-fab-btn { animation: none; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   ICÔNE DES TITRES DE PANNEAUX
+   Même icône SVG et même couleur que l'onglet latéral correspondant
+══════════════════════════════════════════════════════════════════ */
+#sticker-panel-header h3,
+#jeux-panel-header h3,
+#act-panel-header h3,
+#widgets-panel-header h3,
+#tools-panel-header h3,
+#display-panel-header h3,
+#proj-panel-header span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.panel-title-ico {
+    width: 24px; height: 24px; flex-shrink: 0;
+    fill: none; stroke: var(--tab-c); stroke-width: 1.8;
+    stroke-linecap: round; stroke-linejoin: round;
+}
+.panel-title-ico circle { fill: var(--tab-c); }
+#proj-panel-header .panel-title-ico { width: 20px; height: 20px; }
+/* Mode clair : couleur légèrement assombrie pour rester lisible sur fond clair */
+body.menu-light .panel-title-ico { stroke: color-mix(in srgb, var(--tab-c) 80%, #000); }
+body.menu-light .panel-title-ico circle { fill: color-mix(in srgb, var(--tab-c) 80%, #000); }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   PANNEAUX DÉCALÉS À DROITE DES ONGLETS
+   Un panneau ouvert commence juste après la colonne d'onglets
+   (largeur d'un onglet ouvert : 50 + 8 px) : les onglets ne le
+   recouvrent plus, et l'onglet actif touche le bord du panneau.
+══════════════════════════════════════════════════════════════════ */
+:root { --side-tabs-w: 58px; }
+#jeux-panel.jeux-panel-open,
+#activities-panel.act-panel-open,
+#tools-panel.tools-panel-open,
+#widgets-panel.widgets-panel-open,
+#sticker-panel.active,
+#projects-panel.proj-panel-open,
+#display-panel.display-panel-open { left: var(--side-tabs-w); }
+
+/* Le panneau ne dépasse jamais à droite de l'écran */
+#jeux-panel, #activities-panel, #tools-panel, #widgets-panel,
+#projects-panel, #display-panel { max-width: calc(100vw - var(--side-tabs-w)); }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   MARGE GAUCHE DES PANNEAUX
+   La bande de fermeture verticale a été supprimée et les onglets ne
+   recouvrent plus les panneaux : la marge de 50 px réservée à gauche
+   n'a plus lieu d'être. On garde un retrait normal de 16 px.
+══════════════════════════════════════════════════════════════════ */
+#sticker-panel-header,
+#widgets-panel-header, #tools-panel-header,
+#act-panel-header, #jeux-panel-header,
+#display-panel-header, #history-panel-header { padding-left: 16px; }
+#sticker-panel-tabs,
+#sticker-panel-search,
+#sp-content,
+#widgets-panel-content, #tools-panel-content,
+#act-panel-content, #jeux-panel-content,
+#display-panel-content, #history-panel-content,
+#image-panel-search, #image-panel-grid,
+#image-panel-footer,
+#image-panel-tabs,
+body.menu-light #image-panel-tabs { padding-left: 16px; }
+#sticker-mode-bar { margin-left: 0; padding-left: 16px; }
+#proj-panel-header,
+#proj-panel-actions,
+.proj-panel-section-label { padding-left: 14px; }
+#proj-panel-new-btn { margin-left: 10px; }
+.proj-panel-item-wrap { margin-left: 8px; }
+.proj-panel-sep,
+#proj-panel-draft-banner { margin-left: 8px; }

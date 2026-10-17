@@ -816,7 +816,7 @@ if (typeof closeMainMenu === 'undefined') {
 	<div id="sticker-panel-resize-handle" title="Redimensionner le panneau"></div>
 	<!-- Header -->
 	<div id="sticker-panel-header">
-		<h3>🎨 Visuels</h3>
+		<h3><svg class="panel-title-ico" style="--tab-c:#e84393" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M21 15.5l-4.5-4.5L6 19"/></svg>Visuels</h3>
 		<button class="sp-close" onclick="toggleStickerPanel()" title="Fermer">✖</button>
 	</div>
 	<!-- Bascule Animés / Classiques / Images -->
@@ -1323,7 +1323,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 <div id="jeux-panel">
     <div id="jeux-panel-resize-handle" title="Redimensionner le panneau"></div>
     <div id="jeux-panel-header">
-        <h3>🎮 Jeux à la maison ou en classe</h3>
+        <h3><svg class="panel-title-ico" style="--tab-c:#9b6cf0" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 7h11a4.5 4.5 0 0 1 4.3 5.8l-1.2 4a2.6 2.6 0 0 1-4.5.9L14.5 16h-5l-1.6 1.7a2.6 2.6 0 0 1-4.5-.9l-1.2-4A4.5 4.5 0 0 1 6.5 7z"/><path d="M7.5 10v3M6 11.5h3"/><circle cx="15.5" cy="10.5" r=".6"/><circle cx="17.5" cy="12.5" r=".6"/></svg>Jeux à la maison ou en classe</h3>
         <button id="jeux-panel-close" onclick="toggleJeuxPanel()" title="Fermer">✕</button>
     </div>
     <div id="jeux-panel-content">
@@ -1771,7 +1771,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 <div id="activities-panel">
     <div id="activities-panel-resize-handle" title="Redimensionner le panneau"></div>
     <div id="act-panel-header">
-        <h3>🎲Activités en classe</h3>
+        <h3><svg class="panel-title-ico" style="--tab-c:#f39c12" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r=".8"/><circle cx="15.5" cy="8.5" r=".8"/><circle cx="12" cy="12" r=".8"/><circle cx="8.5" cy="15.5" r=".8"/><circle cx="15.5" cy="15.5" r=".8"/></svg>Activités en classe</h3>
         <button id="act-panel-close" onclick="toggleActivitiesPanel()" title="Fermer">✕</button>
     </div>
     <div id="act-panel-content">
@@ -2021,7 +2021,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 <div id="widgets-panel">
     <div id="widgets-panel-resize-handle" title="Redimensionner le panneau"></div>
     <div id="widgets-panel-header">
-        <h3>📦 Widgets pour le tableau</h3>
+        <h3><svg class="panel-title-ico" style="--tab-c:#4a90e2" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>Widgets pour le tableau</h3>
         <button id="widgets-panel-close" onclick="toggleWidgetsPanel()" title="Fermer">✕</button>
     </div>
     <div id="widgets-panel-content">
@@ -2168,7 +2168,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 <div id="tools-panel">
     <div id="tools-panel-resize-handle" title="Redimensionner le panneau"></div>
     <div id="tools-panel-header">
-        <h3>🛠️ Outils pour la classe</h3>
+        <h3><svg class="panel-title-ico" style="--tab-c:#2ecc71" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M8.5 8V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/><path d="M10 13v2h4v-2"/></svg>Outils pour la classe</h3>
         <button id="tools-panel-close" onclick="toggleToolsPanel()" title="Fermer">✕</button>
     </div>
     <div id="tools-panel-content">
@@ -2370,7 +2370,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 <div id="projects-panel">
     <div id="projects-panel-resize-handle" title="Redimensionner le panneau"></div>
     <div id="proj-panel-header">
-        <span>📁 Mes tableaux</span>
+        <span><svg class="panel-title-ico" style="--tab-c:#a0a8b4" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Mes tableaux</span>
         <button id="proj-panel-close" onclick="toggleProjectsPanel()" title="Fermer">✕</button>
     </div>
     <!-- Brouillon banner -->
@@ -2443,7 +2443,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 <div id="display-panel">
     <div id="display-panel-resize-handle" title="Redimensionner le panneau"></div>
     <div id="display-panel-header">
-        <h3>🖥️ Écran</h3>
+        <h3><svg class="panel-title-ico" style="--tab-c:#a0a8b4" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/></svg>Écran</h3>
         <button id="display-panel-close" onclick="toggleDisplayPanel()" title="Fermer">✕</button>
     </div>
     <div id="display-panel-content">
@@ -3945,46 +3945,6 @@ document.addEventListener('DOMContentLoaded', function() {
             window.parent.postMessage({ type: 'pg-ready' }, '*');
         }
     });
-})();
-</script>
-<script>
-// ── Bande de fermeture sur toute la partie gauche de chaque panneau latéral ─────
-(function() {
-    // [id du panneau, sélecteur du bouton de fermeture existant]
-    var PANELS = [
-        ['jeux-panel',        '#jeux-panel-close'],
-        ['activities-panel',  '#act-panel-close'],
-        ['tools-panel',       '#tools-panel-close'],
-        ['widgets-panel',     '#widgets-panel-close'],
-        ['sticker-panel',     '.sp-close'],
-        ['projects-panel',    '#proj-panel-close'],
-        ['display-panel',     '#display-panel-close']
-    ];
-
-    function addCloseButtons() {
-        PANELS.forEach(function(cfg) {
-            var panel = document.getElementById(cfg[0]);
-            if (!panel || panel.querySelector(':scope > .panel-close-strip')) return;
-            var btn = document.createElement('div');
-            btn.className = 'panel-close-strip';
-            btn.title = 'Fermer le panneau';
-            btn.setAttribute('role', 'button');
-            btn.setAttribute('aria-label', 'Fermer le panneau');
-            btn.innerHTML = '<span class="pcs-ico">&#10094;</span><span class="pcs-ico">&#10094;</span><span class="pcs-ico">&#10094;</span>';
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                // Réutilise le bouton de fermeture existant du panneau
-                var orig = panel.querySelector(cfg[1]);
-                if (orig) orig.click();
-            });
-            panel.appendChild(btn);
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', addCloseButtons);
-    window.addEventListener('load', addCloseButtons);
-    // Les panneaux PDF et Images peuvent être construits plus tard par leurs scripts
-    setTimeout(addCloseButtons, 1500);
 })();
 </script>
 

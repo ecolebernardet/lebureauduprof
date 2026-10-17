@@ -36,7 +36,7 @@
 
   // INTRODUCTION
   S.push(section('h-intro', '🏠 Bienvenue sur Le Bureau du Prof',
-    `<img src="pics/logo-le-bureau-du-prof.jpg" alt="" class="hm-logo" onerror="this.style.display='none'">` +
+    `<img src="pics/logo-le-bureau-du-prof4.jpg" alt="" class="hm-logo" onerror="this.style.display='none'">` +
     p(`Le Bureau du Prof est un <strong>tableau blanc numérique interactif</strong> conçu pour les enseignants, idéal sur <strong>TBI</strong> ou <strong>VPI</strong>.`) +
     p(`Vous pouvez y poser librement des <strong>jeux</strong>, des <strong>activités</strong> de classe, des <strong>outils</strong> de gestion (tirage au sort, minuteur, sonomètre…), des <strong>widgets</strong> (date, météo, devoirs, PDF, YouTube…), des stickers et des images. Vous pouvez aussi <strong>dessiner</strong>, <strong>écrire</strong>, <strong>annoter des PDF</strong>, changer le <strong>fond</strong> du tableau, et tout <strong>sauvegarder</strong>.`) +
     p(`Le tableau respecte un <strong>format 16:9</strong> et s'adapte à la taille de votre écran ou vidéoprojecteur.`),

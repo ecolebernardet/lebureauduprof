@@ -223,7 +223,7 @@
               '<button type="button" class="acc-close" title="Fermer (Échap)" aria-label="Fermer">✕</button>' +
               '<div class="acc-head">' +
                 '<div><div class="acc-brand">' +
-                  '<img class="acc-logo" src="pics/logo-le-bureau-du-prof.jpg" alt="Logo Le Bureau du Prof" onerror="this.remove()">' +
+                  '<img class="acc-logo" src="pics/logo-le-bureau-du-prof4.jpg" alt="Logo Le Bureau du Prof" onerror="this.remove()">' +
                   '<div><p class="acc-hello">Bonjour !</p><h1 class="acc-title">Le Bureau du Prof</h1></div>' +
                 '</div>' +
                   '<p class="acc-intro">Votre <b>tableau blanc numérique</b> pour la classe : écrivez, dessinez, projetez vos documents ' +

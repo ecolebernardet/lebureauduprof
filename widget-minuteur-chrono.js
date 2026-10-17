@@ -15,37 +15,63 @@
 
 (function () {
 
+    // ── Police arrondie partagée avec les autres widgets (repli système si hors-ligne)
+    if (!document.getElementById('wpc-font')) {
+        const fl = document.createElement('link');
+        fl.id = 'wpc-font';
+        fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+        document.head.appendChild(fl);
+    }
+
     // ── CSS injecté une seule fois ────────────────────────────────────────
+    // Même design que Tirage / Équipes / Liste de classe : cadre coloré
+    // arrondi, pastilles « verre » dans l'en-tête, carte blanche arrondie.
     const STYLE = `
-    /* ── Wrapper externe : poignée resize native ── */
+    /* ── Cadre coloré (porte la taille, la couleur et la poignée resize) ── */
     .widget[data-type="minuteur"] .mc-outer {
+        --mc-ink:   #14202E;
+        --mc-glass: rgba(255,255,255,0.62);
+        --mc-bg:    #F6D86A;
+        --mc-op:    #B9770E;
+
         position: relative;
         width:  500px;
         height: 400px;
-        min-width:  200px;
-        min-height: 160px;
+        min-width:  240px;
+        min-height: 200px;
         overflow: hidden;
         resize: both;
         box-sizing: border-box;
-        border-radius: 12px;
+        border-radius: 24px;
+        background-color: var(--mc-bg);
+        background-image:
+            radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+            radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+        box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
+        font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+        color: var(--mc-ink);
+        transition: background-color .3s;
     }
     .widget[data-type="minuteur"] .mc-outer button,
     .widget[data-type="minuteur"] .mc-outer input,
     .widget[data-type="minuteur"] .mc-outer label,
     .widget[data-type="minuteur"] .mc-outer select {
         cursor: pointer;
+        font-family: inherit;
     }
-    /* Poignée resize visible au survol */
+    /* Contour au survol */
     .widget[data-type="minuteur"]:hover .mc-outer,
     .widget[data-type="minuteur"]:focus-within .mc-outer {
-        outline: 2px dashed rgba(74,144,226,0.35);
+        outline: 2px dashed rgba(20,32,46,0.35);
+        outline-offset: 2px;
     }
     .widget[data-type="minuteur"] .mc-outer::-webkit-resizer {
         background-color: transparent;
         background-image: linear-gradient(135deg,
-            transparent 50%, #4a90e2 50%, #4a90e2 60%,
+            transparent 50%, rgba(20,32,46,0.45) 50%, rgba(20,32,46,0.45) 60%,
             transparent 60%, transparent 70%,
-            #4a90e2 70%, #4a90e2 80%, transparent 80%);
+            rgba(20,32,46,0.45) 70%, rgba(20,32,46,0.45) 80%, transparent 80%);
     }
 
     /* ── Contenu mis à l'échelle ── */
@@ -55,115 +81,123 @@
         transform-origin: top left;
     }
 
-    /* ── Widget intérieur (taille de référence 320x260) ── */
+    /* ── Carte blanche (taille de référence 320x260) ── */
     .mc-widget {
         width:  320px;
+        min-height: 260px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 14px 16px 12px;
-        gap: 8px;
+        padding: 12px 14px;
+        gap: 9px;
         user-select: none;
-        font-family: 'Segoe UI', system-ui, sans-serif;
         box-sizing: border-box;
+        background: rgba(255,255,255,0.92);
+        border-radius: 18px;
+        box-shadow: inset 0 2px 8px rgba(10,20,35,0.08);
+        color: var(--mc-ink);
     }
 
-    /* ── Onglets ── */
+    /* ── Onglets (sélecteur segmenté) ── */
     .mc-tabs {
         display: flex;
-        gap: 5px;
-        background: #f0f2f5;
-        border-radius: 9px;
+        gap: 3px;
+        background: rgba(20,32,46,0.07);
+        border-radius: 999px;
         padding: 3px;
         width: 100%;
         box-sizing: border-box;
     }
     .mc-tab {
         flex: 1; padding: 5px 0; border: none;
-        border-radius: 6px; background: transparent;
-        font-size: 12px; font-weight: 600; color: #888;
+        border-radius: 999px; background: transparent;
+        font-size: 12px; font-weight: 700; color: rgba(20,32,46,0.6);
         cursor: pointer;
         transition: background 0.18s, color 0.18s;
     }
+    .mc-tab:hover { background: rgba(20,32,46,0.06); }
     .mc-tab.active {
-        background: #fff; color: #333;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        background: var(--mc-op); color: #fff;
+        box-shadow: 0 2px 0 rgba(0,0,0,0.2);
     }
 
     /* ── Panneaux ── */
-    .mc-panel { display: none; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+    .mc-panel { display: none; flex-direction: column; align-items: center; gap: 9px; width: 100%; }
     .mc-panel.active { display: flex; }
 
     /* ── Affichage chiffres ── */
     .mc-display {
-        font-size: 48px; font-weight: 700; letter-spacing: 2px;
-        color: #1a1a2e; font-variant-numeric: tabular-nums;
+        font-size: 50px; font-weight: 700; letter-spacing: 1px;
+        color: var(--mc-ink); font-variant-numeric: tabular-nums;
         line-height: 1; padding: 4px 0; transition: color 0.3s;
     }
-    .mc-display.mc-running  { color: #2ecc71; }
-    .mc-display.mc-paused   { color: #f39c12; }
-    .mc-display.mc-finished { color: #e74c3c; animation: mc-blink 0.6s infinite alternate; }
+    .mc-display.mc-running  { color: #23915A; }
+    .mc-display.mc-paused   { color: #B9770E; }
+    .mc-display.mc-finished { color: #C0392B; animation: mc-blink 0.6s infinite alternate; }
 
     @keyframes mc-blink { from { opacity:1; } to { opacity:0.3; } }
 
     /* ── Barre de progression ── */
-    .mc-progress-wrap { width:100%; height:7px; background:#e8eaed; border-radius:99px; overflow:hidden; }
+    .mc-progress-wrap { width:100%; height:9px; background:rgba(20,32,46,0.08); border-radius:99px; overflow:hidden; }
     .mc-progress-bar {
         height:100%; width:100%;
-        background: linear-gradient(90deg, #4a90e2, #6bcb77);
+        background: linear-gradient(90deg, var(--mc-op), #23915A);
         border-radius:99px;
         transition: width 0.35s linear, background 0.3s;
     }
-    .mc-progress-bar.mc-low  { background: linear-gradient(90deg, #f39c12, #e74c3c); }
-    .mc-progress-bar.mc-done { background: #e74c3c; width:100% !important; }
+    .mc-progress-bar.mc-low  { background: linear-gradient(90deg, #E08E0B, #C0392B); }
+    .mc-progress-bar.mc-done { background: #C0392B; width:100% !important; }
 
     /* ── Réglage H:M:S ── */
     .mc-inputs { display:flex; align-items:center; gap:6px; }
     .mc-input-group { display:flex; flex-direction:column; align-items:center; gap:1px; }
-    .mc-input-group label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#bbb; }
+    .mc-input-group label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:rgba(20,32,46,0.45); }
     .mc-num-btn {
-        background:none; border:none; font-size:13px; color:#bbb;
-        cursor:pointer; line-height:1; padding:1px 6px; transition:color 0.15s;
+        background:none; border:none; font-size:13px; color:rgba(20,32,46,0.35);
+        cursor:pointer; line-height:1; padding:1px 8px; border-radius:999px;
+        transition:color 0.15s, background 0.15s;
     }
-    .mc-num-btn:hover { color:#4a90e2; }
+    .mc-num-btn:hover { color:var(--mc-op); background:rgba(20,32,46,0.06); }
     .mc-num-input {
-        width:48px; font-size:26px; font-weight:700; text-align:center;
-        border:2px solid #e0e0e0; border-radius:7px; padding:3px 0; color:#333;
-        outline:none; font-variant-numeric:tabular-nums;
+        width:52px; font-size:26px; font-weight:700; text-align:center; font-family:inherit;
+        border:1.5px solid rgba(20,32,46,0.12); border-radius:12px; padding:3px 0; color:var(--mc-ink);
+        background:#F4F6F9; outline:none; font-variant-numeric:tabular-nums;
         -moz-appearance:textfield; appearance:textfield;
     }
     .mc-num-input::-webkit-outer-spin-button,
     .mc-num-input::-webkit-inner-spin-button { -webkit-appearance:none; }
-    .mc-num-input:focus { border-color:#4a90e2; }
-    .mc-sep { font-size:26px; font-weight:700; color:#ddd; line-height:1; }
+    .mc-num-input:focus { border-color:var(--mc-op); background:#fff; }
+    .mc-sep { font-size:26px; font-weight:700; color:rgba(20,32,46,0.25); line-height:1; }
 
     /* ── Boutons ── */
     .mc-btns { display:flex; gap:7px; }
     .mc-btn {
-        padding:7px 16px; border:none; border-radius:8px;
+        padding:7px 18px; border:none; border-radius:999px;
         font-size:12px; font-weight:700; cursor:pointer;
-        transition:opacity 0.15s, transform 0.1s;
+        box-shadow: 0 3px 0 rgba(0,0,0,0.22);
+        transition:filter 0.15s, transform 0.1s, box-shadow 0.1s;
     }
-    .mc-btn:hover  { opacity:0.85; }
-    .mc-btn:active { transform:scale(0.95); }
-    .mc-btn-start  { background:#2ecc71; color:#fff; }
-    .mc-btn-pause  { background:#f39c12; color:#fff; }
-    .mc-btn-reset  { background:#e8eaed; color:#555; }
-    .mc-btn-lap    { background:#4a90e2; color:#fff; }
+    .mc-btn:hover  { filter:brightness(1.08); }
+    .mc-btn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.22); }
+    .mc-btn-start  { background:#23915A; color:#fff; }
+    .mc-btn-pause  { background:#D98A10; color:#fff; }
+    .mc-btn-reset  { background:#F4F6F9; color:var(--mc-ink); box-shadow:0 2px 0 rgba(20,32,46,0.12); }
+    .mc-btn-lap    { background:var(--mc-op); color:#fff; }
 
     /* ── Son ── */
-    .mc-sound-row { display:flex; align-items:center; gap:5px; font-size:11px; color:#aaa; }
-    .mc-sound-row input { cursor:pointer; accent-color:#4a90e2; }
+    .mc-sound-row { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:rgba(20,32,46,0.6); }
+    .mc-sound-row input { cursor:pointer; accent-color:var(--mc-op); }
 
     /* ── Tours chrono ── */
-    .mc-laps { width:100%; max-height:90px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
+    .mc-laps { width:100%; max-height:90px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; scrollbar-width:thin; }
     .mc-lap-row {
         display:flex; justify-content:space-between; align-items:center;
-        font-size:11px; padding:2px 5px; border-radius:4px; background:#f7f8fa; color:#555;
+        font-size:12px; font-weight:600; padding:3px 8px; border-radius:999px; background:#F4F6F9; color:var(--mc-ink);
+        font-variant-numeric:tabular-nums;
     }
-    .mc-lap-row:nth-child(odd) { background:#f0f2f5; }
-    .mc-lap-n     { font-weight:700; color:#4a90e2; min-width:28px; }
-    .mc-lap-split { color:#bbb; font-size:10px; }
+    .mc-lap-row:nth-child(odd) { background:rgba(20,32,46,0.06); }
+    .mc-lap-n     { font-weight:700; color:var(--mc-op); min-width:32px; }
+    .mc-lap-split { color:rgba(20,32,46,0.45); font-size:11px; }
 
     /* ── Minuteur VISUEL (type Time Timer) ── */
     .mc-tt { display:flex; align-items:center; gap:12px; width:100%; }
@@ -174,44 +208,45 @@
     .mc-tt-side { display:flex; flex-direction:column; gap:6px; flex:1; min-width:0; }
     .mc-tt-presets { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; }
     .mc-tt-preset {
-        height:23px; border:1px solid #e0e0e0; border-radius:6px; background:#fff;
-        font-size:11px; font-weight:700; color:#555; cursor:pointer; padding:0;
-        transition:background 0.15s, border-color 0.15s;
+        height:23px; border:none; border-radius:999px; background:#F4F6F9;
+        font-size:11px; font-weight:700; color:var(--mc-ink); cursor:pointer; padding:0;
+        box-shadow: inset 0 0 0 1.5px rgba(20,32,46,0.08);
+        transition:background 0.15s, color 0.15s;
     }
-    .mc-tt-preset:hover { border-color:#4a90e2; }
-    .mc-tt-preset.active { background:#4a90e2; border-color:#4a90e2; color:#fff; }
+    .mc-tt-preset:hover { background:rgba(20,32,46,0.1); }
+    .mc-tt-preset.active { background:var(--mc-op); color:#fff; box-shadow:none; }
     .mc-tt-preset:disabled { opacity:0.4; cursor:default; }
     .mc-tt-colors { display:flex; justify-content:space-between; }
     .mc-tt-color {
-        width:17px; height:17px; border-radius:50%; border:2px solid #fff;
-        box-shadow:0 0 0 1px #ccc; cursor:pointer; padding:0;
+        width:18px; height:18px; border-radius:50%; border:2px solid #fff;
+        box-shadow:0 0 0 1px rgba(20,32,46,0.2); cursor:pointer; padding:0;
     }
-    .mc-tt-color.active { box-shadow:0 0 0 2px #333; }
+    .mc-tt-color.active { box-shadow:0 0 0 2px var(--mc-ink); }
     .mc-tt-opts { display:flex; gap:4px; }
     .mc-tt-opt {
-        flex:1; height:22px; border:1px solid #e0e0e0; border-radius:6px; background:#fff;
-        font-size:12px; cursor:pointer; padding:0; opacity:0.45; transition:opacity 0.15s;
+        flex:1; height:23px; border:none; border-radius:999px; background:#F4F6F9;
+        font-size:12px; cursor:pointer; padding:0; opacity:0.45; transition:opacity 0.15s, box-shadow 0.15s;
     }
-    .mc-tt-opt.on { opacity:1; border-color:#4a90e2; }
+    .mc-tt-opt.on { opacity:1; box-shadow: inset 0 0 0 1.5px var(--mc-op); }
     .mc-tt-side .mc-btns { gap:4px; }
     .mc-tt-side .mc-btn { flex:1; padding:6px 0; font-size:11px; }
-    .mc-tt-side .mc-btn-hide { flex:0 0 30px; background:#e8eaed; color:#555; }
+    .mc-tt-side .mc-btn-hide { flex:0 0 32px; background:#F4F6F9; color:var(--mc-ink); box-shadow:0 2px 0 rgba(20,32,46,0.12); }
 
     /* Durée personnalisée */
-    .mc-tt-custom { display:flex; align-items:center; justify-content:center; gap:4px; font-size:10px; font-weight:700; color:#999; }
+    .mc-tt-custom { display:flex; align-items:center; justify-content:center; gap:4px; font-size:11px; font-weight:700; color:rgba(20,32,46,0.5); }
     .mc-tt-custom input {
-        width:38px; height:22px; box-sizing:border-box; padding:0;
-        font-size:13px; font-weight:700; text-align:center; color:#333;
-        border:1px solid #e0e0e0; border-radius:6px; outline:none;
+        width:40px; height:23px; box-sizing:border-box; padding:0;
+        font-size:13px; font-weight:700; text-align:center; color:var(--mc-ink); background:#F4F6F9;
+        border:1.5px solid rgba(20,32,46,0.1); border-radius:999px; outline:none;
         font-variant-numeric:tabular-nums; -moz-appearance:textfield; appearance:textfield;
     }
     .mc-tt-custom input::-webkit-outer-spin-button,
     .mc-tt-custom input::-webkit-inner-spin-button { -webkit-appearance:none; }
-    .mc-tt-custom input:focus { border-color:#4a90e2; }
+    .mc-tt-custom input:focus { border-color:var(--mc-op); background:#fff; }
     .mc-tt-custom input:disabled { opacity:0.4; }
 
     /* Mode épuré : réglages masqués, cadran agrandi */
-    .mc-widget.mc-tt-clean { position:relative; }
+    .mc-widget.mc-tt-clean { position:relative; justify-content:center; }
     .mc-widget.mc-tt-clean .mc-tabs,
     .mc-widget.mc-tt-clean .mc-tt-side { display:none; }
     .mc-widget.mc-tt-clean .mc-tt { justify-content:center; }
@@ -219,8 +254,8 @@
     .mc-tt-mini { display:none; position:absolute; top:10px; right:10px; flex-direction:column; gap:5px; }
     .mc-widget.mc-tt-clean .mc-tt-mini { display:flex; }
     .mc-tt-mini button {
-        width:26px; height:26px; border:none; border-radius:50%; background:#f0f2f5;
-        color:#666; font-size:13px; cursor:pointer; padding:0; opacity:0.55; transition:opacity 0.15s;
+        width:28px; height:28px; border:none; border-radius:50%; background:#F4F6F9;
+        color:var(--mc-ink); font-size:13px; cursor:pointer; padding:0; opacity:0.6; transition:opacity 0.15s;
     }
     .mc-tt-mini button:hover { opacity:1; }
     `;
@@ -229,31 +264,98 @@
         const s = document.createElement('style');
         s.id = 'mc-widget-style';
         s.textContent = STYLE + `
-    /* ── En-tête avec boutons fenêtre (hors mise à l'échelle) ── */
+    /* ── En-tête : deux pastilles « verre » (hors mise à l'échelle) ── */
     .widget[data-type="minuteur"] .mc-header {
-        position: absolute; top: 0; left: 0; right: 0;
-        height: 24px; padding: 0 8px;
-        display: flex; align-items: center; justify-content: flex-end;
+        position: absolute; top: 12px; left: 12px; right: 12px;
+        height: 40px;
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
         box-sizing: border-box; z-index: 3;
+        pointer-events: none;            /* le fond reste déplaçable */
+    }
+    .widget[data-type="minuteur"] .mc-title,
+    .widget[data-type="minuteur"] .mc-tools {
+        display: flex; align-items: center; gap: 8px;
+        background: var(--mc-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        border-radius: 999px;
+        box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+    }
+    .widget[data-type="minuteur"] .mc-title {
+        padding: 7px 16px 7px 12px;
+        font-size: 15px; font-weight: 700;
+        white-space: nowrap; overflow: hidden; min-width: 0;
+    }
+    .widget[data-type="minuteur"] .mc-title span { overflow: hidden; text-overflow: ellipsis; }
+    .widget[data-type="minuteur"] .mc-title svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--mc-op); }
+    .widget[data-type="minuteur"] .mc-tools { padding: 4px 12px 4px 4px; gap: 2px; flex-shrink: 0; pointer-events: auto; }
+    .widget[data-type="minuteur"] .mc-icon-btn {
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; border: none; background: transparent;
+        color: var(--mc-ink); padding: 0; transition: background .15s;
+    }
+    .widget[data-type="minuteur"] .mc-icon-btn svg { width: 18px; height: 18px; }
+    .widget[data-type="minuteur"] .mc-icon-btn:hover,
+    .widget[data-type="minuteur"] .mc-icon-btn.is-on { background: rgba(20,32,46,0.12); }
+    .widget[data-type="minuteur"] .mc-hsep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
+    /* Cadre étroit : on masque le texte du titre */
+    .widget[data-type="minuteur"] .mc-outer.mc-narrow .mc-title span { display: none; }
+    .widget[data-type="minuteur"] .mc-outer.mc-narrow .mc-title { padding: 7px 10px; }
+
+    /* ── Panneau « Couleur du cadre » ── */
+    .widget[data-type="minuteur"] .mc-pop {
+        display: none;
+        position: absolute; top: 60px; right: 12px; z-index: 10;
+        width: 250px; max-width: calc(100% - 24px);
+        box-sizing: border-box;
+        flex-direction: column; gap: 10px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.96);
+        box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+        color: var(--mc-ink);
+        cursor: default;
+    }
+    .widget[data-type="minuteur"] .mc-pop.show { display: flex; }
+    .widget[data-type="minuteur"] .mc-pop-title { font-size: 13px; font-weight: 700; }
+    .widget[data-type="minuteur"] .mc-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+    .widget[data-type="minuteur"] .mc-swatch {
+        width: 28px; height: 28px; border-radius: 50%;
+        border: 2px solid rgba(20,32,46,0.15); padding: 0;
+    }
+    .widget[data-type="minuteur"] .mc-swatch.is-on { border-color: var(--mc-ink); box-shadow: 0 0 0 2px #fff inset; }
+
+    /* ── Plein écran du bouton vert (classe .mc-max) ──
+       Marge à gauche pour laisser visibles les onglets des panneaux latéraux */
+    .widget[data-type="minuteur"] .mc-outer.mc-max {
+        left: 40px !important;
+        width: calc(100vw - 40px) !important;
+        outline: none !important;
     }
 
-    /* ── Téléphone : plein écran du bouton vert (classe .mc-max) ──
-       Décalé de 40 px à gauche pour laisser les onglets latéraux
-       visibles, et hauteur réelle de l'écran (barres du navigateur
-       déduites). */
+    /* ── Téléphone : plein écran, hauteur réelle de l'écran ── */
     @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
         .widget[data-type="minuteur"] .mc-outer.mc-max {
-            left: 40px !important;
-            width: calc(100vw - 40px) !important;
             height: 100dvh !important;
-            outline: none !important;
-        }
-        .widget[data-type="minuteur"] .mc-outer.mc-max .mc-header { height: 36px; }
-        .widget[data-type="minuteur"] .mc-outer.mc-max .wf-btn {
-            width: 22px; height: 22px;
         }
     }`;
         document.head.appendChild(s);
+    }
+
+    // ── Taille des pastilles fenêtre (identique au Visualiseur / Tirage) ──
+    if (!document.getElementById('wf-btns-size')) {
+        const wz = document.createElement('style');
+        wz.id = 'wf-btns-size';
+        wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+        `;
+        document.head.appendChild(wz);
     }
 
     // Injecter le CSS des boutons wf si pas déjà fait (partagé avec les autres widgets)
@@ -277,6 +379,20 @@
         `;
         document.head.appendChild(ws);
     }
+
+    // ── Couleurs du cadre (mêmes que Tirage / Équipes / Liste de classe) ──
+    const MC_THEMES = {
+        bleu:   { name: 'Bleu',    bg: '#8EC5F2', op: '#2F6FB3' },
+        vert:   { name: 'Vert',    bg: '#7FD6A6', op: '#23915A' },
+        jaune:  { name: 'Jaune',   bg: '#F6D86A', op: '#B9770E' },
+        rose:   { name: 'Rose',    bg: '#F4A9C0', op: '#C2456E' },
+        violet: { name: 'Violet',  bg: '#C2B2F0', op: '#6A4FC2' },
+        gris:   { name: 'Gris',    bg: '#D4DAE2', op: '#4A5868' },
+        noir:   { name: 'Ardoise', bg: '#4A525E', op: '#2F6FB3' }
+    };
+    const MC_DEFAULT_THEME = 'jaune';
+    const MC_ICON_CLOCK   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2"/><path d="M10 2.5h4"/><path d="M12 2.5V6"/></svg>';
+    const MC_ICON_PALETTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg>';
 
     // ── Template ─────────────────────────────────────────────────────────
     if (!document.getElementById('template-minuteur')) {
@@ -420,19 +536,68 @@
         const outer     = widget.querySelector('.mc-outer');
         const scaleWrap = widget.querySelector('.mc-scale-wrap');
 
-        // ── En-tête avec boutons fenêtre (créé s'il n'existe pas encore) ────
+        // ── En-tête : pastilles « verre » (titre / palette + boutons fenêtre) ──
+        // (un ancien en-tête, venant d'une sauvegarde, est remplacé)
+        outer.querySelectorAll('.mc-header').forEach(h => { if (!h.querySelector('.mc-tools')) h.remove(); });
         if (!outer.querySelector('.mc-header')) {
             const header = document.createElement('div');
             header.className = 'mc-header';
             header.innerHTML = `
-                <div class="wf-btns">
-                    <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
-                    <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
-                    <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+                <div class="mc-title">${MC_ICON_CLOCK}<span>Minuteur &amp; Chrono</span></div>
+                <div class="mc-tools">
+                    <button class="mc-icon-btn mc-theme-btn" title="Couleur du cadre">${MC_ICON_PALETTE}</button>
+                    <span class="mc-hsep"></span>
+                    <div class="wf-btns">
+                        <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
+                        <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
+                        <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+                    </div>
                 </div>`;
             outer.insertBefore(header, outer.firstChild);
         }
-        const HEADER_H = 24;
+        if (!outer.querySelector('.mc-pop')) {
+            const pop = document.createElement('div');
+            pop.className = 'mc-pop';
+            pop.innerHTML = '<div class="mc-pop-title">Couleur du cadre</div><div class="mc-swatches">' +
+                Object.keys(MC_THEMES).map(id =>
+                    '<button class="mc-swatch" data-theme="' + id + '" title="' + MC_THEMES[id].name +
+                    '" style="background:' + MC_THEMES[id].bg + '"></button>').join('') + '</div>';
+            outer.appendChild(pop);
+        }
+        const HEADER_H = 58;   // 12 px de marge + 40 px de pastilles + 6 px d'écart
+        const PAD      = 12;   // marge autour de la carte blanche
+
+        // ── Couleur du cadre (mémorisée dans la sauvegarde du tableau) ──────
+        const themeBtn = outer.querySelector('.mc-theme-btn');
+        const themePop = outer.querySelector('.mc-pop');
+        function applyTheme(id) {
+            if (!MC_THEMES[id]) id = MC_DEFAULT_THEME;
+            widget.dataset.mcTheme = id;
+            outer.style.setProperty('--mc-bg', MC_THEMES[id].bg);
+            outer.style.setProperty('--mc-op', MC_THEMES[id].op);
+            outer.querySelectorAll('.mc-swatch').forEach(b => b.classList.toggle('is-on', b.dataset.theme === id));
+        }
+        widget._mcApplyTheme = applyTheme;
+        themeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const open = !themePop.classList.contains('show');
+            themePop.classList.toggle('show', open);
+            themeBtn.classList.toggle('is-on', open);
+        });
+        themePop.addEventListener('click', (e) => e.stopPropagation());
+        outer.querySelectorAll('.mc-swatch').forEach(b => b.addEventListener('click', (e) => {
+            e.stopPropagation();
+            applyTheme(b.dataset.theme);
+            if (typeof saveBoard === 'function') saveBoard();
+        }));
+        if (!widget._mcPopDocClose) {
+            widget._mcPopDocClose = true;
+            document.addEventListener('click', () => {
+                widget.querySelectorAll('.mc-pop.show').forEach(p => p.classList.remove('show'));
+                widget.querySelectorAll('.mc-theme-btn.is-on').forEach(b => b.classList.remove('is-on'));
+            });
+        }
+        applyTheme(widget.dataset.mcTheme || MC_DEFAULT_THEME);
 
         // Nettoyer un éventuel état "réduit" resté d'une sauvegarde précédente
         widget.querySelectorAll('.mc-mini-bar').forEach(el => el.remove());
@@ -445,14 +610,17 @@
 
         // ── Scaling : adapte le contenu à la taille du container ─────────────
         function applyScale() {
-            const ow = outer.offsetWidth  || REF_W;
-            const oh = Math.max(1, (outer.offsetHeight || (REF_H + HEADER_H)) - HEADER_H);
+            const fullW = outer.clientWidth  || (REF_W + 2 * PAD);
+            const fullH = outer.clientHeight || (REF_H + HEADER_H + PAD);
+            const ow = Math.max(1, fullW - 2 * PAD);
+            const oh = Math.max(1, fullH - HEADER_H - PAD);
             const s  = Math.min(ow / REF_W, oh / REF_H);
             scaleWrap.style.width     = REF_W + 'px';
             scaleWrap.style.height    = REF_H + 'px';
             scaleWrap.style.transform = 'scale(' + s + ')';
-            scaleWrap.style.left      = ((ow - REF_W * s) / 2) + 'px';
+            scaleWrap.style.left      = (PAD + (ow - REF_W * s) / 2) + 'px';
             scaleWrap.style.top       = (HEADER_H + (oh - REF_H * s) / 2) + 'px';
+            outer.classList.toggle('mc-narrow', fullW < 360);
         }
 
         applyScale();
@@ -469,7 +637,7 @@
         // ── Drag depuis n'importe où sauf boutons/inputs ─────────────────────
         // On laisse remonter le mousedown vers makeDraggable sauf si la cible
         // est un élément interactif (bouton, input, label, checkbox).
-        const INTERACTIVE = 'button, input, label, select, textarea, .mc-num-btn, .mc-tab, .mc-tt-dial';
+        const INTERACTIVE = 'button, input, label, select, textarea, .mc-num-btn, .mc-tab, .mc-tt-dial, .mc-pop';
         outer.addEventListener('mousedown', function(e) {
             if (_isMax || e.target.closest(INTERACTIVE)) { e.stopPropagation(); return; }
             // Bloquer aussi le drag si on est dans le coin resize
@@ -561,7 +729,6 @@
             outer.style.height       = '100%';
             outer.style.zIndex       = '9999';
             outer.style.borderRadius = '0';
-            outer.style.background   = '#fff';
             outer.style.resize       = 'none';
             outer.classList.add('mc-max');
             applyScale();
@@ -1294,7 +1461,17 @@
                     }
                 });
                 try {
-                    return _origBuild.apply(this, arguments);
+                    const state = _origBuild.apply(this, arguments);
+                    // Couleur du cadre : correspondance par ordre d'apparition
+                    try {
+                        const list = (state && Array.isArray(state.widgets)) ? state.widgets
+                                   : (Array.isArray(state) ? state : []);
+                        const saved = list.filter(w => w && w.type === 'minuteur');
+                        document.querySelectorAll('.widget[data-type="minuteur"]').forEach((w, i) => {
+                            if (saved[i] && w.dataset.mcTheme) saved[i].mcTheme = w.dataset.mcTheme;
+                        });
+                    } catch (e) {}
+                    return state;
                 } finally {
                     restores.forEach(fn => fn());
                 }
@@ -1303,6 +1480,37 @@
             window.buildBoardState = patched;
         }
         if (typeof window.buildBoardState === 'function') doPatch();
+        else document.addEventListener('DOMContentLoaded', doPatch);
+    })();
+
+    // =========================================================================
+    // HOOK restoreBoardFromJSON — remettre la couleur du cadre
+    // =========================================================================
+    (function patchRestoreMinuteurTheme() {
+        function doPatch() {
+            const _orig = window.restoreBoardFromJSON;
+            if (typeof _orig !== 'function' || _orig._mcPatched) return;
+            const patched = function (json) {
+                let themes = [];
+                try {
+                    const parsed  = JSON.parse(json);
+                    const widgets = Array.isArray(parsed) ? parsed : (parsed.widgets || []);
+                    themes = widgets.filter(w => w && w.type === 'minuteur').map(w => w.mcTheme || '');
+                } catch (e) {}
+                const res = _orig.apply(this, arguments);
+                const apply = () => document.querySelectorAll('.widget[data-type="minuteur"]').forEach((w, i) => {
+                    if (!themes[i]) return;
+                    w.dataset.mcTheme = themes[i];
+                    if (typeof w._mcApplyTheme === 'function') w._mcApplyTheme(themes[i]);
+                });
+                apply();
+                setTimeout(apply, 200);   // si le widget est initialisé après coup
+                return res;
+            };
+            patched._mcPatched = true;
+            window.restoreBoardFromJSON = patched;
+        }
+        if (typeof window.restoreBoardFromJSON === 'function') doPatch();
         else document.addEventListener('DOMContentLoaded', doPatch);
     })();
 

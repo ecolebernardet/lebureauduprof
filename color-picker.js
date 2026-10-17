@@ -38,6 +38,28 @@ function cpickInit(id, initialValue) {
     if (!pop || pop.dataset.built) return;
     pop.dataset.built = '1';
 
+    // Surlignage : option pour retirer le surlignage du texte sélectionné
+    if (id === 'highlight-color') {
+        const none = document.createElement('button');
+        none.type = 'button';
+        none.className = 'cpick-none';
+        none.title = 'Retirer le surlignage du texte sélectionné';
+        none.innerHTML = '<span style="position:relative;width:16px;height:16px;border-radius:4px;border:1px solid #888;background:#fff;flex:none;overflow:hidden;">'
+            + '<span style="position:absolute;left:-3px;top:7px;width:22px;height:2px;background:#e74c3c;transform:rotate(-45deg);"></span></span>'
+            + '<span>Aucun surlignage</span>';
+        none.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;margin:0 0 6px;padding:5px 8px;'
+            + 'border:1px solid rgba(255,255,255,.12);border-radius:6px;background:transparent;color:#ddd;font-size:12px;cursor:pointer;text-align:left;';
+        none.onmouseenter = () => { none.style.background = 'rgba(255,255,255,.08)'; };
+        none.onmouseleave = () => { none.style.background = 'transparent'; };
+        // Ne pas voler le focus / la sélection du texte
+        none.onmousedown = (e) => e.preventDefault();
+        none.onclick = () => {
+            if (typeof removeHighlightGlobal === 'function') removeHighlightGlobal();
+            pop.querySelectorAll('.cpick-color.selected').forEach(c => c.classList.remove('selected'));
+        };
+        pop.appendChild(none);
+    }
+
     // Grille de couleurs
     const grid = document.createElement('div');
     grid.className = 'cpick-grid';

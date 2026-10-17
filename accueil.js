@@ -6,6 +6,7 @@
 //   - « Bonjour ! / Bonsoir ! », l'heure et la date en grand
 //   - 6 grandes tuiles vers les panneaux (mêmes icônes et couleurs que
 //     les onglets latéraux) + 2 actions rapides (Dessiner, Écrire)
+//   - un bouton « Mode d'emploi » sous l'heure, qui ouvre la modale d'aide
 //   - une astuce tirée au hasard
 // Elle disparaît dès qu'on commence à travailler : clic sur une tuile,
 // ajout d'un widget, ouverture de la barre Dessin, clic sur le tableau,
@@ -31,7 +32,8 @@
         tableaux:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
         crayon:  '<path d="M4 20l1.2-4.8L15.6 4.8a2.3 2.3 0 0 1 3.3 0l.3.3a2.3 2.3 0 0 1 0 3.3L8.8 18.8z"/><path d="M13.8 6.6l3.6 3.6"/>',
         texte:   '<path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/>',
-        pdf:     '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 14.5l2 2 4-4.5"/>'
+        pdf:     '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 14.5l2 2 4-4.5"/>',
+        aide:    '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17h.01"/>'
     };
     function svg(k) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICO[k] + '</svg>'; }
 
@@ -103,6 +105,12 @@
         '  background:linear-gradient(120deg,#4a90e2,#9b6cf0);-webkit-background-clip:text;background-clip:text;color:transparent;}',
         '.acc-date{font-size:14px;font-weight:700;color:#6b6880;margin-top:4px;}',
         '.acc-date::first-letter{text-transform:uppercase;}',
+        '.acc-help{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:7px 14px;border-radius:999px;cursor:pointer;',
+        '  font:inherit;font-size:13px;font-weight:800;color:#fff;border:none;',
+        '  background:linear-gradient(120deg,#f5a623,#e8890c);box-shadow:0 4px 12px rgba(232,137,12,.35);',
+        '  transition:transform .12s,filter .15s;touch-action:manipulation;white-space:nowrap;}',
+        '.acc-help:hover{transform:translateY(-2px);filter:brightness(1.06);}',
+        '.acc-help svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}',
         /* Tuiles */
         '.acc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}',
         '.acc-tile{--c:#4a90e2;display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;cursor:pointer;text-align:left;',
@@ -125,6 +133,7 @@
         '  border-radius:999px;border:none;cursor:pointer;font:inherit;font-size:14px;font-weight:800;color:#fff;',
         '  background:linear-gradient(120deg,#4a90e2,#3a74c4);box-shadow:0 4px 12px rgba(74,144,226,.35);',
         '  transition:transform .12s,filter .15s;touch-action:manipulation;}',
+        '.acc-btn.acc-btn-text{background:linear-gradient(120deg,#9b6cf0,#7b4fe0);box-shadow:0 4px 12px rgba(123,79,224,.35);}',
         '.acc-btn.alt{background:#fff;color:#2a2440;border:1px solid #e4e2ec;box-shadow:0 1px 3px rgba(40,30,70,.07);}',
         '.acc-btn:hover{transform:translateY(-2px);filter:brightness(1.05);}',
         '.acc-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}',
@@ -220,7 +229,9 @@
                   '<p class="acc-intro">Votre <b>tableau blanc numérique</b> pour la classe : écrivez, dessinez, projetez vos documents ' +
                   'et lancez en un clic des <b>jeux</b>, des <b>activités</b> et des <b>outils</b> pensés pour l\'école, au TBI, au VPI ou sur ordinateur.</p>' +
                 '</div>' +
-                '<div class="acc-time"><div class="acc-clock">--:--</div><div class="acc-date"></div></div>' +
+                '<div class="acc-time"><div class="acc-clock">--:--</div><div class="acc-date"></div>' +
+                  '<button type="button" class="acc-help" data-act="help">' + svg('aide') + 'Mode d\'emploi</button>' +
+                '</div>' +
               '</div>' +
               '<ul class="acc-points"><li>Gratuit</li><li>Sans compte</li><li>Tableaux enregistrés sur cet appareil</li><li>Fonctionne au stylet et au doigt</li></ul>' +
               '<div class="acc-pdf">' +
@@ -233,7 +244,7 @@
               '<div class="acc-grid">' + tiles + '</div>' +
               '<div class="acc-quick">' +
                 '<button type="button" class="acc-btn" data-act="draw">' + svg('crayon') + 'Dessiner au tableau</button>' +
-                '<button type="button" class="acc-btn alt" data-act="text">' + svg('texte') + 'Écrire un texte</button>' +
+                '<button type="button" class="acc-btn acc-btn-text" data-act="text">' + svg('texte') + 'Écrire un texte</button>' +
               '</div>' +
               '<div class="acc-foot">' +
                 '<div class="acc-tip"><b>💡 Astuce</b><span>' + ASTUCES[Math.floor(Math.random() * ASTUCES.length)] + '</span></div>' +
@@ -271,6 +282,10 @@
             window._nextTextOpenCreate = true;
             if (typeof createWidget === 'function') createWidget('text');
         });
+        root.querySelector('[data-act="help"]').addEventListener('click', function () {
+            hide();
+            if (typeof openHelpModal === 'function') openHelpModal();
+        });
         root.querySelector('.acc-close').addEventListener('click', hide);
         root.querySelector('.acc-never input').addEventListener('change', function (e) {
             try {
@@ -291,7 +306,6 @@
             if (tb.style.display && tb.style.display !== 'none') hide();
         }).observe(tb, { attributes: true, attributeFilter: ['style'] });
         document.addEventListener('keydown', onKey);
-        root.querySelector('.acc-tile').focus({ preventScroll: true });
     }
 
     function onKey(e) { if (e.key === 'Escape') hide(); }

@@ -37,6 +37,7 @@ function openTextToolbar(widget) {
     tb.style.display = 'flex';
     syncFontSizeGlobal();
     syncLineHeightGlobal();
+    syncFontFamilyGlobal();
     const opacity = parseFloat(widget.dataset.bgOpacity ?? 1);
     const slider = document.getElementById('widget-bg-opacity');
     const label  = document.getElementById('widget-bg-opacity-val');
@@ -53,7 +54,7 @@ function openTextToolbar(widget) {
     const currentAnim = widget.dataset.animation || 'none';
     const animBtn = document.getElementById('anim-picker-btn');
     if (animBtn) {
-        animBtn.innerHTML = (typeof ANIM_LABELS !== 'undefined' ? ANIM_LABELS[currentAnim] : null) || '✨<br>Anim';
+        animBtn.innerHTML = (typeof ANIM_LABELS !== 'undefined' ? ANIM_LABELS[currentAnim] : null) || '✨';
         animBtn.style.color = currentAnim !== 'none' ? '#6aaee8' : '';
         animBtn.style.borderColor = currentAnim !== 'none' ? '#6aaee8' : '';
     }
@@ -323,6 +324,8 @@ document.getElementById('board').addEventListener('click', function(e) {
         const fontSize = window._textWidgetSize
             || parseInt(document.getElementById('text-size-label')?.textContent) || 40;
         content.style.fontSize = fontSize + 'px';
+        // Police par défaut
+        content.style.fontFamily = "'MDI', cursive";
     }
 
     // Rester en mode placement
@@ -355,9 +358,91 @@ document.getElementById('board').addEventListener('click', function(e) {
     saveBoard();
 });
 
+// =========================================================================
+// SÉLECTION SANS ESPACES EN BORDURE
+// Le double-clic (Windows) inclut l'espace qui suit le mot : on retire les
+// espaces en début et fin de sélection avant toute mise en forme.
+// =========================================================================
+function _trimRangeWhitespace(range, root) {
+    if (!range || range.collapsed) return range;
+    root = root || range.commonAncestorContainer;
+    const WS = /[\s ]/;
+    const walker = (start) => {
+        const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        w.currentNode = start;
+        return w;
+    };
+    // Convertit une borne (conteneur, offset) en (nœud texte, offset)
+    const toText = (container, offset, atEnd) => {
+        if (container.nodeType === 3) return { node: container, off: offset };
+        const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        if (atEnd) {
+            // dernier texte avant la borne
+            let last = null, n;
+            while ((n = w.nextNode())) {
+                const r = document.createRange(); r.selectNode(n);
+                if (r.compareBoundaryPoints(Range.END_TO_START, (() => { const b = document.createRange(); b.setStart(container, offset); return b; })()) < 0) last = n; else break;
+            }
+            return last ? { node: last, off: last.textContent.length } : null;
+        } else {
+            let n;
+            while ((n = w.nextNode())) {
+                const b = document.createRange(); b.setStart(container, offset);
+                const r = document.createRange(); r.selectNode(n);
+                if (r.compareBoundaryPoints(Range.START_TO_START, b) >= 0) return { node: n, off: 0 };
+            }
+            return null;
+        }
+    };
+    let s = toText(range.startContainer, range.startOffset, false);
+    let e = toText(range.endContainer, range.endOffset, true);
+    if (!s || !e) return range;
+
+    // Fin : reculer tant que le caractère précédent est un espace
+    while (e) {
+        if (e.off > 0 && WS.test(e.node.textContent[e.off - 1])) { e.off--; continue; }
+        if (e.off === 0) {
+            const w = walker(e.node); const prev = w.previousNode();
+            if (!prev) break;
+            e = { node: prev, off: prev.textContent.length }; continue;
+        }
+        break;
+    }
+    // Début : avancer tant que le caractère courant est un espace
+    while (s) {
+        const len = s.node.textContent.length;
+        if (s.off < len && WS.test(s.node.textContent[s.off])) { s.off++; continue; }
+        if (s.off >= len) {
+            const w = walker(s.node); const next = w.nextNode();
+            if (!next) break;
+            s = { node: next, off: 0 }; continue;
+        }
+        break;
+    }
+    const out = document.createRange();
+    try {
+        out.setStart(s.node, s.off);
+        out.setEnd(e.node, e.off);
+    } catch (err) { return range; }
+    if (out.collapsed) return range; // sélection faite uniquement d'espaces : ne rien changer
+    return out;
+}
+
+// Restaure savedSelection (si présente) puis retire les espaces en bordure
+function _prepareSelectionForFormat() {
+    const sel = window.getSelection();
+    if (savedSelection) { try { sel.removeAllRanges(); sel.addRange(savedSelection); } catch(e) {} }
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    const editor = currentActiveWidget && currentActiveWidget.querySelector('.editor-content');
+    const r = sel.getRangeAt(0);
+    if (!editor || !editor.contains(r.commonAncestorContainer)) return;
+    const t = _trimRangeWhitespace(r, editor);
+    if (t !== r) { sel.removeAllRanges(); sel.addRange(t); }
+}
+
 function formatGlobal(cmd, val=null) {
     if (!currentActiveWidget) return;
-    if (savedSelection) { const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(savedSelection); savedSelection=null; }
+    _prepareSelectionForFormat(); savedSelection = null;
     document.execCommand(cmd, false, val); saveBoard();
 }
 
@@ -366,11 +451,7 @@ function formatFontSizeGlobal(size) {
     const editor = currentActiveWidget.querySelector('.editor-content');
     if (!editor) return;
 
-    if (savedSelection) {
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(savedSelection);
-    }
+    _prepareSelectionForFormat();
 
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
@@ -501,14 +582,53 @@ function changeWidgetBgGlobal(input, color) {
 
 function applyTextColor(color) {
     if (!currentActiveWidget) return;
-    if (savedSelection) { const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(savedSelection); savedSelection=null; }
+    _prepareSelectionForFormat(); savedSelection = null;
     document.execCommand('foreColor', false, color); saveBoard();
 }
 
 function applyHighlightColor(color) {
     if (!currentActiveWidget) return;
-    if (savedSelection) { const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(savedSelection); savedSelection=null; }
+    _prepareSelectionForFormat(); savedSelection = null;
     document.execCommand('backColor', false, color); saveBoard();
+}
+
+// Retire le surlignage du texte sélectionné (sans laisser de styles parasites)
+function removeHighlightGlobal() {
+    if (!currentActiveWidget) return;
+    const editor = currentActiveWidget.querySelector('.editor-content');
+    if (!editor) return;
+    _prepareSelectionForFormat();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    if (!editor.contains(sel.getRangeAt(0).commonAncestorContainer)) return;
+    if (typeof snapshotNow === 'function') snapshotNow();
+
+    // Le navigateur scinde les surlignages qui débordent de la sélection
+    // et applique un fond transparent à la partie sélectionnée
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand('backColor', false, 'transparent');
+    // Firefox : hiliteColor est la commande équivalente
+    try { document.execCommand('hiliteColor', false, 'transparent'); } catch(e) {}
+
+    // Nettoyage : supprimer les fonds transparents et les spans devenus vides de style
+    const isTransparent = v => !v || v === 'transparent' || v === 'rgba(0, 0, 0, 0)' || v === 'initial' || v === 'inherit';
+    editor.querySelectorAll('[style]').forEach(el => {
+        if (el.style.backgroundColor && isTransparent(el.style.backgroundColor)) el.style.removeProperty('background-color');
+        if (el.style.background && isTransparent(el.style.background)) el.style.removeProperty('background');
+        if (!el.getAttribute('style') || !el.getAttribute('style').trim()) el.removeAttribute('style');
+    });
+    // Déballer les <span> sans attribut (laissés par le nettoyage)
+    editor.querySelectorAll('span:not([class]):not([style]):not([id])').forEach(sp => {
+        if (sp.attributes.length) return;
+        const parent = sp.parentNode;
+        while (sp.firstChild) parent.insertBefore(sp.firstChild, sp);
+        parent.removeChild(sp);
+    });
+    editor.normalize();
+
+    const s2 = window.getSelection();
+    if (s2 && s2.rangeCount) savedSelection = s2.getRangeAt(0).cloneRange();
+    saveBoard();
 }
 
 function syncFontSizeGlobal() {
@@ -519,6 +639,18 @@ function syncFontSizeGlobal() {
     const size = parseInt(window.getComputedStyle(el).fontSize) || 40;
     const label = document.getElementById('font-size-label');
     if (label) label.textContent = size + 'px';
+}
+
+// Affiche dans le menu déroulant la police réellement utilisée par le widget actif
+function syncFontFamilyGlobal() {
+    const select = document.getElementById('font-family-select');
+    if (!select || !currentActiveWidget) return;
+    const editor = currentActiveWidget.querySelector('.editor-content');
+    if (!editor) return;
+    const el = editor.querySelector('[style*="font-family"], font[face]') || editor;
+    const first = (window.getComputedStyle(el).fontFamily || '').split(',')[0].replace(/['"]/g, '').trim().toLowerCase();
+    const opt = [...select.options].find(o => o.value.split(',')[0].replace(/['"]/g, '').trim().toLowerCase() === first);
+    if (opt) select.value = opt.value;
 }
 
 function syncLineHeightGlobal() {
@@ -586,11 +718,75 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// =========================================================================
+// DOUBLE-CLIC SUR UN MOT : conserver la sélection
+// Le passage en mode édition (focus) déclenché par le double-clic efface la
+// sélection faite par le navigateur → on la mémorise puis on la restaure.
+// =========================================================================
+function _wordRangeAtPoint(x, y, editor) {
+    let node, offset;
+    if (document.caretRangeFromPoint) {
+        const r = document.caretRangeFromPoint(x, y);
+        if (!r) return null;
+        node = r.startContainer; offset = r.startOffset;
+    } else if (document.caretPositionFromPoint) {
+        const p = document.caretPositionFromPoint(x, y);
+        if (!p) return null;
+        node = p.offsetNode; offset = p.offset;
+    } else return null;
+    if (!node || node.nodeType !== 3 || !editor.contains(node)) return null;
+    const txt = node.textContent;
+    const isWord = ch => /[\p{L}\p{N}_'’-]/u.test(ch);
+    let a = offset, b = offset;
+    while (a > 0 && isWord(txt[a - 1])) a--;
+    while (b < txt.length && isWord(txt[b])) b++;
+    if (a === b) return null;
+    const range = document.createRange();
+    range.setStart(node, a);
+    range.setEnd(node, b);
+    return range;
+}
+
+document.addEventListener('dblclick', (e) => {
+    const editor = e.target.closest && e.target.closest('.editor-content');
+    if (!editor) return;
+    const widget = editor.closest('.widget');
+    if (!widget || (widget.dataset.type !== 'text' && widget.dataset.type !== 'homework')) return;
+
+    // Sélection du navigateur si elle existe encore, sinon calcul du mot sous le pointeur
+    let range = null;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && !sel.isCollapsed && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+        range = sel.getRangeAt(0).cloneRange();
+    } else {
+        range = _wordRangeAtPoint(e.clientX, e.clientY, editor);
+    }
+    if (!range) return;
+    range = _trimRangeWhitespace(range, editor);
+
+    const restore = () => {
+        const s = window.getSelection();
+        if (!s) return;
+        const cur = s.rangeCount ? s.getRangeAt(0) : null;
+        const same = cur && !s.isCollapsed &&
+            cur.startContainer === range.startContainer && cur.startOffset === range.startOffset &&
+            cur.endContainer === range.endContainer && cur.endOffset === range.endOffset;
+        if (same) return;
+        if (!range.startContainer.isConnected) return;
+        if (document.activeElement !== editor && editor.isContentEditable) editor.focus({ preventScroll: true });
+        s.removeAllRanges();
+        s.addRange(range);
+        savedSelection = range.cloneRange();
+    };
+    // Restaurer après les gestionnaires qui passent le widget en édition (immédiats ou différés)
+    [0, 40, 120].forEach(t => setTimeout(restore, t));
+}, true);
+
 document.addEventListener('dblclick', (e) => {
     // Double-clic sur widget texte : ouvrir la toolbar
     const widget = e.target.closest('.widget');
     const isTextOrHomework = widget && (widget.dataset.type==='text' || widget.dataset.type==='homework');
-    if (isTextOrHomework) { currentActiveWidget=widget; document.getElementById('global-toolbar').style.display='flex'; syncFontSizeGlobal(); syncLineHeightGlobal(); }
+    if (isTextOrHomework) { currentActiveWidget=widget; document.getElementById('global-toolbar').style.display='flex'; syncFontSizeGlobal(); syncLineHeightGlobal(); syncFontFamilyGlobal(); }
 });
 
 // =========================================================================
@@ -937,12 +1133,13 @@ function _stopAllAnimJS(widget) {
 }
 
 // ── Labels pour le bouton toolbar ──
+// Version compacte : icône seule (l'info-bulle "Animation" est posée par le JS)
 const ANIM_LABELS = {
-    none:'✨<br>Anim', blink:'💡<br>Anim', bounce:'🏀<br>Anim',
-    swing:'🎵<br>Anim', pendulum:'🎪<br>Anim', fade:'🌫️<br>Anim',
-    shimmer:'🔦<br>Anim', twinkle:'✨<br>Anim', wave:'🌊<br>Anim', zoompulse:'🎯<br>Anim',
-    rainbow:'🌈<br>Anim', fire:'🔥<br>Anim',
-    rain:'🌧️<br>Anim', typewriter:'🎭<br>Anim'
+    none:'✨', blink:'💡', bounce:'🏀',
+    swing:'🎵', pendulum:'🎪', fade:'🌫️',
+    shimmer:'🔦', twinkle:'✨', wave:'🌊', zoompulse:'🎯',
+    rainbow:'🌈', fire:'🔥',
+    rain:'🌧️', typewriter:'🎭'
 };
 
 function toggleAnimPicker(btn) {
@@ -1007,7 +1204,7 @@ function applyWidgetAnimation(name) {
     // Mettre à jour le bouton toolbar
     const animBtn = document.getElementById('anim-picker-btn');
     if (animBtn) {
-        animBtn.innerHTML = ANIM_LABELS[name] || '✨<br>Anim';
+        animBtn.innerHTML = ANIM_LABELS[name] || '✨';
         animBtn.style.color = (name && name !== 'none') ? '#6aaee8' : '';
         animBtn.style.borderColor = (name && name !== 'none') ? '#6aaee8' : '';
     }
@@ -1053,3 +1250,24 @@ document.addEventListener('keydown', (e) => {
     sel.addRange(after);
     saveBoard();
 });
+
+// =========================================================================
+// FERMETURE AUTO DE LA TOOLBAR QUAND LE WIDGET TEXTE ACTIF EST SUPPRIMÉ
+// =========================================================================
+function _hideTextToolbarForRemovedWidget() {
+    const tb = document.getElementById('global-toolbar');
+    if (tb) tb.style.display = 'none';
+    const pop = document.getElementById('anim-picker-pop');
+    if (pop) pop.classList.remove('open');
+    currentActiveWidget = null;
+    savedSelection = null;
+    // Le mode placement texte (curseur texte) reste actif s'il l'était
+}
+
+(function watchActiveWidgetRemoval() {
+    const obs = new MutationObserver(() => {
+        if (!currentActiveWidget) return;
+        if (!document.body.contains(currentActiveWidget)) _hideTextToolbarForRemovedWidget();
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+})();

@@ -401,50 +401,72 @@
     </div>
 
 
-    <div id="global-toolbar" style="position:fixed;bottom:20px;left:140px;background:#1F1F21;border-radius:12px;display:none;padding:7px 15px;box-shadow:0 -4px 20px rgba(0,0,0,0.3);z-index:13000;border:1px solid #444;">
-		<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-			<div id="global-toolbar-drag-handle" style="display:flex;align-items:center;justify-content:center;cursor:grab;opacity:0.6;transition:opacity 0.2s;background:rgba(255,255,255,0.06);border-radius:6px;padding:4px 5px;" title="Déplacer" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.6'">
-				<svg width="10" height="24" viewBox="0 0 10 24" fill="none"><circle cx="5" cy="4" r="2.5" fill="#999"/><circle cx="5" cy="12" r="2.5" fill="#999"/><circle cx="5" cy="20" r="2.5" fill="#999"/></svg>
+    <style id="text-toolbar-style">
+    /* ===== Toolbar texte compacte ===== */
+    #global-toolbar {
+        position:fixed; bottom:20px; left:140px; z-index:13000; display:none;
+        padding:5px 6px; border-radius:12px;
+        background:#1c1d21; border:1px solid rgba(255,255,255,.09);
+        box-shadow:0 10px 28px rgba(0,0,0,.38);
+        /* Pas de backdrop-filter / transform / filter ici : ils casseraient le
+           positionnement 'fixed' des popups couleur et animation (enfants de la barre) */
+        font:12px/1 'Segoe UI',system-ui,sans-serif; color:#d6d8de;
+        max-width:calc(100vw - 16px);
+    }
+    #global-toolbar .ttb-row { display:flex; align-items:center; gap:2px; flex-wrap:wrap; }
+    #global-toolbar .ttb-sep { width:1px; height:22px; background:rgba(255,255,255,.1); margin:0 4px; flex:none; }
+    #global-toolbar .ttb-grp { display:flex; align-items:center; gap:1px; }
+    #global-toolbar .ttb-btn,
+    #global-toolbar .cpick-label-btn {
+        all:unset; box-sizing:border-box; height:28px; min-width:28px; padding:0 5px;
+        display:inline-flex; align-items:center; justify-content:center; gap:3px;
+        border-radius:7px; color:#d6d8de; cursor:pointer; font-size:14px; line-height:1;
+        transition:background .12s,color .12s;
+    }
+    #global-toolbar .ttb-btn:hover,
+    #global-toolbar .cpick-label-btn:hover { background:rgba(255,255,255,.09); color:#fff; }
+    #global-toolbar .ttb-btn:active,
+    #global-toolbar .cpick-label-btn:active { background:rgba(122,184,245,.25); }
+    #global-toolbar .ttb-btn svg, #global-toolbar .cpick-label-btn svg { display:block; }
+    #global-toolbar .ttb-step { min-width:22px; padding:0; font-size:15px; font-weight:600; color:#aeb4bf; }
+    #global-toolbar .ttb-val {
+        min-width:36px; text-align:center; font-size:11px; color:#9aa3b2;
+        font-variant-numeric:tabular-nums; user-select:none;
+    }
+    #global-toolbar .ttb-ico { color:#7d8592; display:flex; margin:0 1px 0 3px; }
+    #global-toolbar select {
+        height:28px; width:112px; padding:0 6px; border-radius:7px; cursor:pointer;
+        border:1px solid rgba(255,255,255,.1); background:#25262b; color:#d6d8de; font-size:12px;
+    }
+    #global-toolbar input[type=range] { width:60px; margin:0 3px; cursor:pointer; accent-color:#7ab8f5; }
+    #global-toolbar #anim-picker-btn { font-size:15px; }
+    #global-toolbar .ttb-close { color:#9aa3b2; }
+    #global-toolbar .ttb-close:hover { background:rgba(231,76,60,.22); color:#ff8a7a; }
+    #global-toolbar-drag-handle {
+        display:flex; align-items:center; justify-content:center; width:16px; height:28px;
+        cursor:grab; color:#777; border-radius:6px; transition:color .15s,background .15s;
+    }
+    #global-toolbar-drag-handle:hover { color:#ccc; background:rgba(255,255,255,.06); }
+    </style>
+    <div id="global-toolbar">
+		<div class="ttb-row">
+			<div id="global-toolbar-drag-handle" title="Déplacer">
+				<svg width="6" height="16" viewBox="0 0 6 16" fill="currentColor"><circle cx="3" cy="2" r="1.6"/><circle cx="3" cy="8" r="1.6"/><circle cx="3" cy="14" r="1.6"/></svg>
 			</div>
-			<div style="width:1px;height:30px;background:#444;"></div>
-			<div style="display:flex;flex-direction:column;gap:3px;">
-				<div style="display:flex;gap:3px;">
-					<button onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('justifyLeft')" style="cursor:pointer;padding:2px 4px;" title="Aligner à gauche"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="1" y="6" width="9" height="2" rx="1"/><rect x="1" y="10" width="14" height="2" rx="1"/><rect x="1" y="14" width="9" height="2" rx="1"/></svg></button>
-					<button onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('justifyCenter')" style="cursor:pointer;padding:2px 4px;" title="Centrer"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="3.5" y="6" width="9" height="2" rx="1"/><rect x="1" y="10" width="14" height="2" rx="1"/><rect x="3.5" y="14" width="9" height="2" rx="1"/></svg></button>
-					<button onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('justifyRight')" style="cursor:pointer;padding:2px 4px;" title="Aligner à droite"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="6" y="6" width="9" height="2" rx="1"/><rect x="1" y="10" width="14" height="2" rx="1"/><rect x="6" y="14" width="9" height="2" rx="1"/></svg></button>
-				</div>
-				<div style="display:flex;gap:3px;">
-					<button onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('bold')" style="cursor:pointer;" title="Gras"><b>G</b></button>
-					<button onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('italic')" style="cursor:pointer;" title="Italique"><i>I</i></button>
-					<button onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('underline')" style="cursor:pointer;" title="Souligné"><u>S</u></button>
-				</div>
+			<div class="ttb-sep"></div>
+			<div class="ttb-grp">
+				<button class="ttb-btn" onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('bold')" title="Gras"><b style="font-family:Georgia,serif">G</b></button>
+				<button class="ttb-btn" onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('italic')" title="Italique"><i style="font-family:Georgia,serif">I</i></button>
+				<button class="ttb-btn" onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('underline')" title="Souligné"><u style="font-family:Georgia,serif">S</u></button>
 			</div>
-			<div style="width:1px;height:30px;background:#444;"></div>
-			<div class="cpick-wrap" id="cpick-text-color">
-				<button class="cpick-label-btn" onmousedown="savedSelection=saveCurrentSelection()" onclick="cpickOpen('text-color',this)" title="Couleur du texte">Couleur<br>texte</button>
-				<div class="cpick-popup" id="cpick-pop-text-color"></div>
+			<div class="ttb-sep"></div>
+			<div class="ttb-grp">
+				<button class="ttb-btn" onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('justifyLeft')" title="Aligner à gauche"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="1.8" rx=".9"/><rect x="1" y="6" width="9" height="1.8" rx=".9"/><rect x="1" y="10" width="14" height="1.8" rx=".9"/><rect x="1" y="14" width="9" height="1.8" rx=".9"/></svg></button>
+				<button class="ttb-btn" onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('justifyCenter')" title="Centrer"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="1.8" rx=".9"/><rect x="3.5" y="6" width="9" height="1.8" rx=".9"/><rect x="1" y="10" width="14" height="1.8" rx=".9"/><rect x="3.5" y="14" width="9" height="1.8" rx=".9"/></svg></button>
+				<button class="ttb-btn" onmousedown="savedSelection=saveCurrentSelection()" onclick="formatGlobal('justifyRight')" title="Aligner à droite"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="1.8" rx=".9"/><rect x="6" y="6" width="9" height="1.8" rx=".9"/><rect x="1" y="10" width="14" height="1.8" rx=".9"/><rect x="6" y="14" width="9" height="1.8" rx=".9"/></svg></button>
 			</div>
-			<div class="cpick-wrap" id="cpick-highlight-color">
-				<button class="cpick-label-btn" onmousedown="savedSelection=saveCurrentSelection()" onclick="cpickOpen('highlight-color',this)" title="Couleur de surlignage">Couleur<br>surlignage</button>
-				<div class="cpick-popup" id="cpick-pop-highlight-color"></div>
-			</div>
-			<div class="cpick-wrap" id="cpick-widget-bg">
-				<button class="cpick-label-btn" onclick="cpickOpen('widget-bg',this)" title="Couleur du fond">Couleur<br>fond</button>
-				<div class="cpick-popup" id="cpick-pop-widget-bg"></div>
-			</div>
-			<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-				<span style="font-size:10px;color:#ccc;white-space:nowrap;">Opacité fond</span>
-				<div style="display:flex;align-items:center;gap:4px;">
-					<button onmousedown="savedSelection=saveCurrentSelection()" onclick="toggleBgOpacityGlobal()" style="cursor:pointer;" title="Fond transparent / opaque"><span class="icon-transparency"></span></button>
-					<input type="range" id="widget-bg-opacity" min="0" max="100" value="100"
-						onmousedown="savedSelection=saveCurrentSelection()"
-						oninput="applyWidgetBgOpacity(this.value)"
-						style="width:70px;cursor:pointer;">
-					<span id="widget-bg-opacity-val" style="color:#fff;font-size:10px;min-width:28px;">100%</span>
-				</div>
-			</div>
-			<div style="width:1px;height:30px;background:#444;"></div>
-			<select onmousedown="savedSelection=saveCurrentSelection()" onchange="formatFontFamilyGlobal(this.value)" style="width:100px; cursor:pointer;">
+			<div class="ttb-sep"></div>
+			<select id="font-family-select" onmousedown="savedSelection=saveCurrentSelection()" onchange="formatFontFamilyGlobal(this.value)" title="Police">
 				<option value="Arial, sans-serif">Arial</option>
 				<option value="'Segoe UI', sans-serif">Segoe UI</option>
 				<option value="'Comic Sans MS', cursive">Comic Sans MS</option>
@@ -457,27 +479,41 @@
 				<option value="'Nunito'">Nunito Regular</option>
 				<option value="'Marelle', cursive">Marelle</option>
 				<option value="'MarelleBaton', cursive">Marelle Baton</option>
-				<option value="'MDI', cursive">MDI école</option>
+				<option value="'MDI', cursive" selected>MDI école</option>
 			</select>
-			<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-				<span style="font-size:10px;color:#ccc;white-space:nowrap;">Taille police</span>
-				<div style="display:flex;align-items:center;gap:4px;">
-					<button onmousedown="savedSelection=saveCurrentSelection()" onclick="adjustFontSize(-2)" style="padding:2px 7px;font-size:14px;font-weight:bold;border:1px solid #555;background:#333;color:white;border-radius:4px;cursor:pointer;" title="Réduire la taille">−</button>
-					<span id="font-size-label" style="color:#fff;font-size:11px;min-width:32px;text-align:center;">40</span>
-					<button onmousedown="savedSelection=saveCurrentSelection()" onclick="adjustFontSize(+2)" style="padding:2px 7px;font-size:14px;font-weight:bold;border:1px solid #555;background:#333;color:white;border-radius:4px;cursor:pointer;" title="Augmenter la taille">+</button>
-				</div>
+			<div class="ttb-grp" title="Taille de police">
+				<button class="ttb-btn ttb-step" onmousedown="savedSelection=saveCurrentSelection()" onclick="adjustFontSize(-2)" title="Réduire la taille">−</button>
+				<span id="font-size-label" class="ttb-val">40</span>
+				<button class="ttb-btn ttb-step" onmousedown="savedSelection=saveCurrentSelection()" onclick="adjustFontSize(+2)" title="Augmenter la taille">+</button>
 			</div>
-			<div style="width:1px;height:30px;background:#444;"></div>
-			<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-				<span style="font-size:10px;color:#ccc;white-space:nowrap;">Interligne</span>
-				<div style="display:flex;align-items:center;gap:4px;">
-					<button onmousedown="startLHRepeat(-0.01)" onmouseup="stopLHRepeat()" onmouseleave="stopLHRepeat()" style="padding:2px 7px;font-size:14px;font-weight:bold;border:1px solid #555;background:#333;color:white;border-radius:4px;cursor:pointer;" title="Resserrer les lignes">−</button>
-					<span id="line-height-label" style="color:#fff;font-size:11px;min-width:36px;text-align:center;">1.20</span>
-					<button onmousedown="startLHRepeat(+0.01)" onmouseup="stopLHRepeat()" onmouseleave="stopLHRepeat()" style="padding:2px 7px;font-size:14px;font-weight:bold;border:1px solid #555;background:#333;color:white;border-radius:4px;cursor:pointer;" title="Écarter les lignes">+</button>
-				</div>
+			<div class="ttb-grp" title="Interligne">
+				<span class="ttb-ico"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 1.5v13M1 3.5l2-2 2 2M1 12.5l2 2 2-2"/><path d="M8 4h7M8 8h7M8 12h7"/></svg></span>
+				<button class="ttb-btn ttb-step" onmousedown="startLHRepeat(-0.01)" onmouseup="stopLHRepeat()" onmouseleave="stopLHRepeat()" title="Resserrer les lignes">−</button>
+				<span id="line-height-label" class="ttb-val">1.20</span>
+				<button class="ttb-btn ttb-step" onmousedown="startLHRepeat(+0.01)" onmouseup="stopLHRepeat()" onmouseleave="stopLHRepeat()" title="Écarter les lignes">+</button>
 			</div>
-			<div style="width:1px;height:30px;background:#444;"></div>
-			<button id="anim-picker-btn" onclick="toggleAnimPicker(this)" class="cpick-label-btn" title="Animation du widget">✨<br>Anim</button>
+			<div class="ttb-sep"></div>
+			<div class="cpick-wrap" id="cpick-text-color">
+				<button class="cpick-label-btn" onmousedown="savedSelection=saveCurrentSelection()" onclick="cpickOpen('text-color',this)" title="Couleur du texte"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M4 12L8 2l4 10M5.6 8.2h4.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="13.5" width="12" height="2" rx="1" fill="#e74c3c"/></svg></button>
+				<div class="cpick-popup" id="cpick-pop-text-color"></div>
+			</div>
+			<div class="cpick-wrap" id="cpick-highlight-color">
+				<button class="cpick-label-btn" onmousedown="savedSelection=saveCurrentSelection()" onclick="cpickOpen('highlight-color',this)" title="Couleur de surlignage"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M9.5 2.5l3 3-5.5 5.5H4v-3z"/><path d="M4 11l-1.5 1.5"/><rect x="2" y="13.5" width="12" height="2" rx="1" fill="#f1c40f" stroke="none"/></svg></button>
+				<div class="cpick-popup" id="cpick-pop-highlight-color"></div>
+			</div>
+			<div class="cpick-wrap" id="cpick-widget-bg">
+				<button class="cpick-label-btn" onclick="cpickOpen('widget-bg',this)" title="Couleur du fond"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="12" height="9.5" rx="2"/><rect x="2" y="13.5" width="12" height="2" rx="1" fill="#7ab8f5" stroke="none"/></svg></button>
+				<div class="cpick-popup" id="cpick-pop-widget-bg"></div>
+			</div>
+			<div class="ttb-grp" title="Opacité du fond">
+				<button class="ttb-btn" onmousedown="savedSelection=saveCurrentSelection()" onclick="toggleBgOpacityGlobal()" title="Fond transparent / opaque"><span class="icon-transparency"></span></button>
+				<input type="range" id="widget-bg-opacity" min="0" max="100" value="100"
+					onmousedown="savedSelection=saveCurrentSelection()"
+					oninput="applyWidgetBgOpacity(this.value)">
+				<span id="widget-bg-opacity-val" class="ttb-val">100%</span>
+			</div>
+			<div class="ttb-sep"></div>
+			<button id="anim-picker-btn" onclick="toggleAnimPicker(this)" class="cpick-label-btn" title="Animation du texte">✨</button>
 			<div id="anim-picker-pop">
 				<button onclick="applyWidgetAnimation('none')">⛔ Aucune</button>
 				<div class="anim-sep"></div>
@@ -502,8 +538,7 @@
 				<button onclick="applyWidgetAnimation('rain')">🌧️ Pluie</button>
 				<button onclick="applyWidgetAnimation('typewriter')">🎭 Typewriter</button>
 			</div>
-			<div style="width:1px;height:30px;background:#444;"></div>
-			<button onclick="closeGlobalToolbar()" style="margin-left:auto;background:#6c757d;color:white;padding:4px 8px;border-radius:4px; cursor:pointer;">✖</button>
+			<button class="ttb-btn ttb-close" onclick="closeGlobalToolbar()" title="Fermer"><svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 2l8 8M10 2l-8 8"/></svg></button>
 		</div>
 	</div>
 
@@ -874,7 +909,7 @@ function setVisuelsMode(mode) {
 <!-- TEMPLATES -->
 <template id="template-text">
     <div class="editor-container">
-        <div class="editor-content" contenteditable="true" oninput="saveBoard()" style="font-size:40px;"></div>
+        <div class="editor-content" contenteditable="true" oninput="saveBoard()" style="font-size:40px;font-family:'MDI', cursive;"></div>
     </div>
 </template>
 <!-- template-homework → widget-devoirs.js -->

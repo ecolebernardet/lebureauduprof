@@ -189,21 +189,35 @@ function _wfIsPhoneLaunch() {
         overflow: visible !important;
     }
 
-    /* ── Wrapper externe ── */
+    /* ── Rectangle principal : fond pastel + reflet (style calculatrice) ── */
     .widget[data-type="sonometre"] .sono-outer {
+        --so-ink:   #14202E;
+        --so-muted: rgba(20,32,46,0.6);
+        --so-glass: rgba(255,255,255,0.62);
+        --so-bg:    #F6D86A;
+        --so-op:    #B9770E;
+
         position: relative;
         width:  300px;
-        height: 480px;
+        height: 560px;
         min-width:  220px;
-        min-height: 352px;
+        min-height: 411px;
         overflow: hidden;
         resize: none;
         box-sizing: border-box;
-        border-radius: 16px;
+        border-radius: 24px;
+        background-color: var(--so-bg);
+        background-image:
+            radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+            radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+        box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
+        color: var(--so-ink);
+        transition: background-color .3s;
     }
     .widget[data-type="sonometre"]:hover .sono-outer,
     .widget[data-type="sonometre"]:focus-within .sono-outer {
-        outline: 2px dashed rgba(74,144,226,0.35);
+        outline: 2px dashed rgba(20,32,46,0.35);
+        outline-offset: 2px;
     }
 
     /* ── Plein écran ── */
@@ -217,12 +231,11 @@ function _wfIsPhoneLaunch() {
         z-index: 9999 !important;
         border-radius: 0 !important;
         outline: none !important;
-        background: #1a1a2e;
         cursor: default !important;
     }
     .sono-outer.sono-fullboard .sono-resize-handle { display: none; }
 
-    /* ── Téléphone : plein écran du bouton vert à la hauteur réelle de l'écran, décalé de 40 px à gauche pour laisser les onglets latéraux visibles ── */
+    /* ── Téléphone : plein écran à la hauteur réelle de l'écran, décalé de 40 px à gauche pour laisser les onglets latéraux visibles ── */
     @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
         .widget[data-type="sonometre"] .sono-outer.sono-fullboard {
             left: 40px !important;
@@ -231,22 +244,18 @@ function _wfIsPhoneLaunch() {
         }
     }
 
-    /* Poignée de resize proportionnel custom */
+    /* Poignée de redimensionnement (pointillés) */
     .sono-resize-handle {
         position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 18px;
-        height: 18px;
+        bottom: 6px; right: 6px;
+        width: 18px; height: 18px;
         cursor: nwse-resize;
         z-index: 10;
         opacity: 0;
         transition: opacity 0.2s;
-        background-image: linear-gradient(135deg,
-            transparent 50%, #4a90e2 50%, #4a90e2 60%,
-            transparent 60%, transparent 70%,
-            #4a90e2 70%, #4a90e2 80%, transparent 80%);
-        border-bottom-right-radius: 16px;
+        background: radial-gradient(circle, rgba(20,32,46,0.55) 1.3px, transparent 1.7px) 0 0 / 6px 6px;
+        -webkit-mask: linear-gradient(135deg, transparent 50%, #000 50%);
+                mask: linear-gradient(135deg, transparent 50%, #000 50%);
     }
     .widget[data-type="sonometre"]:hover .sono-resize-handle,
     .widget[data-type="sonometre"]:focus-within .sono-resize-handle {
@@ -260,8 +269,9 @@ function _wfIsPhoneLaunch() {
         transform-origin: top left;
     }
 
-    /* ── Widget intérieur (taille de référence 300x480) ── */
+    /* ── Widget intérieur (taille de référence 300×560) ── */
     .sono-widget {
+        position: relative;
         width: 300px;
         display: flex;
         flex-direction: column;
@@ -269,14 +279,12 @@ function _wfIsPhoneLaunch() {
         padding: 12px 14px 14px;
         gap: 10px;
         user-select: none;
-        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
         box-sizing: border-box;
-        background: #1a1a2e;
-        border-radius: 16px;
-        color: #fff;
+        color: var(--so-ink);
     }
 
-    /* ── En-tête : réglages | titre | boutons fenêtre ── */
+    /* ── En-tête : pastilles « verre » ── */
     .sono-header {
         width: 100%;
         display: flex;
@@ -284,20 +292,59 @@ function _wfIsPhoneLaunch() {
         justify-content: space-between;
         gap: 6px;
     }
-
-    /* ── Titre ── */
+    .sono-title,
+    .sono-tools {
+        display: flex;
+        align-items: center;
+        background: var(--so-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        border-radius: 999px;
+        box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+    }
     .sono-title {
-        flex: 1;
-        min-width: 0;
-        text-align: center;
-        font-size: 13px;
+        gap: 7px;
+        padding: 7px 12px 7px 10px;
+        font-size: 14px;
         font-weight: 700;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        color: rgba(255,255,255,0.5);
         white-space: nowrap;
         overflow: hidden;
-        text-overflow: ellipsis;
+        min-width: 0;
+    }
+    .sono-title svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .sono-tools { gap: 2px; padding: 4px 10px 4px 4px; flex-shrink: 0; }
+    .sono-sep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
+    .sono-toggle-controls {
+        width: 28px; height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        color: var(--so-ink);
+        cursor: pointer;
+        padding: 0;
+        transition: background .15s;
+    }
+    .sono-toggle-controls svg { width: 17px; height: 17px; }
+    .sono-toggle-controls:hover,
+    .sono-toggle-controls.is-on { background: rgba(20,32,46,0.12); }
+
+    /* ── Carte de mesure ── */
+    .sono-card {
+        width: 100%;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 12px 12px;
+        border-radius: 20px;
+        background: rgba(255,255,255,0.62);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        box-shadow: inset 0 2px 8px rgba(10,20,35,0.08);
     }
 
     /* ── Jauge semi-circulaire ── */
@@ -311,6 +358,8 @@ function _wfIsPhoneLaunch() {
         width: 100%;
         height: auto;
         overflow: visible;
+        font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
+        font-weight: 700;
     }
 
     /* ── Affichage du niveau numérique (0 à 100) ── */
@@ -318,32 +367,32 @@ function _wfIsPhoneLaunch() {
         display: flex;
         flex-direction: column;
         align-items: center;
-        margin-top: -4px;
+        margin-top: 2px;
     }
     .sono-db-value {
-        font-size: 40px;
-        font-weight: 800;
+        font-size: 44px;
+        font-weight: 700;
         line-height: 1;
         font-variant-numeric: tabular-nums;
-        letter-spacing: -2px;
+        letter-spacing: -1px;
         transition: color 0.3s;
-        color: #fff;
+        color: var(--so-ink);
     }
     .sono-db-unit {
-        font-size: 13px;
-        font-weight: 600;
-        color: rgba(255,255,255,0.4);
-        letter-spacing: 1px;
-        margin-top: 2px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--so-muted);
+        margin-top: 3px;
     }
 
     /* ── Label état ── */
     .sono-label {
         font-size: 14px;
         font-weight: 700;
-        letter-spacing: 1px;
-        padding: 5px 18px;
-        border-radius: 20px;
+        padding: 6px 18px;
+        border-radius: 999px;
+        background: rgba(20,32,46,0.08);
+        color: var(--so-muted);
         transition: background 0.4s, color 0.4s;
         text-align: center;
     }
@@ -362,7 +411,7 @@ function _wfIsPhoneLaunch() {
     .sono-bar {
         flex: 1;
         max-width: 14px;
-        border-radius: 3px 3px 0 0;
+        border-radius: 4px 4px 2px 2px;
         transition: height 0.08s ease-out, background 0.3s;
         min-height: 2px;
     }
@@ -371,74 +420,90 @@ function _wfIsPhoneLaunch() {
     .sono-btns {
         display: flex;
         gap: 8px;
-        margin-top: 2px;
     }
     .sono-btn {
-        padding: 7px 18px;
+        font-family: inherit;
+        padding: 9px 18px;
         border: none;
-        border-radius: 10px;
-        font-size: 12px;
+        border-radius: 999px;
+        font-size: 13px;
         font-weight: 700;
         cursor: pointer;
-        transition: background 0.18s, transform 0.1s, opacity 0.2s;
-        letter-spacing: 0.5px;
+        box-shadow: 0 3px 0 rgba(10,20,35,0.2);
+        transition: transform 0.08s, box-shadow 0.08s, filter 0.15s, background 0.2s;
     }
-    .sono-btn:active { transform: scale(0.96); }
+    .sono-btn:hover { filter: brightness(1.06); }
+    .sono-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(10,20,35,0.2); }
     .sono-btn-start {
-        background: #4a90e2;
+        background: var(--so-op);
         color: #fff;
     }
-    .sono-btn-start:hover { background: #357abd; }
+    .sono-btn-start.is-running { background: var(--so-ink); }
     .sono-btn-reset {
-        background: rgba(255,255,255,0.1);
-        color: rgba(255,255,255,0.7);
+        background: rgba(255,255,255,0.85);
+        color: var(--so-ink);
     }
-    .sono-btn-reset:hover { background: rgba(255,255,255,0.18); }
 
     /* ── Seuils personnalisables ── */
     .sono-thresholds {
         width: 100%;
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        background: rgba(255,255,255,0.06);
-        border-radius: 10px;
-        padding: 8px 10px;
+        gap: 6px;
+        background: var(--so-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        border-radius: 16px;
+        padding: 10px 12px;
         box-sizing: border-box;
     }
     .sono-thresh-row {
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 11px;
-        color: rgba(255,255,255,0.6);
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--so-muted);
     }
     .sono-thresh-dot {
-        width: 10px; height: 10px;
+        width: 11px; height: 11px;
         border-radius: 50%;
         flex-shrink: 0;
     }
     .sono-thresh-label { flex: 1; }
     .sono-thresh-input {
         width: 46px;
-        background: rgba(255,255,255,0.1);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 5px;
-        color: #fff;
-        font-size: 11px;
-        font-weight: 600;
+        background: rgba(255,255,255,0.9);
+        border: none;
+        border-radius: 999px;
+        color: var(--so-ink);
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
         text-align: center;
-        padding: 2px 4px;
+        padding: 3px 4px;
         outline: none;
+        box-shadow: inset 0 1px 3px rgba(10,20,35,0.15);
     }
-    .sono-thresh-input:focus { border-color: #4a90e2; }
+    .sono-thresh-input:focus { box-shadow: 0 0 0 2px var(--so-op); }
 
-    /* ── Message alerte (sous les boutons fenêtre) ── */
+    /* Couleur du widget */
+    .sono-swatches { display: flex; gap: 6px; }
+    .sono-swatch {
+        width: 20px; height: 20px;
+        border-radius: 50%;
+        border: 2px solid rgba(20,32,46,0.15);
+        cursor: pointer;
+        padding: 0;
+    }
+    .sono-swatch.is-on { border-color: var(--so-ink); box-shadow: 0 0 0 2px #fff inset; }
+
+    /* ── Message alerte (en haut à droite de la carte de mesure) ── */
     .sono-alert {
         display: none;
         position: absolute;
-        top: 44px;
-        right: 16px;
+        top: 70px;
+        right: 26px;
         font-size: 22px;
         animation: sono-pulse 0.6s infinite alternate;
         pointer-events: none;
@@ -447,23 +512,6 @@ function _wfIsPhoneLaunch() {
     @keyframes sono-pulse {
         from { opacity: 0.5; transform: scale(0.9); }
         to   { opacity: 1;   transform: scale(1.1); }
-    }
-
-    /* ── Bouton toggle contrôles (dans l'en-tête) ── */
-    .sono-toggle-controls {
-        flex-shrink: 0;
-        background: rgba(255,255,255,0.08);
-        border: none;
-        border-radius: 6px;
-        color: rgba(255,255,255,0.5);
-        font-size: 11px;
-        padding: 3px 8px;
-        cursor: pointer;
-        transition: background 0.18s, color 0.18s;
-    }
-    .sono-toggle-controls:hover {
-        background: rgba(255,255,255,0.15);
-        color: rgba(255,255,255,0.9);
     }
 
     /* ── Zone contrôles (boutons + seuils) ── */
@@ -475,7 +523,7 @@ function _wfIsPhoneLaunch() {
         gap: 10px;
         overflow: hidden;
         transition: max-height 0.3s ease, opacity 0.3s ease;
-        max-height: 200px;
+        max-height: 240px;
         opacity: 1;
     }
     .sono-controls.hidden {
@@ -486,21 +534,48 @@ function _wfIsPhoneLaunch() {
 
     /* ── Micro refusé ── */
     .sono-no-mic {
-        font-size: 11px;
-        color: rgba(255,100,100,0.8);
+        font-size: 12px;
+        font-weight: 700;
+        color: #C0392B;
         text-align: center;
-        padding: 4px 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.8);
         display: none;
     }
     `;
 
     // ── Injection CSS ─────────────────────────────────────────────────────
-    if (!document.getElementById('sono-style-v2')) {
+    if (!document.getElementById('sono-style-v3')) {
         const st = document.createElement('style');
-        st.id = 'sono-style-v2';
+        st.id = 'sono-style-v3';
         st.textContent = STYLE;
         document.head.appendChild(st);
     }
+
+    // Police arrondie partagée avec la calculatrice (repli système si hors-ligne)
+    if (!document.getElementById('wpc-font')) {
+        const fl = document.createElement('link');
+        fl.id = 'wpc-font';
+        fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap';
+        document.head.appendChild(fl);
+    }
+
+    // ── Couleurs disponibles (mêmes teintes que la calculatrice) ──────────
+    const THEMES = {
+        bleu:   { name: 'Bleu',   bg: '#8EC5F2', op: '#2F6FB3' },
+        vert:   { name: 'Vert',   bg: '#7FD6A6', op: '#23915A' },
+        jaune:  { name: 'Jaune',  bg: '#F6D86A', op: '#B9770E' },
+        rose:   { name: 'Rose',   bg: '#F4A9C0', op: '#C2456E' },
+        violet: { name: 'Violet', bg: '#C2B2F0', op: '#6A4FC2' },
+        gris:   { name: 'Gris',   bg: '#D4DAE2', op: '#4A5868' }
+    };
+    const DEFAULT_THEME = 'jaune';
+    // Couleurs des niveaux : calme / agité / trop bruyant
+    const C_CALM = '#3DBE8B', C_MID = '#F0A53A', C_LOUD = '#EF5B4F';
+    const ICON_MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>';
+    const ICON_SLIDERS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>';
 
     // ── Initialisation d'une instance de widget ────────────────────────────
     window.initSonometreWidget = function (widget) {
@@ -514,47 +589,57 @@ function _wfIsPhoneLaunch() {
             // Injection HTML directe (sans passer par le système de template)
             var bars = '';
             for (var b = 0; b < 16; b++) {
-                bars += '<div class="sono-bar" style="height:2px;background:rgba(255,255,255,0.2)"></div>';
+                bars += '<div class="sono-bar" style="height:2px;background:rgba(20,32,46,0.15)"></div>';
             }
             var contentZone = widget.querySelector('.widget-content');
             contentZone.innerHTML = ''
                 + '<div class="sono-outer"><div class="sono-resize-handle"></div><div class="sono-scale-wrap"><div class="sono-widget">'
                 + '<div class="sono-header">'
-                +   '<button class="sono-toggle-controls" title="Afficher/masquer les contrôles">⚙️</button>'
-                +   '<div class="sono-title">\uD83C\uDF99\uFE0F Sonom\u00E8tre</div>'
-                +   '<div class="wf-btns">'
-                +     '<button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>'
-                +     '<button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>'
-                +     '<button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>'
+                +   '<div class="sono-title">' + ICON_MIC + '<span>Sonom\u00E8tre</span></div>'
+                +   '<div class="sono-tools">'
+                +     '<button class="sono-toggle-controls" title="Afficher/masquer les contrôles">' + ICON_SLIDERS + '</button>'
+                +     '<span class="sono-sep"></span>'
+                +     '<div class="wf-btns">'
+                +       '<button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>'
+                +       '<button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>'
+                +       '<button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>'
+                +     '</div>'
                 +   '</div>'
                 + '</div>'
+                + '<div class="sono-card">'
                 + '<div class="sono-gauge-wrap"><svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg">'
                 + '<defs><linearGradient id="' + gradId + '" x1="0%" y1="0%" x2="100%" y2="0%">'
-                + '<stop offset="0%" stop-color="#2ecc71"/><stop offset="50%" stop-color="#f39c12"/><stop offset="100%" stop-color="#e74c3c"/>'
+                + '<stop offset="0%" stop-color="' + C_CALM + '"/><stop offset="50%" stop-color="' + C_MID + '"/><stop offset="100%" stop-color="' + C_LOUD + '"/>'
                 + '</linearGradient></defs>'
-                + '<path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="16" stroke-linecap="round"/>'
+                + '<path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="rgba(20,32,46,0.10)" stroke-width="16" stroke-linecap="round"/>'
                 + '<path class="sono-arc-val" d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="url(#' + gradId + ')" stroke-width="16" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" style="transition:stroke-dashoffset 0.15s ease-out;"/>'
-                + '<line class="sono-needle" x1="110" y1="110" x2="110" y2="30" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round" style="transform-origin:110px 110px;transform:rotate(-90deg);transition:transform 0.15s ease-out;"/>'
-                + '<circle cx="110" cy="110" r="6" fill="rgba(255,255,255,0.9)"/>'
-                + '<text x="16" y="128" fill="rgba(255,255,255,0.35)" font-size="9" text-anchor="middle">0</text>'
-                + '<text x="55" y="60" fill="rgba(255,255,255,0.35)" font-size="9" text-anchor="middle">25</text>'
-                + '<text x="110" y="28" fill="rgba(255,255,255,0.35)" font-size="9" text-anchor="middle">50</text>'
-                + '<text x="165" y="60" fill="rgba(255,255,255,0.35)" font-size="9" text-anchor="middle">75</text>'
-                + '<text x="204" y="128" fill="rgba(255,255,255,0.35)" font-size="9" text-anchor="middle">100</text>'
+                + '<line class="sono-needle" x1="110" y1="110" x2="110" y2="30" stroke="#14202E" stroke-width="3" stroke-linecap="round" style="transform-origin:110px 110px;transform:rotate(-90deg);transition:transform 0.15s ease-out;"/>'
+                + '<circle cx="110" cy="110" r="7" fill="#14202E"/>'
+                + '<text x="16" y="128" fill="rgba(20,32,46,0.5)" font-size="10" text-anchor="middle">0</text>'
+                + '<text x="55" y="60" fill="rgba(20,32,46,0.5)" font-size="10" text-anchor="middle">25</text>'
+                + '<text x="110" y="28" fill="rgba(20,32,46,0.5)" font-size="10" text-anchor="middle">50</text>'
+                + '<text x="165" y="60" fill="rgba(20,32,46,0.5)" font-size="10" text-anchor="middle">75</text>'
+                + '<text x="204" y="128" fill="rgba(20,32,46,0.5)" font-size="10" text-anchor="middle">100</text>'
                 + '</svg></div>'
                 + '<div class="sono-db-display"><div class="sono-db-value">--</div><div class="sono-db-unit">niveau sonore / 100</div></div>'
                 + '<div class="sono-label">Microphone inactif</div>'
                 + '<div class="sono-alert" style="display:none;">&#x1F507;</div>'
                 + '<div class="sono-bars">' + bars + '</div>'
+                + '</div>'
                 + '<div class="sono-controls">'
                 + '<div class="sono-btns">'
                 + '<button class="sono-btn sono-btn-start">&#9654; Démarrer</button>'
                 + '<button class="sono-btn sono-btn-reset">Réinitialiser</button>'
                 + '</div>'
                 + '<div class="sono-thresholds">'
-                + '<div class="sono-thresh-row"><div class="sono-thresh-dot" style="background:#2ecc71"></div><span class="sono-thresh-label">Calme (en-dessous de)</span><input class="sono-thresh-input" type="number" min="0" max="100" value="20"> / 100</div>'
-                + '<div class="sono-thresh-row"><div class="sono-thresh-dot" style="background:#f39c12"></div><span class="sono-thresh-label">Agité (en-dessous de)</span><input class="sono-thresh-input" type="number" min="0" max="100" value="40"> / 100</div>'
-                + '<div class="sono-thresh-row"><div class="sono-thresh-dot" style="background:#e74c3c"></div><span class="sono-thresh-label">Trop bruyant (au-dessus)</span></div>'
+                + '<div class="sono-thresh-row"><div class="sono-thresh-dot" style="background:' + C_CALM + '"></div><span class="sono-thresh-label">Calme (en-dessous de)</span><input class="sono-thresh-input" type="number" min="0" max="100" value="20"> / 100</div>'
+                + '<div class="sono-thresh-row"><div class="sono-thresh-dot" style="background:' + C_MID + '"></div><span class="sono-thresh-label">Agité (en-dessous de)</span><input class="sono-thresh-input" type="number" min="0" max="100" value="40"> / 100</div>'
+                + '<div class="sono-thresh-row"><div class="sono-thresh-dot" style="background:' + C_LOUD + '"></div><span class="sono-thresh-label">Trop bruyant (au-dessus)</span></div>'
+                + '<div class="sono-thresh-row"><span class="sono-thresh-label">Couleur</span><div class="sono-swatches">'
+                + Object.keys(THEMES).map(function (id) {
+                    return '<button class="sono-swatch" data-theme="' + id + '" title="' + THEMES[id].name + '" style="background:' + THEMES[id].bg + '"></button>';
+                  }).join('')
+                + '</div></div>'
                 + '</div>'
                 + '</div>'
                 + '<div class="sono-no-mic" style="display:none;">&#x26A0;&#xFE0F; Acc\u00E8s au microphone refus\u00E9</div>'
@@ -597,7 +682,7 @@ function _wfIsPhoneLaunch() {
             }
 
             // ── Mise à l'échelle ──────────────────────────────────────────
-            const REF_W = 300, REF_H = 480;
+            const REF_W = 300, REF_H = 560;
             const RATIO = REF_H / REF_W;
 
             function rescale() {
@@ -694,9 +779,9 @@ function _wfIsPhoneLaunch() {
 
             // ── Couleur / label selon le niveau ───────────────────────────
             const STATES = [
-                { color: '#2ecc71', bg: 'rgba(46,204,113,0.18)',  text: '😊 Calme',        alert: null },
-                { color: '#f39c12', bg: 'rgba(243,156,18,0.18)',  text: '😬 Un peu agité', alert: null },
-                { color: '#e74c3c', bg: 'rgba(231,76,60,0.22)',   text: '🔴 Trop bruyant!', alert: '🔇' },
+                { color: '#23915A', bg: 'rgba(61,190,139,0.22)',  text: '😊 Calme',        alert: null },
+                { color: '#B9770E', bg: 'rgba(240,165,58,0.25)',  text: '😬 Un peu agité', alert: null },
+                { color: '#C0392B', bg: 'rgba(239,91,79,0.22)',   text: '🔴 Trop bruyant!', alert: '🔇' },
             ];
 
             // ── Libellé de la mini-barre (widget réduit) ──
@@ -747,7 +832,7 @@ function _wfIsPhoneLaunch() {
                     const h = Math.max(2, Math.round((barHistory[i] / 255) * 46));
                     const t = getThresholds();
                     const lvl = rawToLevel(barHistory[i]);
-                    const barColor = lvl < t.calm ? '#2ecc71' : lvl < t.agitated ? '#f39c12' : '#e74c3c';
+                    const barColor = lvl < t.calm ? C_CALM : lvl < t.agitated ? C_MID : C_LOUD;
                     barsEl[i].style.height     = h + 'px';
                     barsEl[i].style.background = barColor;
                 }
@@ -794,7 +879,7 @@ function _wfIsPhoneLaunch() {
                     running = true;
                     btnStart.textContent = '⏹ Arrêter';
                     btnStart.className   = 'sono-btn sono-btn-start';
-                    btnStart.style.background = '#e74c3c';
+                    btnStart.classList.add('is-running');
                     rafId = requestAnimationFrame(frame);
                 } catch (err) {
                     noMicEl.style.display = 'block';
@@ -811,14 +896,15 @@ function _wfIsPhoneLaunch() {
                 if (audioCtx)  { audioCtx.close(); audioCtx = null; }
                 analyser = null;
                 btnStart.textContent = '▶ Démarrer';
-                btnStart.style.background = '#4a90e2';
+                btnStart.classList.remove('is-running');
                 dbValue.textContent  = '--';
+                dbValue.style.color  = '';
                 labelEl.textContent  = 'Microphone inactif';
-                labelEl.style.background = 'rgba(255,255,255,0.07)';
-                labelEl.style.color  = 'rgba(255,255,255,0.5)';
+                labelEl.style.background = '';
+                labelEl.style.color  = '';
                 alertEl.style.display = 'none';
                 updateGauge(0);
-                barsEl.forEach(b => { b.style.height = '2px'; b.style.background = 'rgba(255,255,255,0.2)'; });
+                barsEl.forEach(b => { b.style.height = '2px'; b.style.background = 'rgba(20,32,46,0.15)'; });
                 barHistory.fill(0);
                 smoothLevel = 0;
                 curStateIdx = -1;
@@ -833,10 +919,34 @@ function _wfIsPhoneLaunch() {
                 e.stopPropagation();
                 controlsVisible = !controlsVisible;
                 controlsEl.classList.toggle('hidden', !controlsVisible);
-                toggleBtn.style.color = controlsVisible ? 'rgba(255,255,255,0.5)' : '#4a90e2';
+                toggleBtn.classList.toggle('is-on', !controlsVisible);
                 // En plein écran, recentrer après l'animation d'ouverture/fermeture
                 if (isMax) setTimeout(rescale, 320);
             });
+
+            // ── Couleur ───────────────────────────────────────────────────
+            var themeId = DEFAULT_THEME;
+            function setTheme(id) {
+                if (!THEMES[id]) id = DEFAULT_THEME;
+                themeId = id;
+                outer.style.setProperty('--so-bg', THEMES[id].bg);
+                outer.style.setProperty('--so-op', THEMES[id].op);
+                widget.dataset.wfTheme = id;
+                widget.querySelectorAll('.sono-swatch').forEach(function (sw) {
+                    sw.classList.toggle('is-on', sw.dataset.theme === id);
+                });
+            }
+            widget.querySelectorAll('.sono-swatch').forEach(function (sw) {
+                sw.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    setTheme(sw.dataset.theme);
+                    if (typeof saveBoard === 'function') saveBoard();
+                });
+            });
+            setTheme(widget.dataset.wfTheme || DEFAULT_THEME);
+            // Pour une sauvegarde éventuelle (save-load.js)
+            widget._wfGetTheme = function () { return themeId; };
+            widget._wfSetTheme = setTheme;
 
             // ── Boutons fenêtre : réduire / plein écran / fermer ──────────
             function setMax(on) {

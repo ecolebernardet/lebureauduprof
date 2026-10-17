@@ -133,10 +133,25 @@
         document.head.appendChild(f);
     }
 
-    // CSS spécifique au widget pause-calme
-    if (!document.getElementById('wpc-style-v2')) {
+    // Taille des pastilles (identique à la calculatrice)
+    if (!document.getElementById('wf-btns-size')) {
+        const wz = document.createElement('style');
+        wz.id = 'wf-btns-size';
+        wz.textContent = `
+    .wf-btns { gap:8px !important; }
+    .wf-btns .wf-btn { width:22px !important; height:22px !important;
+        min-width:22px !important; min-height:22px !important; padding:0 !important; }
+    .wf-btns:hover .wf-btn::after       { font-size:14px !important; }
+    .wf-btns:hover .wf-btn-max::after   { font-size:12px !important; }
+    .wf-btns:hover .wf-btn-close::after { font-size:17px !important; }
+        `;
+        document.head.appendChild(wz);
+    }
+
+    // CSS spécifique au widget pause-calme (style calculatrice)
+    if (!document.getElementById('wpc-style-v3')) {
         const s = document.createElement('style');
-        s.id = 'wpc-style-v2';
+        s.id = 'wpc-style-v3';
         s.textContent = `
         .widget[data-type="pause-calme"] {
             min-width: unset;
@@ -145,40 +160,49 @@
             box-shadow: none !important;
         }
 
-        /* ── Palette « lac au crépuscule » ── */
+        /* ── Fond pastel + reflet, comme la calculatrice ── */
         .wpc-container {
-            --wpc-ink:     #EAF0FA;
-            --wpc-muted:   #9AABC8;
-            --wpc-line:    rgba(234,240,250,0.10);
-            --wpc-inhale:  #8EC5FF;
-            --wpc-hold:    #F2CF8B;
-            --wpc-exhale:  #8FE0C0;
-            --wpc-idle:    #A9B6D6;
-            --wpc-deep:    #13203A;
+            --wpc-ink:     #14202E;
+            --wpc-muted:   rgba(20,32,46,0.6);
+            --wpc-line:    rgba(20,32,46,0.12);
+            --wpc-glass:   rgba(255,255,255,0.62);
+            --wpc-bg:      #7FD6A6;
+            --wpc-op:      #23915A;
+            --wpc-inhale:  #6AAEF2;
+            --wpc-hold:    #F2BE5C;
+            --wpc-exhale:  #5CCB98;
+            --wpc-idle:    var(--wpc-bg);
+            --wpc-deep:    #14202E;
             --wpc-phase:   var(--wpc-idle);
 
-            background:
-                radial-gradient(120% 70% at 50% 38%, rgba(142,197,255,0.10), transparent 70%),
-                linear-gradient(172deg, #1C2846 0%, #243557 55%, #2C4066 100%);
-            border: 1px solid rgba(234,240,250,0.08);
-            border-radius: 22px;
+            background-color: var(--wpc-bg);
+            background-image:
+                radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+                radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+            border-radius: 24px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
             color: var(--wpc-ink);
-            box-shadow: 0 22px 48px -18px rgba(6,12,28,0.65), inset 0 1px 0 rgba(255,255,255,0.05);
+            box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
             position: relative;
             user-select: none;
             overflow: visible;
             width: 420px;
+            transition: background-color .3s;
+        }
+        .widget[data-type="pause-calme"]:hover .wpc-container:not(.wf-fullboard),
+        .widget[data-type="pause-calme"]:focus-within .wpc-container:not(.wf-fullboard) {
+            outline: 2px dashed rgba(20,32,46,0.35);
+            outline-offset: 2px;
         }
         .wpc-container[data-phase="inspire"] { --wpc-phase: var(--wpc-inhale); }
         .wpc-container[data-phase="hold"]    { --wpc-phase: var(--wpc-hold); }
         .wpc-container[data-phase="expire"],
         .wpc-container[data-phase="done"]    { --wpc-phase: var(--wpc-exhale); }
 
-        /* ── Plein écran board ── */
+        /* ── Plein écran ── */
         .wpc-container.wf-fullboard {
             position: fixed !important;
             inset: 0 !important;
@@ -189,46 +213,85 @@
             overflow: hidden !important;
             padding-left: 70px;
         }
-        .wpc-container.wf-fullboard .wpc-settings { border-radius: 0; }
 
-        /* ── Téléphone : plein écran du bouton vert à la hauteur réelle de l'écran (la marge gauche laisse déjà les onglets visibles) ── */
+        /* ── Téléphone : plein écran à la hauteur réelle de l'écran (la marge gauche laisse les onglets visibles) ── */
         @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
             .wpc-container.wf-fullboard {
                 height: 100dvh !important;
+                padding-left: 44px;
             }
         }
 
-        /* ── En-tête ── */
+        /* ── En-tête : pastilles « verre » ── */
         .wpc-header {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 14px 16px 4px 18px;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 14px 16px 10px;
             cursor: move;
             flex-shrink: 0;
             position: relative;
             z-index: 10;
         }
-        .wpc-title {
+        .wpc-title,
+        .wpc-tools {
             display: flex;
             align-items: center;
+            background: var(--wpc-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            border-radius: 999px;
+            box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+        }
+        .wpc-title {
             gap: 8px;
+            padding: 7px 16px 7px 12px;
             font-size: 15px;
             font-weight: 700;
-            color: var(--wpc-ink);
+            white-space: nowrap;
+            overflow: hidden;
+            min-width: 0;
             pointer-events: none;
         }
-        .wpc-title svg { width: 18px; height: 18px; color: var(--wpc-inhale); }
+        .wpc-title span { overflow: hidden; text-overflow: ellipsis; }
+        .wpc-title svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .wpc-tools { padding: 5px 12px 5px 6px; gap: 2px; flex-shrink: 0; cursor: default; }
+        .wpc-tools-slot { display: flex; align-items: center; gap: 2px; }
+        .wpc-sep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
 
-        /* ── Corps ── */
+        .wpc-icon-btn {
+            width: 32px; height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--wpc-ink);
+            cursor: pointer;
+            padding: 0;
+            transition: background .15s;
+        }
+        .wpc-icon-btn svg { width: 18px; height: 18px; }
+        .wpc-icon-btn:hover,
+        .wpc-icon-btn.is-on { background: rgba(20,32,46,0.12); }
+
+        /* ── Corps : carte claire autour du cercle ── */
         .wpc-body {
             flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 4px 20px 6px;
+            margin: 0 16px;
+            padding: 14px 16px 10px;
             min-height: 0;
+            border-radius: 22px;
+            background: rgba(255,255,255,0.55);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            box-shadow: inset 0 2px 8px rgba(10,20,35,0.08);
         }
         .wpc-session-title {
             font-weight: 700;
@@ -265,17 +328,17 @@
             will-change: transform;
         }
         .wpc-ripple {
-            border: 1.5px solid var(--wpc-phase);
-            opacity: 0.28;
+            border: 2px solid var(--wpc-phase);
+            opacity: 0.55;
             transition: border-color 1.2s ease;
         }
-        .wpc-ripple.r2 { opacity: 0.14; }
+        .wpc-ripple.r2 { opacity: 0.28; }
         .wpc-circle {
             background-color: var(--wpc-phase);
             background-image:
                 radial-gradient(circle at 34% 28%, rgba(255,255,255,0.65), rgba(255,255,255,0) 55%),
-                radial-gradient(circle at 70% 80%, rgba(19,32,58,0.18), rgba(19,32,58,0) 60%);
-            box-shadow: 0 0 70px -8px var(--wpc-phase), inset 0 -10px 30px rgba(19,32,58,0.12);
+                radial-gradient(circle at 70% 80%, rgba(20,32,46,0.14), rgba(20,32,46,0) 60%);
+            box-shadow: 0 0 60px -10px var(--wpc-phase), 0 10px 24px -12px rgba(10,20,35,0.45);
             transition: transform 0.5s ease-out, background-color 1.2s ease, box-shadow 1.2s ease;
         }
         .wpc-center {
@@ -289,8 +352,8 @@
         }
         .wpc-circle-text { font-weight: 700; line-height: 1.1; }
         .wpc-phase-count {
-            font-weight: 600;
-            opacity: 0.65;
+            font-weight: 700;
+            opacity: 0.6;
             font-variant-numeric: tabular-nums;
             line-height: 1.1;
             min-height: 1.1em;
@@ -303,78 +366,81 @@
             justify-content: center;
             flex-wrap: wrap;
             gap: 10px 18px;
-            padding: 6px 20px 16px;
+            padding: 12px 20px 4px;
             flex-shrink: 0;
         }
         .wpc-btn-main {
             font-family: inherit;
             border-radius: 999px;
-            border: 1.5px solid transparent;
-            font-size: 15px;
+            border: none;
+            font-size: 16px;
             font-weight: 700;
-            padding: 10px 30px;
+            padding: 11px 32px;
             cursor: pointer;
-            background: var(--wpc-inhale);
-            color: var(--wpc-deep);
-            box-shadow: 0 8px 22px -8px rgba(142,197,255,0.7);
-            transition: transform .12s, filter .15s, background-color .2s, color .2s, box-shadow .2s;
+            background: var(--wpc-op);
+            color: #fff;
+            box-shadow: 0 3px 0 rgba(10,20,35,0.22);
+            transition: transform .08s, box-shadow .08s, filter .15s, background-color .2s, color .2s;
         }
-        .wpc-btn-main:hover  { filter: brightness(1.06); }
-        .wpc-btn-main:active { transform: scale(0.96); }
+        .wpc-btn-main:hover  { filter: brightness(1.08); }
+        .wpc-btn-main:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(10,20,35,0.22); }
         .wpc-container.is-running .wpc-btn-main {
-            background: transparent;
+            background: rgba(255,255,255,0.85);
             color: var(--wpc-ink);
-            border-color: rgba(234,240,250,0.28);
-            box-shadow: none;
         }
-        .wpc-container.is-running .wpc-btn-main:hover { background: rgba(234,240,250,0.06); }
 
         .wpc-music-row {
             display: flex;
             align-items: center;
             gap: 9px;
             cursor: pointer;
-            font-size: 12.5px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 700;
             color: var(--wpc-muted);
+            padding: 6px 12px 6px 8px;
+            border-radius: 999px;
+            background: var(--wpc-glass);
         }
-        .wpc-music-row em { font-style: normal; color: var(--wpc-ink); opacity: 0.85; }
+        .wpc-music-row em { font-style: normal; color: var(--wpc-ink); }
         .wpc-switch-input { position: absolute; opacity: 0; width: 0; height: 0; }
         .wpc-switch {
             position: relative;
-            width: 34px; height: 20px;
-            border-radius: 20px;
-            background: rgba(234,240,250,0.16);
-            transition: background .25s;
+            width: 38px; height: 22px;
+            border-radius: 999px;
+            background: rgba(20,32,46,0.2);
+            transition: background .2s;
             flex-shrink: 0;
         }
         .wpc-switch::before {
             content: "";
             position: absolute;
-            width: 14px; height: 14px;
+            width: 16px; height: 16px;
             left: 3px; top: 3px;
             border-radius: 50%;
             background: #fff;
-            transition: transform .25s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform .2s;
         }
-        .wpc-switch-input:checked + .wpc-switch { background: var(--wpc-exhale); }
-        .wpc-switch-input:checked + .wpc-switch::before { transform: translateX(14px); }
-        .wpc-switch-input:focus-visible + .wpc-switch { outline: 2px solid var(--wpc-inhale); outline-offset: 2px; }
+        .wpc-switch-input:checked + .wpc-switch { background: var(--wpc-op); }
+        .wpc-switch-input:checked + .wpc-switch::before { transform: translateX(16px); }
+        .wpc-switch-input:focus-visible + .wpc-switch { outline: 2px solid var(--wpc-ink); outline-offset: 2px; }
 
-        /* ── Réglages ── */
+        /* ── Réglages : carte « verre » ── */
         .wpc-settings {
-            background: rgba(10,18,36,0.28);
-            border-top: 1px solid var(--wpc-line);
-            padding: 14px 18px 16px;
+            background: var(--wpc-glass);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+            margin: 12px 16px 16px;
+            padding: 12px 14px 14px;
+            border-radius: 18px;
             flex-shrink: 0;
             transition: opacity 0.3s;
-            border-radius: 0 0 22px 22px;
         }
-        .wpc-settings.disabled { opacity: 0.35; pointer-events: none; }
+        .wpc-settings.disabled { opacity: 0.4; pointer-events: none; }
         .wpc-settings-inner {
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 12px;
             max-width: 560px;
             margin: 0 auto;
         }
@@ -389,29 +455,31 @@
             display: flex;
             flex-direction: column;
             gap: 3px;
-            padding: 9px 10px;
-            border-radius: 12px;
-            border: 1.5px solid var(--wpc-line);
-            background: rgba(234,240,250,0.03);
+            padding: 9px 11px;
+            border-radius: 14px;
+            border: none;
+            background: rgba(255,255,255,0.82);
             color: var(--wpc-ink);
             cursor: pointer;
-            transition: border-color .2s, background-color .2s;
+            box-shadow: 0 3px 0 rgba(10,20,35,0.14);
+            transition: transform .08s, box-shadow .08s, background-color .2s, color .2s;
         }
-        .wpc-mode:hover { background: rgba(234,240,250,0.07); }
+        .wpc-mode:hover { filter: brightness(1.04); }
+        .wpc-mode:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(10,20,35,0.14); }
         .wpc-mode-name { font-size: 12.5px; font-weight: 700; line-height: 1.2; }
-        .wpc-mode-rhythm { font-size: 11px; font-weight: 600; color: var(--wpc-muted); font-variant-numeric: tabular-nums; }
+        .wpc-mode-rhythm { font-size: 11px; font-weight: 700; color: var(--wpc-muted); font-variant-numeric: tabular-nums; }
         .wpc-mode[aria-checked="true"] {
-            border-color: var(--wpc-inhale);
-            background: rgba(142,197,255,0.12);
+            background: var(--wpc-op);
+            color: #fff;
         }
-        .wpc-mode[aria-checked="true"] .wpc-mode-rhythm { color: var(--wpc-inhale); }
+        .wpc-mode[aria-checked="true"] .wpc-mode-rhythm { color: rgba(255,255,255,0.85); }
 
         .wpc-duration-head {
             display: flex;
             justify-content: space-between;
             align-items: baseline;
             font-size: 12.5px;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--wpc-muted);
             margin-bottom: 8px;
         }
@@ -422,71 +490,54 @@
             -webkit-appearance: none;
             appearance: none;
             width: 100%;
-            height: 6px;
+            height: 8px;
             margin: 0;
-            border-radius: 6px;
-            background: linear-gradient(to right, var(--wpc-inhale) var(--fill), rgba(234,240,250,0.14) var(--fill));
+            border-radius: 999px;
+            background: linear-gradient(to right, var(--wpc-op) var(--fill), rgba(20,32,46,0.14) var(--fill));
             cursor: pointer;
         }
         .wpc-range::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 18px; height: 18px;
+            width: 20px; height: 20px;
             border-radius: 50%;
             background: #fff;
-            border: 3px solid var(--wpc-inhale);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            border: 3px solid var(--wpc-op);
+            box-shadow: 0 2px 6px rgba(10,20,35,0.3);
         }
         .wpc-range::-moz-range-thumb {
-            width: 12px; height: 12px;
+            width: 14px; height: 14px;
             border-radius: 50%;
             background: #fff;
-            border: 3px solid var(--wpc-inhale);
+            border: 3px solid var(--wpc-op);
         }
-        .wpc-range:focus-visible { outline: 2px solid var(--wpc-inhale); outline-offset: 6px; }
+        .wpc-range:focus-visible { outline: 2px solid var(--wpc-ink); outline-offset: 6px; }
 
         .wpc-unit { font-weight: 600; }
 
         .wpc-btn-main:focus-visible,
         .wpc-mode:focus-visible,
-        .wpc-help-btn:focus-visible { outline: 2px solid var(--wpc-inhale); outline-offset: 2px; }
+        .wpc-icon-btn:focus-visible { outline: 2px solid var(--wpc-ink); outline-offset: 2px; }
 
-        /* ── Aide ── */
-        .wpc-help-btn {
-            width: 22px; height: 22px;
-            border-radius: 50%;
-            border: 1px solid rgba(234,240,250,0.2);
-            background: transparent;
-            color: var(--wpc-muted);
-            font-family: inherit;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            margin-right: 4px;
-            transition: background .15s, color .15s;
-        }
-        .wpc-help-btn:hover { background: rgba(234,240,250,0.08); color: var(--wpc-ink); }
-
+        /* ── Aide (panneau blanc, comme la calculatrice) ── */
         .wpc-help-popup {
             display: none;
             position: absolute;
-            top: 42px;
-            right: 12px;
-            background: #1A2540;
-            border: 1px solid rgba(234,240,250,0.12);
-            border-radius: 14px;
-            box-shadow: 0 16px 36px -10px rgba(0,0,0,0.6);
+            top: 56px;
+            right: 16px;
+            background: rgba(255,255,255,0.96);
+            border-radius: 16px;
+            box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
             padding: 14px 16px;
             width: 280px;
+            max-width: calc(100% - 32px);
+            box-sizing: border-box;
             font-size: 12.5px;
-            font-weight: 500;
-            color: var(--wpc-muted);
+            font-weight: 600;
+            color: rgba(20,32,46,0.75);
             z-index: 20;
             line-height: 1.5;
             cursor: default;
+            user-select: text;
         }
         .wpc-help-popup.show { display: block; }
         .wpc-help-popup h4 { margin: 0 0 10px; font-size: 14px; font-weight: 700; color: var(--wpc-ink); }
@@ -498,14 +549,40 @@
         .wpc-help-section b { color: var(--wpc-ink); font-weight: 700; display: block; }
         .wpc-help-tip { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--wpc-line); font-size: 11.5px; }
 
+        /* ── Choix de la couleur ── */
+        .wpc-theme-pop {
+            position: absolute;
+            top: 56px;
+            right: 16px;
+            z-index: 21;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px 14px 14px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.96);
+            box-shadow: 0 16px 34px -16px rgba(10,20,35,0.55);
+            cursor: default;
+        }
+        .wpc-theme-pop.show { display: flex; }
+        .wpc-pop-title { font-size: 13px; font-weight: 700; }
+        .wpc-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+        .wpc-swatch {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(20,32,46,0.15);
+            cursor: pointer;
+            padding: 0;
+        }
+        .wpc-swatch.is-on { border-color: var(--wpc-ink); box-shadow: 0 0 0 2px #fff inset; }
+
         /* ── Poignée de redimensionnement ── */
         .wpc-resize-handle {
             position: absolute;
-            right: 4px; bottom: 4px;
-            width: 16px; height: 16px;
-            cursor: se-resize;
-            background:
-                radial-gradient(circle, rgba(234,240,250,0.45) 1.2px, transparent 1.6px) 0 0 / 5px 5px;
+            right: 6px; bottom: 6px;
+            width: 18px; height: 18px;
+            cursor: nwse-resize;
+            background: radial-gradient(circle, rgba(20,32,46,0.55) 1.3px, transparent 1.7px) 0 0 / 6px 6px;
             -webkit-mask: linear-gradient(135deg, transparent 50%, #000 50%);
                     mask: linear-gradient(135deg, transparent 50%, #000 50%);
             opacity: 0;
@@ -513,6 +590,7 @@
             z-index: 5;
         }
         .wpc-container:hover .wpc-resize-handle { opacity: 1; }
+        .wpc-container.wf-fullboard .wpc-resize-handle { display: none; }
 
         @media (prefers-reduced-motion: reduce) {
             .wpc-ripple { display: none; }
@@ -520,7 +598,21 @@
         `;
         document.head.appendChild(s);
     }
+
 })();
+
+// ── Couleurs disponibles (mêmes teintes que la calculatrice) ─────────────
+const WPC_THEMES = {
+    bleu:   { name: 'Bleu',   bg: '#8EC5F2', op: '#2F6FB3' },
+    vert:   { name: 'Vert',   bg: '#7FD6A6', op: '#23915A' },
+    jaune:  { name: 'Jaune',  bg: '#F6D86A', op: '#B9770E' },
+    rose:   { name: 'Rose',   bg: '#F4A9C0', op: '#C2456E' },
+    violet: { name: 'Violet', bg: '#C2B2F0', op: '#6A4FC2' },
+    gris:   { name: 'Gris',   bg: '#D4DAE2', op: '#4A5868' }
+};
+const WPC_DEFAULT_THEME = 'vert';
+const WPC_ICON_PALETTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.4-1.9-.3-1 .4-2.1 1.5-2.1H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10z"/><circle cx="7.5" cy="11" r="1.1" fill="currentColor"/><circle cx="10.5" cy="7" r="1.1" fill="currentColor"/><circle cx="15" cy="7.5" r="1.1" fill="currentColor"/></svg>';
+const WPC_ICON_HELP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17.2h.01"/></svg>';
 
 // ── Modes de respiration ──────────────────────────────────────────────────
 const WPC_MODES = {
@@ -576,26 +668,45 @@ function createPauseCalmWidget() {
     const header = document.createElement('div');
     header.className = 'wpc-header';
     header.innerHTML = `
-        <span class="wpc-title">
+        <div class="wpc-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                 <path d="M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>
                 <path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0" opacity=".55"/>
             </svg>
-            Pause calme
-        </span>
-        <div class="wf-btns" style="margin-left:auto;">
-            <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
-            <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran board"></button>
-            <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+            <span>Pause calme</span>
+        </div>
+        <div class="wpc-tools">
+            <span class="wpc-tools-slot"></span>
+            <span class="wpc-sep"></span>
+            <div class="wf-btns">
+                <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
+                <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
+                <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
+            </div>
         </div>
     `;
 
+    // Outils de l'en-tête : couleur + aide
+    const themeBtn = document.createElement('button');
+    themeBtn.className = 'wpc-icon-btn';
+    themeBtn.title = 'Couleur';
+    themeBtn.innerHTML = WPC_ICON_PALETTE;
+
     const helpBtn = document.createElement('button');
-    helpBtn.className = 'wpc-help-btn';
+    helpBtn.className = 'wpc-icon-btn';
     helpBtn.title = 'Aide';
-    helpBtn.textContent = '?';
-    const wfBtnsDiv = header.querySelector('.wf-btns');
-    wfBtnsDiv.insertBefore(helpBtn, wfBtnsDiv.firstChild);
+    helpBtn.innerHTML = WPC_ICON_HELP;
+    const toolsSlot = header.querySelector('.wpc-tools-slot');
+    toolsSlot.appendChild(themeBtn);
+    toolsSlot.appendChild(helpBtn);
+
+    const themePop = document.createElement('div');
+    themePop.className = 'wpc-theme-pop';
+    themePop.innerHTML = '<div class="wpc-pop-title">Couleur</div><div class="wpc-swatches">'
+        + Object.keys(WPC_THEMES).map(id => '<button class="wpc-swatch" data-theme="' + id + '" title="'
+        + WPC_THEMES[id].name + '" style="background:' + WPC_THEMES[id].bg + '"></button>').join('')
+        + '</div>';
+    header.appendChild(themePop);
 
     const helpPopup = document.createElement('div');
     helpPopup.className = 'wpc-help-popup';
@@ -712,7 +823,7 @@ function createPauseCalmWidget() {
         const constrained = container.classList.contains('wf-fullboard') || !!container.style.height;
         if (constrained) {
             const fixed = header.offsetHeight + controls.offsetHeight + settings.offsetHeight
-                        + sessionTitle.offsetHeight + timerEl.offsetHeight + 40;
+                        + sessionTitle.offsetHeight + timerEl.offsetHeight + 90;
             d = Math.min(d, container.clientHeight - fixed);
         }
         d = Math.max(MIN_CIRCLE, d);
@@ -910,9 +1021,47 @@ function createPauseCalmWidget() {
     // ── Popup aide ────────────────────────────────────────────────────────
     helpBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        closeThemePop();
         helpPopup.classList.toggle('show');
+        helpBtn.classList.toggle('is-on', helpPopup.classList.contains('show'));
     });
-    document.addEventListener('click', () => helpPopup.classList.remove('show'));
+    document.addEventListener('click', () => {
+        helpPopup.classList.remove('show');
+        helpBtn.classList.remove('is-on');
+        closeThemePop();
+    });
+
+    // ── Couleur ───────────────────────────────────────────────────────────
+    let themeId = WPC_DEFAULT_THEME;
+    function setTheme(id) {
+        if (!WPC_THEMES[id]) id = WPC_DEFAULT_THEME;
+        themeId = id;
+        container.style.setProperty('--wpc-bg', WPC_THEMES[id].bg);
+        container.style.setProperty('--wpc-op', WPC_THEMES[id].op);
+        themePop.querySelectorAll('.wpc-swatch').forEach(sw => sw.classList.toggle('is-on', sw.dataset.theme === id));
+    }
+    function closeThemePop() {
+        themePop.classList.remove('show');
+        themeBtn.classList.remove('is-on');
+    }
+    themeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        helpPopup.classList.remove('show');
+        helpBtn.classList.remove('is-on');
+        const open = !themePop.classList.contains('show');
+        themePop.classList.toggle('show', open);
+        themeBtn.classList.toggle('is-on', open);
+    });
+    ['mousedown', 'pointerdown'].forEach(ev => themePop.addEventListener(ev, e => e.stopPropagation()));
+    themePop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sw = e.target.closest('.wpc-swatch');
+        if (!sw) return;
+        setTheme(sw.dataset.theme);
+        closeThemePop();
+        if (typeof saveBoard === 'function') saveBoard();
+    });
+    setTheme(WPC_DEFAULT_THEME);
     helpPopup.addEventListener('click', e => e.stopPropagation());
     helpPopup.addEventListener('mousedown', e => e.stopPropagation());
     helpPopup.addEventListener('pointerdown', e => e.stopPropagation());
@@ -1015,6 +1164,7 @@ function createPauseCalmWidget() {
             mode: selectType.value,
             duree: parseFloat(inputDuree.value),
             musicOn: toggleMusic.checked,
+            theme: themeId,
             fullboard: container.classList.contains('wf-fullboard')
         };
     };
@@ -1023,6 +1173,7 @@ function createPauseCalmWidget() {
         if (d.mode && selectType.querySelector(`option[value="${d.mode}"]`)) { selectType.value = d.mode; syncModes(); }
         if (d.duree) { inputDuree.value = d.duree; updateDurationDisplay(); }
         if (d.musicOn !== undefined) toggleMusic.checked = d.musicOn;
+        if (d.theme) setTheme(d.theme);
         if (d.containerW) container.style.width  = d.containerW + 'px';
         if (d.containerH) container.style.height = d.containerH + 'px';
         if (d.fullboard) container.classList.add('wf-fullboard');

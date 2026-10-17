@@ -194,38 +194,40 @@ function _wfIsPhoneLaunch() {
         overflow: visible !important;
     }
 
-    /* ── Wrapper externe ── */
+    /* ── Rectangle principal : fond pastel + reflet (style calculatrice) ── */
     .widget[data-type="radar"] .radar-outer {
-        --rd-ink:    #EAF0FA;
-        --rd-muted:  #9AABC8;
-        --rd-line:   rgba(234,240,250,0.13);
-        --rd-calm:   #8FE0C0;
-        --rd-warn:   #F2CF8B;
-        --rd-alert:  #FF8A7A;
-        --rd-accent: #8EC5FF;
-        --rd-deep:   #13203A;
+        --rd-ink:    #14202E;
+        --rd-muted:  rgba(20,32,46,0.6);
+        --rd-line:   rgba(20,32,46,0.12);
+        --rd-glass:  rgba(255,255,255,0.62);
+        --rd-bg:     #8EC5F2;
+        --rd-op:     #2F6FB3;
+        --rd-calm:   #4CC48F;
+        --rd-warn:   #F2B648;
+        --rd-alert:  #EF5B4F;
         --rd-level:  var(--rd-calm);
 
         position: relative;
         width:  340px;
-        height: 470px;
+        height: 500px;
         min-width:  220px;
-        min-height: 304px;
+        min-height: 324px;
         overflow: hidden;
         resize: none;
         box-sizing: border-box;
         border-radius: 24px;
-        background:
-            radial-gradient(90% 60% at 50% 42%, rgba(142,197,255,0.10), transparent 70%),
-            linear-gradient(172deg, #1C2846 0%, #243557 55%, #2C4066 100%);
-        border: 1px solid rgba(234,240,250,0.08);
-        box-shadow: 0 22px 48px -18px rgba(6,12,28,0.65), inset 0 1px 0 rgba(255,255,255,0.05);
+        background-color: var(--rd-bg);
+        background-image:
+            radial-gradient(70% 60% at 25% 15%, rgba(255,255,255,0.28), transparent 70%),
+            radial-gradient(90% 80% at 50% 110%, rgba(10,20,35,0.16), transparent 70%);
+        box-shadow: 0 24px 50px -20px rgba(10,20,35,0.55);
+        transition: background-color .3s;
     }
     .widget[data-type="radar"] .radar-outer[data-zone="warn"]  { --rd-level: var(--rd-warn); }
     .widget[data-type="radar"] .radar-outer[data-zone="alert"] { --rd-level: var(--rd-alert); }
     .widget[data-type="radar"]:hover .radar-outer,
     .widget[data-type="radar"]:focus-within .radar-outer {
-        outline: 2px dashed rgba(142,197,255,0.40);
+        outline: 2px dashed rgba(20,32,46,0.35);
         outline-offset: 2px;
     }
 
@@ -239,14 +241,13 @@ function _wfIsPhoneLaunch() {
         min-height: 0 !important;
         z-index: 9999 !important;
         border-radius: 0 !important;
-        border: none !important;
         outline: none !important;
         cursor: default !important;
     }
     .radar-outer.radar-fullboard .radar-alert-flash { border-radius: 0; }
     .radar-outer.radar-fullboard .radar-resize-handle { display: none; }
 
-    /* ── Téléphone : plein écran du bouton vert à la hauteur réelle de l'écran, décalé de 40 px à gauche pour laisser les onglets latéraux visibles ── */
+    /* ── Téléphone : plein écran à la hauteur réelle de l'écran, décalé de 40 px à gauche pour laisser les onglets latéraux visibles ── */
     @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
         .widget[data-type="radar"] .radar-outer.radar-fullboard {
             left: 40px !important;
@@ -255,16 +256,16 @@ function _wfIsPhoneLaunch() {
         }
     }
 
-    /* Poignée de resize proportionnel */
+    /* Poignée de redimensionnement (pointillés) */
     .radar-resize-handle {
         position: absolute;
-        bottom: 5px; right: 5px;
-        width: 16px; height: 16px;
+        bottom: 6px; right: 6px;
+        width: 18px; height: 18px;
         cursor: nwse-resize;
         z-index: 20;
         opacity: 0;
         transition: opacity 0.2s;
-        background: radial-gradient(circle, rgba(234,240,250,0.45) 1.2px, transparent 1.6px) 0 0 / 5px 5px;
+        background: radial-gradient(circle, rgba(20,32,46,0.55) 1.3px, transparent 1.7px) 0 0 / 6px 6px;
         -webkit-mask: linear-gradient(135deg, transparent 50%, #000 50%);
                 mask: linear-gradient(135deg, transparent 50%, #000 50%);
     }
@@ -279,67 +280,72 @@ function _wfIsPhoneLaunch() {
         z-index: 3;
     }
 
-    /* ── Widget intérieur (taille de référence 340×470) ── */
+    /* ── Widget intérieur (taille de référence 340×500) ── */
     .radar-widget {
         width: 340px;
-        height: 470px;
+        height: 500px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        padding: 14px 18px 16px;
+        padding: 12px 14px 14px;
         box-sizing: border-box;
         color: var(--rd-ink);
         font-family: 'Quicksand', 'Segoe UI', system-ui, sans-serif;
         user-select: none;
     }
 
-    /* ── En-tête ── */
+    /* ── En-tête : pastilles « verre » ── */
     .radar-header {
         width: 100%;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 8px;
-        flex-shrink: 0;
-    }
-    .radar-title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--rd-ink);
-        white-space: nowrap;
-        overflow: hidden;
-    }
-    .radar-title svg { width: 18px; height: 18px; color: var(--rd-accent); flex-shrink: 0; }
-    .radar-header-right {
-        display: flex;
-        align-items: center;
         gap: 6px;
         flex-shrink: 0;
     }
+    .radar-title,
+    .radar-header-right {
+        display: flex;
+        align-items: center;
+        background: var(--rd-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        border-radius: 999px;
+        box-shadow: 0 4px 14px -8px rgba(10,20,35,0.4);
+    }
+    .radar-title {
+        gap: 7px;
+        padding: 7px 13px 7px 10px;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        min-width: 0;
+    }
+    .radar-title svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .radar-header-right { gap: 2px; padding: 4px 10px 4px 4px; flex-shrink: 0; }
+    .radar-sep { width: 1px; height: 20px; background: rgba(20,32,46,0.18); margin: 0 6px; }
 
     .radar-icon-btn {
-        width: 30px; height: 30px;
+        width: 28px; height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: 50%;
-        border: 1px solid transparent;
+        border: none;
         background: transparent;
-        color: var(--rd-muted);
+        color: var(--rd-ink);
         cursor: pointer;
         padding: 0;
-        transition: background .15s, color .15s, border-color .15s;
+        transition: background .15s, color .15s;
     }
     .radar-icon-btn svg { width: 17px; height: 17px; }
-    .radar-icon-btn:hover { background: rgba(234,240,250,0.08); color: var(--rd-ink); }
-    .radar-icon-btn:focus-visible { outline: 2px solid var(--rd-accent); outline-offset: 2px; }
-    .radar-toggle-controls.is-off { color: var(--rd-accent); border-color: rgba(142,197,255,0.35); }
+    .radar-icon-btn:hover { background: rgba(20,32,46,0.12); }
+    .radar-icon-btn:focus-visible { outline: 2px solid var(--rd-ink); outline-offset: 2px; }
+    .radar-toggle-controls.is-off { background: rgba(20,32,46,0.12); }
 
-    /* ── Niveaux de voix ── */
+    /* ── Niveaux de voix : grandes touches ── */
     .radar-voice {
         width: 100%;
         display: grid;
@@ -349,29 +355,29 @@ function _wfIsPhoneLaunch() {
     }
     .radar-voice-btn {
         font-family: inherit;
-        background: rgba(234,240,250,0.05);
-        border: 1px solid var(--rd-line);
-        border-radius: 12px;
-        color: var(--rd-muted);
+        background: rgba(255,255,255,0.82);
+        border: none;
+        border-radius: 14px;
+        color: var(--rd-ink);
         padding: 6px 2px 7px;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 2px;
         cursor: pointer;
-        transition: background .2s, color .2s, border-color .2s, transform .1s;
+        box-shadow: 0 3px 0 rgba(10,20,35,0.16);
+        transition: background .2s, color .2s, transform .08s, box-shadow .08s;
     }
-    .radar-voice-btn:hover { background: rgba(234,240,250,0.10); color: var(--rd-ink); }
-    .radar-voice-btn:active { transform: scale(0.96); }
-    .radar-voice-btn:focus-visible { outline: 2px solid var(--rd-accent); outline-offset: 2px; }
-    .radar-voice-num  { font-size: 19px; font-weight: 700; line-height: 1; }
-    .radar-voice-name { font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+    .radar-voice-btn:hover { filter: brightness(1.04); }
+    .radar-voice-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(10,20,35,0.16); }
+    .radar-voice-btn:focus-visible { outline: 2px solid var(--rd-ink); outline-offset: 2px; }
+    .radar-voice-num  { font-size: 20px; font-weight: 700; line-height: 1; }
+    .radar-voice-name { font-size: 10.5px; font-weight: 700; white-space: nowrap; opacity: 0.7; }
     .radar-voice-btn.is-active {
-        background: var(--rd-accent);
-        border-color: transparent;
-        color: var(--rd-deep);
-        box-shadow: 0 6px 16px -8px rgba(142,197,255,0.8);
+        background: var(--rd-op);
+        color: #fff;
     }
+    .radar-voice-btn.is-active .radar-voice-name { opacity: 0.9; }
 
     /* ── Zone radar ── */
     .radar-box-wrap {
@@ -391,12 +397,16 @@ function _wfIsPhoneLaunch() {
         width: 100%; height: 100%;
         box-sizing: border-box;
     }
-    .radar-ring.outer-ring { background: rgba(10,18,36,0.22); border-color: rgba(234,240,250,0.14); }
+    .radar-ring.outer-ring {
+        background: rgba(255,255,255,0.6);
+        border: none;
+        box-shadow: inset 0 2px 8px rgba(10,20,35,0.12), 0 8px 22px -14px rgba(10,20,35,0.5);
+    }
 
     .radar-threshold-ring {
         position: absolute;
         border-radius: 50%;
-        border: 2px dashed rgba(255,138,122,0.75);
+        border: 2.5px dashed var(--rd-alert);
         top: 0; left: 0;
         width: 100%; height: 100%;
         box-sizing: border-box;
@@ -412,8 +422,8 @@ function _wfIsPhoneLaunch() {
         background-color: var(--rd-level);
         background-image:
             radial-gradient(circle at 34% 28%, rgba(255,255,255,0.6), rgba(255,255,255,0) 55%),
-            radial-gradient(circle at 70% 80%, rgba(19,32,58,0.18), rgba(19,32,58,0) 60%);
-        box-shadow: 0 0 60px -6px var(--rd-level);
+            radial-gradient(circle at 70% 80%, rgba(20,32,46,0.16), rgba(20,32,46,0) 60%);
+        box-shadow: 0 0 40px -8px var(--rd-level);
         z-index: 10;
         transform: scale(0);
         transition: transform 0.1s ease-out, background-color 0.5s ease, box-shadow 0.5s ease;
@@ -429,18 +439,19 @@ function _wfIsPhoneLaunch() {
         cursor: pointer;
         border: none;
         font-family: inherit;
-        color: var(--rd-deep);
-        background: var(--rd-accent);
-        box-shadow: 0 10px 26px -8px rgba(142,197,255,0.75);
+        color: #fff;
+        background: var(--rd-op);
+        box-shadow: 0 4px 0 rgba(10,20,35,0.22);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         gap: 3px;
         padding: 0;
-        transition: background-color .3s, box-shadow .3s, transform .15s, color .3s;
+        transition: background-color .3s, box-shadow .1s, transform .1s, color .3s;
     }
-    .radar-btn-start:active { transform: scale(0.95); }
+    .radar-btn-start:hover { filter: brightness(1.08); }
+    .radar-btn-start:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(10,20,35,0.22); }
     .radar-btn-start:focus-visible { outline: 2px solid var(--rd-ink); outline-offset: 3px; }
     .radar-btn-start svg { width: 22px; height: 22px; }
     .radar-btn-text { font-size: 13px; font-weight: 700; }
@@ -450,111 +461,124 @@ function _wfIsPhoneLaunch() {
     .radar-btn-start.is-listening {
         background: transparent;
         box-shadow: none;
-        color: var(--rd-deep);
+        color: var(--rd-ink);
+        filter: none;
     }
     .radar-btn-start.is-listening svg,
     .radar-btn-start.is-listening .radar-btn-text { display: none; }
     .radar-btn-start.is-listening .radar-btn-status { display: block; }
-    .radar-btn-start.is-listening:hover { background: rgba(19,32,58,0.75); color: var(--rd-ink); }
+    .radar-btn-start.is-listening:hover { background: var(--rd-ink); color: #fff; }
     .radar-btn-start.is-listening:hover .radar-btn-status { display: none; }
     .radar-btn-start.is-listening:hover .radar-btn-stop { display: block; }
 
     /* Le statut reste lisible même quand le blob est petit */
     .radar-outer[data-zone] .radar-btn-start.is-listening:not(:hover) {
-        background: rgba(234,240,250,0.92);
-        width: 96px; height: 40px;
+        background: rgba(255,255,255,0.92);
+        width: 100px; height: 40px;
         border-radius: 999px;
-        box-shadow: 0 6px 18px -8px rgba(0,0,0,0.5);
+        box-shadow: 0 6px 18px -8px rgba(10,20,35,0.5);
     }
 
-    /* ── Alertes ── */
+    /* ── Alertes : carte « verre » ── */
     .radar-alerts-row {
         width: 100%;
         display: flex;
         align-items: center;
         justify-content: space-between;
         flex-shrink: 0;
-        padding: 8px 4px 0;
-        border-top: 1px solid var(--rd-line);
+        padding: 6px 8px 6px 14px;
+        box-sizing: border-box;
+        border-radius: 18px;
+        background: var(--rd-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
     }
     .radar-alerts-main { display: flex; align-items: baseline; gap: 8px; }
     .radar-alert-count {
-        font-size: 34px;
+        font-size: 32px;
         font-weight: 700;
         color: var(--rd-alert);
         line-height: 1;
         font-variant-numeric: tabular-nums;
     }
-    .radar-alert-label { font-size: 13px; font-weight: 600; color: var(--rd-muted); }
+    .radar-alert-label { font-size: 13px; font-weight: 700; color: var(--rd-muted); }
     .radar-alert-btns { display: flex; align-items: center; gap: 4px; }
     .radar-sound-btn.muted { color: var(--rd-alert); }
     .radar-reset-btn {
         font-family: inherit;
         font-size: 12px;
-        font-weight: 600;
-        color: var(--rd-muted);
-        background: transparent;
-        border: 1px solid var(--rd-line);
+        font-weight: 700;
+        color: var(--rd-ink);
+        background: rgba(255,255,255,0.85);
+        border: none;
         border-radius: 999px;
-        padding: 5px 11px;
+        padding: 6px 12px;
         cursor: pointer;
-        transition: color .15s, border-color .15s;
+        box-shadow: 0 2px 0 rgba(10,20,35,0.15);
+        transition: transform .08s, box-shadow .08s, filter .15s;
     }
-    .radar-reset-btn:hover { color: var(--rd-ink); border-color: rgba(234,240,250,0.3); }
-    .radar-reset-btn:focus-visible { outline: 2px solid var(--rd-accent); outline-offset: 2px; }
+    .radar-reset-btn:hover { filter: brightness(1.04); }
+    .radar-reset-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(10,20,35,0.15); }
+    .radar-reset-btn:focus-visible { outline: 2px solid var(--rd-ink); outline-offset: 2px; }
 
-    /* ── Réglages ── */
+    /* ── Réglages : carte « verre » ── */
     .radar-controls {
         width: 100%;
         display: flex;
         flex-direction: column;
-        gap: 9px;
+        gap: 8px;
         overflow: hidden;
-        transition: max-height 0.3s ease, opacity 0.3s ease;
-        max-height: 150px;
+        box-sizing: border-box;
+        padding: 9px 12px;
+        border-radius: 18px;
+        background: var(--rd-glass);
+        -webkit-backdrop-filter: blur(8px);
+                backdrop-filter: blur(8px);
+        transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+        max-height: 170px;
         opacity: 1;
     }
-    .radar-controls.hidden { max-height: 0; opacity: 0; pointer-events: none; }
+    .radar-controls.hidden { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; pointer-events: none; }
     .radar-slider-row {
         display: flex;
         align-items: center;
         gap: 10px;
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 700;
         color: var(--rd-muted);
     }
-    .radar-slider-label { width: 74px; flex-shrink: 0; }
+    .radar-slider-label { width: 70px; flex-shrink: 0; }
     .radar-slider {
         --fill: 50%;
-        --thumb: var(--rd-accent);
+        --thumb: var(--rd-op);
         flex: 1;
-        height: 6px;
+        height: 7px;
         margin: 0;
         cursor: pointer;
-        border-radius: 6px;
+        border-radius: 999px;
         outline: none;
         -webkit-appearance: none;
         appearance: none;
-        background: linear-gradient(to right, var(--thumb) var(--fill), rgba(234,240,250,0.14) var(--fill));
+        background: linear-gradient(to right, var(--thumb) var(--fill), rgba(20,32,46,0.14) var(--fill));
     }
     .radar-seuil-slider { --thumb: var(--rd-alert); }
     .radar-slider::-webkit-slider-thumb {
         -webkit-appearance: none;
-        width: 16px; height: 16px;
+        width: 17px; height: 17px;
         border-radius: 50%;
         background: #fff;
         border: 3px solid var(--thumb);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 6px rgba(10,20,35,0.3);
         cursor: pointer;
     }
     .radar-slider::-moz-range-thumb {
-        width: 10px; height: 10px;
+        width: 11px; height: 11px;
         border-radius: 50%;
         background: #fff;
         border: 3px solid var(--thumb);
         cursor: pointer;
     }
-    .radar-slider:focus-visible { outline: 2px solid var(--rd-accent); outline-offset: 5px; }
+    .radar-slider:focus-visible { outline: 2px solid var(--rd-ink); outline-offset: 5px; }
     .radar-slider-val {
         width: 34px;
         text-align: right;
@@ -564,14 +588,25 @@ function _wfIsPhoneLaunch() {
         flex-shrink: 0;
     }
 
+    /* Couleur du widget */
+    .radar-swatches { flex: 1; display: flex; gap: 6px; }
+    .radar-swatch {
+        width: 20px; height: 20px;
+        border-radius: 50%;
+        border: 2px solid rgba(20,32,46,0.15);
+        cursor: pointer;
+        padding: 0;
+    }
+    .radar-swatch.is-on { border-color: var(--rd-ink); box-shadow: 0 0 0 2px #fff inset; }
+
     /* ── Alerte : halo rouge sur tout le widget ── */
     .radar-alert-flash {
         display: none;
         position: absolute;
         inset: 0;
         border-radius: 24px;
-        background: radial-gradient(80% 70% at 50% 45%, rgba(255,138,122,0.0) 30%, rgba(255,138,122,0.28) 100%);
-        box-shadow: inset 0 0 0 2px rgba(255,138,122,0.55);
+        background: radial-gradient(80% 70% at 50% 45%, rgba(239,91,79,0.0) 30%, rgba(239,91,79,0.35) 100%);
+        box-shadow: inset 0 0 0 3px rgba(239,91,79,0.7);
         pointer-events: none;
         z-index: 2;
         animation: radar-flash 0.7s ease-in-out infinite alternate;
@@ -585,10 +620,12 @@ function _wfIsPhoneLaunch() {
     /* ── Micro refusé ── */
     .radar-no-mic {
         font-size: 12px;
-        font-weight: 600;
-        color: var(--rd-alert);
+        font-weight: 700;
+        color: #C0392B;
         text-align: center;
-        padding: 2px 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.8);
         display: none;
         flex-shrink: 0;
     }
@@ -604,12 +641,23 @@ function _wfIsPhoneLaunch() {
     }
 
     // ── Injection CSS ─────────────────────────────────────────────────────
-    if (!document.getElementById('radar-widget-style-v3')) {
+    if (!document.getElementById('radar-widget-style-v4')) {
         var st = document.createElement('style');
-        st.id = 'radar-widget-style-v3';
+        st.id = 'radar-widget-style-v4';
         st.textContent = STYLE;
         document.head.appendChild(st);
     }
+
+    // ── Couleurs disponibles (mêmes teintes que la calculatrice) ──────────
+    var THEMES = {
+        bleu:   { name: 'Bleu',   bg: '#8EC5F2', op: '#2F6FB3' },
+        vert:   { name: 'Vert',   bg: '#7FD6A6', op: '#23915A' },
+        jaune:  { name: 'Jaune',  bg: '#F6D86A', op: '#B9770E' },
+        rose:   { name: 'Rose',   bg: '#F4A9C0', op: '#C2456E' },
+        violet: { name: 'Violet', bg: '#C2B2F0', op: '#6A4FC2' },
+        gris:   { name: 'Gris',   bg: '#D4DAE2', op: '#4A5868' }
+    };
+    var DEFAULT_THEME = 'bleu';
 
     // ── Initialisation d'une instance ─────────────────────────────────────
     window.initRadarWidget = function (widget) {
@@ -634,6 +682,7 @@ function _wfIsPhoneLaunch() {
               +         '<div class="radar-title">' + ICON_WAVES + 'Radar de bruit</div>'
               +         '<div class="radar-header-right">'
               +           '<button class="radar-icon-btn radar-toggle-controls" title="Afficher ou masquer les réglages">' + ICON_SLIDERS + '</button>'
+              +           '<span class="radar-sep"></span>'
               +           '<div class="wf-btns">'
               +             '<button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>'
               +             '<button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>'
@@ -686,6 +735,14 @@ function _wfIsPhoneLaunch() {
               +           '<span class="radar-slider-label" title="Ignore les bruits courts et soudains (toux, règle qui tombe…). Plus la valeur est haute, plus le radar attend un brouhaha qui dure.">Lissage</span>'
               +           '<input type="range" class="radar-slider radar-smooth-slider" min="0" max="10" step="1" value="4" aria-label="Lissage">'
               +           '<span class="radar-slider-val radar-smooth-val">4</span>'
+              +         '</div>'
+              +         '<div class="radar-slider-row">'
+              +           '<span class="radar-slider-label">Couleur</span>'
+              +           '<div class="radar-swatches">'
+              +             Object.keys(THEMES).map(function (id) {
+                              return '<button class="radar-swatch" data-theme="' + id + '" title="' + THEMES[id].name + '" style="background:' + THEMES[id].bg + '"></button>';
+                            }).join('')
+              +           '</div>'
               +         '</div>'
               +       '</div>'
               +       '<div class="radar-no-mic">Le micro est bloqué. Autorisez-le dans le navigateur.</div>'
@@ -782,7 +839,7 @@ function _wfIsPhoneLaunch() {
             }
 
             // ── Dimensions de référence ──
-            var REF_W = 340, REF_H = 470;
+            var REF_W = 340, REF_H = 500;
             var RATIO = REF_H / REF_W;
 
             function rescale() {
@@ -1102,6 +1159,30 @@ function _wfIsPhoneLaunch() {
                 paintSlider(this);
                 resetSmoothing();
             });
+
+            // ── Couleur ──
+            var themeId = DEFAULT_THEME;
+            function setTheme(id) {
+                if (!THEMES[id]) id = DEFAULT_THEME;
+                themeId = id;
+                outer.style.setProperty('--rd-bg', THEMES[id].bg);
+                outer.style.setProperty('--rd-op', THEMES[id].op);
+                widget.dataset.wfTheme = id;
+                widget.querySelectorAll('.radar-swatch').forEach(function (sw) {
+                    sw.classList.toggle('is-on', sw.dataset.theme === id);
+                });
+            }
+            widget.querySelectorAll('.radar-swatch').forEach(function (sw) {
+                sw.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    setTheme(sw.dataset.theme);
+                    if (typeof saveBoard === 'function') saveBoard();
+                });
+            });
+            setTheme(widget.dataset.wfTheme || DEFAULT_THEME);
+            // Pour une sauvegarde éventuelle (save-load.js)
+            widget._wfGetTheme = function () { return themeId; };
+            widget._wfSetTheme = setTheme;
 
             // ── Toggle contrôles ──
             var controlsVisible = true;

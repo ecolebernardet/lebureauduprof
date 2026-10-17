@@ -314,6 +314,7 @@
 '  box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.12);font-family:"Nunito",sans-serif;',
 '  user-select:none;-webkit-user-select:none;outline:none;--ui:1}',
 '.jtq-root *{box-sizing:border-box}',
+'.jtq-root{cursor:move}.jtq-root .jtq-ov,.jtq-root .jtq-board{cursor:default}',
 '.jtq-root.jtq-fullboard{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:9999;border-radius:0}',
 '.widget.phone-fs .jtq-root{width:100%!important;height:100%!important;border-radius:0}',
 // En-tête
@@ -503,7 +504,7 @@
                         '<div class="jtq-stat"><small>Temps</small><span class="jtq-v-time">0:00</span></div>' +
                         '<div class="jtq-stat"><small>Record</small><span class="jtq-v-best">–</span></div>' +
                     '</div>' +
-                    '<div class="jtq-model"><img alt="Modèle"><small>Modèle<br>à reconstituer</small></div>' +
+                    '<div class="jtq-model"><img draggable="false" alt="Modèle"><small>Modèle<br>à reconstituer</small></div>' +
                     '<div class="jtq-stars"></div>' +
                     '<div class="jtq-btns">' +
                         '<button class="jtq-btn jtq-undo" title="Annuler le dernier coup (Ctrl+Z)">↶ Annuler</button>' +
@@ -538,13 +539,16 @@
         var boardEl = $('.jtq-board'), lotEl = $('.jtq-lot'), pvEl = $('.jtq-preview');
         var tileEls = {}, arrowEl = null, hintPos = -1;
 
-        // ── Isoler les interactions du jeu du déplacement du widget ─────
+        // ── Déplacement du widget : comme Simon, on peut l'attraper n'importe où,
+        //    sauf sur les zones de jeu, les boutons, les champs et les fenêtres.
+        var NO_DRAG = '.jtq-board, .jtq-ov, .jtq-grip, button, input, select, textarea, label, a';
         function isolate(e) {
-            if (e.target.closest('.jtq-head') && !e.target.closest('button')) return;
-            e.stopPropagation();
             if ((e.type === 'pointerdown' || e.type === 'mousedown') && typeof bringToFront === 'function') {
                 try { bringToFront(widget); } catch (er) {}
             }
+            var fixe = S.fullboard || widget.classList.contains('phone-fs');   // plein écran : rien à déplacer
+            if (!fixe && e.target.closest && !e.target.closest(NO_DRAG)) return;   // le tableau déplace le widget
+            e.stopPropagation();
         }
         ['pointerdown', 'mousedown', 'touchstart'].forEach(function (t) {
             root.addEventListener(t, isolate, t === 'touchstart' ? { passive: true } : false);

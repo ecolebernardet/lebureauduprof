@@ -194,6 +194,7 @@
 '  box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.12);font-family:"Nunito",sans-serif;',
 '  user-select:none;-webkit-user-select:none;outline:none;--ui:1}',
 '.jrh-root *{box-sizing:border-box}',
+'.jrh-root{cursor:move}.jrh-root .jrh-ov,.jrh-root .jrh-board{cursor:default}',
 '.jrh-root.jrh-fullboard{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:9999;border-radius:0}',
 '.widget.phone-fs .jrh-root{width:100%!important;height:100%!important;border-radius:0}',
 // En-tête (zone de déplacement du widget)
@@ -504,14 +505,16 @@
         var boardEl = $('.jrh-board'), lotEl = $('.jrh-lot'), exitEl = $('.jrh-exit'), exitLbl = $('.jrh-exit-lbl');
         var vehEls = [], ghostEl = null;
 
-        // ── Isoler les interactions du jeu du déplacement du widget ─────
-        // L'en-tête reste une zone de prise pour déplacer le widget.
+        // ── Déplacement du widget : comme Simon, on peut l'attraper n'importe où,
+        //    sauf sur les zones de jeu, les boutons, les champs et les fenêtres.
+        var NO_DRAG = '.jrh-board, .jrh-ov, .jrh-grip, button, input, select, textarea, label, a';
         function isolate(e) {
-            if (e.target.closest('.jrh-head') && !e.target.closest('button')) return;
-            e.stopPropagation();
-            if (e.type === 'pointerdown' || e.type === 'mousedown') {
-                if (typeof bringToFront === 'function') { try { bringToFront(widget); } catch (er) {} }
+            if ((e.type === 'pointerdown' || e.type === 'mousedown') && typeof bringToFront === 'function') {
+                try { bringToFront(widget); } catch (er) {}
             }
+            var fixe = S.fullboard || widget.classList.contains('phone-fs');   // plein écran : rien à déplacer
+            if (!fixe && e.target.closest && !e.target.closest(NO_DRAG)) return;   // le tableau déplace le widget
+            e.stopPropagation();
         }
         ['pointerdown', 'mousedown', 'touchstart'].forEach(function (t) {
             root.addEventListener(t, isolate, t === 'touchstart' ? { passive: true } : false);

@@ -386,6 +386,7 @@
 '  box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.12);font-family:"Nunito",sans-serif;',
 '  user-select:none;-webkit-user-select:none;outline:none;--ui:1}',
 '.jrq-root *{box-sizing:border-box}',
+'.jrq-root{cursor:move}.jrq-root .jrq-ov,.jrq-root .jrq-frame{cursor:default}',
 '.jrq-root.jrq-fullboard{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:9999;border-radius:0}',
 '.widget.phone-fs .jrq-root{width:100%!important;height:100%!important;border-radius:0}',
 // En-tête
@@ -651,13 +652,16 @@
         var stageEl = $('.jrq-stage'), svgModel = $('.jrq-svg-model'), svgMine = $('.jrq-svg-mine');
         var paneModel = $('.jrq-pane.model'), paneMine = $('.jrq-pane.mine');
 
-        // ── Isoler les interactions du jeu du déplacement du widget ─────
+        // ── Déplacement du widget : comme Simon, on peut l'attraper n'importe où,
+        //    sauf sur les zones de jeu, les boutons, les champs et les fenêtres.
+        var NO_DRAG = '.jrq-frame, .jrq-ov, .jrq-grip, button, input, select, textarea, label, a';
         function isolate(e) {
-            if (e.target.closest('.jrq-head') && !e.target.closest('button')) return;
-            e.stopPropagation();
             if ((e.type === 'pointerdown' || e.type === 'mousedown') && typeof bringToFront === 'function') {
                 try { bringToFront(widget); } catch (er) {}
             }
+            var fixe = S.fullboard || widget.classList.contains('phone-fs');   // plein écran : rien à déplacer
+            if (!fixe && e.target.closest && !e.target.closest(NO_DRAG)) return;   // le tableau déplace le widget
+            e.stopPropagation();
         }
         ['pointerdown', 'mousedown', 'touchstart'].forEach(function (t) {
             root.addEventListener(t, isolate, t === 'touchstart' ? { passive: true } : false);

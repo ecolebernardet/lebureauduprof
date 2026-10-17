@@ -358,6 +358,7 @@
 '  box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.12);font-family:"Nunito",sans-serif;',
 '  user-select:none;-webkit-user-select:none;outline:none;--ui:1}',
 '.j7d-root *{box-sizing:border-box}',
+'.j7d-root{cursor:move}.j7d-root .j7d-ov,.j7d-root .j7d-pic{cursor:default}',
 '.j7d-root.j7d-fullboard{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:9999;border-radius:0}',
 '.widget.phone-fs .j7d-root{width:100%!important;height:100%!important;border-radius:0}',
 // En-tête (zone de déplacement du widget)
@@ -649,14 +650,16 @@
         var $ = function (sel) { return root.querySelector(sel); };
         var stage = $('.j7d-stage'), picA = $('.j7d-pa'), picB = $('.j7d-pb');
 
-        // ── Isoler les interactions du jeu du déplacement du widget ─────
-        // L'en-tête reste une zone de prise pour déplacer le widget.
+        // ── Déplacement du widget : comme Simon, on peut l'attraper n'importe où,
+        //    sauf sur les zones de jeu, les boutons, les champs et les fenêtres.
+        var NO_DRAG = '.j7d-pic, .j7d-ov, .j7d-grip, button, input, select, textarea, label, a';
         function isolate(e) {
-            if (e.target.closest('.j7d-head') && !e.target.closest('button')) return;
-            e.stopPropagation();
-            if (e.type === 'pointerdown' || e.type === 'mousedown') {
-                if (typeof bringToFront === 'function') { try { bringToFront(widget); } catch (er) {} }
+            if ((e.type === 'pointerdown' || e.type === 'mousedown') && typeof bringToFront === 'function') {
+                try { bringToFront(widget); } catch (er) {}
             }
+            var fixe = S.fullboard || widget.classList.contains('phone-fs');   // plein écran : rien à déplacer
+            if (!fixe && e.target.closest && !e.target.closest(NO_DRAG)) return;   // le tableau déplace le widget
+            e.stopPropagation();
         }
         ['pointerdown', 'mousedown', 'touchstart'].forEach(function (t) {
             root.addEventListener(t, isolate, t === 'touchstart' ? { passive: true } : false);

@@ -1,3 +1,33 @@
+// ── Téléphone : ouverture directe en plein écran (bouton vert), comme le Taquin ──
+// open()   : bascule le plein écran du widget ; isOpen() : vrai s'il est en plein écran.
+// setKey   : nom de la fonction de restauration (widget._xxSetData) : si le widget est
+//            restauré depuis une sauvegarde, le plein écran automatique est annulé.
+// launchOnly : n'ouvrir que si le widget vient d'être lancé depuis un panneau.
+if (!window._wfPhoneAutoMax) {
+    window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
+        var phone = false;
+        if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
+        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone) return;
+        if (launchOnly && typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch > 2500) return;
+        var restored = false, auto = false;
+        if (setKey && typeof widget[setKey] === 'function') {
+            var orig = widget[setKey];
+            widget[setKey] = function () {
+                restored = true;
+                if (auto && isOpen()) open();
+                auto = false;
+                return orig.apply(this, arguments);
+            };
+        }
+        requestAnimationFrame(function () {
+            if (restored || isOpen() || !widget.isConnected) return;
+            auto = true;
+            open();
+        });
+    };
+}
+
 // =========================================================================
 // WIDGET LA TERRE EN MOUVEMENT — Le Bureau du Prof
 // Deux onglets pour comprendre :
@@ -57,6 +87,17 @@
             width: 100% !important; height: 100% !important;
             z-index: 9999 !important; border-radius: 0 !important;
             padding-left: 50px !important;
+        }
+
+        /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .tm-container.wf-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
         }
 
         /* Onglets */
@@ -1620,6 +1661,9 @@ function createTerreMouvementWidget() {
         setMode(d.mode || 'jour');
         setZoom(!!d.zoom, { keepTime: true });
     };
+
+    // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin
+    window._wfPhoneAutoMax(widget, () => wfMax.click(), () => _isMax, '_tmSetData');
 
     if (typeof saveBoard === 'function') saveBoard();
     return widget;

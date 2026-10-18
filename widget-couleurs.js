@@ -1,3 +1,33 @@
+// ── Téléphone : ouverture directe en plein écran (bouton vert), comme le Taquin ──
+// open()   : bascule le plein écran du widget ; isOpen() : vrai s'il est en plein écran.
+// setKey   : nom de la fonction de restauration (widget._xxSetData) : si le widget est
+//            restauré depuis une sauvegarde, le plein écran automatique est annulé.
+// launchOnly : n'ouvrir que si le widget vient d'être lancé depuis un panneau.
+if (!window._wfPhoneAutoMax) {
+    window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
+        var phone = false;
+        if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
+        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone) return;
+        if (launchOnly && typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch > 2500) return;
+        var restored = false, auto = false;
+        if (setKey && typeof widget[setKey] === 'function') {
+            var orig = widget[setKey];
+            widget[setKey] = function () {
+                restored = true;
+                if (auto && isOpen()) open();
+                auto = false;
+                return orig.apply(this, arguments);
+            };
+        }
+        requestAnimationFrame(function () {
+            if (restored || isOpen() || !widget.isConnected) return;
+            auto = true;
+            open();
+        });
+    };
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  widget-couleurs.js  —  Mélangeur de couleurs interactif (v2)
 //  • Chaque goutte compte : 2 blanc + 1 noir ≠ 1 blanc + 1 noir
@@ -533,6 +563,21 @@ function createCouleursWidget() {
         .clr-container.clr-fullboard .clr-splat-wrap,
         .clr-container.clr-fullboard .clr-splat { width: 200px; height: 200px; }
 
+        /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .clr-container.clr-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+        }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .clr-container.clr-fullboard { font-size: 15px !important; }
+            .clr-container.clr-fullboard .clr-body { width: auto; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .clr-container *, .clr-container *::before { transition: none !important; animation: none !important; }
         }
@@ -766,6 +811,9 @@ function createCouleursWidget() {
     });
 
     _initCouleursWidget(widget);
+
+    // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin
+    window._wfPhoneAutoMax(widget, () => setFullboard(!_isMax), () => _isMax, '_clrSetData');
 
     if (typeof saveBoard === 'function' && !window.isInitialLoading && !window.isRestoringState) saveBoard();
     return widget;

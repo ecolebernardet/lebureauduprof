@@ -1,3 +1,33 @@
+// ── Téléphone : ouverture directe en plein écran (bouton vert), comme le Taquin ──
+// open()   : bascule le plein écran du widget ; isOpen() : vrai s'il est en plein écran.
+// setKey   : nom de la fonction de restauration (widget._xxSetData) : si le widget est
+//            restauré depuis une sauvegarde, le plein écran automatique est annulé.
+// launchOnly : n'ouvrir que si le widget vient d'être lancé depuis un panneau.
+if (!window._wfPhoneAutoMax) {
+    window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
+        var phone = false;
+        if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
+        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone) return;
+        if (launchOnly && typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch > 2500) return;
+        var restored = false, auto = false;
+        if (setKey && typeof widget[setKey] === 'function') {
+            var orig = widget[setKey];
+            widget[setKey] = function () {
+                restored = true;
+                if (auto && isOpen()) open();
+                auto = false;
+                return orig.apply(this, arguments);
+            };
+        }
+        requestAnimationFrame(function () {
+            if (restored || isOpen() || !widget.isConnected) return;
+            auto = true;
+            open();
+        });
+    };
+}
+
 // =========================================================================
 // WIDGET PIXEL ART — Le Bureau du Prof
 // Grille de pixels à colorier librement ou à partir de modèles prédéfinis.
@@ -209,6 +239,17 @@
             overflow-y: auto;
             align-items: center;
             max-width: 100vw;
+        }
+
+        /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .pixelart-container.pixelart-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
         }
 
         /* Contrôles */
@@ -1145,7 +1186,7 @@ function createPixelArtWidget(savedData) {
                 // et par la largeur (grille + palette + marges)
                 const palW = 2 * cellFor(canvasSide) + PXL_PAL_GAP;
                 const byH = window.innerHeight - 230;
-                const byW = window.innerWidth - 40 - PXL_BODY_GAP - palW - PXL_CHROME_X;
+                const byW = window.innerWidth - 40 - (window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches ? 50 : 0) - PXL_BODY_GAP - palW - PXL_CHROME_X;
                 applySide(Math.max(PXL_CONFIG.minCanvasSide, Math.min(byH, byW)), true);
             } else {
                 container.classList.remove('pixelart-fullboard');
@@ -1185,6 +1226,9 @@ function createPixelArtWidget(savedData) {
         else if (savedData.containerW) initialSide = savedData.containerW - PXL_CHROME_X; // anciennes sauvegardes
     }
     applySide(initialSide);
+
+    // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin
+    if (!savedData && wfMax) window._wfPhoneAutoMax(widget, () => wfMax.click(), () => _isMax);
 
     // ── Exposer les données pour la sauvegarde (save-load.js) ───────────────
     widget._pxlGetData = () => {

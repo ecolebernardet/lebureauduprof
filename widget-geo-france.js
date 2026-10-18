@@ -9,7 +9,7 @@ if (!window._wfPhoneAutoMax) {
         if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
         if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
         if (!phone) return;
-        if (launchOnly && typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch > 2500) return;
+        if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
         var restored = false, auto = false;
         if (setKey && typeof widget[setKey] === 'function') {
             var orig = widget[setKey];

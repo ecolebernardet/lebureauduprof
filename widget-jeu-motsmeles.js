@@ -506,6 +506,21 @@
         @keyframes jmmStar   { from{transform:scale(0) rotate(-90deg)} to{transform:scale(1) rotate(0)} }
         @keyframes jmmPulse  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
         @keyframes jmmWobble { 0%,100%{transform:rotate(-7deg)} 50%{transform:rotate(7deg)} }
+
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin.
+           Le widget passe aussi au premier plan pendant le plein écran. ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .jmm-container.wf-fullboard,
+            .jmm-container.wf-fullboard.jti-mobile {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .widget:has(> .jmm-container.wf-fullboard),
+            .widget:has(> * > .jmm-container.wf-fullboard) { z-index: 9999 !important; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -586,6 +601,12 @@ const JMM_SOUND = {
 };
 
 // ── Création du widget ────────────────────────────────────────────────────
+// ── Détection téléphone (même règle que le Taquin et style-phone.css) ─────
+function _jmmMotsIsPhone() {
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 function createJeuMotsMelesWidget(savedData) {
     if (!savedData && typeof snapshotNow === 'function') snapshotNow();
     const pos = (typeof findFreePosition === 'function') ? findFreePosition() : { x: 100, y: 100 };
@@ -1700,6 +1721,10 @@ function createJeuMotsMelesWidget(savedData) {
         requestAnimationFrame(() => requestAnimationFrame(() => setData(savedData)));
     } else if (typeof saveBoard === 'function') {
         saveBoard();
+    }
+    // Sur téléphone, un nouveau jeu s'ouvre directement en plein écran (bouton vert)
+    if (!savedData && _jmmMotsIsPhone()) {
+        requestAnimationFrame(() => requestAnimationFrame(() => { if (!_isMax) wfMax.click(); }));
     }
     return widget;
 }

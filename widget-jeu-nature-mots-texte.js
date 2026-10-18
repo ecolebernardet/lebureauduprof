@@ -27,6 +27,14 @@
 
 (function () {
 
+    // ── Détection téléphone (même règle que le Taquin et style-phone.css) ──
+    // isMobileBoardMode() n'existe pas toujours ou peut répondre « non » sur
+    // un téléphone en paysage : on complète avec la même media query.
+    function _isPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
     const WIDGET_TYPE = 'jeu-nature-mots-texte';
     const WIDGET_LABEL = '🔎 Chasse aux mots';
 
@@ -991,6 +999,21 @@
                 animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
             }
         }
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin.
+           Le widget passe aussi au premier plan pendant le plein écran. ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .jnmt-container.wf-fullboard,
+            .jnmt-container.wf-fullboard.jti-mobile,
+            .jnmt-container.wf-fullboard.jnmt-mobile {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .widget:has(> .jnmt-container.wf-fullboard),
+            .widget:has(> * > .jnmt-container.wf-fullboard) { z-index: 9999 !important; }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -1397,7 +1420,7 @@
                 if (_isMax) {
                     _savedW = container.style.width;
                     _savedH = container.style.height;
-                    if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) {
+                    if (_isPhone()) {
                         container.classList.add('jnmt-mobile');
                     }
                     container.classList.add('wf-fullboard');
@@ -2186,7 +2209,7 @@
             if (destroyed) return;
             const curW  = window.innerWidth;
             const curVH = vH(curW);
-            const isMobile = typeof isMobileBoardMode === 'function' && isMobileBoardMode();
+            const isMobile = _isPhone();
 
             if (pending) {
                 // ── Restauration après actualisation du board ──

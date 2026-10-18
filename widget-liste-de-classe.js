@@ -1427,13 +1427,241 @@ if (!window.ClasseEdition) {
         width: calc(100vw - 40px) !important;
     }
 
-    /* ── Téléphone : plein écran, hauteur réelle de l'écran ── */
+    /* ══════════════════════════════════════════════════════════════════
+       PETITS ÉCRANS (téléphone)
+       1) @media  : plein écran, zones sûres, cibles tactiles plus grandes
+       2) @container (largeur du cadre) : mise en page « une colonne »,
+          barres qui défilent horizontalement au lieu de s'empiler.
+          Fonctionne aussi sur ordinateur si on rétrécit beaucoup le widget.
+       3) @container (hauteur du cadre) : en paysage sur téléphone, tout
+          le cadre défile pour laisser une vraie place à la liste.
+       ══════════════════════════════════════════════════════════════════ */
+
+    /* ── 1) Téléphone : plein écran, hauteur réelle de l'écran ── */
     @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
         .widget.wf-max[data-type="classe"] .classe-inner {
             height: 100dvh !important;
             border-radius: 0 !important;
-            padding: 0 10px 10px;
+            padding: calc(env(safe-area-inset-top) + 0px) calc(10px + env(safe-area-inset-right))
+                     calc(10px + env(safe-area-inset-bottom)) 10px;
+            gap: 8px;
         }
+        .widget.wf-max[data-type="classe"] .classe-header { padding-top: 8px; }
+
+        /* Widget non agrandi : ne jamais dépasser l'écran */
+        .widget[data-type="classe"]:not(.wf-max):not(.phone-fs) .classe-outer {
+            max-width: calc(100vw - 56px);
+            max-height: calc(100dvh - 24px);
+        }
+
+        /* Pas de cadre pointillé au toucher */
+        .widget[data-type="classe"]:hover .classe-outer,
+        .widget[data-type="classe"]:focus-within .classe-outer { outline: none; }
+
+        /* Cibles tactiles plus confortables */
+        .classe-icon-btn { width: 36px; height: 36px; }
+        .classe-inner .wf-btns { gap: 10px !important; }
+        .classe-inner .wf-btns .wf-btn {
+            width: 24px !important; height: 24px !important;
+            min-width: 24px !important; min-height: 24px !important;
+        }
+        .classe-sexe { width: 32px; height: 30px; font-size: 12px; }
+        .classe-del  { width: 30px; height: 30px; font-size: 18px; }
+        .classe-niv  { height: 30px; min-width: 40px; }
+        .classe-tab-tool { width: 34px; height: 34px; font-size: 15px; }
+        .classe-tab  { padding: 7px 14px; }
+        .classe-mode { padding: 9px 8px; font-size: 13px; }
+        .classe-btn  { padding: 9px 14px; }
+        .classe-add-btn { min-width: 44px; }
+        .classe-sort-opt, .classe-view-opt { padding: 7px 12px; }
+
+        /* Le champ de saisie passe à 16 px (anti-zoom iOS) : on garde des pastilles fines */
+        .classe-add-input { padding: 7px 14px; }
+        .classe-in { padding: 3px 6px; }
+
+        /* Effets de survol inutiles au doigt */
+        .classe-doc-card:hover { background: #F4F6F9; border-color: rgba(20,32,46,0.08); box-shadow: 0 2px 0 rgba(20,32,46,0.06); }
+        .classe-doc-card:hover .classe-doc-ico { background: var(--t); }
+        .classe-doc-card:active { border-color: var(--c); background: #fff; }
+
+        /* Gestes : les zones qui défilent acceptent le doigt */
+        .classe-list, .classe-edition, .classe-panel { touch-action: pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+        .classe-tabs, .classe-toolbar { touch-action: pan-x; }
+    }
+
+    /* ── 2) Cadre étroit (téléphone en portrait) ── */
+    @container (max-width: 560px) {
+        /* En-tête */
+        .classe-header { gap: 6px; }
+        .classe-tools { padding: 3px 8px 3px 3px; }
+        .classe-sep { margin: 0 4px; }
+
+        /* Onglets de classes : une seule ligne qui défile, outils collés à droite */
+        .classe-tabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scrollbar-width: none;
+            border-radius: 999px;
+        }
+        .classe-tabs::-webkit-scrollbar { display: none; }
+        .classe-tab { flex-shrink: 0; max-width: 140px; }
+        .classe-tab-tools {
+            position: sticky;
+            right: -4px;
+            flex-shrink: 0;
+            margin-left: auto;
+            padding: 2px 2px 2px 14px;
+            background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.92) 12px);
+            border-radius: 0 999px 999px 0;
+        }
+
+        /* Saisie + outils */
+        .classe-controls { padding: 6px; gap: 6px; border-radius: 18px; }
+        .classe-add-level { max-width: 76px; flex-shrink: 0; }
+        .classe-toolbar {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-bottom: 2px;
+            /* léger fondu à droite : indique qu'on peut faire défiler */
+            -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+                    mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+        }
+        .classe-toolbar::-webkit-scrollbar { display: none; }
+        .classe-toolbar > * { flex-shrink: 0; }
+        .classe-toolbar > :last-of-type { margin-right: 18px; }
+
+        /* Liste : UNE seule colonne (annule les 2 colonnes posées par le script) */
+        .classe-list,
+        .classe-list[data-view="levels"] {
+            grid-template-columns: minmax(0, 1fr) !important;
+            grid-template-rows: none !important;
+            grid-auto-flow: row !important;
+            overflow-x: hidden !important;
+            padding: 8px;
+            gap: 6px;
+            border-radius: 16px;
+        }
+        /* Par niveau : les colonnes sont empilées, avec un titre collant */
+        .classe-list[data-view="levels"] .classe-col + .classe-col { margin-top: 6px; }
+
+        /* Fiche élève sur 2 lignes :
+           ligne 1 = n°, prénom, nom, F/G, ×   —   ligne 2 = naissance, niveau */
+        .classe-list[data-view] .classe-row {
+            flex-wrap: wrap;
+            row-gap: 2px;
+            padding: 4px 4px 4px 6px;
+        }
+        .classe-list[data-view] .classe-row .classe-in-prenom,
+        .classe-list[data-view] .classe-row .classe-in-nom { flex: 1 1 0; min-width: 0; }
+        .classe-list[data-view] .classe-row .classe-sexe { order: 2; }
+        .classe-list[data-view] .classe-row .classe-del  { order: 3; }
+        .classe-list[data-view] .classe-row .classe-in-dob {
+            order: 10;
+            flex: 1 0 calc(100% - 92px);
+            width: auto;
+            margin-left: 25px;
+            text-align: left;
+            font-size: 12px;
+            padding-top: 2px; padding-bottom: 2px;
+        }
+        .classe-list[data-view] .classe-row .classe-niv {
+            order: 11;
+            min-width: 40px; max-width: 60px;
+            padding: 0 6px;
+        }
+
+        /* Pied : sur 2 lignes si besoin, libellé « Utiliser dans » masqué */
+        .classe-footer { border-radius: 18px; padding: 6px 6px 6px 12px; }
+        .classe-use { font-size: 0; gap: 5px; }
+        .classe-use .classe-btn { font-size: 11px; }
+
+        /* Onglet Édition */
+        .classe-edition { padding: 10px; gap: 10px; }
+        .classe-edit-fields { gap: 8px; }
+        .classe-edit-field { flex: 1 1 140px; }
+        .classe-edit-field .classe-add-input,
+        .classe-edit-field .classe-edit-year { width: 100%; box-sizing: border-box; }
+        .classe-doc-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+        .classe-doc-card { padding: 10px 12px; }
+
+        /* Fenêtres */
+        .classe-modal-overlay { padding: 12px; }
+        .classe-modal-box { padding: 16px; }
+        .classe-panel { left: 10px; right: 10px; width: auto; max-width: none; top: 58px; }
+    }
+
+    /* Très étroit : boutons de la barre réduits à leur icône quand c'est possible */
+    @container (max-width: 380px) {
+        .classe-sort-label { padding: 0 2px 0 6px; }
+        .classe-modes .classe-mode { font-size: 12px; letter-spacing: 0; padding-left: 4px; padding-right: 4px; }
+        .classe-stats { font-size: 11px; }
+    }
+
+    /* ── 3) Téléphone en paysage (écran bas) : tout le cadre défile ──
+       (règle @media et non @container : le cadre ne peut pas s'interroger
+        lui-même, et c'est lui qui doit défiler) */
+    @media (max-height: 500px) and (pointer: coarse) {
+        .widget.wf-max[data-type="classe"] .classe-inner,
+        .widget.phone-fs[data-type="classe"] .classe-inner {
+            overflow-y: auto;
+            touch-action: pan-y;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+        }
+        .widget.wf-max[data-type="classe"] .classe-list,
+        .widget.wf-max[data-type="classe"] .classe-edition,
+        .widget.phone-fs[data-type="classe"] .classe-list,
+        .widget.phone-fs[data-type="classe"] .classe-edition {
+            flex: 1 0 auto;
+            min-height: 200px;
+            overflow-y: visible;
+        }
+        /* Barre d'outils sur une ligne qui défile, fiches élèves sur 2 lignes
+           (les champs passent à 16 px au doigt : trop serré sur une seule ligne) */
+        .classe-toolbar {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-bottom: 2px;
+            /* léger fondu à droite : indique qu'on peut faire défiler */
+            -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+                    mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+        }
+        .classe-toolbar::-webkit-scrollbar { display: none; }
+        .classe-toolbar > * { flex-shrink: 0; }
+        .classe-toolbar > :last-of-type { margin-right: 18px; }
+
+        /* Fiche élève sur 2 lignes :
+           ligne 1 = n°, prénom, nom, F/G, ×   —   ligne 2 = naissance, niveau */
+        .classe-list[data-view] .classe-row {
+            flex-wrap: wrap;
+            row-gap: 2px;
+            padding: 4px 4px 4px 6px;
+        }
+        .classe-list[data-view] .classe-row .classe-in-prenom,
+        .classe-list[data-view] .classe-row .classe-in-nom { flex: 1 1 0; min-width: 0; }
+        .classe-list[data-view] .classe-row .classe-sexe { order: 2; }
+        .classe-list[data-view] .classe-row .classe-del  { order: 3; }
+        .classe-list[data-view] .classe-row .classe-in-dob {
+            order: 10;
+            flex: 1 0 calc(100% - 92px);
+            width: auto;
+            margin-left: 25px;
+            text-align: left;
+            font-size: 12px;
+            padding-top: 2px; padding-bottom: 2px;
+        }
+        .classe-list[data-view] .classe-row .classe-niv {
+            order: 11;
+            min-width: 40px; max-width: 60px;
+            padding: 0 6px;
+        }
+
+        .classe-header { padding-top: 6px; }
+        .classe-modes .classe-mode { padding-top: 6px; padding-bottom: 6px; }
+        .widget.wf-max[data-type="classe"] .classe-list[data-view="levels"] .classe-col-head,
+        .widget.phone-fs[data-type="classe"] .classe-list[data-view="levels"] .classe-col-head { position: static; }
     }
 
     /* ── Déplacement : clic-glisser n'importe où sur une zone libre du cadre ── */

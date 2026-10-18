@@ -1448,12 +1448,6 @@ if (!window.ClasseEdition) {
         }
         .widget.wf-max[data-type="classe"] .classe-header { padding-top: 8px; }
 
-        /* Widget non agrandi : ne jamais dépasser l'écran */
-        .widget[data-type="classe"]:not(.wf-max):not(.phone-fs) .classe-outer {
-            max-width: calc(100vw - 56px);
-            max-height: calc(100dvh - 24px);
-        }
-
         /* Pas de cadre pointillé au toucher */
         .widget[data-type="classe"]:hover .classe-outer,
         .widget[data-type="classe"]:focus-within .classe-outer { outline: none; }
@@ -1489,106 +1483,144 @@ if (!window.ClasseEdition) {
         .classe-tabs, .classe-toolbar { touch-action: pan-x; }
     }
 
-    /* ── 2) Cadre étroit (téléphone en portrait) ── */
-    @container (max-width: 560px) {
-        /* En-tête */
-        .classe-header { gap: 6px; }
-        .classe-tools { padding: 3px 8px 3px 3px; }
-        .classe-sep { margin: 0 4px; }
-
-        /* Onglets de classes : une seule ligne qui défile, outils collés à droite */
-        .classe-tabs {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            scrollbar-width: none;
-            border-radius: 999px;
-        }
-        .classe-tabs::-webkit-scrollbar { display: none; }
-        .classe-tab { flex-shrink: 0; max-width: 140px; }
-        .classe-tab-tools {
-            position: sticky;
-            right: -4px;
-            flex-shrink: 0;
-            margin-left: auto;
-            padding: 2px 2px 2px 14px;
-            background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.92) 12px);
-            border-radius: 0 999px 999px 0;
-        }
-
-        /* Saisie + outils */
-        .classe-controls { padding: 6px; gap: 6px; border-radius: 18px; }
-        .classe-add-level { max-width: 76px; flex-shrink: 0; }
-        .classe-toolbar {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            scrollbar-width: none;
-            padding-bottom: 2px;
-            /* léger fondu à droite : indique qu'on peut faire défiler */
-            -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
-                    mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
-        }
-        .classe-toolbar::-webkit-scrollbar { display: none; }
-        .classe-toolbar > * { flex-shrink: 0; }
-        .classe-toolbar > :last-of-type { margin-right: 18px; }
-
-        /* Liste : UNE seule colonne (annule les 2 colonnes posées par le script) */
-        .classe-list,
-        .classe-list[data-view="levels"] {
-            grid-template-columns: minmax(0, 1fr) !important;
-            grid-template-rows: none !important;
-            grid-auto-flow: row !important;
-            overflow-x: hidden !important;
-            padding: 8px;
-            gap: 6px;
-            border-radius: 16px;
-        }
-        /* Par niveau : les colonnes sont empilées, avec un titre collant */
-        .classe-list[data-view="levels"] .classe-col + .classe-col { margin-top: 6px; }
-
-        /* Fiche élève sur 2 lignes :
-           ligne 1 = n°, prénom, nom, F/G, ×   —   ligne 2 = naissance, niveau */
-        .classe-list[data-view] .classe-row {
-            flex-wrap: wrap;
-            row-gap: 2px;
-            padding: 4px 4px 4px 6px;
-        }
-        .classe-list[data-view] .classe-row .classe-in-prenom,
-        .classe-list[data-view] .classe-row .classe-in-nom { flex: 1 1 0; min-width: 0; }
-        .classe-list[data-view] .classe-row .classe-sexe { order: 2; }
-        .classe-list[data-view] .classe-row .classe-del  { order: 3; }
-        .classe-list[data-view] .classe-row .classe-in-dob {
-            order: 10;
-            flex: 1 0 calc(100% - 92px);
-            width: auto;
-            margin-left: 25px;
-            text-align: left;
-            font-size: 12px;
-            padding-top: 2px; padding-bottom: 2px;
-        }
-        .classe-list[data-view] .classe-row .classe-niv {
-            order: 11;
-            min-width: 40px; max-width: 60px;
-            padding: 0 6px;
-        }
-
-        /* Pied : sur 2 lignes si besoin, libellé « Utiliser dans » masqué */
-        .classe-footer { border-radius: 18px; padding: 6px 6px 6px 12px; }
-        .classe-use { font-size: 0; gap: 5px; }
-        .classe-use .classe-btn { font-size: 11px; }
-
-        /* Onglet Édition */
-        .classe-edition { padding: 10px; gap: 10px; }
-        .classe-edit-fields { gap: 8px; }
-        .classe-edit-field { flex: 1 1 140px; }
-        .classe-edit-field .classe-add-input,
-        .classe-edit-field .classe-edit-year { width: 100%; box-sizing: border-box; }
-        .classe-doc-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-        .classe-doc-card { padding: 10px 12px; }
-
-        /* Fenêtres */
-        .classe-modal-overlay { padding: 12px; }
-        .classe-modal-box { padding: 16px; }
-        .classe-panel { left: 10px; right: 10px; width: auto; max-width: none; top: 58px; }
+    /* ── 2) Cadre étroit (téléphone en portrait) ──
+       La classe .is-narrow est posée par le script (voir updateNarrow) :
+       écran de téléphone en portrait, OU cadre affiché à moins de 560 px
+       de large. On ne se fie pas à une requête @container seule : quand le
+       tableau est mis à l'échelle (transform), le widget garde une largeur
+       « interne » de 800 px même s'il paraît petit à l'écran. */
+    .classe-inner.is-narrow .classe-header {
+        gap: 6px;
+    }
+    .classe-inner.is-narrow .classe-tools {
+        padding: 3px 8px 3px 3px;
+    }
+    .classe-inner.is-narrow .classe-sep {
+        margin: 0 4px;
+    }
+    .classe-inner.is-narrow .classe-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        border-radius: 999px;
+    }
+    .classe-inner.is-narrow .classe-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    .classe-inner.is-narrow .classe-tab {
+        flex-shrink: 0; max-width: 140px;
+    }
+    .classe-inner.is-narrow .classe-tab-tools {
+        position: sticky;
+        right: -4px;
+        flex-shrink: 0;
+        margin-left: auto;
+        padding: 2px 2px 2px 14px;
+        background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.92) 12px);
+        border-radius: 0 999px 999px 0;
+    }
+    .classe-inner.is-narrow .classe-controls {
+        padding: 6px; gap: 6px; border-radius: 18px;
+    }
+    .classe-inner.is-narrow .classe-add-level {
+        max-width: 76px; flex-shrink: 0;
+    }
+    .classe-inner.is-narrow .classe-toolbar {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+        /* léger fondu à droite : indique qu'on peut faire défiler */
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+        mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+    }
+    .classe-inner.is-narrow .classe-toolbar::-webkit-scrollbar {
+        display: none;
+    }
+    .classe-inner.is-narrow .classe-toolbar > * {
+        flex-shrink: 0;
+    }
+    .classe-inner.is-narrow .classe-toolbar > :last-of-type {
+        margin-right: 18px;
+    }
+    .classe-inner.is-narrow .classe-list,
+    .classe-inner.is-narrow .classe-list[data-view="levels"] {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: none !important;
+        grid-auto-flow: row !important;
+        overflow-x: hidden !important;
+        padding: 8px;
+        gap: 6px;
+        border-radius: 16px;
+    }
+    .classe-inner.is-narrow .classe-list[data-view="levels"] .classe-col + .classe-col {
+        margin-top: 6px;
+    }
+    .classe-inner.is-narrow .classe-list[data-view] .classe-row {
+        flex-wrap: wrap;
+        row-gap: 2px;
+        padding: 4px 4px 4px 6px;
+    }
+    .classe-inner.is-narrow .classe-list[data-view] .classe-row .classe-in-prenom,
+    .classe-inner.is-narrow .classe-list[data-view] .classe-row .classe-in-nom {
+        flex: 1 1 0; min-width: 0;
+    }
+    .classe-inner.is-narrow .classe-list[data-view] .classe-row .classe-sexe {
+        order: 2;
+    }
+    .classe-inner.is-narrow .classe-list[data-view] .classe-row .classe-del {
+        order: 3;
+    }
+    .classe-inner.is-narrow .classe-list[data-view] .classe-row .classe-in-dob {
+        order: 10;
+        flex: 1 0 calc(100% - 92px);
+        width: auto;
+        margin-left: 25px;
+        text-align: left;
+        font-size: 12px;
+        padding-top: 2px; padding-bottom: 2px;
+    }
+    .classe-inner.is-narrow .classe-list[data-view] .classe-row .classe-niv {
+        order: 11;
+        min-width: 40px; max-width: 60px;
+        padding: 0 6px;
+    }
+    .classe-inner.is-narrow .classe-footer {
+        border-radius: 18px; padding: 6px 6px 6px 12px;
+    }
+    .classe-inner.is-narrow .classe-use {
+        font-size: 0; gap: 5px;
+    }
+    .classe-inner.is-narrow .classe-use .classe-btn {
+        font-size: 11px;
+    }
+    .classe-inner.is-narrow .classe-edition {
+        padding: 10px; gap: 10px;
+    }
+    .classe-inner.is-narrow .classe-edit-fields {
+        gap: 8px;
+    }
+    .classe-inner.is-narrow .classe-edit-field {
+        flex: 1 1 140px;
+    }
+    .classe-inner.is-narrow .classe-edit-field .classe-add-input,
+    .classe-inner.is-narrow .classe-edit-field .classe-edit-year {
+        width: 100%; box-sizing: border-box;
+    }
+    .classe-inner.is-narrow .classe-doc-grid {
+        grid-template-columns: minmax(0, 1fr); gap: 8px;
+    }
+    .classe-inner.is-narrow .classe-doc-card {
+        padding: 10px 12px;
+    }
+    .classe-inner.is-narrow .classe-modal-overlay {
+        padding: 12px;
+    }
+    .classe-inner.is-narrow .classe-modal-box {
+        padding: 16px;
+    }
+    .classe-inner.is-narrow .classe-panel {
+        left: 10px; right: 10px; width: auto; max-width: none; top: 58px;
     }
 
     /* Très étroit : boutons de la barre réduits à leur icône quand c'est possible */
@@ -2123,6 +2155,8 @@ if (!window.ClasseEdition) {
                 inner.style.zIndex       = '';
                 inner.style.borderRadius = '';
             }
+            // la largeur affichée change : réévaluer la mise en page une colonne
+            requestAnimationFrame(() => { if (updateNarrow()) renderList(); });
         }
 
         if (wfMin) {
@@ -2133,6 +2167,14 @@ if (!window.ClasseEdition) {
         // Plein écran (bouton vert) — utilisé aussi à l'ouverture sur téléphone
         widget._wfSetMax = (on) => { if (!!on !== _isMax) toggleMax(); };
         if (wfMax) wfMax.addEventListener('click', (e) => { e.stopPropagation(); toggleMax(); });
+        // Changement de taille d'écran / rotation du téléphone
+        const onWinResize = () => { if (!document.contains(widget)) return; if (updateNarrow()) renderList(); };
+        window.addEventListener('resize', onWinResize);
+        window.addEventListener('orientationchange', onWinResize);
+        cleanups.push(() => {
+            window.removeEventListener('resize', onWinResize);
+            window.removeEventListener('orientationchange', onWinResize);
+        });
         // Au doigt, en plein écran : un appui dans le widget ne doit pas remonter
         // jusqu'au tableau (qui le prendrait pour un déplacement et annulerait le clic)
         {
@@ -2453,7 +2495,7 @@ if (!window.ClasseEdition) {
             const counters = {};
             if (byLevel) {
                 // Une colonne par niveau (tri conservé à l'intérieur de chaque colonne)
-                listEl.style.gridTemplateColumns = 'repeat(' + levels.length + ', minmax(' + (levels.length > 3 ? 150 : 0) + 'px, 1fr))';
+                if (!isNarrow()) listEl.style.gridTemplateColumns = 'repeat(' + levels.length + ', minmax(' + (levels.length > 3 ? 150 : 0) + 'px, 1fr))';
                 levels.forEach((l, k) => {
                     const col = document.createElement('div');
                     col.className = 'classe-col';
@@ -2467,7 +2509,7 @@ if (!window.ClasseEdition) {
                 });
             } else {
                 // Colonne de gauche = première moitié (la plus grande si effectif impair)
-                listEl.style.gridTemplateRows = 'repeat(' + Math.ceil(cls.students.length / 2) + ', auto)';
+                if (!isNarrow()) listEl.style.gridTemplateRows = 'repeat(' + Math.ceil(cls.students.length / 2) + ', auto)';
             }
 
             cls.students.forEach((s, i) => {
@@ -2604,8 +2646,31 @@ if (!window.ClasseEdition) {
             });
         }
 
+        // ── Petit écran : une seule colonne ───────────────────────────────
+        // Le widget passe en mode « étroit » si l'écran est un téléphone en
+        // portrait, ou si le cadre est AFFICHÉ à moins de 560 px de large.
+        // getBoundingClientRect tient compte de la mise à l'échelle du tableau
+        // (transform), contrairement à la largeur CSS du cadre.
+        const NARROW_PX = 560;
+        function computeNarrow() {
+            const mq = window.matchMedia && window.matchMedia('(max-width: 600px)').matches;
+            if (mq) return true;
+            if (!innerEl || !innerEl.isConnected) return false;
+            const vis = innerEl.getBoundingClientRect().width;
+            const lay = innerEl.offsetWidth;
+            return (vis > 0 && vis < NARROW_PX) || (lay > 0 && lay < NARROW_PX);
+        }
+        function updateNarrow() {
+            const n = computeNarrow();
+            if (innerEl.classList.contains('is-narrow') === n) return false;
+            innerEl.classList.toggle('is-narrow', n);
+            return true;
+        }
+        function isNarrow() { return innerEl.classList.contains('is-narrow'); }
+
         function refreshAll(keepScroll) {
             const st = listEl.scrollTop;
+            updateNarrow();
             renderTabs();
             renderSortMode();
             renderAddLevel();
@@ -2875,6 +2940,7 @@ if (!window.ClasseEdition) {
         // ── Sauvegarder la taille via ResizeObserver ──────────────────────
         if (window.ResizeObserver) {
             const ro = new ResizeObserver(() => {
+                if (updateNarrow()) renderList();
                 // Ne pas écraser les dimensions sauvegardées si le widget est réduit
                 // ni en plein écran téléphone (sinon il garderait la taille du téléphone)
                 if (widget.dataset.collapsed !== '1' && !widget.classList.contains('phone-fs')) {

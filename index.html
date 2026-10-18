@@ -1164,8 +1164,8 @@ function setVisuelsMode(mode) {
 <script src="stickers.js"></script>
 <script src="paste-image.js"></script>
 <script src="images.js"></script>
-<script src="widget-plan.js"></script>
-<script src="widget-emploi-du-temps.js"></script>
+<script src="outil-plan.js"></script>
+<script src="outil-emploi-du-temps.js"></script>
 <script src="activites-maths-monnaie.js"></script>
 <script src="activites-francais-mot-le-plus-long.js"></script>
 <script src="activites-histoire-frise.js"></script>
@@ -1177,18 +1177,18 @@ function setVisuelsMode(mode) {
 <script src="activites-geo-globe.js"></script>
 <script src="activites-sciences-terre-mouvement.js"></script>
 <script src="activites-sciences-systeme-solaire.js"></script>
-<script src="widget-pause-calme.js"></script>
+<script src="outil-pause-calme.js"></script>
 <script src="activites-maths-conversion.js"></script>
-<script src="widget-seyes.js"></script>
+<script src="outil-seyes.js"></script>
 <script src="activites-maths-tableau-num.js"></script>
 <script src="activites-maths-heure.js"></script>
 <script src="activites-maths-horloge.js"></script>
-<script src="widget-sondage.js"></script>
+<script src="outil-sondage.js"></script>
 <script src="activites-divers-couleurs.js"></script>
 <script src="activites-maths-solide3d.js"></script>
 <script src="activites-francais-conjugaison.js"></script>
-<script src="widget-deficalme.js"></script>
-<script src="widget-deficalme2.js"></script>
+<script src="outil-deficalme.js"></script>
+<script src="outil-deficalme2.js"></script>
 <script src="widget-calendrier.js"></script>
 <script src="widget-ephemeride.js"></script>
 <script src="activites-maths-repro-quadrillage.js"></script>
@@ -1254,22 +1254,22 @@ function setVisuelsMode(mode) {
 <script src="widget-jeu-pixel-art.js"></script>
 <script src="widget-jeu-labyrinthe.js"></script>
 <script src="widget-jeu-7-differences.js"></script>
-<script src="widget-de.js"></script>
+<script src="outil-de.js"></script>
 <script src="activites-maths-fractions.js"></script>
-<script src="widget-minuteur-chrono.js"></script>
-<script src="widget-cache.js"></script>
-<script src="widget-loupe.js"></script>
-<script src="widget-sonometre.js"></script>
-<script src="widget-radar.js"></script>
-<script src="widget-couleurs-bruit.js"></script>
-<script src="widget-calculatrice.js"></script>
-<script src="widget-visualiseur.js"></script>
+<script src="outil-minuteur-chrono.js"></script>
+<script src="outil-cache.js"></script>
+<script src="outil-loupe.js"></script>
+<script src="outil-sonometre.js"></script>
+<script src="outil-radar.js"></script>
+<script src="outil-couleurs-bruit.js"></script>
+<script src="outil-calculatrice.js"></script>
+<script src="outil-visualiseur.js"></script>
 <script src="activites-maths-geometrie.js"></script>
-<script src="widget-liste-de-classe.js"></script>
-<script src="widget-liste-edition.js"></script>
-<script src="widget-tirage.js"></script>
-<script src="widget-equipes.js"></script>
-<script src="widget-structure-ecole.js"></script>
+<script src="outil-liste-de-classe.js"></script>
+<script src="outil-liste-edition.js"></script>
+<script src="outil-tirage.js"></script>
+<script src="outil-equipes.js"></script>
+<script src="outil-structure-ecole.js"></script>
 <script src="activites-maths-calcul-mental.js"></script>
 <script src="activites-maths-calcul-flash.js"></script>
 <script src="color-picker.js"></script>
@@ -3705,9 +3705,9 @@ function lancerTracesGeometriques() {
 
 <!-- Template vide pour que createWidget('page-garde') ne produise pas "Type inconnu" -->
 <template id="template-page-garde"></template>
-<!-- Template vide pour que createWidget('calculatrice') ne produise pas "Type inconnu" (contenu injecté par widget-calculatrice.js) -->
+<!-- Template vide pour que createWidget('calculatrice') ne produise pas "Type inconnu" (contenu injecté par outil-calculatrice.js) -->
 <template id="template-calculatrice"></template>
-<!-- Template vide pour createWidget('visualiseur') (contenu injecté par widget-visualiseur.js) -->
+<!-- Template vide pour createWidget('visualiseur') (contenu injecté par outil-visualiseur.js) -->
 <template id="template-visualiseur"></template>
 <!-- Templates vides pour createWidget('jeu-rush-hour') et createWidget('jeu-taquin') (contenu injecté par leurs fichiers .js) -->
 <template id="template-jeu-rush-hour"></template>
@@ -3773,7 +3773,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 // ── Listener postMessage pour le mode page-garde ──────────────────────────
-// Reçoit les commandes de page-garde.html (parent) et les exécute
+// Reçoit les commandes de outil-page-garde.html (parent) et les exécute
 // de l'intérieur de l'iframe, contournant les restrictions cross-origin.
 (function() {
     if (window.location.search.indexOf('mode=pagegarde') === -1) return;
@@ -4106,7 +4106,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.widget.phone-fs').forEach(exitPhoneFullscreen);
     });
 
-    // Accessibles aux fichiers des widgets (ex. widget-tirage.js)
+    // Accessibles aux fichiers des widgets (ex. outil-tirage.js)
     window.exitPhoneFullscreen  = exitPhoneFullscreen;
     window.enterPhoneFullscreen = enterPhoneFullscreen;
     window.isPhoneScreen        = isPhone;

@@ -175,6 +175,16 @@
             border-radius: 0 !important;
             padding-left: 52px !important;
         }
+        /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .dn-container.wf-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                height: 100dvh !important;
+                min-width: 0 !important;
+                padding-left: 12px !important;
+            }
+        }
 
         /* ── En-tête ── */
         .dn-header {
@@ -532,6 +542,11 @@
         td.textContent = disp.d; g.appendChild(td);
         parent.appendChild(g);
         return g;
+    }
+
+    function _wfIsPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
     }
 
     const PRESETS = [
@@ -2090,6 +2105,8 @@
                 generateTokens();
                 generateLire();
                 renderAll();
+                // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin
+                if (_wfIsPhone() && !container.classList.contains('wf-fullboard')) maxBtn.click();
             }
             // Activer le ResizeObserver seulement après le premier rendu complet
             requestAnimationFrame(() => { roEnabled = true; });

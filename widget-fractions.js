@@ -158,6 +158,17 @@
             border-radius: 0 !important;
             padding-left: 70px !important;
         }
+        /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .frac-container.wf-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                height: 100dvh !important;
+                min-width: 0 !important;
+                padding-left: 12px !important;
+            }
+            .frac-container.wf-fullboard .frac-params-panel { flex-wrap: wrap; gap: 12px; }
+        }
 
         /* ── En-tête ── */
         .frac-header {
@@ -557,6 +568,11 @@
 
 </div>`;
         document.body.appendChild(tpl);
+    }
+
+    function _wfIsPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
     }
 
     // =========================================================================
@@ -1316,6 +1332,7 @@
 
         widget._fracSetData = function (data) {
             if (!data) return;
+            widget._fracRestored = true;   // widget restauré : pas d'ouverture auto en plein écran
             if (data.shape) {
                 shape = data.shape;
                 shapeBtns.forEach(b => {
@@ -1354,7 +1371,7 @@
                 });
             }
             renderAll();
-            if (data.fullboard) container.classList.add('wf-fullboard');
+            container.classList.toggle('wf-fullboard', !!data.fullboard);
         };
 
         // ── Init ──────────────────────────────────────────────────────────
@@ -1369,6 +1386,10 @@
             // Le widget s'ouvre à 100px du bord gauche du board.
             widget.style.left = '100px';
             widget.dataset.leftPercent = (100 / curW) * 100;
+            // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin
+            if (!widget._fracRestored && _wfIsPhone() && !container.classList.contains('wf-fullboard')) {
+                widget.querySelector('[data-role="wf-max"]').click();
+            }
         }));
     };
 

@@ -3,7 +3,7 @@
 //  Rendu via Canvas 2D + projection perspective corrigée
 // ══════════════════════════════════════════════════════════════════
 
-function createSolide3DWidget() {
+function createSolide3DWidget(fromSave) {
 
     // ── CSS (injecté une seule fois) ──────────────────────────────
     if (!document.getElementById('s3d-style')) {
@@ -214,6 +214,14 @@ function createSolide3DWidget() {
             z-index: 9999 !important;
             border-radius: 0 !important;
         }
+        /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .s3d-container.s3d-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                height: 100dvh !important;
+            }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -357,6 +365,9 @@ function createSolide3DWidget() {
         });
     }
 
+    // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin
+    if (!fromSave && wfMax && _wfIsPhone()) requestAnimationFrame(() => { if (!_isMax) wfMax.click(); });
+
     // Sauvegarder les dimensions pour la restauration
     widget.dataset.s3dW = '300';
     widget.dataset.s3dH = '420';
@@ -367,7 +378,7 @@ function createSolide3DWidget() {
 
 // Fonction de restauration appelée par save-load.js
 function createSolide3DWidgetFromSave(savedW, savedH) {
-    const widget = createSolide3DWidget();
+    const widget = createSolide3DWidget(true);
     if (savedW > 0) widget.style.width  = savedW + 'px';
     if (savedH > 0) widget.style.height = savedH + 'px';
     return widget;
@@ -1121,4 +1132,10 @@ function _initSolide3D(widget) {
         }
     });
     obs.observe(document.body, { childList: true, subtree: true });
+}
+
+// Téléphone (même détection que les jeux)
+function _wfIsPhone() {
+    if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
 }

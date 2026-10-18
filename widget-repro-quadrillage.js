@@ -397,6 +397,21 @@
             overflow-y: auto;
             padding-left: 50px !important;
         }
+        /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux,
+           grille carrée qui tient dans l'écran */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .rq-container.wf-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                height: 100dvh !important;
+                padding-left: 12px !important;
+            }
+            .rq-container.wf-fullboard .rq-svg {
+                width: min(100%, calc(100dvh - 230px)) !important;
+                height: auto !important;
+                aspect-ratio: 1 / 1;
+            }
+        }
         .rq-container.wf-fullboard .rq-svg-zone {
             flex: 1;
         }
@@ -1103,10 +1118,30 @@ function createReproQuadrillageWidget(savedData) {
         initGrid(gridSizeInput.value);
     }
 
+    // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin
+    // (si le widget est restauré ensuite via setData, on n'ouvre pas — ou on referme — ce plein écran automatique)
+    let _restored = false, _autoMax = false;
+    if (!savedData && wfMax && _wfIsPhone()) requestAnimationFrame(() => {
+        if (!_restored && !_isMax) { _autoMax = true; wfMax.click(); }
+    });
+    const _setDataBase = setData;
+    const setDataPublic = function (data) {
+        _restored = true;
+        if (_autoMax && _isMax) wfMax.click();
+        _autoMax = false;
+        return _setDataBase(data);
+    };
+
     // Exposer getData/setData pour save-load.js
     widget._rqGetData = getData;
-    widget._rqSetData = setData;
+    widget._rqSetData = setDataPublic;
 
     saveBoard();
     return widget;
+}
+
+// Téléphone (même détection que les jeux)
+function _wfIsPhone() {
+    if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
 }

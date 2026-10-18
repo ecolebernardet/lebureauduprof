@@ -248,6 +248,13 @@
         display: none !important;
     }
 
+    /* Sur téléphone : cartes « Page de garde » et « OutilsProfs »
+       retirées du panneau Outils (inadaptées aux petits écrans) */
+    #tools-panel .tools-card[onclick*="createPageGardeWidget"],
+    #tools-panel .tools-card[onclick*="createWidget('outilsprofs')"] {
+        display: none !important;
+    }
+
 
     /* ════════════════════════════════════════════════════════
        6 bis. WIDGETS EN PLEIN ÉCRAN SUR TÉLÉPHONE

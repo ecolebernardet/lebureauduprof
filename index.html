@@ -2203,11 +2203,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="tools-card-name">Structure École</div>
                 <div class="tools-card-desc">Générer des propositions de répartition en classes</div>
 			</div>
-			<div class="tools-card" onclick="createPageGardeWidget();toggleToolsPanel()">
-                <div class="tools-card-ico"><img src="pics/outils-page-garde.jpg" alt="Page de garde" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="tools-card-name">Page de garde</div>
-                <div class="tools-card-desc">Créer une page de garde de cahier illustrée</div>
-			</div>
 			<div class="tools-card" onclick="createWidget('outilsprofs');toggleToolsPanel()">
                 <div class="tools-card-ico"><img src="pics/outils-outilsprofs3.jpg" alt="OutilsProfs" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="tools-card-name">OutilsProfs</div>
@@ -3046,7 +3041,7 @@ function lancerTracesGeometriques() {
 }
 </script>
 
-<script src="widget-page-garde.js"></script>
+<script src="outil-page-garde.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════════════════
      ACCÈS RAPIDE AU TABLEAU : menu contextuel + glisser-déposer PDF

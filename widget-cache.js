@@ -101,6 +101,30 @@
     #cache-bar .cb-close { background:#6c757d; color:#fff; border-color:#6c757d; }
     #cache-bar .cb-close:hover { background:#e74c3c; border-color:#e74c3c; }
     #cache-bar.cb-min .cb-body { display:none; }
+
+    /* ── Téléphone / écran étroit : la barre ne déborde plus de l'écran ──
+       1re ligne : poignée, Rideau/Spot, réduire, fermer (toujours visibles)
+       2e ligne  : options du mode (couleurs, forme, obscurité…) */
+    @media (max-width: 640px), (max-height: 500px) and (pointer: coarse) {
+        #cache-bar {
+            flex-wrap:wrap; justify-content:center; row-gap:6px; gap:6px;
+            max-width:calc(100vw - 16px); white-space:normal;
+            top:calc(8px + env(safe-area-inset-top));
+            padding:5px 6px;
+        }
+        #cache-bar .cb-lbl { display:none; }
+        #cache-bar > .cb-sep { display:none; }
+        #cache-bar .cb-body {
+            order:10; flex-basis:100%; flex-wrap:wrap; justify-content:center;
+            padding-top:6px; border-top:1px solid #3a3a40;
+        }
+        #cache-bar .cb-body > .cb-sep { display:none; }
+        #cache-bar .cb-body .cb-group { flex-wrap:wrap; justify-content:center; }
+        #cache-bar button { height:32px; min-width:32px; padding:0 8px; justify-content:center; }
+        #cache-bar .cb-swatch { width:26px; height:26px; min-width:26px; }
+        #cache-bar input[type="range"] { width:90px; }
+        #cache-bar .cb-close { order:9; }
+    }
     `;
 
     function injectStyle() {
@@ -361,8 +385,8 @@
                 '<circle cx="2" cy="12" r="1.3"/><circle cx="6" cy="12" r="1.3"/></g></svg>' +
             '</div>' +
             '<div class="cb-seg">' +
-                '<button data-mode="rideau" title="Cache à dévoiler">&#x1F3AD; Rideau</button>' +
-                '<button data-mode="spot" title="Projecteur">&#x1F526; Spot</button>' +
+                '<button data-mode="rideau" title="Cache à dévoiler">&#x1F3AD;<span class="cb-lbl"> Rideau</span></button>' +
+                '<button data-mode="spot" title="Projecteur">&#x1F526;<span class="cb-lbl"> Spot</span></button>' +
             '</div>' +
             '<div class="cb-body cb-group">' +
                 '<div class="cb-sep"></div>' +
@@ -371,7 +395,7 @@
                     CURTAIN_COLORS.map(function (o) {
                         return '<button class="cb-swatch" data-color="' + o.c + '" title="' + o.t + '" style="background:' + o.c + '"></button>';
                     }).join('') +
-                    '<button data-act="cover" title="Tout recouvrir">&#8634; Recouvrir</button>' +
+                    '<button data-act="cover" title="Tout recouvrir">&#8634;<span class="cb-lbl"> Recouvrir</span></button>' +
                 '</div>' +
                 // Options spot
                 '<div class="cb-group" data-for="spot">' +
@@ -460,8 +484,8 @@
         renderCurtain(); renderSpot();
         if (bar) {
             var r = bar.getBoundingClientRect();
-            if (r.right > W() || r.bottom > H()) {
-                bar.style.left = '50%'; bar.style.top = '44px'; bar.style.transform = 'translateX(-50%)';
+            if (r.left < 0 || r.right > W() || r.bottom > H()) {
+                bar.style.left = '50%'; bar.style.top = ''; bar.style.transform = 'translateX(-50%)';
             }
         }
     }

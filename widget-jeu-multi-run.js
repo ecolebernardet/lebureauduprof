@@ -24,6 +24,14 @@
 
 (function () {
 
+    // ── Détection téléphone (même règle que le Taquin et style-phone.css) ──
+    // isMobileBoardMode() n'existe pas toujours ou peut répondre « non » sur
+    // un téléphone en paysage : on complète avec la même media query.
+    function _isPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
     // ── Fonction utilitaire mini-barre collapse (injectée une seule fois, partagée) ──
     if (!window._wfMiniBarCollapse) {
         window._wfMiniBarCollapse = function(widget, label, opts) {
@@ -391,6 +399,20 @@
             border-radius:0 0 14px 0; opacity:0; transition:opacity .2s; z-index:15;
         }
         .jtma-container:hover .jtma-resize-handle { opacity:1; }
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin.
+           Le widget passe aussi au premier plan pendant le plein écran. ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .jtma-container.wf-fullboard,
+            .jtma-container.wf-fullboard.jti-mobile {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .widget:has(> .jtma-container.wf-fullboard),
+            .widget:has(> * > .jtma-container.wf-fullboard) { z-index: 9999 !important; }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -699,7 +721,7 @@
             if (_isMax) {
                 _savedW = container.style.width;
                 _savedH = container.style.height;
-                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) container.classList.add('jti-mobile');
+                if (_isPhone()) container.classList.add('jti-mobile');
                 container.classList.add('wf-fullboard');
             } else {
                 container.classList.remove('wf-fullboard', 'jti-mobile');
@@ -1123,7 +1145,7 @@
         requestAnimationFrame(() => requestAnimationFrame(() => {
             const curW  = window.innerWidth;
             const curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
-            const isMobile = typeof isMobileBoardMode === 'function' && isMobileBoardMode();
+            const isMobile = _isPhone();
 
             if (restoreData) applyRestoredSettings(restoreData);
 

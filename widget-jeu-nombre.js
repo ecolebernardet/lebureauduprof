@@ -24,6 +24,14 @@
 
 (function () {
 
+    // ── Détection téléphone (même règle que le Taquin et style-phone.css) ──
+    // isMobileBoardMode() n'existe pas toujours ou peut répondre « non » sur
+    // un téléphone en paysage : on complète avec la même media query.
+    function _isPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
     // ── Fonction utilitaire mini-barre collapse (partagée, injectée une seule fois) ──
     if (!window._wfMiniBarCollapse) {
         window._wfMiniBarCollapse = function(widget, label, opts) {
@@ -482,6 +490,20 @@
         .jn-rh-w  { top: 14px; bottom: 14px; left: 0; width: 5px; cursor: w-resize; background: transparent; }
         .jn-rh-n:hover, .jn-rh-s:hover { background: rgba(74,144,226,0.18); }
         .jn-rh-e:hover, .jn-rh-w:hover { background: rgba(74,144,226,0.18); }
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin.
+           Le widget passe aussi au premier plan pendant le plein écran. ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .jn-container.wf-fullboard,
+            .jn-container.wf-fullboard.jti-mobile {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .widget:has(> .jn-container.wf-fullboard),
+            .widget:has(> * > .jn-container.wf-fullboard) { z-index: 9999 !important; }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -1323,6 +1345,8 @@
                     container.classList.remove('wf-fullboard');
                     if (_savedW) container.style.width = _savedW;
                 }
+                // Sur téléphone, recalcul de l'échelle pour la largeur de l'écran
+                if (!_isMax || _isPhone()) requestAnimationFrame(applyScale);
             });
         }
         if (wfClose) {
@@ -1471,6 +1495,8 @@
             timerDuration = parseInt(timerSelect.value, 10) || 0;
             updateHUD();
             resetGame();
+            // Sur téléphone, un nouveau jeu s'ouvre directement en plein écran (bouton vert)
+            if (!savedData && !_isMax && _isPhone() && wfMax) wfMax.click();
         }));
 
         // ── Export des données pour la sauvegarde ───────────────────────────

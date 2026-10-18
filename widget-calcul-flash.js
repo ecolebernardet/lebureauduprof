@@ -21,6 +21,14 @@
 
 (function () {
 
+    // ── Détection téléphone (même règle que le Taquin et style-phone.css) ──
+    // isMobileBoardMode() n'existe pas toujours ou peut répondre « non » sur
+    // un téléphone en paysage : on complète avec la même media query.
+    function _isPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
     var TYPE = 'calcul-flash';
     var SETTINGS_KEY = 'calcul-flash-settings';
 
@@ -364,6 +372,19 @@
     }
     .cf-outer:hover .cf-resize-handle { opacity: 1; }
     .cf-outer.wf-fullboard .cf-resize-handle { display: none; }
+
+    /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+       pour laisser les onglets latéraux visibles, comme le Taquin.
+       Le widget passe aussi au premier plan pendant le plein écran. ── */
+    @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        .cf-outer.wf-fullboard {
+            left: 40px !important; right: 0 !important;
+            width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+            min-width: 0 !important;
+            padding-left: env(safe-area-inset-left) !important;
+        }
+        .widget:has(.cf-outer.wf-fullboard) { z-index: 9999 !important; }
+    }
     `;
 
     if (!document.getElementById('cf-widget-style')) {
@@ -621,6 +642,11 @@
     window.initCalculFlashWidget = function (widget) {
 
         requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (_isPhone()) {
+                // Sur téléphone, l'activité s'ouvre directement en plein écran (bouton vert)
+                if (!_isMax) wfMax.click();
+                return;
+            }
             const curW = window.innerWidth;
             widget.style.left = '100px';
             widget.dataset.leftPercent = (100 / curW) * 100;

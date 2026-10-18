@@ -2,6 +2,12 @@
 //  widget-tableau-num.js  —  Tableau de numération décimale
 // ══════════════════════════════════════════════════════════════════
 
+// ── Détection téléphone (même règle que le Taquin et style-phone.css) ─────
+function _tnumIsPhone() {
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 function createTableauNumWidget() {
 
     // ── Créer le widget conteneur standard ──────────────────────────
@@ -193,6 +199,27 @@ function createTableauNumWidget() {
         document.head.appendChild(fs);
     }
 
+    // ── Plein écran sur téléphone : décalage de 40 px pour les onglets ──
+    if (!document.getElementById('tnum-phone-style')) {
+        const ps = document.createElement('style');
+        ps.id = 'tnum-phone-style';
+        ps.textContent = `
+    /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+       pour laisser les onglets latéraux visibles, comme le Taquin.
+       Le widget passe aussi au premier plan pendant le plein écran. ── */
+    @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        .tnum-container.tnum-fullboard {
+            left: 40px !important; right: 0 !important;
+            width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+            min-width: 0 !important;
+            padding-left: env(safe-area-inset-left) !important;
+        }
+        .widget:has(.tnum-container.tnum-fullboard) { z-index: 9999 !important; }
+    }
+        `;
+        document.head.appendChild(ps);
+    }
+
     // ── Boutons wf (min / max / close) ────────────────────────────
     const ec      = widget.querySelector('.editor-container');
     const wfMin   = widget.querySelector('[data-role="wf-min"]');
@@ -261,6 +288,11 @@ function createTableauNumWidget() {
     }
 
     if (typeof saveBoard === 'function' && !window.isInitialLoading && !window.isRestoringState) saveBoard();
+
+    // Sur téléphone, un nouveau tableau s'ouvre directement en plein écran (bouton vert)
+    if (_tnumIsPhone() && wfMax && !window.isInitialLoading && !window.isRestoringState) {
+        requestAnimationFrame(() => requestAnimationFrame(() => { if (!_tnumIsMax) wfMax.click(); }));
+    }
 
     return widget;
 }

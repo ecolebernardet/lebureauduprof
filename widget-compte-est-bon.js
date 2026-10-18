@@ -9,6 +9,14 @@
 
 (function () {
 
+    // ── Détection téléphone (même règle que le Taquin et style-phone.css) ──
+    // isMobileBoardMode() n'existe pas toujours ou peut répondre « non » sur
+    // un téléphone en paysage : on complète avec la même media query.
+    function _isPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
     // Fonction utilitaire mini-barre collapse (injectée une seule fois)
     if (!window._wfMiniBarCollapse) {
         window._wfMiniBarCollapse = function(widget, label, opts) {
@@ -568,6 +576,20 @@
             50%      { transform: scale(1.06); }
         }
         .ceb-target-number.pulse { animation: ceb-pulse 0.4s ease; }
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin.
+           Le widget passe aussi au premier plan pendant le plein écran. ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .ceb-container.wf-fullboard,
+            .ceb-container.wf-fullboard.jti-mobile {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .widget:has(> .ceb-container.wf-fullboard),
+            .widget:has(> * > .ceb-container.wf-fullboard) { z-index: 9999 !important; }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -1337,6 +1359,8 @@
                     container.classList.remove('wf-fullboard');
                     if (_savedW) container.style.width = _savedW;
                 }
+                // Sur téléphone, recalcul de l'échelle pour la largeur de l'écran
+                if (!_isMax || _isPhone()) requestAnimationFrame(applyScale);
             });
         }
         if (wfClose) {
@@ -1428,6 +1452,11 @@
         requestAnimationFrame(() => requestAnimationFrame(() => {
             setLevel('facile');
             applyScale();
+            if (_isPhone()) {
+                // Sur téléphone, l'activité s'ouvre directement en plein écran (bouton vert)
+                if (!_isMax) wfMax.click();
+                return;
+            }
             // Le widget s'ouvre à 100px du bord gauche du board.
             const curW = window.innerWidth;
             widget.style.left = '100px';

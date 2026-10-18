@@ -18,6 +18,14 @@
 
 (function () {
 
+    // ── Détection téléphone (même règle que le Taquin et style-phone.css) ──
+    // isMobileBoardMode() n'existe pas toujours ou peut répondre « non » sur
+    // un téléphone en paysage : on complète avec la même media query.
+    function _isPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
     // ── Fonction utilitaire mini-barre collapse (injectée une seule fois, partagée) ──
     if (!window._wfMiniBarCollapse) {
         window._wfMiniBarCollapse = function(widget, label, opts) {
@@ -567,6 +575,17 @@
                 animation-duration: 0.01ms !important; transition-duration: 0.01ms !important;
             }
         }
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .jmm-container.wf-fullboard,
+            .jmm-container.wf-fullboard.jti-mobile {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -850,6 +869,7 @@
                 pauseGame();
                 if (_isMax) {
                     _isMax = false;
+                    widget.style.zIndex = widget.dataset.wfSavedZ || '';
                     container.classList.remove('wf-fullboard');
                     container.classList.remove('jti-mobile');
                     if (_savedW) container.style.width  = _savedW;
@@ -867,11 +887,13 @@
                 if (_isMax) {
                     _savedW = container.style.width;
                     _savedH = container.style.height;
-                    if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) {
+                    if (_isPhone()) {
                         container.classList.add('jti-mobile');
                     }
+                    widget.dataset.wfSavedZ = widget.style.zIndex || ''; widget.style.zIndex = '9999';
                     container.classList.add('wf-fullboard');
                 } else {
+                    widget.style.zIndex = widget.dataset.wfSavedZ || '';
                     container.classList.remove('wf-fullboard');
                     container.classList.remove('jti-mobile');
                     if (_savedW) container.style.width  = _savedW;
@@ -1425,7 +1447,7 @@
             // Restaurer les dimensions sauvegardées si elles existent
             const curW  = window.innerWidth;
             const curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
-            const isMobile = typeof isMobileBoardMode === 'function' && isMobileBoardMode();
+            const isMobile = _isPhone();
 
             if (!isMobile) {
                 // Le widget s'ouvre à 100px du bord gauche du board.
@@ -1455,6 +1477,7 @@
             if (isMobile) {
                 container.classList.add('jti-mobile');
                 _isMax = true;
+                widget.dataset.wfSavedZ = widget.style.zIndex || ''; widget.style.zIndex = '9999';
                 container.classList.add('wf-fullboard');
             }
 

@@ -18,6 +18,14 @@
 
 (function () {
 
+    // ── Détection téléphone (même règle que le Taquin et style-phone.css) ──
+    // isMobileBoardMode() n'existe pas toujours ou peut répondre « non » sur
+    // un téléphone en paysage : on complète avec la même media query.
+    function _isPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
     // ── Mini-barre collapse (partagée avec les autres widgets) ─────────────
     if (!window._wfMiniBarCollapse) {
         window._wfMiniBarCollapse = function(widget, label, opts) {
@@ -370,6 +378,17 @@
         @media (prefers-reduced-motion: reduce) {
             .jsm-container *, .jsm-container *::before, .jsm-container *::after {
                 animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important;
+            }
+        }
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .jsm-container.wf-fullboard,
+            .jsm-container.wf-fullboard.jti-mobile {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
             }
         }
         `;
@@ -959,9 +978,11 @@
             _isMax = !_isMax;
             if (_isMax) {
                 _savedW = container.style.width; _savedH = container.style.height;
+                widget.dataset.wfSavedZ = widget.style.zIndex || ''; widget.style.zIndex = '9999';
                 container.classList.add('wf-fullboard');
             } else {
                 container.classList.remove('wf-fullboard');
+                widget.style.zIndex = widget.dataset.wfSavedZ || '';
                 container.style.width = _savedW || '';
                 container.style.height = _savedH || '';
             }
@@ -1043,7 +1064,7 @@
             applyScale();
             setLevel(1);
             container.focus({ preventScroll: true });
-            if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) {
+            if (_isPhone()) {
                 wfMax.click();
             } else {
                 const curW = window.innerWidth;

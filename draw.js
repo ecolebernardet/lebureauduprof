@@ -1805,7 +1805,13 @@ function toggleFiguresSubmenu(fromMainBtn) {
 function toggleSelectMode() {
     if (isFillMode) stopFillMode(); // un autre outil désactive le pot de peinture
     _stopBgPanIfActive();
-    if (!isDrawMode && !isEraserMode) {
+    // On n'est réellement en mode sélection que si le bouton sélection est actif.
+    // (Le pot de peinture met aussi isDrawMode à false : sans ce test, cliquer
+    // sur « sélection » depuis le pot de peinture renvoyait au dessin libre.)
+    const _selBtn = document.getElementById('draw-select-btn');
+    const _alreadySelect = !isDrawMode && !isEraserMode
+        && !!_selBtn && _selBtn.classList.contains('btn-mode-active');
+    if (_alreadySelect) {
         // Déjà en mode sélection → repasser en dessin libre
         initCanvas(); enableDrawing();
         setDrawMode('free');

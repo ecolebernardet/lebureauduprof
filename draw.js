@@ -35,6 +35,13 @@ window._drawCursorStyle = window._drawCursorStyle || 'size';
 // Opacité du trait (0.0–1.0), modifiable depuis les options avancées
 window._drawOpacity = (window._drawOpacity !== undefined) ? window._drawOpacity : 1.0;
 
+// Taille du surligneur, indépendante de l'épaisseur du crayon (défaut 20).
+// Largeur réelle = taille × 1,2 px → 20 donne la même largeur qu'avant avec 2.
+window._hlSize = window._hlSize || 20;
+function _hlWidthPx(size) { return Math.max(1, size * 1.2); }
+// Largeur d'un trait surligneur enregistré (anciens traits : ancienne formule)
+function _hlStrokeWidth(s) { return s.hlPx ? s.size : Math.max(s.size * 6, 24); }
+
 // Reconnaissance de forme automatique (désactivée par défaut)
 window._drawShapeRecog = window._drawShapeRecog || false;
 
@@ -390,7 +397,11 @@ function startPaint(e) {
         size: parseInt(document.getElementById('draw-size').value),
         opacity: (window._drawOpacity !== undefined ? window._drawOpacity : 1.0)
     };
-    if (_isHighlight) currentStroke.highlight = true;
+    if (_isHighlight) {
+        currentStroke.highlight = true;
+        currentStroke.hlPx = true;                       // size = largeur réelle en px
+        currentStroke.size = _hlWidthPx(window._hlSize || 20);
+    }
     if (currentDrawMode === 'crayon') {
         currentStroke.crayon = true;
         currentStroke.seed   = Math.floor(Math.random() * 1e9); // texture reproductible au redessin
@@ -480,7 +491,7 @@ function paint(e) {
         if (!drawCtxTop) return;
         drawCtxTop.clearRect(0, 0, drawCanvasTop.width, drawCanvasTop.height);
         if (_smoothPts.length < 2) return;
-        _drawHighlightPath(drawCtxTop, _smoothPts, Math.max(currentStroke.size * 6, 24), currentStroke.color);
+        _drawHighlightPath(drawCtxTop, _smoothPts, _hlStrokeWidth(currentStroke), currentStroke.color);
     } else if (currentStroke.crayon) {
         _crayonWalkSegment(drawCtx, prev, cur2, currentStroke, _crayonLive);
     } else {
@@ -1425,7 +1436,7 @@ function drawStroke(stroke, highlight = false, ctx = drawCtx) {
 
     // Mode surligneur : trait semi-transparent, effet fluo
     if (stroke.highlight) {
-        _drawHighlightPath(ctx, stroke.points, Math.max(stroke.size * 6, 24), stroke.color);
+        _drawHighlightPath(ctx, stroke.points, _hlStrokeWidth(stroke), stroke.color);
         ctx.restore();
         return;
     }
@@ -1684,6 +1695,7 @@ function toggleDrawToolbar() {
     const _ds = document.getElementById('draw-size');
     const _dsl = document.getElementById('draw-size-label');
     if (_ds) { _ds.value = 2; if (_dsl) _dsl.textContent = 2; }
+    window._hlSize = 20; // surligneur : 20 par défaut
     const _es = document.getElementById('eraser-size');
     const _esl = document.getElementById('eraser-size-label');
     if (_es) { _es.value = 15; if (_esl) _esl.textContent = 15; }
@@ -3295,6 +3307,9 @@ function _pdfAnnotGetColor() {
 
 function _pdfAnnotGetSize() {
     if (isEraserMode) return parseInt(document.getElementById('eraser-size').value) || 20;
+    // Surligneur : taille propre (défaut 20). L'annotation PDF attend l'ancienne
+    // échelle du trait, où 2 donnait la largeur standard → on divise par 10.
+    if (_pdfAnnotTool === 'highlighter') return (window._hlSize || 20) / 10;
     return parseInt(document.getElementById('draw-size').value) || 4;
 }
 
@@ -5669,6 +5684,8 @@ function _dtSizeTarget() {
     const pdf = (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode);
     if (isEraserMode || (pdf && _pdfAnnotTool === 'eraser')) return 'eraser';
     if (pdf && _pdfAnnotTool === 'text') return 'text';
+    if (pdf && _pdfAnnotTool === 'highlighter') return 'highlight';
+    if (!pdf && isDrawMode && currentDrawMode === 'highlight') return 'highlight';
     if (!pdf && typeof isTextPlacementMode !== 'undefined' && isTextPlacementMode) return 'text';
     if (!pdf) {
         const gt = document.getElementById('global-toolbar');
@@ -5680,12 +5697,14 @@ function _dtSizeTarget() {
 const _DT_SIZE_CFG = {
     draw:   { label: 'Trait', color: '#7ab8f5' },
     eraser: { label: 'Gomme', color: '#f28b9b' },
-    text:   { label: 'Texte', color: '#5ddd7e' }
+    text:   { label: 'Texte', color: '#5ddd7e' },
+    highlight: { label: 'Surligneur', color: '#e0b400' }
 };
 
 function _dtSizeRead(t) {
     if (t === 'eraser') return parseInt((document.getElementById('eraser-size') || {}).value) || 20;
     if (t === 'text')   return parseInt((document.getElementById('text-size-label') || {}).textContent) || 28;
+    if (t === 'highlight') return window._hlSize || 20;
     return parseInt((document.getElementById('draw-size') || {}).value) || 4;
 }
 
@@ -5697,7 +5716,11 @@ function _dtSizeRefresh() {
     const v = String(_dtSizeRead(t));
     if (val.textContent !== v) val.textContent = v;
     const cfg = _DT_SIZE_CFG[t];
-    if (lbl.textContent !== cfg.label) { lbl.textContent = cfg.label; lbl.style.color = cfg.color; }
+    if (lbl.textContent !== cfg.label) {
+        lbl.textContent = cfg.label;
+        lbl.style.color = cfg.color;
+        lbl.style.letterSpacing = cfg.label.length > 6 ? '0' : '.06em'; // « Surligneur » tient dans la barre
+    }
 }
 
 function _dtSizeStep(dir) {
@@ -5708,6 +5731,8 @@ function _dtSizeStep(dir) {
         const l1 = document.getElementById('eraser-size-label');        if (l1) l1.textContent = i.value;
         const l2 = document.getElementById('eraser-size-shapes-label'); if (l2) l2.textContent = i.value;
         i.dispatchEvent(new Event('input'));
+    } else if (t === 'highlight') {
+        window._hlSize = Math.max(2, Math.min(100, (window._hlSize || 20) + 2 * dir));
     } else if (t === 'text') {
         const l = document.getElementById('text-size-label');
         const v = Math.max(8, Math.min(120, (parseInt(l.textContent) || 28) + 2 * dir));

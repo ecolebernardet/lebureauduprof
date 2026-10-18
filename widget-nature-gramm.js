@@ -149,6 +149,19 @@
             padding-left: 52px !important;
         }
 
+        /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .ng-container.wf-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                max-width: calc(100vw - 40px) !important;
+                height: 100dvh !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .ng-container.wf-fullboard .ng-table th { font-size: 12px !important; padding: 5px 3px !important; }
+        }
+
         /* ── En-tête ── */
         .ng-header {
             display: flex;
@@ -644,6 +657,11 @@
 
     const NATURE_ORDER = ['det', 'nom', 'adj', 'verbe', 'pron', 'inv'];
 
+    function _wfIsPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
     // =========================================================================
     // INITIALISATION DU WIDGET
     // =========================================================================
@@ -895,8 +913,7 @@
                 });
             });
         }
-        if (wfMax) {
-            makeTap(wfMax, () => {
+        function toggleMax() {
                 _isMax = !_isMax;
                 if (_isMax) {
                     _savedW = container.style.width;
@@ -908,8 +925,8 @@
                     if (_savedH) container.style.height = _savedH;
                 }
                 applyFontScale();
-            });
         }
+        if (wfMax) makeTap(wfMax, toggleMax);
         if (wfClose) {
             makeTap(wfClose, () => {
                 if (typeof snapshotNow === 'function') snapshotNow();
@@ -1388,6 +1405,10 @@
             // Le widget s'ouvre à 100px du bord gauche du board.
             widget.style.left = '100px';
             widget.dataset.leftPercent = (100 / curW) * 100;
+            // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin —
+            // seulement quand le widget vient d'être lancé depuis un panneau (pas à la restauration)
+            const justLaunched = typeof window._wfLastLaunch !== 'number' || Date.now() - window._wfLastLaunch < 2500;
+            if (justLaunched && _wfIsPhone() && !_isMax) toggleMax();
         }));
     };
 

@@ -193,6 +193,18 @@
             padding-top: calc(8px + env(safe-area-inset-top)) !important;
             padding-bottom: calc(64px + env(safe-area-inset-bottom)) !important;
         }
+
+        /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .alpha-container.wf-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                max-width: calc(100vw - 40px) !important;
+                height: 100dvh !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+        }
         .alpha-level-badge {
             font-size: 10px;
             font-weight: 700;
@@ -646,6 +658,11 @@
         3: { key: 'difficile', label: '😤 Difficile', badgeClass: 'difficile' },
     };
 
+    function _wfIsPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
     // =========================================================================
     // INITIALISATION DU WIDGET
     // =========================================================================
@@ -973,7 +990,7 @@
                 if (_isMax) {
                     _savedW = container.style.width;
                     _savedH = container.style.height;
-                    if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) {
+                    if (_wfIsPhone()) {
                         container.classList.add('jti-mobile');
                     }
                     container.classList.add('wf-fullboard');
@@ -1049,7 +1066,7 @@
             // Sur téléphone, ouvrir directement en plein écran board (le
             // widget n'a pas de taille par défaut adaptée à un petit écran).
             // Sur PC, il garde sa taille normale, comme avant.
-            if (typeof isMobileBoardMode === 'function' && isMobileBoardMode() && wfMax) {
+            if (_wfIsPhone() && wfMax) {
                 wfMax.click();
             } else {
                 // Le widget s'ouvre à 100px du bord gauche du board.

@@ -395,6 +395,20 @@
             padding-left: 50px !important;
         }
 
+        /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .mm-container.wf-fullboard {
+                left: 40px !important;
+                width: calc(100vw - 40px) !important;
+                max-width: calc(100vw - 40px) !important;
+                height: 100dvh !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .mm-container.wf-fullboard .mm-row { flex-wrap: wrap; }
+            .mm-container.wf-fullboard .mm-actions { margin-top: 20px; }
+        }
+
         /* ── Resize handle ── */
         .mm-resize-handle {
             position: absolute;
@@ -1350,9 +1364,21 @@ function createMotsMelesWidget(savedData) {
     makeDraggable(widget);
     makeDraggableRotate(widget);
 
+    // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin
+    // (si le widget est restauré ensuite via setData, on n'ouvre pas — ou on referme — ce plein écran automatique)
+    let _restored = !!savedData, _autoMax = false;
+    if (!savedData && wfMax && _wfIsPhone()) requestAnimationFrame(() => {
+        if (!_restored && !_isMax) { _autoMax = true; wfMax.click(); }
+    });
+
     // Exposer getData/setData pour save-load.js
     widget._mmGetData = getData;
-    widget._mmSetData = setData;
+    widget._mmSetData = function (d) {
+        _restored = true;
+        if (_autoMax && _isMax) wfMax.click();
+        _autoMax = false;
+        return setData(d);
+    };
 
     // Restaurer ou initialiser
     if (savedData) {
@@ -1361,4 +1387,10 @@ function createMotsMelesWidget(savedData) {
 
     saveBoard();
     return widget;
+}
+
+// Téléphone (même détection que les jeux)
+function _wfIsPhone() {
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
 }

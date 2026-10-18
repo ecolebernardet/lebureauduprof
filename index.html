@@ -1170,6 +1170,7 @@ function setVisuelsMode(mode) {
 <script src="widget-mot-le-plus-long.js"></script>
 <script src="widget-frise-historique.js"></script>
 <script src="widget-geo-france.js"></script>
+<script src="widget-geo-savoie.js"></script>
 <script src="widget-geo-europe.js"></script>
 <script src="widget-geo-monde.js"></script>
 <script src="widget-geo-globe.js"></script>
@@ -1894,20 +1895,25 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Frise historique</div>
                 <div class="act-card-desc">Les 5 grandes périodes de l'histoire, de la Préhistoire à nos jours</div>
             </div>
+			<div class="act-card" onclick="createGeoMondeWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-geo-monde.jpg" alt="Géographie du monde" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🗺'"></div>
+                <div class="act-card-name">Géographie du monde</div>
+                <div class="act-card-desc">Planisphère interactif : continents, océans, fleuves, montagnes, déserts et grandes villes</div>
+            </div>
+			<div class="act-card" onclick="createGeoEuropeWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-geo-europe.jpg" alt="Géographie de l'Europe" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌍'"></div>
+                <div class="act-card-name">Géographie de l'Europe</div>
+                <div class="act-card-desc">Carte interactive : pays, capitales, Union européenne, fleuves et montagnes</div>
+            </div>
             <div class="act-card" onclick="createGeoFranceWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-geo-france.jpg" alt="Géographie de la France" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🗺'"></div>
                 <div class="act-card-name">Géographie de la France</div>
                 <div class="act-card-desc">Carte interactive : villes, fleuves, montagnes et pays frontaliers</div>
             </div>
-            <div class="act-card" onclick="createGeoEuropeWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-geo-europe.jpg" alt="Géographie de l'Europe" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌍'"></div>
-                <div class="act-card-name">Géographie de l'Europe</div>
-                <div class="act-card-desc">Carte interactive : pays, capitales, Union européenne, fleuves et montagnes</div>
-            </div>
-            <div class="act-card" onclick="createGeoMondeWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activites-geo-monde.jpg" alt="Géographie du monde" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🗺'"></div>
-                <div class="act-card-name">Géographie du monde</div>
-                <div class="act-card-desc">Planisphère interactif : continents, océans, fleuves, montagnes, déserts et grandes villes</div>
+            <div class="act-card" onclick="createGeoSavoieWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-geo-savoie.jpg" alt="Géographie de la Savoie" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⛰'"></div>
+                <div class="act-card-name">Géographie de la Savoie</div>
+                <div class="act-card-desc">Carte interactive : massifs, vallées, rivières, lacs et villes de Savoie</div>
             </div>
             <div class="act-card" onclick="createGeoGlobeWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-geo-globe.jpg" alt="Globe terrestre" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌐'"></div>
@@ -3953,8 +3959,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
-    // ainsi que les activités 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'geo-france', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'geo-france', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride'];
+    // ainsi que les activités 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride'];
     var lastLaunch = 0;
 
     function isPhone() {

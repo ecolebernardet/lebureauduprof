@@ -7,6 +7,12 @@
 //   makeDraggableRotate(), bringToFront(), snapshotNow(), saveBoard()
 // =========================================================================
 
+// ── Détection téléphone (plein écran automatique, cf. Taquin) ──────────
+function _convIsPhone() {
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 // ── CSS (injecté une seule fois) ──────────────────────────────────────────
 (function () {
 
@@ -369,6 +375,21 @@
             z-index: 5;
         }
         .wconv-container:hover .wconv-resize-handle { opacity: 1; }
+
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin.
+           Le widget passe aussi au premier plan pendant le plein écran. ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .wconv-container.wf-fullboard {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .widget:has(.wconv-container.wf-fullboard) { z-index: 9999 !important; }
+            .wconv-container.wf-fullboard { padding-right: 10px !important; }
+            .wconv-container.wf-fullboard .wconv-exos-zone { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -893,6 +914,13 @@ function createConversionWidget(opts) {
 
     renderTable();
     updateLevelButtons();
+
+    // Sur téléphone, une nouvelle activité s'ouvre directement en plein écran (bouton vert)
+    if (!window.isInitialLoading && !window.isRestoringState) {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (widget.isConnected && _convIsPhone() && !_isMax) wfMax.click();
+        }));
+    }
 
     // ── Exposition pour save-load.js ──────────────────────────────────────
     widget._convGetData = function() {

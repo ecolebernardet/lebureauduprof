@@ -9,6 +9,12 @@
 //   makeDraggableRotate(), bringToFront(), snapshotNow(), saveBoard()
 // =========================================================================
 
+// ── Détection téléphone (plein écran automatique, cf. Taquin) ──────────
+function _heureIsPhone() {
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 // ── CSS (injecté une seule fois) ──────────────────────────────────────────
 (function () {
     if (!window._wfMiniBarCollapse) {
@@ -392,6 +398,19 @@
             border-radius: 0 0 14px 0; opacity: 0; transition: opacity .2s; z-index: 5;
         }
         .heure-container:hover .heure-resize-handle { opacity: 1; }
+
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin.
+           Le widget passe aussi au premier plan pendant le plein écran. ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .heure-container.wf-fullboard {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .widget:has(.heure-container.wf-fullboard) { z-index: 9999 !important; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -950,6 +969,8 @@ function createHeureWidget() {
         _isMax = !_isMax;
         if (_isMax) { _savedW = container.style.width; container.classList.add('wf-fullboard'); }
         else { container.classList.remove('wf-fullboard'); if (_savedW) container.style.width = _savedW; }
+        // Téléphone : recalculer la taille des horloges pour la nouvelle largeur
+        if (_heureIsPhone() && currentExercice) requestAnimationFrame(() => renderExercice(currentExercice, true));
     });
     if (wfClose) wfClose.addEventListener('click', e => {
         e.stopPropagation();
@@ -972,7 +993,11 @@ function createHeureWidget() {
     makeDraggable(widget);
     makeDraggableRotate(widget);
 
-    requestAnimationFrame(() => requestAnimationFrame(() => setLevel('facile')));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        // Sur téléphone, une nouvelle activité s'ouvre directement en plein écran (bouton vert)
+        if (_heureIsPhone() && !_isMax && !window.isInitialLoading && !window.isRestoringState) wfMax.click();
+        setLevel('facile');
+    }));
 
     widget._setLevel  = setLevel;
     widget._setMode   = setMode;

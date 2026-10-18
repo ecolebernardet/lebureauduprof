@@ -12,6 +12,12 @@
 //  Compatible avec la sauvegarde existante (_hrlgGetData / _hrlgSetData).
 // ══════════════════════════════════════════════════════════════════
 
+// ── Détection téléphone (plein écran automatique, cf. Taquin) ──────────
+function _hrlgIsPhone() {
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 function _hrlgInjectStyles() {
     if (document.getElementById('hrlg-style-v2')) return;
     const s = document.createElement('style');
@@ -236,6 +242,19 @@ function _hrlgInjectStyles() {
     .wf-btns:hover .wf-btn-min::after   { content:'−'; }
     .wf-btns:hover .wf-btn-max::after   { content:'⤢'; font-size:7px; }
     .wf-btns:hover .wf-btn-close::after { content:'×'; font-size:10px; }
+
+    /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+       pour laisser les onglets latéraux visibles, comme le Taquin.
+       Le widget passe aussi au premier plan pendant le plein écran. ── */
+    @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        .hrlg-container.wf-fullboard {
+            left: 40px !important; right: 0 !important;
+            width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+            min-width: 0 !important;
+            padding-left: env(safe-area-inset-left) !important;
+        }
+        .widget:has(.hrlg-container.wf-fullboard) { z-index: 9999 !important; }
+    }
     `;
     document.head.appendChild(s);
 }
@@ -491,6 +510,13 @@ function createHorlogeWidget() {
 
     _initHorlogeWidget(widget, uid);
 
+    // Sur téléphone, une nouvelle activité s'ouvre directement en plein écran (bouton vert)
+    if (!window.isInitialLoading && !window.isRestoringState) {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (widget.isConnected && _hrlgIsPhone() && !isMax) wfMax.click();
+        }));
+    }
+
     if (typeof saveBoard === 'function' && !window.isInitialLoading && !window.isRestoringState) saveBoard();
     return widget;
 }
@@ -553,7 +579,7 @@ function _initHorlogeResize(widget) {
             const gap  = parseFloat(cs.columnGap || cs.gap) / fs || 1;
             const wEm = landscape ? 20 + gap + side.offsetWidth / fs + padH : 20 + padH;
             const hEm = hdrEm + padV + (landscape ? Math.max(20, sideEm) : 20 + gap + sideEm);
-            setFs(Math.max(HRLG_MIN_FS, Math.min(window.innerWidth * 0.96 / wEm, window.innerHeight * 0.97 / hEm)));
+            setFs(Math.max(HRLG_MIN_FS, Math.min((window.innerWidth - (_hrlgIsPhone() ? 40 : 0)) * 0.96 / wEm, window.innerHeight * 0.97 / hEm)));
         }
     }
 

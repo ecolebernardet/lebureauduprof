@@ -15,6 +15,12 @@
 
 (function () {
 
+    // ── Détection téléphone (plein écran automatique, cf. Taquin) ──────────
+    function _isPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
     // ── Utilitaire mini-barre collapse (réutilise celle de nature-gramm si présente) ──
     if (!window._wfMiniBarCollapse) {
         window._wfMiniBarCollapse = function(widget, label, opts) {
@@ -556,6 +562,21 @@
             z-index: 5;
         }
         .lm-paused-overlay.show { display: flex; }
+
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin.
+           Le widget passe aussi au premier plan pendant le plein écran. ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .lm-container.wf-fullboard {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .widget:has(.lm-container.wf-fullboard) { z-index: 9999 !important; }
+            .lm-container.wf-fullboard { min-height: 0 !important; overflow-y: auto !important; padding-right: 10px !important; }
+            .lm-container.wf-fullboard .lm-mult-display { font-size: 72px; }
+        }
         `;
         document.head.appendChild(s);
     }
@@ -1033,8 +1054,8 @@
                 });
             });
         }
-        if (wfMax) {
-            makeTap(wfMax, () => {
+        // Bascule plein écran (bouton vert) — aussi appelée à l'ouverture sur téléphone
+        function toggleMax() {
                 _isMax = !_isMax;
                 if (_isMax) {
                     _savedW = container.style.width;
@@ -1045,8 +1066,8 @@
                     if (_savedW) container.style.width  = _savedW;
                     if (_savedH) container.style.height = _savedH;
                 }
-            });
         }
+        if (wfMax) makeTap(wfMax, toggleMax);
         if (wfClose) {
             makeTap(wfClose, () => {
                 clearInterval(timerInterval);
@@ -1087,6 +1108,11 @@
             const hPct = parseFloat(widget.dataset.contentHPercent);
             if (wPct > 0) container.style.width  = (wPct / 100) * curW  + 'px';
             if (hPct > 0) container.style.height = (hPct / 100) * curVH + 'px';
+            if (_isPhone()) {
+                // Sur téléphone, l'activité s'ouvre directement en plein écran (bouton vert)
+                if (!_isMax) toggleMax();
+                return;
+            }
             // Le widget s'ouvre à 100px du bord gauche du board.
             widget.style.left = '100px';
             widget.dataset.leftPercent = (100 / curW) * 100;

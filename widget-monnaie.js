@@ -7,6 +7,12 @@
 //   makeDraggableRotate(), bringToFront(), snapshotNow(), saveBoard()
 // =========================================================================
 
+// ── Détection téléphone (plein écran automatique, cf. Taquin) ──────────
+function _monnaieIsPhone() {
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+}
+
 // ── CSS ───────────────────────────────────────────────────────────────────
 (function () {
     // Fonction utilitaire mini-barre collapse (injectée une seule fois)
@@ -442,6 +448,19 @@
             z-index: 5;
         }
         .monnaie-container:hover .monnaie-resize-handle { opacity: 1; }
+
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin.
+           Le widget passe aussi au premier plan pendant le plein écran. ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .monnaie-container.wf-fullboard {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .widget:has(.monnaie-container.wf-fullboard) { z-index: 9999 !important; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -1037,6 +1056,8 @@ function createMonnaieWidget() {
             if (_isMax) {
                 _savedW = container.style.width;
                 container.classList.add('wf-fullboard');
+                // Téléphone : adapter la taille des pièces et billets à la largeur de l'écran
+                if (_monnaieIsPhone() && lastExercice) requestAnimationFrame(() => renderItems(lastExercice));
             } else {
                 container.classList.remove('wf-fullboard');
                 if (_savedW) container.style.width = _savedW;
@@ -1070,7 +1091,11 @@ function createMonnaieWidget() {
     makeDraggableRotate(widget);
 
     // Premier exercice — après deux frames pour que le layout soit calculé
-    requestAnimationFrame(() => requestAnimationFrame(() => setLevel('facile')));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        // Sur téléphone, une nouvelle activité s'ouvre directement en plein écran (bouton vert)
+        if (_monnaieIsPhone() && !_isMax && !window.isInitialLoading && !window.isRestoringState) wfMax.click();
+        setLevel('facile');
+    }));
 
     // Exposer setLevel pour la restauration par save-load.js
     widget._setLevel = setLevel;

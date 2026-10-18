@@ -18,6 +18,14 @@
 
 (function () {
 
+    // ── Détection téléphone (même règle que le Taquin et style-phone.css) ──
+    // isMobileBoardMode() n'existe pas toujours ou peut répondre « non » sur
+    // un téléphone en paysage : on complète avec la même media query.
+    function _isPhone() {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+
 
     // ── Mini-barre collapse (partagée avec les autres widgets) ─────────────
     if (!window._wfMiniBarCollapse) {
@@ -439,6 +447,20 @@
             .jtf-container *, .jtf-container *::before, .jtf-container *::after {
                 animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important;
             }
+        }
+        /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
+           pour laisser les onglets latéraux visibles, comme le Taquin.
+           Le widget passe aussi au premier plan pendant le plein écran. ── */
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .jtf-container.wf-fullboard,
+            .jtf-container.wf-fullboard.jti-mobile {
+                left: 40px !important; right: 0 !important;
+                width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
+                min-width: 0 !important;
+                padding-left: calc(10px + env(safe-area-inset-left)) !important;
+            }
+            .widget:has(> .jtf-container.wf-fullboard),
+            .widget:has(> * > .jtf-container.wf-fullboard) { z-index: 9999 !important; }
         }
         `;
         document.head.appendChild(s);
@@ -1186,7 +1208,7 @@
                 if (savedData.fullboard) setMax(true);
             } else {
                 setLevel(1);
-                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) {
+                if (_isPhone()) {
                     wfMax.click();
                 } else {
                     const curW = window.innerWidth;

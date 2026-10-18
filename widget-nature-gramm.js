@@ -1407,7 +1407,7 @@
             widget.dataset.leftPercent = (100 / curW) * 100;
             // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin —
             // seulement quand le widget vient d'être lancé depuis un panneau (pas à la restauration)
-            const justLaunched = typeof window._wfLastLaunch !== 'number' || Date.now() - window._wfLastLaunch < 2500;
+            const justLaunched = typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch < 2500;
             if (justLaunched && _wfIsPhone() && !_isMax) toggleMax();
         }));
     };

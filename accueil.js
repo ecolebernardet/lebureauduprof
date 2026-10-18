@@ -9,8 +9,9 @@
 //   - un bouton « Mode d'emploi » sous l'heure, qui ouvre la modale d'aide
 //   - une astuce tirée au hasard
 // Elle disparaît dès qu'on commence à travailler : clic sur une tuile,
-// ajout d'un widget, ouverture de la barre Dessin, clic sur le tableau,
-// mode présentation, touche Échap ou bouton ✕.
+// clic sur un onglet latéral (ou Alt+1…8), ajout d'un widget, ouverture
+// de la barre Dessin, clic sur le tableau, mode présentation, touche Échap
+// ou bouton ✕.
 // « Ne plus afficher » la désactive définitivement (localStorage).
 //
 // Installation : <script src="accueil.js"></script> en fin de index.html.
@@ -156,7 +157,7 @@
         'body:not(.menu-light) .acc-pdf-txt{color:#d9c4c2;} body:not(.menu-light) .acc-pdf-txt strong{color:#fff;}',
         'body:not(.menu-light) .acc-points li{background:rgba(183,155,255,.14);color:#cbb8ff;}',
         'body:not(.menu-light) .acc-foot{border-top-color:rgba(255,255,255,.08);}',
-        /* Masqué en présentation et quand un panneau est ouvert */
+        /* Masqué en mode présentation (l'ouverture d'un panneau ferme l'accueil, voir build()) */
         'body.presentation-mode #accueil{display:none;}',
         /* Écrans moyens */
         '@media (max-width:900px){.acc-grid{grid-template-columns:repeat(2,1fr);}}',
@@ -189,6 +190,18 @@
         if (b.querySelector('.widget, .shape-widget')) return false;
         try { if (typeof strokes !== 'undefined' && strokes && strokes.length) return false; } catch (e) {}
         return true;
+    }
+
+    // Lit directement le tableau enregistré, sans attendre que board.js
+    // l'ait restauré à l'écran : s'il contient des widgets, pas d'accueil.
+    function savedBoardHasWidgets() {
+        try {
+            var raw = localStorage.getItem('profBoardConfig');
+            if (!raw) return false;
+            var parsed = JSON.parse(raw);
+            var list = Array.isArray(parsed) ? parsed : ((parsed && parsed.widgets) || []);
+            return list.length > 0;
+        } catch (e) { return false; }
     }
 
     function updateClock() {
@@ -306,6 +319,10 @@
             if (tb.style.display && tb.style.display !== 'none') hide();
         }).observe(tb, { attributes: true, attributeFilter: ['style'] });
         document.addEventListener('keydown', onKey);
+
+        // Un onglet latéral (ou Alt+1…8, qui simulent un clic) ferme aussi l'accueil
+        var tabs = document.getElementById('side-tabs');
+        if (tabs) tabs.addEventListener('click', hide);
     }
 
     function onKey(e) { if (e.key === 'Escape') hide(); }
@@ -321,12 +338,31 @@
     }
     window.hideAccueil = hide;
 
-    // Affichage une fois le tableau restauré (board.js termine son
-    // chargement environ 1 s après window.onload)
+    function tryShow() {
+        if (root) return;                                   // déjà affiché
+        if (document.body.classList.contains('presentation-mode')) return;
+        if (boardIsEmpty()) build();
+    }
+
+    // 1) Affichage rapide : dès que la page est construite, sans attendre le
+    //    chargement de toutes les images des panneaux (événement « load »),
+    //    mais seulement si le tableau enregistré ne contient aucun widget.
+    document.addEventListener('DOMContentLoaded', function () {
+        if (savedBoardHasWidgets()) return;                 // on laisse l'étape 2 décider
+        setTimeout(tryShow, 600);
+    });
+
+    // 2) Vérification finale, une fois le tableau entièrement restauré
+    //    (board.js termine environ 1 s après « load ») :
+    //    - si l'accueil est affiché mais que quelque chose est apparu
+    //      (dessins, widgets restaurés tardivement…), on le referme ;
+    //    - s'il n'a pas encore été affiché et que le tableau est vide
+    //      (ex. tableau enregistré contenant des éléments qui ne
+    //      s'affichent pas comme des widgets), on l'affiche maintenant.
     window.addEventListener('load', function () {
         setTimeout(function () {
-            if (document.body.classList.contains('presentation-mode')) return;
-            if (boardIsEmpty()) build();
+            if (root) { if (!boardIsEmpty()) hide(); }
+            else tryShow();
         }, 1200);
     });
 })();

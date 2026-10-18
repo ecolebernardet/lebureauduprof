@@ -4187,6 +4187,9 @@ function _showPdfInlineTextEditor({ clientX, clientY, color, size, fontSizePx, i
         // Ne pas fermer si on clique sur le réglage de taille du texte (− 28 +) de la toolbar
         const sizeLbl = document.getElementById('text-size-label');
         if (sizeLbl && sizeLbl.parentElement && sizeLbl.parentElement.contains(ev.target)) return;
+        // … ni sur le réglage de taille contextuel de la barre (− valeur +)
+        const sizeCtx = document.getElementById('dt-size-ctx');
+        if (sizeCtx && sizeCtx.contains(ev.target)) return;
         document.removeEventListener('pointerdown', onOutsideClick, true);
         ev.stopPropagation();
         ev.preventDefault();
@@ -5651,3 +5654,89 @@ function _crayonSyncBtn() {
     wrapped._crayonWrapped = true;
     window[name] = wrapped;
 });
+
+
+// =========================================================================
+// RÉGLAGE DE TAILLE CONTEXTUEL (barre de dessin)
+// Un seul « − valeur + » qui règle l'outil actif :
+//   gomme active  → taille de la gomme   (5 à 80, pas de 5)
+//   outil texte   → taille du texte      (8 à 120, pas de 2)
+//   sinon         → épaisseur du trait   (1 à 40, pas de 1)
+// Les valeurs réelles restent dans #draw-size, #eraser-size et
+// #text-size-label (masqués), lus par le reste du code comme avant.
+// =========================================================================
+function _dtSizeTarget() {
+    const pdf = (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode);
+    if (isEraserMode || (pdf && _pdfAnnotTool === 'eraser')) return 'eraser';
+    if (pdf && _pdfAnnotTool === 'text') return 'text';
+    if (!pdf && typeof isTextPlacementMode !== 'undefined' && isTextPlacementMode) return 'text';
+    if (!pdf) {
+        const gt = document.getElementById('global-toolbar');
+        if (gt && gt.style.display && gt.style.display !== 'none') return 'text';
+    }
+    return 'draw';
+}
+
+const _DT_SIZE_CFG = {
+    draw:   { label: 'Trait', color: '#7ab8f5' },
+    eraser: { label: 'Gomme', color: '#f28b9b' },
+    text:   { label: 'Texte', color: '#5ddd7e' }
+};
+
+function _dtSizeRead(t) {
+    if (t === 'eraser') return parseInt((document.getElementById('eraser-size') || {}).value) || 20;
+    if (t === 'text')   return parseInt((document.getElementById('text-size-label') || {}).textContent) || 28;
+    return parseInt((document.getElementById('draw-size') || {}).value) || 4;
+}
+
+function _dtSizeRefresh() {
+    const val = document.getElementById('dt-size-ctx-val');
+    const lbl = document.getElementById('dt-size-ctx-label');
+    if (!val || !lbl) return;
+    const t = _dtSizeTarget();
+    const v = String(_dtSizeRead(t));
+    if (val.textContent !== v) val.textContent = v;
+    const cfg = _DT_SIZE_CFG[t];
+    if (lbl.textContent !== cfg.label) { lbl.textContent = cfg.label; lbl.style.color = cfg.color; }
+}
+
+function _dtSizeStep(dir) {
+    const t = _dtSizeTarget();
+    if (t === 'eraser') {
+        const i = document.getElementById('eraser-size');
+        i.value = Math.max(5, Math.min(80, +i.value + 5 * dir));
+        const l1 = document.getElementById('eraser-size-label');        if (l1) l1.textContent = i.value;
+        const l2 = document.getElementById('eraser-size-shapes-label'); if (l2) l2.textContent = i.value;
+        i.dispatchEvent(new Event('input'));
+    } else if (t === 'text') {
+        const l = document.getElementById('text-size-label');
+        const v = Math.max(8, Math.min(120, (parseInt(l.textContent) || 28) + 2 * dir));
+        l.textContent = v;
+        window._textWidgetSize = v;
+    } else {
+        const i = document.getElementById('draw-size');
+        i.value = Math.max(1, Math.min(40, +i.value + dir));
+        i.dispatchEvent(new Event('input'));   // met à jour draw-size-label et le curseur
+    }
+    _dtSizeRefresh();
+}
+
+// Appui maintenu = répétition (souris, stylet et doigt)
+function _dtSizeHold(btn, dir, e) {
+    if (e && e.button !== undefined && e.button !== 0) return;
+    if (e) e.preventDefault();          // ne pas voler le focus (éditeur de texte PDF ouvert)
+    _dtSizeStep(dir);
+    clearTimeout(btn._dtT); clearInterval(btn._dtIv);
+    btn._dtT = setTimeout(() => { btn._dtIv = setInterval(() => _dtSizeStep(dir), 90); }, 350);
+    const stop = () => {
+        clearTimeout(btn._dtT); clearInterval(btn._dtIv);
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => btn.removeEventListener(t, stop));
+    };
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => btn.addEventListener(t, stop));
+}
+
+// L'affichage suit l'outil actif (changement d'outil, clic droit gomme, mode PDF…)
+setInterval(() => {
+    const tb = document.getElementById('draw-toolbar');
+    if (tb && tb.style.display && tb.style.display !== 'none') _dtSizeRefresh();
+}, 150);

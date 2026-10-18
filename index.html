@@ -4023,8 +4023,37 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 100);
     }
 
+    // Sur téléphone, ces widgets s'ouvrent dans leur propre plein écran
+    // « board » (bouton vert) au lieu du plein écran téléphone générique.
+    var GREEN_FS_TYPES = {
+        'pdf':     function(c) { return c.classList.contains('wf-pdf-fullboard')
+                                     ? null : (typeof togglePdfBoardFullscreen === 'function' ? togglePdfBoardFullscreen : null); },
+        'youtube': function(c) { return c.classList.contains('wf-media-fullboard')
+                                     ? null : (typeof toggleMediaBoardFullscreen === 'function' ? toggleMediaBoardFullscreen : null); },
+        'iframe':  function(c) { return c.classList.contains('wf-media-fullboard')
+                                     ? null : (typeof toggleMediaBoardFullscreen === 'function' ? toggleMediaBoardFullscreen : null); },
+        'carte':   function(c) { return c.classList.contains('wf-media-fullboard')
+                                     ? null : (typeof toggleMediaBoardFullscreen === 'function' ? toggleMediaBoardFullscreen : null); }
+    };
+
+    function isGreenFsLaunch(widget) {
+        if (!isPhone()) return false;
+        if (Date.now() - lastLaunch > 2000) return false;
+        if (!widget.classList || !widget.classList.contains('widget')) return false;
+        if (widget.dataset.subtype === 'seyes') return false;
+        return GREEN_FS_TYPES.hasOwnProperty(widget.dataset.type || '');
+    }
+
+    function enterGreenFullboard(widget) {
+        var container = widget.querySelector('.editor-container');
+        if (!container) return;
+        var fn = GREEN_FS_TYPES[widget.dataset.type](container);
+        if (typeof fn === 'function') fn(container);
+    }
+
     function shouldGoFullscreen(widget) {
         if (!isPhone()) return false;
+        if (GREEN_FS_TYPES.hasOwnProperty(widget.dataset && widget.dataset.type || '')) return false;
         if (Date.now() - lastLaunch > 2000) return false;
         if (!widget.classList || !widget.classList.contains('widget')) return false;
         if (widget.hasAttribute('data-image-widget')) return false;
@@ -4044,7 +4073,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (node.nodeType !== 1) return;
                     // Petit délai : data-type est parfois posé juste après l'insertion
                     setTimeout(function() {
-                        if (shouldGoFullscreen(node)) enterPhoneFullscreen(node);
+                        if (isGreenFsLaunch(node)) {
+                            // Laisse le widget finir de se construire avant le plein écran
+                            setTimeout(function() { enterGreenFullboard(node); }, 50);
+                        } else if (shouldGoFullscreen(node)) {
+                            enterPhoneFullscreen(node);
+                        }
                     }, 0);
                 });
             });

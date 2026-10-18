@@ -385,6 +385,16 @@
         touch-action: manipulation;
     }
 
+    /* Plein écran « board » (bouton vert) des widgets PDF, YouTube,
+       Fenêtre web et Carte : décalé de 40 px pour laisser les onglets
+       latéraux visibles, comme les widgets en plein écran téléphone. */
+    .editor-container.wf-media-fullboard,
+    .editor-container.wf-pdf-fullboard {
+        left: 40px !important;
+        width: calc(100vw - 40px) !important;
+        max-width: calc(100vw - 40px) !important;
+    }
+
     /* Tant qu'un widget est en plein écran, on masque le bouton dessin
        (il passerait par-dessus le widget sans pouvoir s'en servir) */
     body.has-phone-fs #draw-fab-btn { display: none !important; }

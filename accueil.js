@@ -233,7 +233,7 @@
                   '<button type="button" class="acc-help" data-act="help">' + svg('aide') + 'Mode d\'emploi</button>' +
                 '</div>' +
               '</div>' +
-              '<ul class="acc-points"><li>Gratuit</li><li>Sans compte</li><li>Tableaux enregistrés sur cet appareil</li><li>Fonctionne au stylet et au doigt</li></ul>' +
+              '<ul class="acc-points"><li>Gratuit</li><li>Sans compte</li><li>Tableaux enregistrés sur cet appareil</li><li>Fonctionne à la souris, au stylet et au doigt</li></ul>' +
               '<div class="acc-pdf">' +
                 '<span class="acc-pdf-ico">' + svg('pdf') + '</span>' +
                 '<span class="acc-pdf-txt"><strong>Projetez et annotez vos PDF</strong>' +

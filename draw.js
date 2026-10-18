@@ -84,6 +84,8 @@ function _setDrawCursorStyle(style) {
 // Génère et applique le curseur selon window._drawCursorStyle
 function updateDrawCursor() {
     if (!isDrawMode || !board) return;
+    // Placement de texte en cours : garder le curseur texte
+    if (typeof isTextPlacementMode !== 'undefined' && isTextPlacementMode) { board.style.setProperty('cursor', 'text', 'important'); return; }
     const style = window._drawCursorStyle || 'size';
     const isHighlight = (currentDrawMode === 'highlight');
 
@@ -334,6 +336,7 @@ function _boardDrawContextMenu(e) {
 
 function _boardDrawMouseDown(e)  {
     if (e.button === 2) return;
+    if (typeof isTextPlacementMode !== 'undefined' && isTextPlacementMode) return;
     if (window._bgPanModeActive) return;
     if (_pdfAnnotMode) return;
     if (isDrawMode)   { startPaint(e); return; }
@@ -347,6 +350,7 @@ function _boardDrawMouseUp(e) {
 }
 function _boardDrawMouseMove(e)  {
     if (window._bgPanModeActive) return;
+    if (typeof isTextPlacementMode !== 'undefined' && isTextPlacementMode) return;
     if (_pdfAnnotMode) return;
     if (isDrawMode)   { if (currentDrawMode === 'free' || currentDrawMode === 'highlight' || currentDrawMode === 'crayon') updateDrawCursor(); paint(e); return; }
     if (isEraserMode) { onEraserMouseMove(e); return; }
@@ -5765,3 +5769,20 @@ setInterval(() => {
     const tb = document.getElementById('draw-toolbar');
     if (tb && tb.style.display && tb.style.display !== 'none') _dtSizeRefresh();
 }, 150);
+
+
+// =========================================================================
+// BOUTON TEXTE DE LA BARRE DE DESSIN
+// Quitte d'abord la gomme ou le pot de peinture (sinon leur fin réactivait
+// le curseur de dessin libre), puis ouvre l'outil texte.
+// =========================================================================
+function _dtTextBtnClick() {
+    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode) { setPdfAnnotTool('text'); return; }
+    if (isFillMode) stopFillMode();
+    if (isEraserMode) stopEraserMode();
+    if (typeof toggleGlobalToolbar === 'function') toggleGlobalToolbar();
+    if ((typeof isTextPlacementMode !== 'undefined' && isTextPlacementMode) && board) {
+        board.style.setProperty('cursor', 'text', 'important');
+        document.querySelectorAll('.widget[data-anchored="true"]').forEach(w => w.style.setProperty('cursor', 'text', 'important'));
+    }
+}

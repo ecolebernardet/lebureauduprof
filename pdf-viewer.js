@@ -912,7 +912,8 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                     // Rendu final : même logique que le mode libre (butt + skipStart/skipEnd)
                     // Math.max(..., 24 * ratio) reproduit le minimum 24px CSS du mode libre
                     const _hlRatio = canvasW / displayW;
-                    const lw = Math.max(sizeScaled * 6, 24 * _hlRatio);
+                    // hlPx : nouveau surligneur, size = largeur réelle (px écran). Sinon ancienne formule.
+                    const lw = stroke.hlPx ? sizeScaled : Math.max(sizeScaled * 6, 24 * _hlRatio);
                     const half = lw / 2;
                     const threshold = half * 0.5;
                     const pxPts = stroke.pts.map(p => fromNorm(p.x, p.y));
@@ -1114,7 +1115,7 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
 
                     if (pts.length >= 2) {
                         const pxPts = pts.map(p => fromNorm(p.x, p.y));
-                        const lw = Math.max(sizeScaled * 6, 24 * (canvasW / displayW));
+                        const lw = currentStrokeAnnot.hlPx ? sizeScaled : Math.max(sizeScaled * 6, 24 * (canvasW / displayW));
                         const half = lw / 2;
                         const threshold = half * 0.5;
 
@@ -2071,6 +2072,8 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                     startStroke(color, size, tool, px, py) {
                         const norm = toNorm(px, py);
                         currentStrokeAnnot = { tool, color, size, pts: [norm] };
+                        // Surligneur piloté par draw.js : size = largeur réelle en px écran
+                        if (tool === 'highlighter') currentStrokeAnnot.hlPx = true;
                         if (tool === 'crayon') {
                             // Crayon de couleur : graine de texture (rendu identique au redessin)
                             currentStrokeAnnot.seed = Math.floor(Math.random() * 1e9);
@@ -2103,7 +2106,7 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                             // temporaire pour éviter l'accumulation de semi-transparence.
                             // Tous les 20 points on repart du snapshot pour corriger les artefacts.
                             if (pts.length >= 2) {
-                                const lw = Math.max(sizeScaled * 6, 24 * (canvasW / displayW));
+                                const lw = currentStrokeAnnot.hlPx ? sizeScaled : Math.max(sizeScaled * 6, 24 * (canvasW / displayW));
                                 // Toutes les 20 pts : redessiner depuis le snapshot pour nettoyer
                                 // (très rare, minimise la latence tout en gardant un rendu propre)
                                 if (pts.length % 20 === 0) {

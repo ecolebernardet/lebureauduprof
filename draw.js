@@ -69,8 +69,8 @@ function _setDrawCursorStyle(style) {
     _updateDrawCursorBtns();
     updateDrawCursor();
     // Si on est en mode annotation PDF avec l'outil crayon, mettre à jour le curseur PDF aussi
-    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode && (_pdfAnnotTool === 'pen' || _pdfAnnotTool === 'crayon')) {
-        const cursor = _pdfCursor('pen');
+    if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode && (_pdfAnnotTool === 'pen' || _pdfAnnotTool === 'crayon' || _pdfAnnotTool === 'highlighter')) {
+        const cursor = _pdfCursor(_pdfAnnotTool === 'highlighter' ? 'highlighter' : 'pen');
         if (_pdfAnnotEvTarget) {
             _pdfAnnotEvTarget.style.setProperty('cursor', cursor, 'important');
             _pdfAnnotEvTarget.querySelectorAll('*').forEach(el => {
@@ -90,7 +90,7 @@ function updateDrawCursor() {
     const isHighlight = (currentDrawMode === 'highlight');
 
     if (style === 'crosshair') {
-        const cursorVal = isHighlight ? _highlightCursorUrl() : 'crosshair';
+        const cursorVal = 'crosshair';
         board.style.setProperty('cursor', cursorVal, 'important');
         document.querySelectorAll('.widget[data-anchored="true"]').forEach(w => {
             w.style.setProperty('cursor', cursorVal, 'important');
@@ -98,9 +98,9 @@ function updateDrawCursor() {
         return;
     }
 
-    // Surligneur : toujours la croix jaune quelle que soit le style dot/size
+    // Surligneur : même principe que le dessin libre, à la taille réelle du surlignage
     if (isHighlight) {
-        const cursorVal = _highlightCursorUrl();
+        const cursorVal = _hlCursorValue();
         board.style.setProperty('cursor', cursorVal, 'important');
         document.querySelectorAll('.widget[data-anchored="true"]').forEach(w => {
             w.style.setProperty('cursor', cursorVal, 'important');
@@ -142,7 +142,40 @@ function updateDrawCursor() {
     });
 }
 
-// Curseur surligneur : marqueur vertical, hotspot à la pointe
+// Curseur surligneur, même genre que le dessin libre :
+//  - style « taille » : disque translucide de la couleur, à la largeur réelle du surlignage
+//  - style « point »  : petit point de couleur entouré d'un cercle gris
+//  - style « croix »  : croix fine
+function _hlCursorValue() {
+    const style = window._drawCursorStyle || 'size';
+    if (style === 'crosshair') return 'crosshair';
+    const color = window._drawColor
+        || (typeof cpickGetValue === 'function' ? cpickGetValue('draw-color') : null)
+        || document.querySelector('#cpick-draw-color .cpick-swatch')?.style?.background
+        || '#f5c518';
+    let svg, hot;
+    if (style === 'dot') {
+        svg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">'
+            + '<circle cx="10" cy="10" r="8" fill="none" stroke="#999" stroke-width="1.5"/>'
+            + '<circle cx="10" cy="10" r="2.5" fill="' + color + '"/>'
+            + '</svg>';
+        hot = 10;
+    } else {
+        // Les navigateurs refusent les curseurs de plus de 128 px : on plafonne
+        const w   = _hlWidthPx(window._hlSize || 20);
+        const r   = Math.max(2, Math.min(w / 2, 60));
+        const dim = Math.ceil(r * 2 + 4);
+        const c   = dim / 2;
+        svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + dim + '" height="' + dim + '">'
+            + '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="' + color + '" fill-opacity="0.4"'
+            + ' stroke="' + color + '" stroke-opacity="0.9" stroke-width="1"/>'
+            + '</svg>';
+        hot = Math.round(c);
+    }
+    return 'url("data:image/svg+xml;base64,' + btoa(svg) + '") ' + hot + ' ' + hot + ', crosshair';
+}
+
+// Ancien curseur surligneur (marqueur vertical) — conservé, plus utilisé
 function _highlightCursorUrl() {
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">'
         + '<rect x="11" y="1" width="10" height="6" rx="2" fill="#aaa" stroke="#888" stroke-width="0.8"/>'
@@ -2830,6 +2863,9 @@ function _pdfCursor(tool) {
         return 'url("data:image/svg+xml;base64,' + btoa(svg) + '") ' + cx + ' ' + cx + ', crosshair';
     }
     if (tool === 'highlighter') {
+        return _hlCursorValue();
+    }
+    if (tool === '_old_highlighter') {
         const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">'
             + '<rect x="11" y="1" width="10" height="6" rx="2" fill="#aaa" stroke="#888" stroke-width="0.8"/>'
             + '<rect x="11" y="6" width="10" height="17" rx="1" fill="#f5c518" stroke="#c8a010" stroke-width="0.8"/>'
@@ -3311,9 +3347,9 @@ function _pdfAnnotGetColor() {
 
 function _pdfAnnotGetSize() {
     if (isEraserMode) return parseInt(document.getElementById('eraser-size').value) || 20;
-    // Surligneur : taille propre (défaut 20). L'annotation PDF attend l'ancienne
-    // échelle du trait, où 2 donnait la largeur standard → on divise par 10.
-    if (_pdfAnnotTool === 'highlighter') return (window._hlSize || 20) / 10;
+    // Surligneur : largeur réelle en px écran (comme sur le tableau, 20 → 24 px).
+    // pdf-viewer.js marque ces traits « hlPx » et les dessine à cette largeur.
+    if (_pdfAnnotTool === 'highlighter') return _hlWidthPx(window._hlSize || 20);
     return parseInt(document.getElementById('draw-size').value) || 4;
 }
 
@@ -4775,8 +4811,8 @@ function _showPdfAnnotToast(msg) {
         }
         // PDF annotation : outil pen actif
         if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode
-            && typeof _pdfAnnotTool !== 'undefined' && (_pdfAnnotTool === 'pen' || _pdfAnnotTool === 'crayon')) {
-            const cursor = _pdfCursor('pen');
+            && typeof _pdfAnnotTool !== 'undefined' && (_pdfAnnotTool === 'pen' || _pdfAnnotTool === 'crayon' || _pdfAnnotTool === 'highlighter')) {
+            const cursor = _pdfCursor(_pdfAnnotTool === 'highlighter' ? 'highlighter' : 'pen');
             if (typeof _pdfAnnotEvTarget !== 'undefined' && _pdfAnnotEvTarget) {
                 _pdfAnnotEvTarget.style.setProperty('cursor', cursor, 'important');
                 _pdfAnnotEvTarget.querySelectorAll('*').forEach(el => {
@@ -5737,6 +5773,8 @@ function _dtSizeStep(dir) {
         i.dispatchEvent(new Event('input'));
     } else if (t === 'highlight') {
         window._hlSize = Math.max(2, Math.min(100, (window._hlSize || 20) + 2 * dir));
+        if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode) _updatePdfToolBtns(); // curseur PDF
+        else updateDrawCursor();
     } else if (t === 'text') {
         const l = document.getElementById('text-size-label');
         const v = Math.max(8, Math.min(120, (parseInt(l.textContent) || 28) + 2 * dir));
@@ -5746,6 +5784,8 @@ function _dtSizeStep(dir) {
         const i = document.getElementById('draw-size');
         i.value = Math.max(1, Math.min(40, +i.value + dir));
         i.dispatchEvent(new Event('input'));   // met à jour draw-size-label et le curseur
+        // En annotation PDF, le curseur du crayon doit aussi suivre la taille
+        if (typeof _pdfAnnotMode !== 'undefined' && _pdfAnnotMode) _updatePdfToolBtns();
     }
     _dtSizeRefresh();
 }

@@ -1,3 +1,33 @@
+// ── Téléphone : ouverture directe en plein écran (bouton vert), comme le Taquin ──
+// open()   : bascule le plein écran du widget ; isOpen() : vrai s'il est en plein écran.
+// setKey   : nom de la fonction de restauration (widget._xxSetData) : si le widget est
+//            restauré depuis une sauvegarde, le plein écran automatique est annulé.
+// launchOnly : n'ouvrir que si le widget vient d'être lancé depuis un panneau.
+if (!window._wfPhoneAutoMax) {
+    window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
+        var phone = false;
+        if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
+        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone) return;
+        if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
+        var restored = false, auto = false;
+        if (setKey && typeof widget[setKey] === 'function') {
+            var orig = widget[setKey];
+            widget[setKey] = function () {
+                restored = true;
+                if (auto && isOpen()) open();
+                auto = false;
+                return orig.apply(this, arguments);
+            };
+        }
+        requestAnimationFrame(function () {
+            if (restored || isOpen() || !widget.isConnected) return;
+            auto = true;
+            open();
+        });
+    };
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    widget-ephemeride.js — Widget « Éphéméride »
    Le Bureau du Prof
@@ -672,7 +702,16 @@
     function hydrate(node) {
         if (!(node instanceof Element)) return;
         const roots = node.matches('.ephem-root') ? [node] : Array.from(node.querySelectorAll('.ephem-root'));
-        roots.forEach(r => { render(r); fixRatio(r); });
+        roots.forEach(r => {
+            render(r); fixRatio(r);
+            // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin —
+            // seulement pour un widget qui vient d'être lancé depuis un panneau
+            const w = r.closest('.widget');
+            if (w && !w._ephemAutoMax) {
+                w._ephemAutoMax = true;
+                window._wfPhoneAutoMax(w, () => toggleFull(r), () => r.classList.contains('ephem-full'), null, true);
+            }
+        });
     }
     const mo = new MutationObserver(muts => {
         for (const m of muts) m.addedNodes.forEach(n => {
@@ -760,6 +799,10 @@
 /* Plein écran : la feuille garde ses proportions et occupe toute la hauteur */
 .ephem-root.ephem-full{position:fixed;z-index:9999;top:0;bottom:0;left:50%;transform:translateX(-50%);
   width:min(100vw,66.7vh);height:100vh;box-shadow:0 0 0 100vmax rgba(35,32,28,.88)}
+/* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
+@media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+  .ephem-root.ephem-full{left:calc(50% + 20px);width:min(calc(100vw - 40px),66.7vh);height:100vh;height:100dvh}
+}
 .widget.ephem-is-full > .drag-handle,
 .widget.ephem-is-full > .widget-rotate-handle,
 .widget.ephem-is-full > .widget-action-bar,

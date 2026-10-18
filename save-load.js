@@ -179,10 +179,20 @@ function buildBoardState() {
         if (w.dataset.type === 'frise-historique' && typeof w._fhGetData === 'function') {
             friseHistData = w._fhGetData();
         }
+        // Données propres au widget château fort
+        let chateauFortData = null;
+        if (w.dataset.type === 'histoire-chateau-fort' && typeof w._chGetData === 'function') {
+            chateauFortData = w._chGetData();
+        }
         // Données propres au widget géographie de la France
         let geoFranceData = null;
         if (w.dataset.type === 'geo-france' && typeof w._gfGetData === 'function') {
             geoFranceData = w._gfGetData();
+        }
+        // Données propres au widget géographie de la Savoie
+        let geoSavoieData = null;
+        if (w.dataset.type === 'geo-savoie' && typeof w._gsGetData === 'function') {
+            geoSavoieData = w._gsGetData();
         }
         // Données propres au widget géographie de l'Europe
         let geoEuropeData = null;
@@ -491,7 +501,9 @@ function buildBoardState() {
 			tableauNumData,
 			motLongData,
 			friseHistData,
+			chateauFortData,
 			geoFranceData,
+			geoSavoieData,
 			geoEuropeData,
 			geoMondeData,
 			geoGlobeData,
@@ -768,10 +780,20 @@ function restoreBoardFromJSON(json) {
             if (w.friseHistData && typeof widget._fhSetData === 'function') {
                 widget._fhSetData(w.friseHistData);
             }
+        } else if (w.type === 'histoire-chateau-fort') {
+            widget = createHistoireChateauFortWidget();
+            if (w.chateauFortData && typeof widget._chSetData === 'function') {
+                widget._chSetData(w.chateauFortData);
+            }
         } else if (w.type === 'geo-france') {
             widget = createGeoFranceWidget();
             if (w.geoFranceData && typeof widget._gfSetData === 'function') {
                 widget._gfSetData(w.geoFranceData);
+            }
+        } else if (w.type === 'geo-savoie') {
+            widget = createGeoSavoieWidget();
+            if (w.geoSavoieData && typeof widget._gsSetData === 'function') {
+                widget._gsSetData(w.geoSavoieData);
             }
         } else if (w.type === 'geo-europe') {
             widget = createGeoEuropeWidget();

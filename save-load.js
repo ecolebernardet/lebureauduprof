@@ -257,6 +257,11 @@ function buildBoardState() {
         if (w.dataset.type === 'citations' && typeof window.citGetData === 'function') {
             citData = window.citGetData(w);
         }
+        // Données propres au widget diaporama (réglages, nom du dossier, image affichée — pas les images elles-mêmes)
+        let diapoData = null;
+        if (w.dataset.type === 'diaporama' && typeof window.diapoGetData === 'function') {
+            diapoData = window.diapoGetData(w);
+        }
         // Données propres au widget couleurs
         let clrData = null;
         if (w.dataset.type === 'couleurs' && typeof w._clrGetData === 'function') {
@@ -542,6 +547,7 @@ function buildBoardState() {
 			clrData,
 			ephemData,
 			citData,
+			diapoData,
 			s3dW, s3dH,
 			seyesData,
 			convData,
@@ -1227,6 +1233,10 @@ function restoreBoardFromJSON(json) {
         // Citations : réappliquer les réglages et la citation affichée
         if (w.type === 'citations' && w.citData && typeof window.citSetData === 'function') {
             window.citSetData(widget, w.citData);
+        }
+        // Diaporama : réappliquer les réglages et reprendre le dossier (accès mémorisé dans le navigateur)
+        if (w.type === 'diaporama' && w.diapoData && typeof window.diapoSetData === 'function') {
+            window.diapoSetData(widget, w.diapoData);
         }
         const c = widget.querySelector('.editor-container');
         const hP = w.contentHPercent !== undefined ? w.contentHPercent : w.heightPercent;

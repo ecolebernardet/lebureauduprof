@@ -112,10 +112,10 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles') {
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule') {
             // Calculatrice / Phrase en désordre / Visualiseur / 108 heures / Billets aux familles : si le widget est réduit
             // (mini-barre), on garde sa position d'origine (ses dimensions sont gérées par le widget)
-            const _calcMini = !!w.querySelector('.wf-mini-bar, .h108-mini-bar');
+            const _calcMini = !!w.querySelector('.wf-mini-bar, .h108-mini-bar, .der-mini-bar');
             const _cl = _calcMini ? parseFloat(w.dataset.wfMiniSavedLeft) : NaN;
             const _ct = _calcMini ? parseFloat(w.dataset.wfMiniSavedTop)  : NaN;
             lP = ((isNaN(_cl) ? w.offsetLeft : _cl) / curW)  * 100;
@@ -146,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -183,6 +183,11 @@ function buildBoardState() {
         let chateauFortData = null;
         if (w.dataset.type === 'histoire-chateau-fort' && typeof w._chGetData === 'function') {
             chateauFortData = w._chGetData();
+        }
+        // Données propres au widget société au Moyen Âge
+        let societeMAData = null;
+        if (w.dataset.type === 'histoire-societe-moyen-age' && typeof w._smGetData === 'function') {
+            societeMAData = w._smGetData();
         }
         // Données propres au widget géographie de la France
         let geoFranceData = null;
@@ -473,6 +478,11 @@ function buildBoardState() {
         if (w.dataset.type === 'mots-familles' && typeof w._mfGetData === 'function') {
             mfData = w._mfGetData();
         }
+        // Données propres au widget Déroulé de la journée (programme de la semaine, mode, affichage, taille, couleur, réduit / plein écran)
+        let derData = null;
+        if (w.dataset.type === 'deroule' && typeof w._derGetData === 'function') {
+            derData = w._derGetData();
+        }
         let calcData = null;
         if (w.dataset.type === 'calculatrice' && typeof w._calcGetData === 'function') {
             calcData = w._calcGetData();
@@ -513,6 +523,7 @@ function buildBoardState() {
 			motLongData,
 			friseHistData,
 			chateauFortData,
+			societeMAData,
 			geoFranceData,
 			geoSavoieData,
 			geoEuropeData,
@@ -556,7 +567,8 @@ function buildBoardState() {
 			calcData,
 			visuData,
 			h108Data,
-			mfData
+			mfData,
+			derData
 		});
     });
     const shapes = [];
@@ -797,6 +809,11 @@ function restoreBoardFromJSON(json) {
             widget = createHistoireChateauFortWidget();
             if (w.chateauFortData && typeof widget._chSetData === 'function') {
                 widget._chSetData(w.chateauFortData);
+            }
+        } else if (w.type === 'histoire-societe-moyen-age') {
+            widget = createHistoireSocieteMoyenAgeWidget();
+            if (w.societeMAData && typeof widget._smSetData === 'function') {
+                widget._smSetData(w.societeMAData);
             }
         } else if (w.type === 'geo-france') {
             widget = createGeoFranceWidget();
@@ -1178,6 +1195,13 @@ function restoreBoardFromJSON(json) {
             // Billets aux familles : motif, titre, message, signature, taille, couleur, plein écran / réduit
             if (typeof createMotsFamillesWidget === 'function') {
                 widget = createMotsFamillesWidget(w.mfData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'deroule') {
+            // Déroulé de la journée : programme, mode, affichage, taille, couleur, plein écran / réduit
+            if (typeof createDerouleWidget === 'function') {
+                widget = createDerouleWidget(w.derData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

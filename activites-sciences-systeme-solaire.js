@@ -28,6 +28,14 @@ if (!window._wfPhoneAutoMax) {
     };
 }
 
+// ── Petit écran (téléphone) : même détection que ci-dessus ──
+if (!window._wfIsPhone) {
+    window._wfIsPhone = function () {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    };
+}
+
 // =========================================================================
 // WIDGET LE SYSTÈME SOLAIRE — Le Bureau du Prof
 // Deux onglets pour comprendre :
@@ -198,6 +206,40 @@ if (!window._wfPhoneAutoMax) {
         .ss-resize-handle:hover { opacity: 1; }
         .ss-container[data-mode="tailles"] .ss-only-orbit { display: none !important; }
         .ss-container[data-mode="orbites"] .ss-only-size { display: none !important; }
+        /* ── Petits écrans (téléphone, petite tablette) ── */
+        .ss-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
+        .ss-tabs { flex-shrink: 0; }
+        .ss-container.wf-fullboard .ss-resize-handle { display: none; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .ss-container { padding: 10px 10px 8px; gap: 6px; }
+            .ss-header { gap: 6px; }
+            .ss-title { font-size: 13px; }
+            .ss-tab { min-height: 32px; padding: 3px 9px; font-size: 12px; }
+            .ss-row { gap: 4px; }
+            /* première ligne de boutons : une seule ligne, qui défile du doigt */
+            .ss-row { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin;
+                       -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+            .ss-row > * { flex-shrink: 0; }
+            .ss-row + .ss-row { flex-wrap: nowrap; overflow-x: auto; }
+            .ss-btn { min-height: 32px; padding: 4px 9px; font-size: 12px; }
+            .ss-btn-play, .ss-btn-speed { min-width: 0; }
+            .ss-sep { display: none; }
+            .ss-hint { font-size: 11px; bottom: 4px; padding: 0 6px; }
+            .ss-side { padding: 8px 10px; font-size: 13px; }
+            .ss-help-popup { left: 10px; right: 10px; width: auto; max-width: none; max-height: 70vh; overflow-y: auto; }
+        }
+        /* Écran très étroit : seule l'icône du titre reste */
+        @media (max-width: 560px) { .ss-title { display: none; } .ss-tab { padding: 3px 7px; font-size: 11.5px; } .ss-header .wf-btns { gap: 6px; } }
+        /* Téléphone tenu en portrait : la fiche passe sous l'animation */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .ss-body { flex-direction: column; }
+            .ss-scene-wrap { flex: 1 1 0; min-height: 220px; }
+            .ss-side { flex: 0 1 auto; width: auto; min-width: 0; max-width: none; max-height: 40%; }
+        }
+        /* Téléphone tenu en paysage : fiche plus étroite à droite */
+        @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
+            .ss-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -289,11 +331,17 @@ function createSystemeSolaireWidget() {
     if (typeof snapshotNow === 'function') snapshotNow();
     const pos = typeof findFreePosition === 'function' ? findFreePosition() : { x: 100, y: 80 };
 
+    // Petit écran : largeur presque pleine, tailles minimales réduites
+    const _phone = window._wfIsPhone();
+    const _minW = () => window._wfIsPhone() ? 260 : 680;
+    const _fitW = w => window._wfIsPhone() ? Math.min(w, Math.max(260, window.innerWidth - 54)) : w;
+    const _minH = () => window._wfIsPhone() ? 300 : 480;
+
     const widget = document.createElement('div');
     widget.className = 'widget';
     widget.dataset.type = 'systeme-solaire';
     widget.dataset.transparent = 'true';
-    widget.style.cssText = `left:100px; top:${pos.y}px; overflow:visible; flex-direction:row;`;
+    widget.style.cssText = `left:${_phone ? 44 : 100}px; top:${pos.y}px; overflow:visible; flex-direction:row;`;
     widget.tabIndex = 0;
     widget.innerHTML = `
         <div class="drag-handle" title="Déplacer">✥</div>
@@ -310,13 +358,15 @@ function createSystemeSolaireWidget() {
     const container = document.createElement('div');
     container.className = 'ss-container';
     container.dataset.mode = 'orbites';
-    let contW = Math.max(760, Math.min(1180, Math.round(window.innerWidth * 0.68)));
-    let contH = Math.max(560, Math.round(contW * 0.66));
+    let contW = _phone ? Math.max(260, window.innerWidth - 54)
+                       : Math.max(760, Math.min(1180, Math.round(window.innerWidth * 0.68)));
+    let contH = _phone ? Math.max(320, Math.min(window.innerHeight - 70, Math.round(contW * 1.7)))
+                       : Math.max(560, Math.round(contW * 0.66));
 
     const header = document.createElement('div');
     header.className = 'ss-header';
     header.innerHTML = `
-        <span class="ss-title">🪐 Le système solaire</span>
+        <span class="ss-title">🪐<span class="ss-tx"> Le système solaire</span></span>
         <div class="ss-tabs">
             <button class="ss-tab on" data-mode="orbites">🌀 Les orbites</button>
             <button class="ss-tab" data-mode="tailles">📏 Les tailles</button>
@@ -1072,8 +1122,8 @@ function createSystemeSolaireWidget() {
         const x0 = e.clientX, y0 = e.clientY, w0 = contW, h0 = contH;
         try { resizeHandle.setPointerCapture(e.pointerId); } catch (_) {}
         const move = ev => {
-            contW = Math.max(680, w0 + ev.clientX - x0);
-            contH = Math.max(480, h0 + ev.clientY - y0);
+            contW = Math.max(_minW(), w0 + ev.clientX - x0);
+            contH = Math.max(_minH(), h0 + ev.clientY - y0);
             applySize();
         };
         const up = () => {
@@ -1160,8 +1210,8 @@ function createSystemeSolaireWidget() {
     });
     widget._ssSetData = (d) => {
         if (!d) return;
-        if (d.containerW) contW = Math.max(680, d.containerW);
-        if (d.containerH) contH = Math.max(480, d.containerH);
+        if (d.containerW) contW = _fitW(Math.max(_minW(), d.containerW));
+        if (d.containerH) contH = Math.max(_minH(), _phone ? Math.min(d.containerH, window.innerHeight - 40) : d.containerH);
         applySize();
         if (typeof d.t === 'number' && d.t >= 0) t = d.t;
         if (typeof d.speed === 'number') setSpeed(d.speed);

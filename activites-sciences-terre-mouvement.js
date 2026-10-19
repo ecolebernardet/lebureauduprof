@@ -28,6 +28,14 @@ if (!window._wfPhoneAutoMax) {
     };
 }
 
+// ── Petit écran (téléphone) : même détection que ci-dessus ──
+if (!window._wfIsPhone) {
+    window._wfIsPhone = function () {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    };
+}
+
 // =========================================================================
 // WIDGET LA TERRE EN MOUVEMENT — Le Bureau du Prof
 // Deux onglets pour comprendre :
@@ -186,6 +194,45 @@ if (!window._wfPhoneAutoMax) {
         .tm-zoom-btn.on { background: #6fb78f; border-color: #6fb78f; color: #fff; }
         .tm-container[data-mode="jour"] .tm-only-season { display: none !important; }
         .tm-msg { padding: 30px; color: #b91c1c; font-weight: 700; }
+        /* ── Petits écrans (téléphone, petite tablette) ── */
+        .tm-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
+        .tm-tabs { flex-shrink: 0; }
+        .tm-container.wf-fullboard .tm-resize-handle { display: none; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .tm-container { padding: 10px 10px 8px; gap: 6px; }
+            .tm-header { gap: 6px; }
+            .tm-title { font-size: 13px; }
+            .tm-tab { min-height: 32px; padding: 3px 9px; font-size: 12px; }
+            .tm-row { gap: 4px; }
+            /* première ligne de boutons : une seule ligne, qui défile du doigt */
+            .tm-row { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin;
+                       -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+            .tm-row > * { flex-shrink: 0; }
+            .tm-row + .tm-row { flex-wrap: wrap; overflow: visible; }
+            .tm-row + .tm-row .tm-lbl:first-child { display: none; }
+            .tm-slider-box { flex: 1 1 160px; min-width: 0; }
+            .tm-val { min-width: 0; }
+            .tm-btn { min-height: 32px; padding: 4px 9px; font-size: 12px; }
+            .tm-btn-play, .tm-btn-speed { min-width: 0; }
+            .tm-sep { display: none; }
+            .tm-hint { font-size: 11px; bottom: 4px; padding: 0 6px; }
+            .tm-side { padding: 8px 10px; font-size: 13px; }
+            .tm-help-popup { left: 10px; right: 10px; width: auto; max-width: none; max-height: 70vh; overflow-y: auto; }
+        }
+        /* Écran très étroit : seule l'icône du titre reste */
+        @media (max-width: 560px) { .tm-title { display: none; } .tm-tab { padding: 3px 7px; font-size: 11.5px; } .tm-header .wf-btns { gap: 6px; } }
+        /* Téléphone tenu en portrait : la fiche passe sous l'animation */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .tm-body { flex-direction: column; }
+            .tm-slider-box { flex: 1 1 100%; }
+            .tm-date-btn { flex: 1 1 0; }
+            .tm-scene-wrap { flex: 1 1 0; min-height: 220px; }
+            .tm-side { flex: 0 1 auto; width: auto; min-width: 0; max-width: none; max-height: 40%; }
+        }
+        /* Téléphone tenu en paysage : fiche plus étroite à droite */
+        @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
+            .tm-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -409,11 +456,17 @@ function createTerreMouvementWidget() {
     if (typeof snapshotNow === 'function') snapshotNow();
     const pos = typeof findFreePosition === 'function' ? findFreePosition() : { x: 100, y: 80 };
 
+    // Petit écran : largeur presque pleine, tailles minimales réduites
+    const _phone = window._wfIsPhone();
+    const _minW = () => window._wfIsPhone() ? 260 : 680;
+    const _fitW = w => window._wfIsPhone() ? Math.min(w, Math.max(260, window.innerWidth - 54)) : w;
+    const _minH = () => window._wfIsPhone() ? 300 : 480;
+
     const widget = document.createElement('div');
     widget.className = 'widget';
     widget.dataset.type = 'terre-mouvement';
     widget.dataset.transparent = 'true';
-    widget.style.cssText = `left:100px; top:${pos.y}px; overflow:visible; flex-direction:row;`;
+    widget.style.cssText = `left:${_phone ? 44 : 100}px; top:${pos.y}px; overflow:visible; flex-direction:row;`;
     widget.tabIndex = 0;
     widget.innerHTML = `
         <div class="drag-handle" title="Déplacer">✥</div>
@@ -430,13 +483,15 @@ function createTerreMouvementWidget() {
     const container = document.createElement('div');
     container.className = 'tm-container';
     container.dataset.mode = 'jour';
-    let contW = Math.max(760, Math.min(1180, Math.round(window.innerWidth * 0.68)));
-    let contH = Math.max(560, Math.round(contW * 0.66));
+    let contW = _phone ? Math.max(260, window.innerWidth - 54)
+                       : Math.max(760, Math.min(1180, Math.round(window.innerWidth * 0.68)));
+    let contH = _phone ? Math.max(320, Math.min(window.innerHeight - 70, Math.round(contW * 1.7)))
+                       : Math.max(560, Math.round(contW * 0.66));
 
     const header = document.createElement('div');
     header.className = 'tm-header';
     header.innerHTML = `
-        <span class="tm-title">🌗 La Terre en mouvement</span>
+        <span class="tm-title">🌗<span class="tm-tx"> La Terre en mouvement</span></span>
         <div class="tm-tabs">
             <button class="tm-tab on" data-mode="jour">☀️ Jour et nuit</button>
             <button class="tm-tab" data-mode="saisons">🍂 Les saisons</button>
@@ -1551,8 +1606,8 @@ function createTerreMouvementWidget() {
         const x0 = e.clientX, y0 = e.clientY, w0 = contW, h0 = contH;
         try { resizeHandle.setPointerCapture(e.pointerId); } catch (_) {}
         const move = ev => {
-            contW = Math.max(680, w0 + ev.clientX - x0);
-            contH = Math.max(480, h0 + ev.clientY - y0);
+            contW = Math.max(_minW(), w0 + ev.clientX - x0);
+            contH = Math.max(_minH(), h0 + ev.clientY - y0);
             applySize();
         };
         const up = () => {
@@ -1644,8 +1699,8 @@ function createTerreMouvementWidget() {
     });
     widget._tmSetData = (d) => {
         if (!d) return;
-        if (d.containerW) contW = Math.max(680, d.containerW);
-        if (d.containerH) contH = Math.max(480, d.containerH);
+        if (d.containerW) contW = _fitW(Math.max(_minW(), d.containerW));
+        if (d.containerH) contH = Math.max(_minH(), _phone ? Math.min(d.containerH, window.innerHeight - 40) : d.containerH);
         applySize();
         if (typeof d.day === 'number') day = ((d.day % 365) + 365) % 365;
         if (typeof d.utc === 'number') utc = ((d.utc % 24) + 24) % 24;

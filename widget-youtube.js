@@ -41,7 +41,7 @@ const _YT_ALLOW = 'accelerometer; autoplay; clipboard-write; encrypted-media; gy
 document.body.insertAdjacentHTML('beforeend', `
 <template id="template-youtube">
     <div class="editor-container yt-v2 yt-empty" data-yt-mode="video" style="height:420px;width:660px;">
-        <div class="yt-bar">
+        <div class="yt-bar editor-toolbar">
             <div class="yt-field"${_YT_STOP}>
                 <span class="yt-field-ico">🔗</span>
                 <input type="text" class="yt-url-input" spellcheck="false" autocomplete="off"
@@ -811,6 +811,9 @@ function _ytInit(widget) {
     if (!c) return;
     if (!c.classList.contains('yt-v2')) _ytUpgrade(c);
     if (!c.classList.contains('yt-v2')) return;
+    // La classe editor-toolbar permet au tableau de déplacer / réduire le widget par sa barre
+    const bar = c.querySelector('.yt-bar');
+    if (bar) bar.classList.add('editor-toolbar');
     const iframe = c.querySelector('iframe.yt-player');
     const src = iframe ? (iframe.getAttribute('src') || '') : '';
     const m = src.match(/embed\/([a-zA-Z0-9_-]{11})/);
@@ -953,8 +956,8 @@ window.addEventListener('blur', () => {
 .yt-v2 button{font-family:inherit}
 .yt-v2 :focus-visible{outline:2px solid #4a90e2;outline-offset:1px}
 /* Barre du haut */
-.yt-v2 .yt-bar{flex:none;position:relative;z-index:10;height:var(--yt-bar-h);box-sizing:border-box;display:flex;align-items:center;gap:6px;
-  padding:0 10px;background:#232329;border-bottom:1px solid #2f2f37;transition:opacity .35s,margin-top .35s,background .2s}
+.yt-v2 .yt-bar{flex:none;position:relative;z-index:10;height:var(--yt-bar-h);min-height:0;box-sizing:border-box;display:flex;flex-wrap:nowrap;align-items:center;gap:6px;
+  padding:0 10px;visibility:visible;opacity:1;background:#232329;border-bottom:1px solid #2f2f37;transition:opacity .35s,margin-top .35s,background .2s}
 .yt-v2 .yt-field{flex:1;min-width:90px;display:flex;align-items:center;height:30px;box-sizing:border-box;padding:0 3px 0 10px;
   background:#2f2f38;border:1px solid #3a3a44;border-radius:99px;transition:border-color .15s,background .15s}
 .yt-v2 .yt-field:focus-within{border-color:#4a90e2;background:#26262e}

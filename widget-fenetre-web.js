@@ -29,7 +29,7 @@ document.body.insertAdjacentHTML('beforeend', `
 <template id="template-iframe">
     <div class="editor-container fw-v2 fw-empty" data-fw-zoom="1" style="height:400px;width:550px;">
         <button class="exit-fs-btn" onclick="document.exitFullscreen()">✖ Quitter Plein Écran</button>
-        <div class="fw-bar">
+        <div class="fw-bar editor-toolbar">
             <button type="button" class="fw-ib fw-sm-hide" data-fw-action="home" title="Accueil" aria-label="Accueil"${_FW_STOP}>⌂</button>
             <button type="button" class="fw-ib" data-fw-action="reload" title="Recharger la page" aria-label="Recharger"${_FW_STOP}>⟳</button>
             <div class="fw-field"${_FW_STOP}>
@@ -497,6 +497,9 @@ function _fwInit(c) {
     if (!c.classList.contains('fw-v2')) _fwUpgrade(c);
     if (!c.classList.contains('fw-v2')) return;
     c._fwInited = true;
+    // La classe editor-toolbar permet au tableau de déplacer / réduire le widget par sa barre
+    const bar = c.querySelector('.fw-bar');
+    if (bar) bar.classList.add('editor-toolbar');
     const frame = _fwFrame(c);
     const url = _fwUrl(c);
     c.classList.toggle('fw-empty', !url);
@@ -543,8 +546,8 @@ new MutationObserver(muts => {
 .fw-v2 button{font-family:inherit}
 .fw-v2 :focus-visible{outline:2px solid #4a90e2;outline-offset:1px}
 /* Barre du haut */
-.fw-v2 .fw-bar{flex:none;position:relative;z-index:10;height:44px;box-sizing:border-box;display:flex;align-items:center;gap:5px;
-  padding:0 10px;background:#232329;border-bottom:1px solid #2f2f37}
+.fw-v2 .fw-bar{flex:none;position:relative;z-index:10;height:44px;min-height:0;box-sizing:border-box;display:flex;flex-wrap:nowrap;align-items:center;gap:5px;
+  padding:0 10px;visibility:visible;opacity:1;background:#232329;border-bottom:1px solid #2f2f37}
 .fw-v2 .fw-progress{position:absolute;left:0;bottom:-1px;height:2px;width:0;background:#4a90e2;opacity:0;pointer-events:none}
 .fw-v2.fw-loading .fw-progress{opacity:1;animation:fw-load 2.5s ease-out forwards}
 @keyframes fw-load{from{width:0}to{width:85%}}

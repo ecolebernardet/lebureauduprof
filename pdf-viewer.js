@@ -212,8 +212,14 @@ function _attachPenSupportToPdfToolbar(container) {
 
 function loadPdfWidget(input) {
     const file = input.files[0]; if (!file) return;
-    const widget = input.closest('.widget');
-    const container = input.closest('.editor-container');
+    input.value = '';   // permet de rouvrir le même fichier
+    _pdfLoadFile(input.closest('.editor-container'), file);
+}
+
+// Ouvre un fichier PDF dans un widget (bouton « Ouvrir » ou glisser-déposer)
+function _pdfLoadFile(container, file) {
+    const widget = container && container.closest('.widget');
+    if (!widget || !file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
         const base64 = e.target.result;
@@ -229,6 +235,10 @@ function loadPdfWidget(input) {
 }
 
 function _showPdfInWidget(container, base64OrUrl, filename) {
+    // Nouvelle interface : classe « PDF chargé » (bouton Ouvrir réduit, etc.)
+    const _ec = (container.closest && container.closest('.editor-container')) || container;
+    if (typeof _pdfV2Init === 'function') _pdfV2Init(_ec);
+    _ec.classList.add('pdf-loaded');
     const placeholder   = container.querySelector('.pdf-placeholder');
     const nameSpan      = container.querySelector('.pdf-filename');
     const navBar        = container.querySelector('.pdf-nav');
@@ -2790,3 +2800,248 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
         });
     });
 }
+
+// =========================================================================
+// NOUVELLE INTERFACE DU WIDGET PDF
+// -------------------------------------------------------------------------
+// Même allure que les widgets « Lecteur vidéo », « YouTube » et « Fenêtre web »
+// (barre sombre, boutons arrondis, écran d'accueil). La structure et les
+// classes du modèle (index.html, template-pdf) ne changent pas : tout le
+// fonctionnement (annotations, stylet, plein écran à onglets, réduction,
+// sauvegarde) reste identique. On ajoute seulement :
+//   - un écran d'accueil plus clair, avec glisser-déposer du fichier PDF
+//   - le clavier : ← → / Page préc. Page suiv. pour tourner les pages,
+//     Début / Fin pour la première / dernière page (widget PDF actif)
+//   - un petit message « Page 3 / 12 » au changement de page au clavier
+//   - le bouton ✏️ reste allumé tant que l'annotation de ce PDF est active
+// Les widgets PDF déjà enregistrés reçoivent la nouvelle interface au
+// chargement du tableau.
+// =========================================================================
+
+function _pdfV2Init(c) {
+    if (!c || !c.classList || c._pdfV2) return;
+    if (!c.querySelector('.pdf-canvas-wrap')) return;
+    c._pdfV2 = true;
+    c.classList.add('pdf-v2');
+    const tb = c.querySelector(':scope > .editor-toolbar');
+
+    // Bouton « Ouvrir » de la barre : icône + libellé séparés (libellé masqué une fois le PDF ouvert)
+    const openLbl = tb && tb.querySelector(':scope > label');
+    if (openLbl && !openLbl.classList.contains('pdf-open-btn')) {
+        openLbl.classList.add('pdf-open-btn');
+        openLbl.title = 'Ouvrir un PDF';
+        Array.from(openLbl.childNodes).forEach(n => { if (n.nodeType === 3) n.remove(); });
+        openLbl.insertAdjacentHTML('afterbegin', '<span class="pdf-open-ico">📂</span><span class="pdf-open-lbl">Ouvrir un PDF</span>');
+    }
+    // Groupe numéro de page
+    const nav = c.querySelector('.pdf-nav');
+    const box = nav && nav.querySelector(':scope > div');
+    if (box) box.classList.add('pdf-page-box');
+    const pin = c.querySelector('.pdf-page-input');
+    if (pin) pin.title = 'Taper un numéro de page';
+
+    // Écran d'accueil
+    const ph = c.querySelector('.pdf-placeholder');
+    if (ph && !ph.querySelector('.pdf-ph-box')) {
+        const pen = "if(event.pointerType==='touch'||event.pointerType==='pen'){this.querySelector('input').click();event.preventDefault();}";
+        ph.innerHTML =
+            '<div class="pdf-ph-box">' +
+                '<div class="pdf-ph-ico">📄</div>' +
+                '<div class="pdf-ph-title">Lecteur PDF</div>' +
+                '<div>Ouvre un PDF de ton ordinateur pour l’afficher, le feuilleter et l’annoter.</div>' +
+                '<label class="pdf-ph-btn" ontouchend="this.querySelector(\'input\').click();event.preventDefault();" onpointerup="' + pen + '">' +
+                    '📂 Ouvrir un PDF<input type="file" accept=".pdf,application/pdf" style="display:none" onchange="loadPdfWidget(this)">' +
+                '</label>' +
+                '<div class="pdf-ph-hint">ou glisse-dépose le fichier ici<br>Au clavier : ← → pour tourner les pages</div>' +
+            '</div>';
+    }
+    // Message temporaire
+    if (!c.querySelector(':scope > .pdf-flash')) {
+        const f = document.createElement('div');
+        f.className = 'pdf-flash';
+        c.appendChild(f);
+    }
+    // PDF déjà affiché (widget restauré)
+    const wrap = c.querySelector('.pdf-canvas-wrap');
+    if (wrap && wrap.style.display && wrap.style.display !== 'none') c.classList.add('pdf-loaded');
+
+    // Glisser-déposer d'un fichier PDF sur le widget
+    const isPdf = f => !!f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || ''));
+    const hasFiles = e => !!e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') !== -1;
+    c.addEventListener('dragover', e => {
+        if (!hasFiles(e)) return;
+        e.preventDefault(); e.stopPropagation();
+        e.dataTransfer.dropEffect = 'copy';
+        c.classList.add('pdf-drag');
+        clearTimeout(c._pdfDragT);
+        c._pdfDragT = setTimeout(() => c.classList.remove('pdf-drag'), 250);
+    });
+    c.addEventListener('drop', e => {
+        if (!hasFiles(e)) return;
+        const file = Array.from(e.dataTransfer.files || []).find(isPdf);
+        c.classList.remove('pdf-drag');
+        if (!file) return;          // pas un PDF : le tableau s'en occupe
+        e.preventDefault(); e.stopPropagation();
+        if (c.dataset.collapsed === 'true' && typeof togglePdfCollapse === 'function') togglePdfCollapse(c);
+        _pdfLoadFile(c, file);
+    });
+}
+
+function _pdfFlash(c, text) {
+    const f = c && c.querySelector(':scope > .pdf-flash');
+    if (!f) return;
+    f.textContent = text;
+    f.classList.remove('is-on'); void f.offsetWidth; f.classList.add('is-on');
+    clearTimeout(f._t);
+    f._t = setTimeout(() => f.classList.remove('is-on'), 1100);
+}
+
+// ── Clavier : tourner les pages du PDF actif ─────────────────────────────
+(function () {
+    let lastDown = null, hover = null;
+    window.addEventListener('pointerdown', e => { lastDown = e.target; }, true);
+    window.addEventListener('pointerover', e => { hover = e.target; }, true);
+
+    function usable(c) {
+        if (!c || !c.isConnected || !c.classList.contains('pdf-loaded')) return false;
+        if (c.classList.contains('pdf-fs-hidden') || c.dataset.collapsed === 'true') return false;
+        const w = c.closest('.widget') || c;
+        return !!w.getClientRects().length && getComputedStyle(w).visibility !== 'hidden';
+    }
+    function activePdf() {
+        const all = Array.from(document.querySelectorAll('.editor-container.pdf-v2'));
+        // En plein écran board, c'est l'onglet affiché qui compte
+        const fs = all.find(c => c.classList.contains('wf-pdf-fullboard') && usable(c));
+        if (fs) return fs;
+        const pick = el => el && el.closest ? all.find(c => usable(c) && (c.closest('.widget') || c).contains(el)) : null;
+        return pick(lastDown) || pick(document.activeElement) || pick(hover) || null;
+    }
+    const editable = t => !!t && t.nodeType === 1 && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+
+    window.addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const k = e.key;
+        if (['ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End'].indexOf(k) === -1) return;
+        if (editable(e.target)) return;
+        const c = activePdf();
+        if (!c) return;
+        const input = c.querySelector('.pdf-page-input');
+        const total = input ? parseInt(input.max, 10) || 1 : 1;
+        if (k === 'ArrowLeft' || k === 'PageUp') { const b = c.querySelector('.pdf-prev'); if (b) b.click(); }
+        else if (k === 'ArrowRight' || k === 'PageDown') { const b = c.querySelector('.pdf-next'); if (b) b.click(); }
+        else if (input) {
+            input.value = k === 'Home' ? 1 : total;
+            input.dispatchEvent(new Event('change'));
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        setTimeout(() => { if (input) _pdfFlash(c, 'Page ' + input.value + ' / ' + total); }, 150);
+    }, true);
+})();
+
+// ── Bouton ✏️ allumé pendant l'annotation de ce PDF ──────────────────────
+setInterval(() => {
+    document.querySelectorAll('.editor-container.pdf-v2').forEach(c => {
+        const b = c.querySelector('.pdf-annot-widget-btn');
+        if (!b) return;
+        const on = !!window._pdfAnnotMode && window._pdfAnnotWidget === c.closest('.widget');
+        if (b.classList.contains('pdf-on') !== on) {
+            b.classList.toggle('pdf-on', on);
+            b.title = on ? 'Arrêter d’annoter' : 'Annoter ce PDF';
+        }
+    });
+}, 400);
+
+// ── Nouveaux widgets PDF et widgets restaurés ────────────────────────────
+(function () {
+    const scan = n => {
+        if (!n || n.nodeType !== 1) return;
+        if (n.matches('.widget[data-type="pdf"]')) { const c = n.querySelector('.editor-container'); if (c) _pdfV2Init(c); }
+        if (n.querySelectorAll) n.querySelectorAll('.widget[data-type="pdf"] .editor-container').forEach(_pdfV2Init);
+    };
+    const start = () => {
+        scan(document.body);
+        new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(scan)))
+            .observe(document.body, { childList: true, subtree: true });
+    };
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+
+// ── Styles ───────────────────────────────────────────────────────────────
+(function () {
+    if (document.getElementById('pdf-v2-styles')) return;
+    const st = document.createElement('style');
+    st.id = 'pdf-v2-styles';
+    st.textContent = `
+.editor-container.pdf-v2{container-type:inline-size;background:#18181c !important;border:1px solid #2f2f37 !important;color:#eee;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.editor-container.pdf-v2.wf-pdf-fullboard{border:0 !important}
+/* Barre du haut */
+.pdf-v2 > .editor-toolbar{background:#232329 !important;border-bottom:1px solid #2f2f37 !important;padding:6px 10px !important;gap:6px !important;
+  row-gap:4px !important;min-height:44px !important;box-sizing:border-box;flex-wrap:wrap !important;visibility:visible;opacity:1;user-select:none;-webkit-user-select:none}
+.pdf-v2 > .editor-toolbar button:not(.wf-btn){height:30px !important;min-width:30px;border:0 !important;border-radius:8px !important;background:transparent !important;
+  color:#cfcfd6 !important;font-size:15px !important;line-height:1 !important;padding:0 6px !important;align-items:center;justify-content:center;
+  box-shadow:none;transition:background .12s,color .12s}
+.pdf-v2 > .editor-toolbar button:not(.wf-btn):hover{background:rgba(255,255,255,.1) !important;color:#fff !important}
+.pdf-v2 > .editor-toolbar :focus-visible{outline:2px solid #4a90e2;outline-offset:1px}
+/* Ouvrir un PDF */
+.pdf-v2 .pdf-open-btn{display:inline-flex !important;align-items:center;gap:6px;height:30px;box-sizing:border-box;padding:0 12px !important;border-radius:99px !important;
+  background:#4a90e2 !important;color:#fff !important;font-size:12px !important;font-weight:600;flex:none}
+.pdf-v2 .pdf-open-btn:hover{background:#3b7fd0 !important}
+.pdf-v2.pdf-loaded .pdf-open-btn{background:rgba(255,255,255,.08) !important;padding:0 9px !important}
+.pdf-v2.pdf-loaded .pdf-open-btn:hover{background:rgba(255,255,255,.16) !important}
+.pdf-v2.pdf-loaded .pdf-open-lbl{display:none}
+.pdf-v2 .pdf-open-ico{font-size:14px}
+/* Nom du fichier */
+.pdf-v2 .pdf-filename{flex:0 1 auto !important;max-width:280px !important;min-width:0;color:#ddd !important;font-size:12px !important;
+  background:rgba(255,255,255,.07);border-radius:99px;padding:5px 12px;box-sizing:border-box}
+.pdf-v2 .pdf-filename:empty{display:none}
+/* Groupes navigation / zoom */
+.pdf-v2 .pdf-nav,.pdf-v2 .pdf-zoom-bar{background:#2f2f38;border-radius:99px;padding:2px !important;gap:1px !important;flex:none}
+.pdf-v2 .pdf-nav button:not(.wf-btn),.pdf-v2 .pdf-zoom-bar button:not(.wf-btn){height:26px !important;min-width:28px;border-radius:99px !important;font-size:13px !important}
+.pdf-v2 .pdf-zoom-bar .pdf-zoom-in,.pdf-v2 .pdf-zoom-bar .pdf-zoom-out{font-size:17px !important}
+.pdf-v2 .pdf-page-box{background:transparent !important;border:0 !important;border-radius:99px !important;height:26px;align-items:center}
+.pdf-v2 .pdf-page-box > div{background:#4a4a55 !important;width:1px;margin:6px 0}
+.pdf-v2 .pdf-page-input{width:36px !important;height:26px !important;color:#fff !important;background:transparent !important;border:0 !important;
+  font-size:13px !important;font-weight:600;padding:0 2px !important;cursor:text !important;font-variant-numeric:tabular-nums}
+.pdf-v2 .pdf-page-input:focus{background:rgba(74,144,226,.25) !important;border-radius:99px}
+.pdf-v2 .pdf-page-box button{color:#bdbdc6 !important;font-size:12px !important;min-width:58px !important;font-variant-numeric:tabular-nums}
+.pdf-v2 .pdf-zoom-label{color:#bdbdc6 !important;font-size:11px !important;min-width:42px !important;font-variant-numeric:tabular-nums}
+/* Annoter / enregistrer / fond d'écran */
+.pdf-v2 .pdf-annot-widget-btn.pdf-on{background:rgba(74,144,226,.3) !important;color:#fff !important;box-shadow:inset 0 0 0 1px #4a90e2 !important}
+.pdf-v2 .wf-btns{margin-left:6px !important}
+@container (max-width: 760px){ .pdf-v2 .pdf-filename{max-width:150px !important} }
+@container (max-width: 620px){ .pdf-v2 .pdf-zoom-fit,.pdf-v2 .pdf-zoom-page,.pdf-v2 .pdf-wallpaper-btn{display:none !important} .pdf-v2 .pdf-filename{display:none} }
+@container (max-width: 470px){ .pdf-v2 .pdf-zoom-bar{display:none !important} .pdf-v2 .pdf-open-lbl{display:none} }
+/* Pages */
+.pdf-v2 .pdf-canvas-wrap{background:#2b2b31 !important;scrollbar-color:#55555f transparent}
+.pdf-v2 .pdf-canvas{box-shadow:0 4px 18px rgba(0,0,0,.55) !important}
+/* Accueil */
+.pdf-v2 .pdf-placeholder{background:radial-gradient(circle at 50% 35%,#24243a,#111114 70%) !important;color:#e6e6ea !important;
+  padding:16px;text-align:center;line-height:1.45;overflow:auto}
+.pdf-v2 .pdf-ph-box{max-width:440px;margin:auto}
+.pdf-v2 .pdf-ph-ico{font-size:46px;line-height:1;margin-bottom:8px}
+.pdf-v2 .pdf-ph-title{font-weight:700;font-size:16px;margin-bottom:4px}
+.pdf-v2 .pdf-ph-btn{display:inline-block;margin-top:14px;padding:10px 20px;border-radius:99px;background:#4a90e2;color:#fff;font-size:13px;
+  font-weight:600;cursor:pointer;touch-action:manipulation}
+.pdf-v2 .pdf-ph-btn:hover{background:#3b7fd0}
+.pdf-v2 .pdf-ph-hint{font-size:12px;color:#9a9aa6;margin-top:12px}
+/* Glisser-déposer */
+.pdf-v2.pdf-drag::after{content:'Dépose ton PDF ici';position:absolute;inset:8px;z-index:20;display:flex;align-items:center;justify-content:center;
+  border:3px dashed #4a90e2;border-radius:10px;background:rgba(74,144,226,.18);color:#fff;font-weight:700;font-size:16px;pointer-events:none}
+/* Message « Page 3 / 12 » */
+.pdf-v2 > .pdf-flash{position:absolute;left:50%;top:56px;transform:translateX(-50%);z-index:15;padding:7px 16px;border-radius:99px;
+  background:rgba(0,0,0,.8);color:#fff;font-size:14px;font-weight:700;pointer-events:none;opacity:0;transition:opacity .25s;
+  white-space:nowrap;font-variant-numeric:tabular-nums}
+.pdf-v2 > .pdf-flash.is-on{opacity:1}
+/* Onglets du plein écran (plusieurs PDF) */
+#pdf-fs-tabbar{background:#18181c;box-shadow:0 1px 0 #2f2f37,0 2px 10px rgba(0,0,0,.5)}
+#pdf-fs-tabbar .pdf-fs-tab{background:#232329;border-color:#2f2f37;color:#9a9aa6;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  border-radius:8px 8px 0 0;max-width:220px}
+#pdf-fs-tabbar .pdf-fs-tab:hover{background:#2c2c34;color:#e6e6ea}
+#pdf-fs-tabbar .pdf-fs-tab.active{background:#2f2f38;color:#fff;border-color:#3a3a44;box-shadow:inset 0 -3px 0 #4a90e2}
+#pdf-fs-exit-all{border-radius:99px;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+@media print{ .pdf-v2 > .editor-toolbar,.pdf-v2 > .pdf-flash{display:none !important} }
+`;
+    document.head.appendChild(st);
+})();

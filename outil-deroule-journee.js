@@ -13,7 +13,14 @@
 //     reprend ainsi le dernier programme saisi.
 //   • Le tableau mémorise aussi : taille, couleur, mode, disposition,
 //     options d'affichage, position du curseur manuel, réduit / plein écran.
-//   • Export / import du programme dans un fichier .txt.
+//   • Export de la semaine dans un fichier .json lisible (jours en toutes
+//     lettres) et chargement d'un fichier .json (accepte aussi les anciens
+//     .txt). Format :
+//       { "format": "bdp-deroule", "version": 2, "exporte_le": "AAAA-MM-JJ",
+//         "semaine": { "lundi": [ { "debut": "08:20", "fin": "08:30",
+//           "pictogramme": "👋", "activite": "Accueil", "couleur": "#4A5868" } ],
+//           "mardi": [], … } }
+//     Les jours absents du fichier chargé sont conservés.
 //
 // 📌 Intégration dans index.html :
 //   <script src="outil-deroule-journee.js"></script>   (après outil-108heures.js)
@@ -398,6 +405,55 @@ if (!window.bdpCanDragFrom) {
     .der-outer.is-edit .der-item:hover { background: #F4F6F9; }
     .der-outer.is-edit .der-item.is-cur, .der-outer.is-edit .der-item.is-done { opacity: 1; transform: none; background: #fff; box-shadow: none; margin: 0; padding-bottom: .5em; }
     .der-outer.is-edit .der-item .der-lab { text-decoration: none; }
+
+    /* ── Mode widget : seul le contenu de la journée reste visible ── */
+    .der-compact-exit { display: none; }
+    .der-outer.is-compact {
+        border-radius: 18px;
+        box-shadow: 0 12px 30px -16px rgba(10,20,35,0.45);
+    }
+    .der-outer.is-compact .der-inner {
+        background: transparent;
+        background-image: none;
+        padding: 0;
+        gap: 0;
+        border-radius: 18px;
+    }
+    .der-outer.is-compact .der-header,
+    .der-outer.is-compact .der-daybar,
+    .der-outer.is-compact .der-footer,
+    .der-outer.is-compact .der-hint,
+    .der-outer.is-compact .der-panel { display: none !important; }
+    .der-outer.is-compact .der-body {
+        border-radius: 18px;
+        background: rgba(255,255,255,0.97);
+        box-shadow: none;
+    }
+    .der-outer.is-compact .der-compact-exit {
+        display: flex;
+        position: absolute;
+        top: 6px; right: 6px;
+        z-index: 20;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border: none;
+        border-radius: 999px;
+        background: rgba(20,32,46,0.75);
+        color: #fff;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity .2s;
+    }
+    .der-outer.is-compact .der-compact-exit svg { width: 14px; height: 14px; }
+    .der-outer.is-compact:hover .der-compact-exit,
+    .der-outer.is-compact:focus-within .der-compact-exit { opacity: 1; }
+    @media (pointer: coarse) { .der-outer.is-compact .der-compact-exit { opacity: .55; } }
+    .widget.wf-max[data-type="deroule"] .der-outer.is-compact .der-inner,
+    .widget.phone-fs[data-type="deroule"] .der-outer.is-compact .der-inner { padding: 10px; background: var(--der-bg); }
 
     /* ── Pied : boutons (pastilles « verre ») ── */
     .der-footer {
@@ -815,6 +871,8 @@ if (!window.bdpCanDragFrom) {
     const ICON_DAY     = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 14h3M7.5 17h6"/></svg>';
     const ICON_HELP    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17.2h.01"/></svg>';
     const ICON_PALETTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg>';
+    const ICON_COMPACT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><rect x="7" y="8" width="10" height="8" rx="1.5"/></svg>';
+    const ICON_EXPAND  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
     const ICON_EDIT    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>';
 
     // ── Outils ────────────────────────────────────────────────────────────
@@ -896,6 +954,65 @@ if (!window.bdpCanDragFrom) {
     }
     function stripCount(p) { const c = Object.assign({}, p); delete c._count; return c; }
 
+    // ── Fichier .json d'une semaine ───────────────────────────────────────
+    function weekToJSON(p) {
+        const semaine = {};
+        DER_DAYS.forEach(d => {
+            semaine[d.long] = sortDay(p[d.k] || []).map(a => {
+                const o = { debut: a.start };
+                if (a.end) o.fin = a.end;
+                o.pictogramme = a.emo || '';
+                o.activite = a.label;
+                o.couleur = a.color;
+                return o;
+            });
+        });
+        return { format: 'bdp-deroule', version: 2, exporte_le: todayStr(), semaine };
+    }
+    function normTxt(s) {
+        return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    }
+    // Retrouve la clé de jour ('0'…'6') à partir de « lundi », « Lun », « 1 »…
+    function dayKeyFrom(name) {
+        const n = normTxt(name);
+        if (/^[0-6]$/.test(n)) return n;
+        if (n === '7') return '0';
+        const d = DER_DAYS.find(x => normTxt(x.long) === n || normTxt(x.short) === n || normTxt(x.long).slice(0, 3) === n.slice(0, 3) && n.length >= 3);
+        return d ? d.k : null;
+    }
+    function normTime(t) {
+        const m = /^(\d{1,2})\s*[:hH]\s*(\d{2})?$/.exec(String(t || '').trim());
+        if (!m) return '';
+        const h = parseInt(m[1], 10), mi = parseInt(m[2] || '0', 10);
+        return (h < 24 && mi < 60) ? pad(h) + ':' + pad(mi) : '';
+    }
+    // Lit un fichier (.json v2, ancien .txt v1 ou programme brut).
+    // Renvoie { prog, days: [clés présentes], count } ou null.
+    function parseWeekFile(raw) {
+        if (!raw || typeof raw !== 'object') return null;
+        const src = raw.semaine || raw.programme || raw.week || raw;
+        if (!src || typeof src !== 'object' || Array.isArray(src)) return null;
+        const part = {};
+        Object.keys(src).forEach(name => {
+            const k = dayKeyFrom(name);
+            if (k === null || !Array.isArray(src[name])) return;
+            part[k] = src[name].map(a => a && {
+                id: a.id,
+                start: normTime(a.debut || a.start || a.heure),
+                end: normTime(a.fin || a.end),
+                emo: a.pictogramme || a.emoji || a.emo || '',
+                label: a.activite || a.activité || a.label || a.nom || '',
+                color: a.couleur || a.color
+            });
+        });
+        const days = Object.keys(part);
+        if (!days.length) return null;
+        const clean = cleanProgram(part);
+        const prog = {};
+        days.forEach(k => { prog[k] = clean[k]; });
+        return { prog, days, count: clean._count };
+    }
+
     function loadStoredProgram() {
         try {
             const raw = localStorage.getItem(DER_KEY_PROG);
@@ -934,6 +1051,7 @@ if (!window.bdpCanDragFrom) {
             <div class="der-header">
                 <div class="der-title">${ICON_DAY}<span>Déroulé de la journée</span></div>
                 <div class="der-tools">
+                    <button class="der-icon-btn der-compact-btn" title="Mode widget : ne garder que le contenu de la journée" onmousedown="event.stopPropagation()">${ICON_COMPACT}</button>
                     <button class="der-icon-btn der-edit-btn" title="Modifier le programme" onmousedown="event.stopPropagation()">${ICON_EDIT}</button>
                     <button class="der-icon-btn der-settings-btn" title="Réglages (affichage, couleur du cadre)" onmousedown="event.stopPropagation()">${ICON_PALETTE}</button>
                     <button class="der-icon-btn der-help-btn" title="Aide" onmousedown="event.stopPropagation()">${ICON_HELP}</button>
@@ -946,6 +1064,8 @@ if (!window.bdpCanDragFrom) {
                 </div>
             </div>
 
+            <button type="button" class="der-compact-exit" title="Revenir à l'affichage complet (ou double-clic sur une zone libre)">${ICON_EXPAND}<span>Afficher les boutons</span></button>
+
             <div class="der-panel der-help-popup">
                 <div class="der-panel-title">Aide — Déroulé de la journée</div>
                 <ul class="der-help-list">
@@ -953,8 +1073,9 @@ if (!window.bdpCanDragFrom) {
                     <li>En mode <em>Auto</em>, le curseur « On en est là » avance tout seul avec l'heure et la barre montre le temps écoulé.</li>
                     <li>En mode <em>Manuel</em>, avancez avec <b>Suivant</b> / <b>Précédent</b>, ou cliquez directement sur une activité. Pratique quand on prend du retard !</li>
                     <li>Les pastilles <b>Lun… Dim</b> affichent un autre jour. Le point indique aujourd'hui.</li>
+                    <li>Le bouton <b>Mode widget</b> (à gauche du crayon) retire les boutons et le cadre pour ne laisser que la journée. Pour revenir : survolez le widget et cliquez sur « Afficher les boutons », ou double-cliquez sur une zone libre.</li>
                     <li>Le <b>crayon</b> ouvre le mode édition : ajoutez une activité, cliquez sur une vignette pour la modifier, ou copiez la journée vers d'autres jours.</li>
-                    <li>Le programme est enregistré avec le tableau et repris par tout nouveau widget. <b>Exporter</b> / <b>Importer</b> (dans les réglages) permettent de le transférer sur un autre ordinateur.</li>
+                    <li>Le programme est enregistré avec le tableau et repris par tout nouveau widget. <b>Exporter la semaine</b> crée un fichier .json ; <b>Charger un .json</b> le reprend (sur un autre ordinateur, une autre classe…). Ces boutons sont dans les réglages et en mode édition. Les jours absents du fichier sont conservés.</li>
                 </ul>
             </div>
             <div class="der-panel der-settings-popup">
@@ -971,10 +1092,10 @@ if (!window.bdpCanDragFrom) {
                 <div class="der-swatches">${swatches}</div>
                 <div class="der-panel-label">Programme de la semaine</div>
                 <div class="der-panel-btns">
-                    <button type="button" class="der-export-btn">💾 Exporter</button>
-                    <button type="button" class="der-import-btn">📂 Importer</button>
+                    <button type="button" class="der-export-btn" title="Enregistrer la semaine dans un fichier .json">💾 Exporter la semaine</button>
+                    <button type="button" class="der-import-btn" title="Charger une semaine depuis un fichier .json">📂 Charger un .json</button>
                 </div>
-                <input type="file" class="der-file-input" accept=".txt,.json" style="display:none;">
+                <input type="file" class="der-file-input" accept=".json,application/json,.txt" style="display:none;">
             </div>
 
             <div class="der-daybar">
@@ -998,6 +1119,8 @@ if (!window.bdpCanDragFrom) {
 
                 <button class="der-btn primary der-add-btn" data-group="edit" title="Ajouter une activité à ce jour">＋<span class="der-btn-txt"> Ajouter</span></button>
                 <button class="der-btn der-copy-btn" data-group="edit" title="Copier ce jour vers d'autres jours">📋<span class="der-btn-txt"> Copier vers…</span></button>
+                <button class="der-btn der-export-btn" data-group="edit" title="Exporter la semaine dans un fichier .json">💾<span class="der-btn-txt"> Exporter</span></button>
+                <button class="der-btn der-import-btn" data-group="edit" title="Charger une semaine depuis un fichier .json">📂<span class="der-btn-txt"> Charger</span></button>
                 <button class="der-btn danger der-clear-btn" data-group="edit" title="Vider ce jour">🗑<span class="der-btn-txt"> Vider</span></button>
                 <button class="der-btn is-on der-done-btn" data-group="edit" title="Quitter le mode édition">✓<span class="der-btn-txt"> Terminé</span></button>
             </div>
@@ -1118,6 +1241,7 @@ if (!window.bdpCanDragFrom) {
         let cursorDate = todayStr();
         let viewDay   = todayKey();   // jour affiché (revient à aujourd'hui à chaque ouverture)
         let editing   = false;
+        let compact   = !!saved.compact;
         let editId    = null;
         let selColor  = DER_COLORS[0];
         let _isMax    = false;
@@ -1239,6 +1363,7 @@ if (!window.bdpCanDragFrom) {
             // Classes de l'enveloppe
             outer.classList.toggle('is-band', layout === 'band');
             outer.classList.toggle('is-edit', editing);
+        outer.classList.toggle('is-compact', compact && !editing);
             hintEl.hidden = !editing || !list.length;
 
             // Pied
@@ -1416,12 +1541,32 @@ if (!window.bdpCanDragFrom) {
         // ── Mode édition ──────────────────────────────────────────────────
         function setEditing(on) {
             editing = !!on;
+            if (editing) compact = false;
             closePanels();
             lastCurKey = null;
             render();
         }
         q('.der-edit-btn').addEventListener('click', (e) => { e.stopPropagation(); setEditing(!editing); });
         q('.der-done-btn').addEventListener('click', () => setEditing(false));
+
+        // ── Mode widget (contenu seul, sans boutons ni cadre) ─────────────
+        function setCompact(on) {
+            compact = !!on;
+            if (compact) editing = false;
+            closePanels();
+            closeForm(); closeCopy(); closeConfirm();
+            lastCurKey = null;
+            render();
+            if (typeof saveBoard === 'function') saveBoard();
+        }
+        widget._derSetCompact = setCompact;
+        q('.der-compact-btn').addEventListener('click', (e) => { e.stopPropagation(); setCompact(true); });
+        q('.der-compact-exit').addEventListener('click', (e) => { e.stopPropagation(); setCompact(false); });
+        inner.addEventListener('dblclick', (e) => {
+            if (!compact) return;
+            if (e.target.closest && e.target.closest('.der-item, .der-compact-exit')) return;
+            setCompact(false);
+        });
 
         // ── Fenêtre de confirmation ───────────────────────────────────────
         function showConfirm(title, text, onOk, okLabel) {
@@ -1591,39 +1736,56 @@ if (!window.bdpCanDragFrom) {
         optClock.addEventListener('change', () => { showClock = optClock.checked; render(); if (typeof saveBoard === 'function') saveBoard(); });
         syncSettings();
 
-        // ── Export / import du programme ──────────────────────────────────
-        q('.der-export-btn').addEventListener('click', () => {
-            const data = { format: 'bdp-deroule', version: 1, programme: prog };
-            const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'text/plain;charset=utf-8' });
+        // ── Export / chargement de la semaine (.json) ─────────────────────
+        function exportWeek() {
+            const total = DER_DAYS.reduce((n, d) => n + (prog[d.k] || []).length, 0);
+            if (!total) { showConfirm('Rien à exporter', 'La semaine ne contient encore aucune activité.'); return; }
+            const blob = new Blob([JSON.stringify(weekToJSON(prog), null, 2)], { type: 'application/json;charset=utf-8' });
             const url  = URL.createObjectURL(blob);
             const a    = document.createElement('a');
             a.href = url;
-            a.download = 'lebureauduprof_deroule_' + todayStr() + '.txt';
+            a.download = 'lebureauduprof_deroule_semaine_' + todayStr() + '.json';
             document.body.appendChild(a);
             a.click();
             setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 200);
-        });
-        q('.der-import-btn').addEventListener('click', () => fileInput.click());
+        }
+        qa('.der-export-btn').forEach(b => b.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closePanels();
+            exportWeek();
+        }));
+        qa('.der-import-btn').forEach(b => b.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        }));
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             e.target.value = '';
             if (!file) return;
             const reader = new FileReader();
             reader.onload = (ev) => {
-                let p = null;
+                let res = null;
                 try {
-                    const raw = JSON.parse(ev.target.result);
-                    p = cleanProgram(raw && raw.programme ? raw.programme : raw);
-                } catch (err) { p = null; }
+                    const txt = String(ev.target.result || '').replace(/^\uFEFF/, '');
+                    res = parseWeekFile(JSON.parse(txt));
+                } catch (err) { res = null; }
                 closePanels();
-                if (!p || !p._count) {
-                    showConfirm('Import impossible', 'Ce fichier ne contient aucun programme reconnu.');
+                if (!res) {
+                    showConfirm('Chargement impossible',
+                        'Ce fichier ne contient pas de semaine reconnue.\nUtilisez un fichier .json créé avec « Exporter la semaine ».');
                     return;
                 }
-                showConfirm('Remplacer le programme ?',
-                    'Le programme actuel sera remplacé par celui du fichier (' + p._count + ' activité' + (p._count > 1 ? 's' : '') + ').',
-                    () => { prog = stripCount(p); lastCurKey = null; render(); persist(); },
-                    'Importer');
+                const names = DER_DAYS.filter(d => res.days.includes(d.k)).map(d => d.long);
+                const kept  = DER_DAYS.filter(d => !res.days.includes(d.k) && (prog[d.k] || []).length).map(d => d.long);
+                const txt = res.count + ' activité' + (res.count > 1 ? 's' : '') + ' pour : ' + names.join(', ') + '.' +
+                    '\nCes jours seront remplacés.' +
+                    (kept.length ? '\nConservés : ' + kept.join(', ') + '.' : '');
+                showConfirm('Charger cette semaine ?', txt, () => {
+                    res.days.forEach(k => { prog[k] = res.prog[k] || []; });
+                    lastCurKey = null;
+                    render();
+                    persist();
+                }, 'Charger');
             };
             reader.readAsText(file, 'UTF-8');
         });
@@ -1660,6 +1822,7 @@ if (!window.bdpCanDragFrom) {
                 else if (copyOv.classList.contains('open')) closeCopy();
                 else if (q('.der-panel.show')) closePanels();
                 else if (editing) setEditing(false);
+                else if (compact) setCompact(false);
                 return;
             }
             // Flèches : avancer / reculer le curseur en mode manuel
@@ -1841,7 +2004,7 @@ if (!window.bdpCanDragFrom) {
                 theme: widget.dataset.derTheme || 'bleu',
                 collapsed: widget.dataset.collapsed === '1',
                 max: _isMax,
-                mode, layout, showTimes, showLeft, showClock,
+                mode, layout, showTimes, showLeft, showClock, compact,
                 cursor, cursorDate,
                 prog
             };

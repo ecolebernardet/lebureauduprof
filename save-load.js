@@ -262,6 +262,11 @@ function buildBoardState() {
         if (w.dataset.type === 'diaporama' && typeof window.diapoGetData === 'function') {
             diapoData = window.diapoGetData(w);
         }
+        // Données propres au lecteur vidéo (réglages, nom du fichier, moment de lecture, repères — pas la vidéo elle-même)
+        let lvData = null;
+        if (w.dataset.type === 'lecteur-video' && typeof window.lvGetData === 'function') {
+            lvData = window.lvGetData(w);
+        }
         // Données propres au widget couleurs
         let clrData = null;
         if (w.dataset.type === 'couleurs' && typeof w._clrGetData === 'function') {
@@ -548,6 +553,7 @@ function buildBoardState() {
 			ephemData,
 			citData,
 			diapoData,
+			lvData,
 			s3dW, s3dH,
 			seyesData,
 			convData,
@@ -1237,6 +1243,10 @@ function restoreBoardFromJSON(json) {
         // Diaporama : réappliquer les réglages et reprendre le dossier (accès mémorisé dans le navigateur)
         if (w.type === 'diaporama' && w.diapoData && typeof window.diapoSetData === 'function') {
             window.diapoSetData(widget, w.diapoData);
+        }
+        // Lecteur vidéo : réappliquer les réglages et reprendre la vidéo (accès mémorisé dans le navigateur)
+        if (w.type === 'lecteur-video' && w.lvData && typeof window.lvSetData === 'function') {
+            window.lvSetData(widget, w.lvData);
         }
         const c = widget.querySelector('.editor-container');
         const hP = w.contentHPercent !== undefined ? w.contentHPercent : w.heightPercent;

@@ -956,6 +956,7 @@ function setVisuelsMode(mode) {
 <!-- template-ephemeride → widget-ephemeride.js -->
 <!-- template-citations → widget-citations.js -->
 <!-- template-diaporama → widget-diaporama.js -->
+<!-- template-lecteur-video → widget-lecteur-video.js -->
 <template id="template-pdf">
     <div class="editor-container" style="height:562px;width:1000px;">
         <button class="exit-fs-btn" onclick="document.exitFullscreen()">✖ Quitter Plein Écran</button>
@@ -1115,6 +1116,7 @@ function setVisuelsMode(mode) {
 <script src="widget-ephemeride.js"></script>
 <script src="widget-citations.js"></script>
 <script src="widget-diaporama.js"></script>
+<script src="widget-lecteur-video.js"></script>
 <script src="activites-maths-repro-quadrillage.js"></script>
 <script src="activites-maths-symetrie-axiale.js"></script>
 <script src="activites-divers-pixelart.js"></script>
@@ -1992,6 +1994,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="widgets-card-ico"><img src="pics/widget-diaporama.jpg" alt="Projeter les images d'un dossier en diaporama" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎞️'"></div>
                 <div class="widgets-card-name">Diaporama</div>
                 <div class="widgets-card-desc">Projeter les images d'un dossier</div>
+            </div>
+            <div class="widgets-card" onclick="createWidget('lecteur-video');toggleWidgetsPanel()">
+                <div class="widgets-card-ico"><img src="pics/widget-lecteur-video.jpg" alt="Lire une vidéo de l'ordinateur" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎬'"></div>
+                <div class="widgets-card-name">Lecteur vidéo</div>
+                <div class="widgets-card-desc">Lire une vidéo ou un son de l'ordinateur</div>
             </div>
         </div>
 		</div>
@@ -3267,7 +3274,14 @@ function lancerTracesGeometriques() {
         }
     }, { passive: true });
 
-    /* ── Glisser-déposer un PDF ou une image directement sur le tableau ── */
+    /* ── Glisser-déposer un PDF, une image ou une vidéo directement sur le tableau ── */
+    function isVideoFile(file) {
+        if (typeof window.lvIsMediaFile === 'function') return window.lvIsMediaFile(file);
+        return file && (
+            (file.type && (file.type.indexOf('video/') === 0 || file.type.indexOf('audio/') === 0)) ||
+            /\.(mp4|m4v|webm|ogv|mov|mkv|avi|mp3|wav|ogg|oga|m4a|aac|flac|opus|weba)$/i.test(file.name)
+        );
+    }
     function isPdfFile(file) {
         return file && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name));
     }
@@ -3290,6 +3304,38 @@ function lancerTracesGeometriques() {
     board.addEventListener('drop', function(e) {
         board.classList.remove('board-pdf-dragover');
         if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+
+        // Vidéo (ou son) : un lecteur vidéo s'ouvre à l'endroit du dépôt, un par fichier
+        var allFiles = Array.prototype.slice.call(e.dataTransfer.files);
+        var videoIdx = [];
+        allFiles.forEach(function(f, i) { if (isVideoFile(f)) videoIdx.push(i); });
+        if (videoIdx.length && typeof createWidget === 'function' && typeof window.lvOpenFile === 'function') {
+            e.preventDefault();
+            e.stopPropagation();
+            // Les « handles » (Chrome / Edge) doivent être demandés pendant l'événement :
+            // ils permettent de retrouver la vidéo au rechargement du tableau.
+            var items = Array.prototype.filter.call(e.dataTransfer.items || [], function(it) { return it.kind === 'file'; });
+            var dropX = e.clientX, dropY = e.clientY;
+            videoIdx.forEach(function(i, n) {
+                var hp = null;
+                try { if (items[i] && typeof items[i].getAsFileSystemHandle === 'function') hp = items[i].getAsFileSystemHandle(); } catch (err) {}
+                var widget = createWidget('lecteur-video');
+                if (!widget) return;
+                // Le lecteur est placé là où on a lâché la vidéo (décalé si plusieurs)
+                try {
+                    var bRect = board.getBoundingClientRect();
+                    var x = Math.max(0, Math.min(dropX - bRect.left - 160 + n * 30, bRect.width - 340));
+                    var y = Math.max(0, Math.min(dropY - bRect.top - 100 + n * 30, Math.max(0, bRect.height - 240)));
+                    widget.style.left = x + 'px';
+                    widget.style.top = y + 'px';
+                    var curVH = typeof virtualH === 'function' ? virtualH(window.innerWidth) : window.innerHeight;
+                    widget.dataset.leftPercent = (widget.offsetLeft / window.innerWidth) * 100;
+                    widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
+                } catch (err) {}
+                window.lvOpenFile(widget, allFiles[i], hp);
+            });
+            return;
+        }
 
         var pdfFile = Array.prototype.find.call(e.dataTransfer.files, isPdfFile);
         if (pdfFile) {
@@ -3600,7 +3646,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
     // ainsi que les activités 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama'];
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama', 'lecteur-video'];
     var lastLaunch = 0;
 
     function isPhone() {

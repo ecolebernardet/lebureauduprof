@@ -1071,6 +1071,7 @@ function setVisuelsMode(mode) {
 <script src="media.js"></script>
 <script src="widget-youtube.js"></script>
 <script src="widget-fenetre-web.js"></script>
+<script src="widget-qwant-junior.js"></script>
 <script src="widget-carte.js"></script>
 <script src="outil-outilsprofs.js"></script>
 <script src="help-modal.js"></script>
@@ -1981,6 +1982,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="widgets-card-ico"><img src="pics/widget-youtube.jpg" alt="Ouvrir une vidéo Youtube" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="widgets-card-name">YouTube</div>
                 <div class="widgets-card-desc">Intégrer une vidéo YouTube</div>
+            </div>
+            <div class="widgets-card" onclick="createWidget('qwant-junior');toggleWidgetsPanel()">
+                <div class="widgets-card-ico"><img src="pics/widget-qwant-junior.jpg" alt="Faire une recherche sur Qwant Junior" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔎'"></div>
+                <div class="widgets-card-name">Qwant Junior</div>
+                <div class="widgets-card-desc">Le moteur de recherche des enfants</div>
             </div>
 			<div class="widgets-card" onclick="createWidget('diaporama');toggleWidgetsPanel()">
                 <div class="widgets-card-ico"><img src="pics/widget-diaporama.jpg" alt="Projeter les images d'un dossier en diaporama" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎞️'"></div>
@@ -3731,6 +3737,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'youtube': function(c) { return c.classList.contains('wf-media-fullboard')
                                      ? null : (typeof toggleMediaBoardFullscreen === 'function' ? toggleMediaBoardFullscreen : null); },
         'iframe':  function(c) { return c.classList.contains('wf-media-fullboard')
+                                     ? null : (typeof toggleMediaBoardFullscreen === 'function' ? toggleMediaBoardFullscreen : null); },
+        'qwant-junior': function(c) { return c.classList.contains('wf-media-fullboard')
                                      ? null : (typeof toggleMediaBoardFullscreen === 'function' ? toggleMediaBoardFullscreen : null); },
         'carte':   function(c) { return c.classList.contains('wf-media-fullboard')
                                      ? null : (typeof toggleMediaBoardFullscreen === 'function' ? toggleMediaBoardFullscreen : null); }

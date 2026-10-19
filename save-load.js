@@ -112,10 +112,10 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur') {
-            // Calculatrice / Phrase en désordre : si le widget est réduit (mini-barre),
-            // on garde sa position d'origine (ses dimensions sont gérées par le widget)
-            const _calcMini = !!w.querySelector('.wf-mini-bar');
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108') {
+            // Calculatrice / Phrase en désordre / Visualiseur / 108 heures : si le widget est réduit
+            // (mini-barre), on garde sa position d'origine (ses dimensions sont gérées par le widget)
+            const _calcMini = !!w.querySelector('.wf-mini-bar, .h108-mini-bar');
             const _cl = _calcMini ? parseFloat(w.dataset.wfMiniSavedLeft) : NaN;
             const _ct = _calcMini ? parseFloat(w.dataset.wfMiniSavedTop)  : NaN;
             lP = ((isNaN(_cl) ? w.offsetLeft : _cl) / curW)  * 100;
@@ -146,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -462,6 +462,12 @@ function buildBoardState() {
         if (w.dataset.type === 'visualiseur' && typeof w._visuGetData === 'function') {
             visuData = w._visuGetData();
         }
+        // Données propres au widget 108 heures (taille, couleur, réduit / plein écran, catégories dépliées)
+        // Les séances elles-mêmes sont gardées dans le navigateur (localStorage), communes à tous les tableaux
+        let h108Data = null;
+        if (w.dataset.type === 'heures108' && typeof w._h108GetData === 'function') {
+            h108Data = w._h108GetData();
+        }
         let calcData = null;
         if (w.dataset.type === 'calculatrice' && typeof w._calcGetData === 'function') {
             calcData = w._calcGetData();
@@ -543,7 +549,8 @@ function buildBoardState() {
 			j7dData,
 			pdsData,
 			calcData,
-			visuData
+			visuData,
+			h108Data
 		});
     });
     const shapes = [];
@@ -1153,6 +1160,13 @@ function restoreBoardFromJSON(json) {
             widget = createWidget('visualiseur', '100px', '100px', false);
             if (w.visuData && widget && typeof widget._visuSetData === 'function') {
                 widget._visuSetData(w.visuData);
+            }
+        } else if (w.type === 'heures108') {
+            // 108 heures : taille, couleur, plein écran / réduit, catégories dépliées
+            if (typeof createHeures108Widget === 'function') {
+                widget = createHeures108Widget(w.h108Data || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
             }
         } else if (w.type === 'pixelart') {
             if (typeof createPixelArtWidget === 'function') {

@@ -59,6 +59,14 @@
             font-style: normal;
         }
 
+        @font-face {
+            font-family: 'Quicksand';
+            src: local('Quicksand'), local('Quicksand Regular'), local('Quicksand-Regular'),
+                 url('polices/Quicksand-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
         body, button, input, select, textarea {
             font-family: 'Nunito', sans-serif !important;
         }
@@ -469,19 +477,20 @@
 			</div>
 			<div class="ttb-sep"></div>
 			<select id="font-family-select" onmousedown="savedSelection=saveCurrentSelection()" onchange="formatFontFamilyGlobal(this.value)" title="Police">
-				<option value="Arial, sans-serif">Arial</option>
-				<option value="'Segoe UI', sans-serif">Segoe UI</option>
-				<option value="'Comic Sans MS', cursive">Comic Sans MS</option>
-				<option value="Verdana, sans-serif">Verdana</option>
-				<option value="'KGPerfectPenmanship', sans-serif">KG Perfect Penmanship</option>
 				<option value="'Andika', sans-serif">Andika</option>
-				<option value="'OpenDyslexicLocal', sans-serif">OpenDyslexic</option>
-				<option value="'BelleAllureGS', cursive">Belle Allure GS</option>
+				<option value="Arial, sans-serif">Arial</option>
 				<option value="'Baloo', cursive">Baloo Regular</option>
-				<option value="'Nunito'">Nunito Regular</option>
+				<option value="'BelleAllureGS', cursive">Belle Allure GS</option>
+				<option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+				<option value="'KGPerfectPenmanship', sans-serif">KG Perfect Penmanship</option>
 				<option value="'Marelle', cursive">Marelle</option>
 				<option value="'MarelleBaton', cursive">Marelle Baton</option>
 				<option value="'MDI', cursive" selected>MDI école</option>
+				<option value="'Nunito'">Nunito Regular</option>
+				<option value="'OpenDyslexicLocal', sans-serif">OpenDyslexic</option>
+				<option value="'Quicksand', sans-serif">Quicksand</option>
+				<option value="'Segoe UI', sans-serif">Segoe UI</option>
+				<option value="Verdana, sans-serif">Verdana</option>
 			</select>
 			<div class="ttb-grp" title="Taille de police">
 				<button class="ttb-btn ttb-step" onmousedown="savedSelection=saveCurrentSelection()" onclick="adjustFontSize(-2)" title="Réduire la taille">−</button>
@@ -1080,6 +1089,7 @@ function setVisuelsMode(mode) {
 <script src="activites-francais-mot-le-plus-long.js"></script>
 <script src="activites-histoire-frise.js"></script>
 <script src="activites-histoire-chateau-fort.js"></script>
+<script src="activites-histoire-societe-moyen-age.js"></script>
 <script src="activites-geo-france.js"></script>
 <script src="activites-geo-savoie.js"></script>
 <script src="activites-geo-europe.js"></script>
@@ -1812,6 +1822,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activites-histoire-chateau-fort.jpg" alt="Le château fort" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🏰'"></div>
                 <div class="act-card-name">Le château fort</div>
                 <div class="act-card-desc">Découvrir les éléments d'un château fort, à l'extérieur comme à l'intérieur</div>
+            </div>
+            <div class="act-card" onclick="createHistoireSocieteMoyenAgeWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activites-histoire-societe-medievale.jpg" alt="La société au Moyen Âge" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='👑'"></div>
+                <div class="act-card-name">La société au Moyen Âge</div>
+                <div class="act-card-desc">La pyramide sociale (clergé, noblesse, peuple), la seigneurie et les liens entre seigneurs et paysans</div>
             </div>
 			<div class="act-card" onclick="createGeoMondeWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activites-geo-monde.jpg" alt="Géographie du monde" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🗺'"></div>
@@ -3564,8 +3579,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
-    // ainsi que les activités 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride'];
+    // ainsi que les activités 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride'];
     var lastLaunch = 0;
 
     function isPhone() {

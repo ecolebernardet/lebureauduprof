@@ -252,6 +252,11 @@ function buildBoardState() {
         if (w.dataset.type === 'ephemeride' && typeof window.ephemGetData === 'function') {
             ephemData = window.ephemGetData(w);
         }
+        // Données propres au widget citations (réglages, citations perso, citation affichée en mode « au hasard »)
+        let citData = null;
+        if (w.dataset.type === 'citations' && typeof window.citGetData === 'function') {
+            citData = window.citGetData(w);
+        }
         // Données propres au widget couleurs
         let clrData = null;
         if (w.dataset.type === 'couleurs' && typeof w._clrGetData === 'function') {
@@ -536,6 +541,7 @@ function buildBoardState() {
 			sondageData,
 			clrData,
 			ephemData,
+			citData,
 			s3dW, s3dH,
 			seyesData,
 			convData,
@@ -1217,6 +1223,10 @@ function restoreBoardFromJSON(json) {
         // Éphéméride : réappliquer les réglages sauvegardés
         if (w.type === 'ephemeride' && w.ephemData && typeof window.ephemSetData === 'function') {
             window.ephemSetData(widget, w.ephemData);
+        }
+        // Citations : réappliquer les réglages et la citation affichée
+        if (w.type === 'citations' && w.citData && typeof window.citSetData === 'function') {
+            window.citSetData(widget, w.citData);
         }
         const c = widget.querySelector('.editor-container');
         const hP = w.contentHPercent !== undefined ? w.contentHPercent : w.heightPercent;

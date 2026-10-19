@@ -112,8 +112,8 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108') {
-            // Calculatrice / Phrase en désordre / Visualiseur / 108 heures : si le widget est réduit
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles') {
+            // Calculatrice / Phrase en désordre / Visualiseur / 108 heures / Billets aux familles : si le widget est réduit
             // (mini-barre), on garde sa position d'origine (ses dimensions sont gérées par le widget)
             const _calcMini = !!w.querySelector('.wf-mini-bar, .h108-mini-bar');
             const _cl = _calcMini ? parseFloat(w.dataset.wfMiniSavedLeft) : NaN;
@@ -146,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -468,6 +468,11 @@ function buildBoardState() {
         if (w.dataset.type === 'heures108' && typeof w._h108GetData === 'function') {
             h108Data = w._h108GetData();
         }
+        // Données propres au widget Billets aux familles (motif, titre, message, signature, taille, couleur, réduit / plein écran)
+        let mfData = null;
+        if (w.dataset.type === 'mots-familles' && typeof w._mfGetData === 'function') {
+            mfData = w._mfGetData();
+        }
         let calcData = null;
         if (w.dataset.type === 'calculatrice' && typeof w._calcGetData === 'function') {
             calcData = w._calcGetData();
@@ -550,7 +555,8 @@ function buildBoardState() {
 			pdsData,
 			calcData,
 			visuData,
-			h108Data
+			h108Data,
+			mfData
 		});
     });
     const shapes = [];
@@ -1165,6 +1171,13 @@ function restoreBoardFromJSON(json) {
             // 108 heures : taille, couleur, plein écran / réduit, catégories dépliées
             if (typeof createHeures108Widget === 'function') {
                 widget = createHeures108Widget(w.h108Data || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'mots-familles') {
+            // Billets aux familles : motif, titre, message, signature, taille, couleur, plein écran / réduit
+            if (typeof createMotsFamillesWidget === 'function') {
+                widget = createMotsFamillesWidget(w.mfData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

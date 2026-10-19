@@ -267,6 +267,11 @@ function buildBoardState() {
         if (w.dataset.type === 'lecteur-video' && typeof window.lvGetData === 'function') {
             lvData = window.lvGetData(w);
         }
+        // Données propres au widget devinettes (réglages, devinettes perso, devinette affichée en mode « au hasard »)
+        let devData = null;
+        if (w.dataset.type === 'devinettes' && typeof window.devGetData === 'function') {
+            devData = window.devGetData(w);
+        }
         // Données propres au widget couleurs
         let clrData = null;
         if (w.dataset.type === 'couleurs' && typeof w._clrGetData === 'function') {
@@ -554,6 +559,7 @@ function buildBoardState() {
 			citData,
 			diapoData,
 			lvData,
+			devData,
 			s3dW, s3dH,
 			seyesData,
 			convData,
@@ -1247,6 +1253,10 @@ function restoreBoardFromJSON(json) {
         // Lecteur vidéo : réappliquer les réglages et reprendre la vidéo (accès mémorisé dans le navigateur)
         if (w.type === 'lecteur-video' && w.lvData && typeof window.lvSetData === 'function') {
             window.lvSetData(widget, w.lvData);
+        }
+        // Devinettes : réappliquer les réglages et la devinette affichée
+        if (w.type === 'devinettes' && w.devData && typeof window.devSetData === 'function') {
+            window.devSetData(widget, w.devData);
         }
         const c = widget.querySelector('.editor-container');
         const hP = w.contentHPercent !== undefined ? w.contentHPercent : w.heightPercent;

@@ -957,6 +957,7 @@ function setVisuelsMode(mode) {
 <!-- template-citations → widget-citations.js -->
 <!-- template-diaporama → widget-diaporama.js -->
 <!-- template-lecteur-video → widget-lecteur-video.js -->
+<!-- template-devinettes → widget-devinettes.js -->
 <template id="template-pdf">
     <div class="editor-container" style="height:562px;width:1000px;">
         <button class="exit-fs-btn" onclick="document.exitFullscreen()">✖ Quitter Plein Écran</button>
@@ -1117,6 +1118,7 @@ function setVisuelsMode(mode) {
 <script src="widget-citations.js"></script>
 <script src="widget-diaporama.js"></script>
 <script src="widget-lecteur-video.js"></script>
+<script src="widget-devinettes.js"></script>
 <script src="activites-maths-repro-quadrillage.js"></script>
 <script src="activites-maths-symetrie-axiale.js"></script>
 <script src="activites-divers-pixelart.js"></script>
@@ -1980,6 +1982,16 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="widgets-card-name">YouTube</div>
                 <div class="widgets-card-desc">Intégrer une vidéo YouTube</div>
             </div>
+			<div class="widgets-card" onclick="createWidget('diaporama');toggleWidgetsPanel()">
+                <div class="widgets-card-ico"><img src="pics/widget-diaporama.jpg" alt="Projeter les images d'un dossier en diaporama" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎞️'"></div>
+                <div class="widgets-card-name">Diaporama</div>
+                <div class="widgets-card-desc">Projeter les images d'un dossier</div>
+            </div>
+            <div class="widgets-card" onclick="createWidget('lecteur-video');toggleWidgetsPanel()">
+                <div class="widgets-card-ico"><img src="pics/widget-lecteur-video.jpg" alt="Lire une vidéo de l'ordinateur" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎬'"></div>
+                <div class="widgets-card-name">Lecteur vidéo</div>
+                <div class="widgets-card-desc">Lire une vidéo ou un son de l'ordinateur</div>
+            </div>
             <div class="widgets-card" onclick="createWidget('carte');toggleWidgetsPanel()">
                 <div class="widgets-card-ico"><img src="pics/widget-carte.jpg" alt="Ouvrir une carte Google Maps" style="width:100%;height:100%;object-fit:contain;">️</div>
                 <div class="widgets-card-name">Carte</div>
@@ -1990,15 +2002,10 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="widgets-card-name">Citations</div>
                 <div class="widgets-card-desc">Une citation expliquée pour réfléchir en classe</div>
             </div>
-            <div class="widgets-card" onclick="createWidget('diaporama');toggleWidgetsPanel()">
-                <div class="widgets-card-ico"><img src="pics/widget-diaporama.jpg" alt="Projeter les images d'un dossier en diaporama" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎞️'"></div>
-                <div class="widgets-card-name">Diaporama</div>
-                <div class="widgets-card-desc">Projeter les images d'un dossier</div>
-            </div>
-            <div class="widgets-card" onclick="createWidget('lecteur-video');toggleWidgetsPanel()">
-                <div class="widgets-card-ico"><img src="pics/widget-lecteur-video.jpg" alt="Lire une vidéo de l'ordinateur" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎬'"></div>
-                <div class="widgets-card-name">Lecteur vidéo</div>
-                <div class="widgets-card-desc">Lire une vidéo ou un son de l'ordinateur</div>
+			<div class="widgets-card" onclick="createWidget('devinettes');toggleWidgetsPanel()">
+                <div class="widgets-card-ico"><img src="pics/widget-devinettes.jpg" alt="Afficher une devinette" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧩'"></div>
+                <div class="widgets-card-name">Devinettes</div>
+                <div class="widgets-card-desc">Une devinette, un indice, la réponse</div>
             </div>
         </div>
 		</div>
@@ -3646,7 +3653,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
     // ainsi que les activités 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama', 'lecteur-video'];
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama', 'lecteur-video', 'devinettes'];
     var lastLaunch = 0;
 
     function isPhone() {

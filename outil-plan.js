@@ -584,7 +584,7 @@ function createPlanWidget() {
     container.className = 'plan-container';
 
     // Taille initiale
-    const initW = Math.min(Math.round(window.innerWidth * 0.75), 700);
+    const initW = Math.min(Math.round(window.innerWidth * 0.75), 800);
     const initH = Math.round(initW * 0.75);
     container.style.width  = initW + 'px';
     container.style.height = initH + 'px';

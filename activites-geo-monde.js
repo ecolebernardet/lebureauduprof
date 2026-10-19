@@ -28,6 +28,14 @@ if (!window._wfPhoneAutoMax) {
     };
 }
 
+// ── Petit écran (téléphone) : même détection que ci-dessus ──
+if (!window._wfIsPhone) {
+    window._wfIsPhone = function () {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    };
+}
+
 // =========================================================================
 // WIDGET GÉOGRAPHIE DU MONDE — Le Bureau du Prof
 // Planisphère interactif : continents, océans, grands fleuves, chaînes de
@@ -441,6 +449,44 @@ if (!window._wfPhoneAutoMax) {
             z-index: 5;
         }
         .gw-container:hover .gw-resize-handle { opacity: 1; }
+
+        /* ── Petits écrans (téléphone, petite tablette) ── */
+        .gw-title, .gw-badge { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .gw-container.wf-fullboard .gw-resize-handle { display: none; }
+        .gw-tx-s { display: none; }
+        @media (pointer: coarse) { .gw-resize-handle { opacity: .6; width: 24px; height: 24px; } }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .gw-container { padding: 10px 10px 8px; gap: 7px; }
+            .gw-container.wf-fullboard { overflow: hidden; }
+            .gw-title { font-size: 12px; }
+            .gw-controls, .gw-layers { gap: 4px; }
+            .gw-layers { margin-left: 0; }
+            .gw-layers-lbl { display: none; }
+            .gw-btn, .gw-layer-btn { min-height: 30px; padding: 4px 9px; font-size: 11px; touch-action: manipulation; }
+            .gw-tx { display: none; }
+            .gw-tx-s { display: inline; }
+            .gw-help-btn { width: 26px; height: 26px; }
+            .gw-help-popup { left: 10px; right: 10px; width: auto; max-height: 70vh; overflow-y: auto; }
+            .gw-side { padding: 8px 10px; }
+            .gw-back-btn { min-height: 32px; }
+            /* Plein écran : la carte et la fiche remplissent l'écran, sans défilement */
+            .gw-container.wf-fullboard > * { flex-shrink: 0; }
+            .gw-container.wf-fullboard > .gw-body { flex: 1 1 0; min-height: 0; }
+            .gw-container.wf-fullboard .gw-map-wrap { height: auto !important; }
+            .gw-container.wf-fullboard .gw-map { position: absolute; inset: 0; }
+            .gw-container.wf-fullboard .gw-side { max-height: 100%; }
+        }
+        /* Téléphone tenu en portrait : la fiche passe sous la carte */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .gw-body { flex-direction: column; }
+            .gw-side { flex: 0 1 auto; width: auto; min-width: 0; max-width: none; max-height: 45vh; }
+            .gw-container.wf-fullboard .gw-map-wrap { flex: 1 1 0; min-height: 180px; }
+            .gw-container.wf-fullboard .gw-side { flex: 0 1 auto; max-height: 42%; }
+        }
+        /* Téléphone tenu en paysage : fiche plus étroite à droite */
+        @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
+            .gw-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -701,11 +747,16 @@ function createGeoMondeWidget() {
     snapshotNow();
     const pos = findFreePosition();
 
+    // Petit écran : largeur presque pleine, tailles minimales réduites
+    const _phone = window._wfIsPhone();
+    const _minW = () => window._wfIsPhone() ? 260 : 560;
+    const _fitW = w => window._wfIsPhone() ? Math.min(w, Math.max(260, window.innerWidth - 54)) : w;
+
     const widget = document.createElement('div');
     widget.className = 'widget';
     widget.dataset.type = 'geo-monde';
     widget.dataset.transparent = 'true';
-    widget.style.cssText = `left:100px; top:${pos.y}px; overflow:visible; flex-direction:row;`;
+    widget.style.cssText = `left:${_phone ? 44 : 100}px; top:${pos.y}px; overflow:visible; flex-direction:row;`;
     widget.tabIndex = 0;
 
     widget.innerHTML = `
@@ -723,9 +774,10 @@ function createGeoMondeWidget() {
     const container = document.createElement('div');
     container.className = 'gw-container';
 
-    const initW = Math.round(window.innerWidth * 0.8);
+    const initW = _phone ? Math.max(260, window.innerWidth - 54) : Math.round(window.innerWidth * 0.8);
     container.style.width = initW + 'px';
-    let mapH = Math.max(280, Math.round((initW * 0.74 - 30) * GW_H / GW_W));
+    let mapH = _phone ? Math.max(180, Math.round((initW - 22) * GW_H / GW_W))
+                      : Math.max(280, Math.round((initW * 0.74 - 30) * GW_H / GW_W));
 
     // En-tête
     const header = document.createElement('div');
@@ -746,9 +798,9 @@ function createGeoMondeWidget() {
     const controls = document.createElement('div');
     controls.className = 'gw-controls';
     controls.innerHTML = `
-        <button class="gw-btn gw-btn-hide" title="Cacher les noms pour faire deviner les élèves">🙈 Masquer les noms</button>
-        <button class="gw-btn gw-btn-reveal" style="display:none">👁 Tout révéler</button>
-        <button class="gw-btn gw-btn-home" title="Revenir à la carte entière">🔍 Vue d'ensemble</button>
+        <button class="gw-btn gw-btn-hide" title="Cacher les noms pour faire deviner les élèves">🙈<span class="gw-tx"> Masquer les noms</span></button>
+        <button class="gw-btn gw-btn-reveal" style="display:none" title="Tout révéler">👁<span class="gw-tx"> Tout révéler</span></button>
+        <button class="gw-btn gw-btn-home" title="Revenir à la carte entière">🔍<span class="gw-tx"> Vue d'ensemble</span></button>
         <div class="gw-layers">
             <span class="gw-layers-lbl">Afficher :</span>
             ${Object.keys(GW_LAYERS).map(k => `<button class="gw-layer-btn${k === 'reperes' ? '' : ' active'}" data-layer="${k}">${GW_LAYERS[k].label}</button>`).join('')}
@@ -995,11 +1047,18 @@ function createGeoMondeWidget() {
         return fitRect(cx, cy, it.zoom.w, it.zoom.w * 0.6);
     }
 
+    // Sur téléphone, la carte est petite : on grossit les noms et les points pour qu'ils restent lisibles
+    function lblBoost() {
+        const w = svg.clientWidth;
+        if (!w || !window._wfIsPhone()) return 1;
+        return Math.max(1, Math.min(2.2, 720 / w));
+    }
+
     function setView(v) {
         vb = v;
         svg.setAttribute('viewBox', `${v.x.toFixed(2)} ${v.y.toFixed(2)} ${v.w.toFixed(2)} ${v.h.toFixed(2)}`);
         const zoom = fullView().w / v.w;
-        const s = Math.min(1, Math.pow(1 / zoom, 0.75));
+        const s = Math.min(1, Math.pow(1 / zoom, 0.75)) * lblBoost();
         scalables.forEach(o => {
             o.el.setAttribute('r', (o.r * s).toFixed(2));
             o.el.setAttribute('stroke-width', (o.sw * s).toFixed(2));
@@ -1097,7 +1156,7 @@ function createGeoMondeWidget() {
 
     function renderSide() {
         const W = side.clientWidth || 260;
-        const fs = Math.max(12, Math.min(18, W / 19));
+        const fs = Math.max(12, Math.min(window._wfIsPhone() ? 15 : 18, W / 19));
         side.style.fontSize = fs + 'px';
         const it = selected && items[selected];
         if (!it) {
@@ -1166,7 +1225,8 @@ function createGeoMondeWidget() {
     function setHideNames(v) {
         hideNames = !!v;
         hideBtn.classList.toggle('on', hideNames);
-        hideBtn.textContent = hideNames ? '🙉 Afficher les noms' : '🙈 Masquer les noms';
+        hideBtn.innerHTML = hideNames ? '🙉<span class="gw-tx"> Afficher les noms</span>' : '🙈<span class="gw-tx"> Masquer les noms</span>';
+        hideBtn.title = hideNames ? 'Afficher les noms' : 'Cacher les noms pour faire deviner les élèves';
         revealBtn.style.display = hideNames ? '' : 'none';
         applyLabels();
     }
@@ -1256,7 +1316,7 @@ function createGeoMondeWidget() {
         const startW = container.offsetWidth;
         const startH = mapH;
         document.onmousemove = (ev) => {
-            container.style.width = Math.max(560, startW + ev.clientX - startX) + 'px';
+            container.style.width = Math.max(_minW(), startW + ev.clientX - startX) + 'px';
             mapH = Math.max(220, startH + ev.clientY - startY);
             applySize();
         };
@@ -1270,7 +1330,7 @@ function createGeoMondeWidget() {
         const startH = mapH;
         function onMove(ev) {
             const t = ev.touches[0];
-            container.style.width = Math.max(560, startW + t.clientX - startX) + 'px';
+            container.style.width = Math.max(_minW(), startW + t.clientX - startX) + 'px';
             mapH = Math.max(220, startH + t.clientY - startY);
             applySize();
         }
@@ -1369,7 +1429,7 @@ function createGeoMondeWidget() {
     });
     widget._gwSetData = (d) => {
         if (!d) return;
-        if (d.containerW) container.style.width = d.containerW + 'px';
+        if (d.containerW) container.style.width = _fitW(d.containerW) + 'px';
         if (d.mapH) mapH = Math.max(220, d.mapH);
         applySize();
         if (d.layers) Object.keys(layers).forEach(k => { if (typeof d.layers[k] === 'boolean') layers[k] = d.layers[k]; });

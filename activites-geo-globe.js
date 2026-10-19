@@ -28,6 +28,14 @@ if (!window._wfPhoneAutoMax) {
     };
 }
 
+// ── Petit écran (téléphone) : même détection que ci-dessus ──
+if (!window._wfIsPhone) {
+    window._wfIsPhone = function () {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    };
+}
+
 // =========================================================================
 // WIDGET GLOBE TERRESTRE — Le Bureau du Prof
 // Globe 3D interactif : continents, océans, grille des parallèles et
@@ -284,6 +292,32 @@ if (!window._wfPhoneAutoMax) {
         }
         .gg-resize-handle:hover { opacity: 1; }
         .gg-msg { padding: 30px; color: #b91c1c; font-weight: 700; }
+
+        /* ── Petits écrans (téléphone, petite tablette) ── */
+        .gg-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .gg-container.wf-fullboard .gg-resize-handle { display: none; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .gg-container { padding: 10px 10px 8px; gap: 7px; }
+            .gg-title { font-size: 13px; }
+            .gg-controls { gap: 4px; }
+            .gg-btn { min-height: 32px; padding: 4px 10px; font-size: 12px; }
+            .gg-zoom .gg-btn { width: 36px; font-size: 18px; }
+            .gg-sep { display: none; }
+            .gg-tx { display: none; }
+            .gg-hint { font-size: 11px; bottom: 4px; padding: 0 6px; }
+            .gg-help-popup { left: 10px; right: 10px; width: auto; max-width: none; max-height: 70vh; overflow-y: auto; }
+            .gg-side { padding: 8px 10px; }
+        }
+        /* Téléphone tenu en portrait : la fiche passe sous le globe */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .gg-body { flex-direction: column; }
+            .gg-globe-wrap { flex: 1 1 0; min-height: 200px; }
+            .gg-side { flex: 0 1 auto; width: auto; min-width: 0; max-width: none; max-height: 42%; }
+        }
+        /* Téléphone tenu en paysage : fiche plus étroite à droite */
+        @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
+            .gg-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -390,11 +424,17 @@ function createGeoGlobeWidget() {
     if (typeof snapshotNow === 'function') snapshotNow();
     const pos = typeof findFreePosition === 'function' ? findFreePosition() : { x: 100, y: 80 };
 
+    // Petit écran : largeur presque pleine, tailles minimales réduites
+    const _phone = window._wfIsPhone();
+    const _minW = () => window._wfIsPhone() ? 260 : 560;
+    const _fitW = w => window._wfIsPhone() ? Math.min(w, Math.max(260, window.innerWidth - 54)) : w;
+    const _minH = () => window._wfIsPhone() ? 300 : 380;
+
     const widget = document.createElement('div');
     widget.className = 'widget';
     widget.dataset.type = 'geo-globe';
     widget.dataset.transparent = 'true';
-    widget.style.cssText = `left:100px; top:${pos.y}px; overflow:visible; flex-direction:row;`;
+    widget.style.cssText = `left:${_phone ? 44 : 100}px; top:${pos.y}px; overflow:visible; flex-direction:row;`;
     widget.tabIndex = 0;
 
     widget.innerHTML = `
@@ -411,8 +451,10 @@ function createGeoGlobeWidget() {
 
     const container = document.createElement('div');
     container.className = 'gg-container';
-    let contW = Math.max(620, Math.min(1050, Math.round(window.innerWidth * 0.62)));
-    let contH = Math.max(440, Math.round(contW * 0.64));
+    let contW = _phone ? Math.max(260, window.innerWidth - 54)
+                       : Math.max(620, Math.min(1050, Math.round(window.innerWidth * 0.62)));
+    let contH = _phone ? Math.max(300, Math.min(window.innerHeight - 70, Math.round(contW * 1.6)))
+                       : Math.max(440, Math.round(contW * 0.64));
 
     // En-tête
     const header = document.createElement('div');
@@ -456,10 +498,10 @@ function createGeoGlobeWidget() {
     const controls = document.createElement('div');
     controls.className = 'gg-controls';
     controls.innerHTML = `
-        <button class="gg-btn gg-btn-hide" title="Cacher les noms pour faire deviner les élèves">🙈 Masquer les noms</button>
-        <button class="gg-btn gg-btn-reveal" style="display:none">👁 Tout révéler</button>
-        <button class="gg-btn gg-btn-spin" title="La Terre tourne sur elle-même d'ouest en est">▶ Faire tourner</button>
-        <button class="gg-btn gg-btn-home" title="Revenir à la vue de départ">🌍 Vue d'ensemble</button>
+        <button class="gg-btn gg-btn-hide" title="Cacher les noms pour faire deviner les élèves">🙈<span class="gg-tx"> Masquer les noms</span></button>
+        <button class="gg-btn gg-btn-reveal" style="display:none" title="Tout révéler">👁<span class="gg-tx"> Tout révéler</span></button>
+        <button class="gg-btn gg-btn-spin" title="La Terre tourne sur elle-même d'ouest en est">▶<span class="gg-tx"> Faire tourner</span></button>
+        <button class="gg-btn gg-btn-home" title="Revenir à la vue de départ">🌍<span class="gg-tx"> Vue d'ensemble</span></button>
         <span class="gg-sep"></span>
         <button class="gg-btn gg-layer on" data-layer="grille" title="Parallèles et méridiens tous les 30°">🌐 Grille</button>
         <button class="gg-btn gg-layer" data-layer="reperes" title="Équateur, tropiques, cercles polaires, méridien de Greenwich">🧭 Repères</button>
@@ -911,7 +953,7 @@ function createGeoGlobeWidget() {
     function setAuto(v) {
         autoRotate = !!v;
         spinBtn.classList.toggle('on', autoRotate);
-        spinBtn.textContent = autoRotate ? '⏸ Arrêter' : '▶ Faire tourner';
+        spinBtn.innerHTML = autoRotate ? '⏸<span class="gg-tx"> Arrêter</span>' : '▶<span class="gg-tx"> Faire tourner</span>';
         if (autoRotate) { fly = null; startLoop(); }
     }
 
@@ -971,7 +1013,8 @@ function createGeoGlobeWidget() {
     function setHideNames(v) {
         hideNames = !!v;
         hideBtn.classList.toggle('on', hideNames);
-        hideBtn.textContent = hideNames ? '🙉 Afficher les noms' : '🙈 Masquer les noms';
+        hideBtn.innerHTML = hideNames ? '🙉<span class="gg-tx"> Afficher les noms</span>' : '🙈<span class="gg-tx"> Masquer les noms</span>';
+        hideBtn.title = hideNames ? 'Afficher les noms' : 'Cacher les noms pour faire deviner les élèves';
         revealBtn.style.display = hideNames ? '' : 'none';
         requestDraw();
     }
@@ -986,7 +1029,7 @@ function createGeoGlobeWidget() {
     const row = (lbl, val) => `<li><b>${lbl} :</b> ${_ggEsc(val)}</li>`;
     function renderSide() {
         const W = side.clientWidth || 260;
-        const fs = Math.max(12, Math.min(18, W / 19));
+        const fs = Math.max(12, Math.min(window._wfIsPhone() ? 15 : 18, W / 19));
         side.style.fontSize = fs + 'px';
         const it = selected && items[selected];
         if (!it) {
@@ -1195,8 +1238,8 @@ function createGeoGlobeWidget() {
         const x0 = e.clientX, y0 = e.clientY, w0 = contW, h0 = contH;
         try { resizeHandle.setPointerCapture(e.pointerId); } catch (_) {}
         const move = ev => {
-            contW = Math.max(560, w0 + ev.clientX - x0);
-            contH = Math.max(380, h0 + ev.clientY - y0);
+            contW = Math.max(_minW(), w0 + ev.clientX - x0);
+            contH = Math.max(_minH(), h0 + ev.clientY - y0);
             applySize();
         };
         const up = () => {
@@ -1298,8 +1341,8 @@ function createGeoGlobeWidget() {
     });
     widget._ggSetData = (d) => {
         if (!d) return;
-        if (d.containerW) contW = Math.max(560, d.containerW);
-        if (d.containerH) contH = Math.max(380, d.containerH);
+        if (d.containerW) contW = _fitW(Math.max(_minW(), d.containerW));
+        if (d.containerH) contH = Math.max(_minH(), _phone ? Math.min(d.containerH, window.innerHeight - 40) : d.containerH);
         applySize();
         if (typeof d.lon === 'number') lon0 = d.lon * GG_D2R;
         if (typeof d.lat === 'number') lat0 = clampLat(d.lat * GG_D2R);

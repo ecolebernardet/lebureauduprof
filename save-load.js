@@ -509,6 +509,11 @@ function buildBoardState() {
         if (w.dataset.type === 'tableau-conversion' && typeof window.tconvGetData === 'function') {
             tconvData = window.tconvGetData(w);
         }
+        // Données propres au widget Tableau de numération (classes affichées, options, dessins, chiffres, couleurs)
+        let tnrData = null;
+        if (w.dataset.type === 'tableau-numeration' && typeof window.tnrGetData === 'function') {
+            tnrData = window.tnrGetData(w);
+        }
         let derData = null;
         if (w.dataset.type === 'deroule' && typeof w._derGetData === 'function') {
             derData = w._derGetData();
@@ -604,7 +609,8 @@ function buildBoardState() {
 			mfData,
 			derData,
 			tabData,
-			tconvData
+			tconvData,
+			tnrData
 		});
     });
     const shapes = [];
@@ -1277,6 +1283,10 @@ function restoreBoardFromJSON(json) {
         // Tableau de conversion : réappliquer le type de mesures, les options, les dessins, chiffres et couleurs
         if (w.type === 'tableau-conversion' && w.tconvData && typeof window.tconvSetData === 'function') {
             window.tconvSetData(widget, w.tconvData);
+        }
+        // Tableau de numération : réappliquer les classes affichées, les options, les dessins, chiffres et couleurs
+        if (w.type === 'tableau-numeration' && w.tnrData && typeof window.tnrSetData === 'function') {
+            window.tnrSetData(widget, w.tnrData);
         }
         const c = widget.querySelector('.editor-container');
         const hP = w.contentHPercent !== undefined ? w.contentHPercent : w.heightPercent;

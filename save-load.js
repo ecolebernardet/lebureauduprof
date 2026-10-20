@@ -504,6 +504,11 @@ function buildBoardState() {
         if (w.dataset.type === 'tableau' && typeof window.tabGetData === 'function') {
             tabData = window.tabGetData(w);
         }
+        // Données propres au widget Tableau de conversion (type de mesures, options, dessins, chiffres, couleurs)
+        let tconvData = null;
+        if (w.dataset.type === 'tableau-conversion' && typeof window.tconvGetData === 'function') {
+            tconvData = window.tconvGetData(w);
+        }
         let derData = null;
         if (w.dataset.type === 'deroule' && typeof w._derGetData === 'function') {
             derData = w._derGetData();
@@ -598,7 +603,8 @@ function buildBoardState() {
 			h108Data,
 			mfData,
 			derData,
-			tabData
+			tabData,
+			tconvData
 		});
     });
     const shapes = [];
@@ -1267,6 +1273,10 @@ function restoreBoardFromJSON(json) {
         // Tableau : réappliquer lignes, colonnes, textes, couleurs et dessins
         if (w.type === 'tableau' && w.tabData && typeof window.tabSetData === 'function') {
             window.tabSetData(widget, w.tabData);
+        }
+        // Tableau de conversion : réappliquer le type de mesures, les options, les dessins, chiffres et couleurs
+        if (w.type === 'tableau-conversion' && w.tconvData && typeof window.tconvSetData === 'function') {
+            window.tconvSetData(widget, w.tconvData);
         }
         const c = widget.querySelector('.editor-container');
         const hP = w.contentHPercent !== undefined ? w.contentHPercent : w.heightPercent;

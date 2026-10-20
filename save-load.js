@@ -481,6 +481,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-7-differences' && typeof w._j7dGetData === 'function') {
             j7dData = w._j7dGetData();
         }
+        // Données propres au jeu Géo France (carte choisie, réglages, partie en cours, taille)
+        let jgfData = null;
+        if (w.dataset.type === 'jeu-geo-france' && typeof w._jgfGetData === 'function') {
+            jgfData = w._jgfGetData();
+        }
         // Données propres au jeu Pixel art (dessin choisi, cases coloriées, options, temps, taille)
         let jpxData = null;
         if (w.dataset.type === 'jeu-pixel-art' && typeof w._jpxGetData === 'function') {
@@ -614,6 +619,7 @@ function buildBoardState() {
 			jpxData,
 			jlabData,
 			j7dData,
+			jgfData,
 			pdsData,
 			calcData,
 			visuData,
@@ -1230,6 +1236,13 @@ function restoreBoardFromJSON(json) {
             // Scène (ou graine « au hasard »), différences trouvées, erreurs, indices, temps, taille et plein écran
             if (typeof createJeu7DifferencesWidget === 'function') {
                 widget = createJeu7DifferencesWidget(w.j7dData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-geo-france') {
+            // Carte choisie, réglages, partie en cours (questions, réponses), taille et plein écran
+            if (typeof createJeuGeoFranceWidget === 'function') {
+                widget = createJeuGeoFranceWidget(w.jgfData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

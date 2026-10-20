@@ -499,6 +499,11 @@ function buildBoardState() {
             mfData = w._mfGetData();
         }
         // Données propres au widget Déroulé de la journée (programme de la semaine, mode, affichage, taille, couleur, réduit / plein écran)
+        // Données propres au widget Tableau (lignes, colonnes, textes, couleurs des cases, dessins)
+        let tabData = null;
+        if (w.dataset.type === 'tableau' && typeof window.tabGetData === 'function') {
+            tabData = window.tabGetData(w);
+        }
         let derData = null;
         if (w.dataset.type === 'deroule' && typeof w._derGetData === 'function') {
             derData = w._derGetData();
@@ -592,7 +597,8 @@ function buildBoardState() {
 			visuData,
 			h108Data,
 			mfData,
-			derData
+			derData,
+			tabData
 		});
     });
     const shapes = [];
@@ -1257,6 +1263,10 @@ function restoreBoardFromJSON(json) {
         // Devinettes : réappliquer les réglages et la devinette affichée
         if (w.type === 'devinettes' && w.devData && typeof window.devSetData === 'function') {
             window.devSetData(widget, w.devData);
+        }
+        // Tableau : réappliquer lignes, colonnes, textes, couleurs et dessins
+        if (w.type === 'tableau' && w.tabData && typeof window.tabSetData === 'function') {
+            window.tabSetData(widget, w.tabData);
         }
         const c = widget.querySelector('.editor-container');
         const hP = w.contentHPercent !== undefined ? w.contentHPercent : w.heightPercent;

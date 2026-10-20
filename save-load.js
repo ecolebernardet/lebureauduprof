@@ -112,7 +112,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2') {
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones') {
             // Calculatrice / Phrase en désordre / Visualiseur / 108 heures / Billets aux familles : si le widget est réduit
             // (mini-barre), on garde sa position d'origine (ses dimensions sont gérées par le widget)
             const _calcMini = !!w.querySelector('.wf-mini-bar, .h108-mini-bar, .der-mini-bar');
@@ -146,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -359,6 +359,11 @@ function buildBoardState() {
         let frac2Data = null;
         if (w.dataset.type === 'fractions2' && typeof w._fr2GetData === 'function') {
             frac2Data = w._fr2GetData();
+        }
+        // Données propres à l'activité « Les homophones » (onglet, leçon, réglages, série en cours, taille, plein écran)
+        let homData = null;
+        if (w.dataset.type === 'homophones' && typeof w._homGetData === 'function') {
+            homData = w._homGetData();
         }
         // Données propres au widget dé
         let deData = null;
@@ -585,6 +590,7 @@ function buildBoardState() {
 			convData,
 			fracData,
 			frac2Data,
+			homData,
 			deData,
 			calData,
 			rqData,
@@ -1040,6 +1046,13 @@ function restoreBoardFromJSON(json) {
                     if (fc && _fracDataToRestore.containerH) fc.style.height = (_fracDataToRestore.containerH / (w._refW || 1920)) * window.innerHeight + 'px';
                     if (_fracDataToRestore.fullboard && fc) fc.classList.add('wf-fullboard');
                 }, 80);
+            }
+        } else if (w.type === 'homophones') {
+            // Leçon, réglages, série en cours, taille et plein écran
+            if (typeof createHomophonesWidget === 'function') {
+                widget = createHomophonesWidget(w.homData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
             }
         } else if (w.type === 'fractions2') {
             // Le hook de createWidget appelle initFractions2Widget de façon synchrone :

@@ -197,7 +197,7 @@ if (!window._wfPhoneAutoMax) {
         const full = root.classList.contains('tnr-full');
         const chips = CLASSES.map(C =>
             '<button type="button" class="tnr-chip' + (st.show[C.k] ? ' is-on' : '') + '" data-tnr-class="' + C.k + '" style="--k:' + (st.classColors ? C.c : st.color) + '"' +
-            ' title="' + (st.show[C.k] ? 'Cacher' : 'Afficher') + ' : ' + esc(C.l.toLowerCase()) + '">' +
+            ' title="' + (st.show[C.k] ? 'Cacher' : 'Afficher') + ' : ' + esc(C.l.toLowerCase()) + '"' + STOP + '>' +
             '<span class="tnr-chip-n">' + C.n + '</span><span class="tnr-chip-s">' + esc(C.s) + '</span></button>'
         ).join('');
         return '<div class="tnr-bar" title="Glisser pour déplacer">' +
@@ -786,6 +786,33 @@ if (!window._wfPhoneAutoMax) {
         } else if (window.confirm(msg)) fn();
     }
 
+    /* ── Afficher / cacher une classe ─────────────────────────────────
+       Pris en compte dès qu'on lève le doigt ou le stylet : par-dessus un
+       PDF (annotation, barre Dessin ouverte…), le « click » qui suit peut
+       être annulé par le PDF ou la barre Dessin. */
+    function toggleClass(root, k) {
+        const st = getState(root);
+        const shown = CLASSES.filter(C => st.show[C.k]).length;
+        if (st.show[k] && shown <= 1) return;   // au moins une classe reste affichée
+        setOpt(root, s => { s.show[k] = !s.show[k]; });
+    }
+    let chipDown = null;
+    document.addEventListener('pointerdown', function (e) {
+        chipDown = (e.target.closest && e.target.closest('.tnr-bar [data-tnr-class]')) || null;
+    }, true);
+    document.addEventListener('pointerup', function (e) {
+        const chip = e.target.closest && e.target.closest('.tnr-bar [data-tnr-class]');
+        const down = chipDown;
+        chipDown = null;
+        if (!chip || chip !== down) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        const root = chip.closest('.tnr-root');
+        if (!root) return;
+        e.stopPropagation();
+        root._chipT = Date.now();
+        toggleClass(root, chip.getAttribute('data-tnr-class'));
+    }, true);
+
     /* ── Événements délégués ──────────────────────────────────────── */
     document.addEventListener('click', function (e) {
         const btn = e.target.closest && e.target.closest('[data-tnr-action], [data-tnr-color], [data-tnr-class], [data-tnr-bg], [data-tnr-names], [data-tnr-ccol]');
@@ -795,10 +822,9 @@ if (!window._wfPhoneAutoMax) {
         e.stopPropagation();
         const st = getState(root);
         if (btn.hasAttribute('data-tnr-class')) {
-            const k = btn.getAttribute('data-tnr-class');
-            const shown = CLASSES.filter(C => st.show[C.k]).length;
-            if (st.show[k] && shown <= 1) return;   // au moins une classe reste affichée
-            setOpt(root, s => { s.show[k] = !s.show[k]; });
+            // déjà traité au lever du doigt / du stylet (pastilles de la barre)
+            if (btn.closest('.tnr-bar') && root._chipT && Date.now() - root._chipT < 800) return;
+            toggleClass(root, btn.getAttribute('data-tnr-class'));
             return;
         }
         if (btn.hasAttribute('data-tnr-names')) { setOpt(root, s => { s.longNames = btn.getAttribute('data-tnr-names') === 'long'; }); return; }

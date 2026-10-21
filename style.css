@@ -3914,7 +3914,7 @@ html body:not(.menu-light) #jeux-panel .jeux-section .act-section-label { color:
 /* ── Grille : vignettes un peu plus larges (sur ordinateur seulement) ── */
 @media (min-width: 769px) {
     html body #jeux-panel #jeux-panel-content .act-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: 8px 10px;
     }
 }
@@ -3940,7 +3940,7 @@ html body #jeux-panel .act-card:focus-visible { outline: 3px solid var(--sec-c);
 
 /* Image sur fond teinté */
 html body #jeux-panel .act-card-ico {
-    height: 80px;
+    height: 75px;
     border-radius: 9px;
     background: color-mix(in srgb, var(--sec-c) 10%, #ffffff);
     overflow: hidden;
@@ -4089,7 +4089,7 @@ html body:not(.menu-light) #activities-panel .act-section .act-section-label { c
 /* Grille (ordinateur seulement) */
 @media (min-width: 769px) {
     html body #activities-panel #act-panel-content .act-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: 8px 10px;
         margin-bottom: 0;
     }
@@ -4116,7 +4116,7 @@ html body #activities-panel .act-card:active { transform: translateY(-1px) scale
 html body #activities-panel .act-card:focus-visible { outline: 3px solid var(--sec-c); outline-offset: 2px; }
 
 html body #activities-panel .act-card-ico {
-    height: 80px;
+    height: 75px;
     border-radius: 9px;
     background: color-mix(in srgb, var(--sec-c) 10%, #ffffff);
     overflow: hidden;
@@ -4281,7 +4281,7 @@ html body #tools-panel .tools-card:active { transform: translateY(-1px) scale(0.
 html body #tools-panel .tools-card:focus-visible { outline: 3px solid var(--sec-c); outline-offset: 2px; }
 
 html body #tools-panel .tools-card-ico {
-    height: 80px;
+    height: 75px;
     border-radius: 9px;
     background: color-mix(in srgb, var(--sec-c) 10%, #ffffff);
     overflow: hidden;

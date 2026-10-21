@@ -1115,6 +1115,7 @@ function setVisuelsMode(mode) {
 <script src="activites-geo-monde.js"></script>
 <script src="activites-geo-globe.js"></script>
 <script src="activites-sciences-terre-mouvement.js"></script>
+<script src="activite-sciences-cycle-eau.js"></script>
 <script src="activites-sciences-systeme-solaire.js"></script>
 <script src="outil-pause-calme.js"></script>
 <script src="activites-maths-conversion.js"></script>
@@ -1278,72 +1279,72 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 		<div class="act-section-label">⚔️ BATTLES (jeux en modes solo ou duel)</div>
 		<div class="act-grid">
 			<div class="act-card" onclick="createWidget('jeu-plus-grand');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-comparaison.jpg" alt="Plus grand / plus petit" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-comparaison.jpg" alt="Plus grand / plus petit" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Battle comparaison</div>
                 <div class="act-card-desc">Comparer des nombres</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-calculs');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-calculs.jpg" alt="Battle de calculs" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-calculs.jpg" alt="Battle de calculs" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle de calculs</div>
                 <div class="act-card-desc">Calcul mental</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-decomposition');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-decomposition.jpg" alt="Battle décomposition" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-decomposition.jpg" alt="Battle décomposition" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle décomposition</div>
                 <div class="act-card-desc">Décomposer les nombres</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-droite-graduee');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-droite-graduee.jpg" alt="Battle droite graduée" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-droite-graduee.jpg" alt="Battle droite graduée" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle droite graduée</div>
                 <div class="act-card-desc">Repérer un nombre sur une droite graduée</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-nombre-lettres');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-nombre-lettres.jpg" alt="Battle nombres en lettres" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-nombre-lettres.jpg" alt="Battle nombres en lettres" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle nombres en lettres</div>
                 <div class="act-card-desc">Écrire et lire les nombres en lettres</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-arrondis');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-arrondis.jpg" alt="Battle arrondis / encadrements" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-arrondis.jpg" alt="Battle arrondis / encadrements" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle arrondis / encadrements</div>
                 <div class="act-card-desc">Arrondir ou encadrer un nombre</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-nature-mots');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-nature-mots.jpg" alt="Battle nature des mots" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-nature-mots.jpg" alt="Battle nature des mots" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle nature des mots</div>
                 <div class="act-card-desc">Trouver la nature d'un mot</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-fonctions');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-fonctions.jpg" alt="Battle fonctions" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-fonctions.jpg" alt="Battle fonctions" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle fonctions</div>
                 <div class="act-card-desc">Trouver la fonction du groupe</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-synonymes');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-synonymes.jpg" alt="Battle synonymes / contraires" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-synonymes.jpg" alt="Battle synonymes / contraires" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle synonymes / contraires</div>
                 <div class="act-card-desc">Trouver le synonyme ou le contraire</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-homophones');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-homophones.jpg" alt="Battle homophones" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-homophones.jpg" alt="Battle homophones" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle homophones</div>
                 <div class="act-card-desc">Compléter avec le bon homophone</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-orthographe');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-orthographe.jpg" alt="Battle orthographe" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-orthographe.jpg" alt="Battle orthographe" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle orthographe</div>
                 <div class="act-card-desc">Trouver la bonne orthographe</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-temps-verbes');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-temps-verbes.jpg" alt="Battle temps des verbes" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-temps-verbes.jpg" alt="Battle temps des verbes" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚔️'"></div>
                 <div class="act-card-name">Battle temps des verbes</div>
                 <div class="act-card-desc">Trouver le temps du verbe</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-drapeaux');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-drapeaux.jpg" alt="Battle drapeaux" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🏳️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-drapeaux.jpg" alt="Battle drapeaux" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🏳️'"></div>
                 <div class="act-card-name">Battle drapeaux</div>
                 <div class="act-card-desc">Reconnaître les drapeaux des pays du monde</div>
             </div>
 			<div class="act-card" onclick="createWidget('battle-capitales');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeux-battle-capitales.jpg" alt="Battle capitales" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🏛️'"></div>
+                <div class="act-card-ico"><img src="pics/jeu-battle-capitales.jpg" alt="Battle capitales" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🏛️'"></div>
                 <div class="act-card-name">Battle capitales</div>
                 <div class="act-card-desc">Trouver la capitale d'un pays, ou le pays d'une capitale</div>
             </div>
@@ -1914,6 +1915,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activite-terre-mouvement.jpg" alt="La Terre en mouvement" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌗'"></div>
                 <div class="act-card-name">SCIENCES : La Terre en mouvement</div>
                 <div class="act-card-desc">Comprendre le jour et la nuit, et l'origine des saisons</div>
+            </div>
+            <div class="act-card" onclick="createCycleEauWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-cycle-eau.jpg" alt="Le cycle de l'eau" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='💧'"></div>
+                <div class="act-card-name">SCIENCES : Le cycle de l'eau</div>
+                <div class="act-card-desc">Évaporation, condensation, précipitations, ruissellement, infiltration, et les états de l'eau</div>
             </div>
             <div class="act-card" onclick="createSystemeSolaireWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-systeme-solaire.jpg" alt="Le système solaire" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🪐'"></div>
@@ -3721,8 +3727,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
-    // ainsi que les activités 'droite-num', 'fractions', 'fractions2', 'homophones', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-drapeaux', 'battle-capitales', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'fractions2', 'homophones', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama', 'lecteur-video', 'devinettes', 'tableau', 'tableau-conversion', 'tableau-numeration'];
+    // ainsi que les activités 'droite-num', 'fractions', 'fractions2', 'homophones', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-drapeaux', 'battle-capitales', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'fractions2', 'homophones', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama', 'lecteur-video', 'devinettes', 'tableau', 'tableau-conversion', 'tableau-numeration'];
     var lastLaunch = 0;
 
     function isPhone() {

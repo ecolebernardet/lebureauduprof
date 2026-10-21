@@ -219,6 +219,11 @@ function buildBoardState() {
         if (w.dataset.type === 'terre-mouvement' && typeof w._tmGetData === 'function') {
             terreMvtData = w._tmGetData();
         }
+        // Données propres au widget « Le cycle de l'eau »
+        let cycleEauData = null;
+        if (w.dataset.type === 'cycle-eau' && typeof w._ceGetData === 'function') {
+            cycleEauData = w._ceGetData();
+        }
         // Données propres au widget « Le système solaire »
         let sysSolData = null;
         if (w.dataset.type === 'systeme-solaire' && typeof w._ssGetData === 'function') {
@@ -580,6 +585,7 @@ function buildBoardState() {
 			geoMondeData,
 			geoGlobeData,
 			terreMvtData,
+			cycleEauData,
 			sysSolData,
 			pauseCalmeData,
 			horlogeData,
@@ -904,6 +910,11 @@ function restoreBoardFromJSON(json) {
             widget = createTerreMouvementWidget();
             if (w.terreMvtData && typeof widget._tmSetData === 'function') {
                 widget._tmSetData(w.terreMvtData);
+            }
+        } else if (w.type === 'cycle-eau') {
+            widget = createCycleEauWidget();
+            if (w.cycleEauData && typeof widget._ceSetData === 'function') {
+                widget._ceSetData(w.cycleEauData);
             }
         } else if (w.type === 'systeme-solaire') {
             widget = createSystemeSolaireWidget();

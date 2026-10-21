@@ -102,6 +102,9 @@ if (!window._wfIsPhone) {
                 max-width: calc(100vw - 40px) !important;
                 min-width: 0 !important;
                 padding-left: calc(10px + env(safe-area-inset-left)) !important;
+                padding-right: calc(10px + env(safe-area-inset-right)) !important;
+                right: 0 !important;
+                box-sizing: border-box !important;
             }
         }
 
@@ -195,7 +198,13 @@ if (!window._wfIsPhone) {
 
         /* ── Petits écrans (téléphone, petite tablette) ── */
         .ce-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
-        .ce-tabs { flex-shrink: 0; }
+        .ce-tab-short { display: none; }
+        /* L'en-tête ne déborde jamais : les onglets rétrécissent,
+           les boutons fenêtre (?, jaune, vert, rouge) restent toujours visibles */
+        .ce-header { min-width: 0; max-width: 100%; }
+        .ce-tabs { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+        .ce-tab { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ce-header .wf-btns { flex-shrink: 0; }
         .ce-container.wf-fullboard .ce-resize-handle { display: none; }
         @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
             .ce-container { padding: 10px 10px 8px; gap: 6px; }
@@ -216,7 +225,13 @@ if (!window._wfIsPhone) {
             .ce-side { padding: 8px 10px; font-size: 13px; }
             .ce-help-popup { left: 10px; right: 10px; width: auto; max-width: none; max-height: 70vh; overflow-y: auto; }
         }
-        @media (max-width: 560px) { .ce-title { display: none; } .ce-tab { padding: 3px 7px; font-size: 11.5px; } .ce-header .wf-btns { gap: 6px; } }
+        @media (max-width: 560px) {
+            .ce-title { display: none; }
+            .ce-tab { padding: 3px 7px; font-size: 11.5px; }
+            .ce-tab-long { display: none; }
+            .ce-tab-short { display: inline; }
+            .ce-header .wf-btns { gap: 6px; }
+        }
         @media (max-width: 768px) and (orientation: portrait) {
             .ce-body { flex-direction: column; }
             .ce-slider-box { flex: 1 1 100%; }
@@ -404,8 +419,8 @@ function createCycleEauWidget() {
     header.innerHTML = `
         <span class="ce-title">💧<span> Le cycle de l'eau</span></span>
         <div class="ce-tabs">
-            <button class="ce-tab on" data-mode="cycle">💧 Le cycle de l'eau</button>
-            <button class="ce-tab" data-mode="etats">🧊 Les états de l'eau</button>
+            <button class="ce-tab on" data-mode="cycle" title="Le cycle de l'eau"><span class="ce-tab-long">💧 Le cycle de l'eau</span><span class="ce-tab-short">💧 Le cycle</span></button>
+            <button class="ce-tab" data-mode="etats" title="Les états de l'eau"><span class="ce-tab-long">🧊 Les états de l'eau</span><span class="ce-tab-short">🧊 Les états</span></button>
         </div>
         <div class="wf-btns" style="margin-left:auto">
             <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>

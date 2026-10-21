@@ -224,6 +224,11 @@ function buildBoardState() {
         if (w.dataset.type === 'cycle-eau' && typeof w._ceGetData === 'function') {
             cycleEauData = w._ceGetData();
         }
+        // Données propres au widget « Volcans et séismes »
+        let volcSeisData = null;
+        if (w.dataset.type === 'volcans-seismes' && typeof w._vsGetData === 'function') {
+            volcSeisData = w._vsGetData();
+        }
         // Données propres au widget « Le système solaire »
         let sysSolData = null;
         if (w.dataset.type === 'systeme-solaire' && typeof w._ssGetData === 'function') {
@@ -586,6 +591,7 @@ function buildBoardState() {
 			geoGlobeData,
 			terreMvtData,
 			cycleEauData,
+			volcSeisData,
 			sysSolData,
 			pauseCalmeData,
 			horlogeData,
@@ -915,6 +921,11 @@ function restoreBoardFromJSON(json) {
             widget = createCycleEauWidget();
             if (w.cycleEauData && typeof widget._ceSetData === 'function') {
                 widget._ceSetData(w.cycleEauData);
+            }
+        } else if (w.type === 'volcans-seismes') {
+            widget = createVolcansSeismesWidget();
+            if (w.volcSeisData && typeof widget._vsSetData === 'function') {
+                widget._vsSetData(w.volcSeisData);
             }
         } else if (w.type === 'systeme-solaire') {
             widget = createSystemeSolaireWidget();

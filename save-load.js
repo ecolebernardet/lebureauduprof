@@ -189,6 +189,11 @@ function buildBoardState() {
         if (w.dataset.type === 'histoire-societe-moyen-age' && typeof w._smGetData === 'function') {
             societeMAData = w._smGetData();
         }
+        // Données propres au widget « Les rois de France au Moyen Âge »
+        let friseRoisData = null;
+        if (w.dataset.type === 'frise-rois' && typeof w._frrGetData === 'function') {
+            friseRoisData = w._frrGetData();
+        }
         // Données propres au widget géographie de la France
         let geoFranceData = null;
         if (w.dataset.type === 'geo-france' && typeof w._gfGetData === 'function') {
@@ -584,6 +589,7 @@ function buildBoardState() {
 			friseHistData,
 			chateauFortData,
 			societeMAData,
+			friseRoisData,
 			geoFranceData,
 			geoSavoieData,
 			geoEuropeData,
@@ -886,6 +892,11 @@ function restoreBoardFromJSON(json) {
             widget = createHistoireSocieteMoyenAgeWidget();
             if (w.societeMAData && typeof widget._smSetData === 'function') {
                 widget._smSetData(w.societeMAData);
+            }
+        } else if (w.type === 'frise-rois') {
+            widget = createFriseRoisWidget();
+            if (w.friseRoisData && typeof widget._frrSetData === 'function') {
+                widget._frrSetData(w.friseRoisData);
             }
         } else if (w.type === 'geo-france') {
             widget = createGeoFranceWidget();

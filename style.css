@@ -4089,7 +4089,7 @@ html body:not(.menu-light) #activities-panel .act-section .act-section-label { c
 /* Grille (ordinateur seulement) */
 @media (min-width: 769px) {
     html body #activities-panel #act-panel-content .act-grid {
-        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: 8px 10px;
         margin-bottom: 0;
     }
@@ -4878,7 +4878,7 @@ body.menu-light #draw-toolbar #dt-size-ctx-label { filter: brightness(0.7); }
 /* ══════════════════════════════════════════════════════════════════
    PANNEAUX ACTIVITÉS ET JEUX — COULEUR DES CARTES SELON LA MATIÈRE
    Activités : maths → orange · français → violet · divers → rose
-               histoire → rouge · EMC → blanc · géographie → bleu
+               histoire → rouge · EMC → jaune · géographie → bleu
                sciences → vert  (classes mat-* posées dans index.html)
    Jeux      : battles → bleu · maths → orange · français → violet
                divers → vert
@@ -4893,8 +4893,8 @@ html body #activities-panel .act-section-hgs { --sec-c: #7d8899; }
 /* ── Couleurs (mode clair) ── */
 /* rouge */
 html body #activities-panel .act-card.mat-histoire { --mat-bg: #fce6e4; --mat-ico: #f8d0cc; --mat-c: #d63a2f; --mat-txt: #6e1610; }
-/* blanc */
-html body #activities-panel .act-card.mat-emc { --mat-bg: #ffffff; --mat-ico: #ffffff; --mat-c: #9aa3b5; --mat-txt: #2a2440; }
+/* jaune */
+html body #activities-panel .act-card.mat-emc { --mat-bg: #fdf5d3; --mat-ico: #fbeba8; --mat-c: #c99700; --mat-txt: #5c4400; }
 /* bleu */
 html body #activities-panel .act-card.mat-geo,
 html body #jeux-panel .jeux-section-battle .act-card { --mat-bg: #e2eefd; --mat-ico: #cde0fa; --mat-c: #2f74d0; --mat-txt: #0f3a75; }
@@ -4913,8 +4913,8 @@ html body #activities-panel .act-section-divers .act-card { --mat-bg: #fde3ef; -
 /* ── Couleurs (mode sombre) ── */
 /* rouge */
 html body:not(.menu-light) #activities-panel .act-card.mat-histoire { --mat-bg: #552220; --mat-ico: #6a2a27; --mat-c: #e5554a; --mat-txt: #ffdcd8; }
-/* blanc */
-html body:not(.menu-light) #activities-panel .act-card.mat-emc { --mat-bg: #f6f7fa; --mat-ico: #ffffff; --mat-c: #c9cedb; --mat-txt: #2a2440; }
+/* jaune */
+html body:not(.menu-light) #activities-panel .act-card.mat-emc { --mat-bg: #4d4214; --mat-ico: #5e511a; --mat-c: #e6c000; --mat-txt: #fff3c4; }
 /* bleu */
 html body:not(.menu-light) #activities-panel .act-card.mat-geo,
 html body:not(.menu-light) #jeux-panel .jeux-section-battle .act-card { --mat-bg: #1c3858; --mat-ico: #234670; --mat-c: #4a90e2; --mat-txt: #d9eaff; }
@@ -5006,3 +5006,86 @@ html body #tools-panel .tools-section .tools-card .tools-card-desc,
 html body #widgets-panel .widgets-section .widgets-card .widgets-card-desc { color: color-mix(in srgb, var(--mat-txt, #2a2440) 75%, transparent); }
 html body #tools-panel .tools-section .tools-card:focus-visible,
 html body #widgets-panel .widgets-section .widgets-card:focus-visible { outline-color: var(--mat-c, #4a90e2); }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   JEUX ET ACTIVITÉS — CARTES PLUS COMPACTES, IMAGE EN 4:3
+   - case d'image en 4:3, l'image est étirée pour la remplir (jamais coupée)
+   - marges et espaces réduits
+   - titre resserré, 2 lignes au maximum
+   Pour revenir en arrière : supprimer ce bloc.
+══════════════════════════════════════════════════════════════════ */
+html body #jeux-panel .act-card,
+html body #activities-panel .act-card {
+    padding: 3px;
+    gap: 3px;
+}
+
+/* Case de l'image au format 4:3 : l'image est étirée pour la remplir
+   entièrement (déformée si besoin, mais jamais coupée) */
+html body #jeux-panel .act-card-ico,
+html body #activities-panel .act-card-ico {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    border-radius: 10px;
+}
+html body #jeux-panel .act-card-ico img,
+html body #activities-panel .act-card-ico img {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none;
+    max-height: none;
+    object-fit: fill !important;
+}
+
+/* Titre : interligne serré, 2 lignes au maximum */
+html body #jeux-panel .act-card-name,
+html body #activities-panel .act-card-name {
+    line-height: 1.18;   /* assez haut pour ne pas couper le bas des g, p, q, j, y */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Grille et sections un peu moins aérées */
+@media (min-width: 769px) {
+    html body #jeux-panel #jeux-panel-content .act-grid,
+    html body #activities-panel #act-panel-content .act-grid { gap: 6px 8px; }
+}
+html body #jeux-panel .jeux-section,
+html body #activities-panel .act-section {
+    padding-top: 7px;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+html body #jeux-panel .jeux-section .act-section-label,
+html body #activities-panel .act-section .act-section-label {
+    margin-bottom: 5px;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   OUTILS ET WIDGETS — IMAGE EN 4:3
+   Case d'image au format 4:3, l'image est étirée pour la remplir
+   (déformée si besoin, mais jamais coupée).
+   Pour revenir en arrière : supprimer ce bloc.
+══════════════════════════════════════════════════════════════════ */
+html body #tools-panel .tools-card-ico,
+html body #widgets-panel .widgets-card-ico {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    border-radius: 10px;
+}
+html body #tools-panel .tools-card-ico img,
+html body #widgets-panel .widgets-card-ico img {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none;
+    max-height: none;
+    object-fit: fill !important;
+}

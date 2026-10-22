@@ -239,6 +239,11 @@ function buildBoardState() {
         if (w.dataset.type === 'corps-humain' && typeof w._chuGetData === 'function') {
             corpsHumainData = w._chuGetData();
         }
+        // Données propres au widget « Les 5 sens »
+        let cinqSensData = null;
+        if (w.dataset.type === 'cinq-sens' && typeof w._c5sGetData === 'function') {
+            cinqSensData = w._c5sGetData();
+        }
         // Données propres au widget « Pays riches, pays pauvres »
         let paysRPData = null;
         if (w.dataset.type === 'pays-riches-pauvres' && typeof w._prpGetData === 'function') {
@@ -614,6 +619,7 @@ function buildBoardState() {
 			terreMvtData,
 			cycleEauData,
 			corpsHumainData,
+			cinqSensData,
 			paysRPData,
 			volcSeisData,
 			sysSolData,
@@ -950,6 +956,11 @@ function restoreBoardFromJSON(json) {
             widget = createTerreMouvementWidget();
             if (w.terreMvtData && typeof widget._tmSetData === 'function') {
                 widget._tmSetData(w.terreMvtData);
+            }
+        } else if (w.type === 'cinq-sens') {
+            widget = createCinqSensWidget();
+            if (w.cinqSensData && typeof widget._c5sSetData === 'function') {
+                widget._c5sSetData(w.cinqSensData);
             }
         } else if (w.type === 'corps-humain') {
             widget = createCorpsHumainWidget();

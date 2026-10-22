@@ -194,6 +194,11 @@ function buildBoardState() {
         if (w.dataset.type === 'frise-rois' && typeof w._frrGetData === 'function') {
             friseRoisData = w._frrGetData();
         }
+        // Données propres au widget « Les symboles de la République »
+        let symRepData = null;
+        if (w.dataset.type === 'symboles-republique' && typeof w._srpGetData === 'function') {
+            symRepData = w._srpGetData();
+        }
         // Données propres au widget géographie de la France
         let geoFranceData = null;
         if (w.dataset.type === 'geo-france' && typeof w._gfGetData === 'function') {
@@ -228,6 +233,11 @@ function buildBoardState() {
         let cycleEauData = null;
         if (w.dataset.type === 'cycle-eau' && typeof w._ceGetData === 'function') {
             cycleEauData = w._ceGetData();
+        }
+        // Données propres au widget « Pays riches, pays pauvres »
+        let paysRPData = null;
+        if (w.dataset.type === 'pays-riches-pauvres' && typeof w._prpGetData === 'function') {
+            paysRPData = w._prpGetData();
         }
         // Données propres au widget « Volcans et séismes »
         let volcSeisData = null;
@@ -590,6 +600,7 @@ function buildBoardState() {
 			chateauFortData,
 			societeMAData,
 			friseRoisData,
+			symRepData,
 			geoFranceData,
 			geoSavoieData,
 			geoEuropeData,
@@ -597,6 +608,7 @@ function buildBoardState() {
 			geoGlobeData,
 			terreMvtData,
 			cycleEauData,
+			paysRPData,
 			volcSeisData,
 			sysSolData,
 			pauseCalmeData,
@@ -893,6 +905,11 @@ function restoreBoardFromJSON(json) {
             if (w.societeMAData && typeof widget._smSetData === 'function') {
                 widget._smSetData(w.societeMAData);
             }
+        } else if (w.type === 'symboles-republique') {
+            widget = createSymbolesRepubliqueWidget();
+            if (w.symRepData && typeof widget._srpSetData === 'function') {
+                widget._srpSetData(w.symRepData);
+            }
         } else if (w.type === 'frise-rois') {
             widget = createFriseRoisWidget();
             if (w.friseRoisData && typeof widget._frrSetData === 'function') {
@@ -932,6 +949,11 @@ function restoreBoardFromJSON(json) {
             widget = createCycleEauWidget();
             if (w.cycleEauData && typeof widget._ceSetData === 'function') {
                 widget._ceSetData(w.cycleEauData);
+            }
+        } else if (w.type === 'pays-riches-pauvres') {
+            widget = createPaysRichesPauvresWidget();
+            if (w.paysRPData && typeof widget._prpSetData === 'function') {
+                widget._prpSetData(w.paysRPData);
             }
         } else if (w.type === 'volcans-seismes') {
             widget = createVolcansSeismesWidget();

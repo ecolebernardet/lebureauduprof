@@ -1113,6 +1113,7 @@ function setVisuelsMode(mode) {
 <script src="activite-EMC-symboles-republique.js"></script>
 <script src="activite-geo-france.js"></script>
 <script src="activite-geo-savoie.js"></script>
+<script src="activite-geo-relief.js"></script>
 <script src="activite-geo-europe.js"></script>
 <script src="activite-geo-monde.js"></script>
 <script src="activite-geo-globe.js"></script>
@@ -1927,6 +1928,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Carte de la Savoie</div>
                 <div class="act-card-desc">Carte interactive : massifs, vallées, rivières, lacs et villes de Savoie</div>
             </div>
+            <div class="act-card mat-geo" onclick="createGeoReliefWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-geo-relief.jpg" alt="Le relief de montagne" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⛰️'"></div>
+                <div class="act-card-name">Le relief de montagne</div>
+                <div class="act-card-desc">Une montagne en 3D : sommet, col, versants, adret et ubac, vallée, courbes de niveau, et l'étagement de la végétation</div>
+            </div>
             <div class="act-card mat-geo" onclick="createPaysRichesPauvresWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-geo-pays-riches-pauvres.jpg" alt="Pays riches, pays pauvres" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌍'"></div>
                 <div class="act-card-name">Pays riches, pays pauvres</div>
@@ -2701,16 +2707,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
     }
     window._closeDisplayPanel = _closeDisplayPanel;
 
-    function _closeHistoryPanel() {
-        var panel = document.getElementById('history-panel');
-        var tab   = document.getElementById('history-panel-tab');
-        if (panel && panel.classList.contains('history-panel-open')) {
-            panel.classList.remove('history-panel-open');
-            if (tab) tab.classList.remove('history-panel-tab-open');
-        }
-    }
-    window._closeHistoryPanel = _closeHistoryPanel;
-
     function toggleDisplayPanel() {
         var panel = document.getElementById('display-panel');
         var tab   = document.getElementById('display-panel-tab');
@@ -2720,7 +2716,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             panel.classList.remove('display-panel-open');
             tab.classList.remove('display-panel-tab-open');
         } else {
-            _closeHistoryPanel();
             panel.classList.add('display-panel-open');
             tab.classList.add('display-panel-tab-open');
             _updateDispThemeBtns();
@@ -2797,19 +2792,18 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             });
         }
 
-        // Fermeture croisée : display/history se ferment quand un autre panneau s'ouvre
+        // Fermeture croisée : le panneau Écran se ferme quand un autre panneau s'ouvre
         var _origPanels = [
             'toggleJeuxPanel','toggleActivitiesPanel','toggleToolsPanel','toggleWidgetsPanel',
-            'toggleProjectsPanel','toggleImagePanel','toggleStickerPanel'
+            'toggleProjectsPanel','toggleStickerPanel'
         ];
         _origPanels.forEach(function(fname) {
             document.addEventListener('DOMContentLoaded', function() {}); // no-op guard
             var orig = window[fname];
             if (!orig) return;
             window[fname] = function() {
-                // Fermer display et history avant d'ouvrir l'autre
+                // Fermer le panneau Écran avant d'ouvrir l'autre
                 _closeDisplayPanel();
-                _closeHistoryPanel();
                 orig.apply(this, arguments);
             };
         });
@@ -2827,7 +2821,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 
             var closers = [
                 { panelId: 'display-panel',    openClass: 'display-panel-open',    tabId: 'display-panel-tab',    tabClass: 'display-panel-tab-open' },
-                { panelId: 'history-panel',    openClass: 'history-panel-open',    tabId: 'history-panel-tab',    tabClass: 'history-panel-tab-open' },
                 { panelId: 'jeux-panel',       openClass: 'jeux-panel-open',       tabId: 'jeux-panel-tab',       tabClass: 'jeux-panel-tab-open' },
                 { panelId: 'activities-panel', openClass: 'act-panel-open',        tabId: 'activities-panel-tab', tabClass: 'act-panel-tab-open' },
                 { panelId: 'tools-panel',      openClass: 'tools-panel-open',      tabId: 'tools-panel-tab',      tabClass: 'tools-panel-tab-open' },
@@ -2853,60 +2846,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 closed = true;
             }
         });
-    });
-})();
-(function() {
-    var HIST_W_KEY = 'history-panel-w';
-
-    function toggleHistoryPanel() {
-        var panel = document.getElementById('history-panel');
-        var tab   = document.getElementById('history-panel-tab');
-        if (!panel) return;
-        var isOpen = panel.classList.contains('history-panel-open');
-        if (isOpen) {
-            panel.classList.remove('history-panel-open');
-            tab.classList.remove('history-panel-tab-open');
-        } else {
-            if (typeof _closeDisplayPanel === 'function') _closeDisplayPanel();
-            panel.classList.add('history-panel-open');
-            tab.classList.add('history-panel-tab-open');
-        }
-    }
-    window.toggleHistoryPanel = toggleHistoryPanel;
-
-    document.addEventListener('DOMContentLoaded', function() {
-        // Resize history-panel
-        var handle = document.getElementById('history-panel-resize-handle');
-        var panel  = document.getElementById('history-panel');
-        if (handle && panel) {
-            var savedW = localStorage.getItem(HIST_W_KEY);
-            if (savedW) {
-                var w = parseInt(savedW);
-                panel.style.width = w + 'px';
-                document.documentElement.style.setProperty('--history-panel-w', w + 'px');
-            }
-            var dragging = false, startX = 0, startW = 0;
-            handle.addEventListener('mousedown', function(e) {
-                dragging = true; startX = e.clientX; startW = panel.offsetWidth;
-                panel.classList.add('history-panel-resizing');
-                document.body.style.cursor = 'ew-resize';
-                e.preventDefault();
-            });
-            document.addEventListener('mousemove', function(e) {
-                if (!dragging) return;
-                var maxW = Math.round(window.innerWidth * 0.95);
-                var w = Math.max(260, Math.min(maxW, startW + e.clientX - startX));
-                panel.style.width = w + 'px';
-                document.documentElement.style.setProperty('--history-panel-w', w + 'px');
-            });
-            document.addEventListener('mouseup', function() {
-                if (!dragging) return;
-                dragging = false;
-                panel.classList.remove('history-panel-resizing');
-                document.body.style.cursor = '';
-                localStorage.setItem(HIST_W_KEY, panel.offsetWidth);
-            });
-        }
     });
 })();
 </script>
@@ -3683,9 +3622,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (typeof openMmPanel === 'function') openMmPanel('draw');
         }
 
-        // ── Ouvrir le panneau images ─────────────────────────────────────
+        // ── Ouvrir le panneau Visuels sur la section Images ──────────────
         if (cmd === 'openImages') {
-            if (typeof toggleImagePanel === 'function') toggleImagePanel();
+            var sp = document.getElementById('sticker-panel');
+            if (sp && !sp.classList.contains('active') && typeof toggleStickerPanel === 'function') toggleStickerPanel();
+            if (typeof setVisuelsMode === 'function') setVisuelsMode('images');
         }
 
         // ── Ouvrir le panneau stickers/émojis ────────────────────────────
@@ -3763,8 +3704,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
-    // ainsi que les activités 'droite-num', 'fractions', 'fractions2', 'homophones', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'frise-rois', 'symboles-republique', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'pays-riches-pauvres', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'corps-humain', 'cinq-sens', 'volcans-seismes', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-drapeaux', 'battle-capitales', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'fractions2', 'homophones', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'frise-rois', 'symboles-republique', 'geo-france', 'geo-savoie', 'geo-europe', 'geo-monde', 'geo-globe', 'pays-riches-pauvres', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'corps-humain', 'cinq-sens', 'volcans-seismes', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama', 'lecteur-video', 'devinettes', 'tableau', 'tableau-conversion', 'tableau-numeration'];
+    // ainsi que les activités 'droite-num', 'fractions', 'fractions2', 'homophones', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'frise-rois', 'symboles-republique', 'geo-france', 'geo-savoie', 'geo-relief', 'geo-europe', 'geo-monde', 'geo-globe', 'pays-riches-pauvres', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'corps-humain', 'cinq-sens', 'volcans-seismes', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-drapeaux', 'battle-capitales', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'fractions2', 'homophones', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'frise-rois', 'symboles-republique', 'geo-france', 'geo-savoie', 'geo-relief', 'geo-europe', 'geo-monde', 'geo-globe', 'pays-riches-pauvres', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'corps-humain', 'cinq-sens', 'volcans-seismes', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama', 'lecteur-video', 'devinettes', 'tableau', 'tableau-conversion', 'tableau-numeration'];
     var lastLaunch = 0;
 
     function isPhone() {

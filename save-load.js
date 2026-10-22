@@ -209,6 +209,11 @@ function buildBoardState() {
         if (w.dataset.type === 'geo-savoie' && typeof w._gsGetData === 'function') {
             geoSavoieData = w._gsGetData();
         }
+        // Données propres au widget « Le relief de montagne »
+        let geoReliefData = null;
+        if (w.dataset.type === 'geo-relief' && typeof w._grlGetData === 'function') {
+            geoReliefData = w._grlGetData();
+        }
         // Données propres au widget géographie de l'Europe
         let geoEuropeData = null;
         if (w.dataset.type === 'geo-europe' && typeof w._geGetData === 'function') {
@@ -613,6 +618,7 @@ function buildBoardState() {
 			symRepData,
 			geoFranceData,
 			geoSavoieData,
+			geoReliefData,
 			geoEuropeData,
 			geoMondeData,
 			geoGlobeData,
@@ -931,6 +937,11 @@ function restoreBoardFromJSON(json) {
             widget = createGeoFranceWidget();
             if (w.geoFranceData && typeof widget._gfSetData === 'function') {
                 widget._gfSetData(w.geoFranceData);
+            }
+        } else if (w.type === 'geo-relief') {
+            widget = createGeoReliefWidget();
+            if (w.geoReliefData && typeof widget._grlSetData === 'function') {
+                widget._grlSetData(w.geoReliefData);
             }
         } else if (w.type === 'geo-savoie') {
             widget = createGeoSavoieWidget();

@@ -3914,7 +3914,7 @@ html body:not(.menu-light) #jeux-panel .jeux-section .act-section-label { color:
 /* ── Grille : vignettes un peu plus larges (sur ordinateur seulement) ── */
 @media (min-width: 769px) {
     html body #jeux-panel #jeux-panel-content .act-grid {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
         gap: 8px 10px;
     }
 }
@@ -4089,7 +4089,7 @@ html body:not(.menu-light) #activities-panel .act-section .act-section-label { c
 /* Grille (ordinateur seulement) */
 @media (min-width: 769px) {
     html body #activities-panel #act-panel-content .act-grid {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
         gap: 8px 10px;
         margin-bottom: 0;
     }
@@ -4873,3 +4873,136 @@ body.menu-light #draw-toolbar #dt-size-ctx-label { filter: brightness(0.7); }
     gap: 3px 4px;
 }
 #draw-toolbar.horizontal .dt-tools > .dt-row { display: contents !important; }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   PANNEAUX ACTIVITÉS ET JEUX — COULEUR DES CARTES SELON LA MATIÈRE
+   Activités : maths → orange · français → violet · divers → rose
+               histoire → rouge · EMC → blanc · géographie → bleu
+               sciences → vert  (classes mat-* posées dans index.html)
+   Jeux      : battles → bleu · maths → orange · français → violet
+               divers → vert
+   Les couleurs se règlent ci-dessous (--mat-bg : fond de la carte,
+   --mat-ico : fond de l'image, --mat-c : bordure, --mat-txt : titre).
+   Pour revenir à l'ancien rendu : supprimer ce bloc.
+══════════════════════════════════════════════════════════════════ */
+
+/* La section HGS passe en gris neutre : ses cartes multicolores ressortent mieux */
+html body #activities-panel .act-section-hgs { --sec-c: #7d8899; }
+
+/* ── Couleurs (mode clair) ── */
+/* rouge */
+html body #activities-panel .act-card.mat-histoire { --mat-bg: #fce6e4; --mat-ico: #f8d0cc; --mat-c: #d63a2f; --mat-txt: #6e1610; }
+/* blanc */
+html body #activities-panel .act-card.mat-emc { --mat-bg: #ffffff; --mat-ico: #ffffff; --mat-c: #9aa3b5; --mat-txt: #2a2440; }
+/* bleu */
+html body #activities-panel .act-card.mat-geo,
+html body #jeux-panel .jeux-section-battle .act-card { --mat-bg: #e2eefd; --mat-ico: #cde0fa; --mat-c: #2f74d0; --mat-txt: #0f3a75; }
+/* vert */
+html body #activities-panel .act-card.mat-sciences,
+html body #jeux-panel .jeux-section-divers .act-card { --mat-bg: #e1f6e7; --mat-ico: #c9edd3; --mat-c: #23964f; --mat-txt: #12502a; }
+/* violet */
+html body #activities-panel .act-section-francais .act-card,
+html body #jeux-panel .jeux-section-francais .act-card { --mat-bg: #ece4fd; --mat-ico: #ddd0fb; --mat-c: #7b4fe0; --mat-txt: #3d1f8a; }
+/* orange */
+html body #activities-panel .act-section-maths .act-card,
+html body #jeux-panel .jeux-section-maths .act-card { --mat-bg: #fdecd9; --mat-ico: #fbdcbb; --mat-c: #e07a12; --mat-txt: #6b3500; }
+/* rose */
+html body #activities-panel .act-section-divers .act-card { --mat-bg: #fde3ef; --mat-ico: #fbcde2; --mat-c: #d6337f; --mat-txt: #6e1440; }
+
+/* ── Couleurs (mode sombre) ── */
+/* rouge */
+html body:not(.menu-light) #activities-panel .act-card.mat-histoire { --mat-bg: #552220; --mat-ico: #6a2a27; --mat-c: #e5554a; --mat-txt: #ffdcd8; }
+/* blanc */
+html body:not(.menu-light) #activities-panel .act-card.mat-emc { --mat-bg: #f6f7fa; --mat-ico: #ffffff; --mat-c: #c9cedb; --mat-txt: #2a2440; }
+/* bleu */
+html body:not(.menu-light) #activities-panel .act-card.mat-geo,
+html body:not(.menu-light) #jeux-panel .jeux-section-battle .act-card { --mat-bg: #1c3858; --mat-ico: #234670; --mat-c: #4a90e2; --mat-txt: #d9eaff; }
+/* vert */
+html body:not(.menu-light) #activities-panel .act-card.mat-sciences,
+html body:not(.menu-light) #jeux-panel .jeux-section-divers .act-card { --mat-bg: #1b4630; --mat-ico: #22573a; --mat-c: #2fb36d; --mat-txt: #d5f6e1; }
+/* violet */
+html body:not(.menu-light) #activities-panel .act-section-francais .act-card,
+html body:not(.menu-light) #jeux-panel .jeux-section-francais .act-card { --mat-bg: #33265a; --mat-ico: #3f2f6e; --mat-c: #9b6cf0; --mat-txt: #e6dcff; }
+/* orange */
+html body:not(.menu-light) #activities-panel .act-section-maths .act-card,
+html body:not(.menu-light) #jeux-panel .jeux-section-maths .act-card { --mat-bg: #553515; --mat-ico: #69421b; --mat-c: #f08a24; --mat-txt: #ffe4c7; }
+/* rose */
+html body:not(.menu-light) #activities-panel .act-section-divers .act-card { --mat-bg: #55203b; --mat-ico: #6a2849; --mat-c: #e84393; --mat-txt: #ffdaea; }
+
+/* ── Application ── */
+html body #activities-panel .act-section .act-card,
+html body #jeux-panel .jeux-section .act-card {
+    background: var(--mat-bg, #fff);
+    border-color: color-mix(in srgb, var(--mat-c, #ccc) 40%, transparent);
+}
+html body #activities-panel .act-section .act-card:hover,
+html body #jeux-panel .jeux-section .act-card:hover {
+    background: var(--mat-bg, #fff);
+    border-color: var(--mat-c, #4a90e2);
+    box-shadow: 0 10px 22px color-mix(in srgb, var(--mat-c, #4a90e2) 32%, transparent);
+}
+html body #activities-panel .act-section .act-card .act-card-ico,
+html body #jeux-panel .jeux-section .act-card .act-card-ico { background: var(--mat-bg, #fff); }
+html body #activities-panel .act-section .act-card .act-card-name,
+html body #jeux-panel .jeux-section .act-card .act-card-name { color: var(--mat-txt, #2a2440); }
+html body #activities-panel .act-section .act-card .act-card-desc,
+html body #jeux-panel .jeux-section .act-card .act-card-desc { color: color-mix(in srgb, var(--mat-txt, #2a2440) 75%, transparent); }
+html body #activities-panel .act-section .act-card:focus-visible,
+html body #jeux-panel .jeux-section .act-card:focus-visible { outline-color: var(--mat-c, #4a90e2); }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   PANNEAUX OUTILS ET WIDGETS — COULEUR DES CARTES SELON LA RUBRIQUE
+   Outils  : gestion de la classe → bleu · gestion du bruit → rouge
+             outils divers → vert
+   Widgets : médias & infos → rouge · temps & météo → jaune
+             organisation & annotation → bleu
+   Mêmes variables que le bloc précédent (--mat-bg, --mat-ico,
+   --mat-c, --mat-txt). Pour revenir en arrière : supprimer ce bloc.
+══════════════════════════════════════════════════════════════════ */
+
+/* ── Couleurs (mode clair) ── */
+/* bleu */
+html body #tools-panel .tools-section-classe .tools-card,
+html body #widgets-panel .widgets-section-orga .widgets-card { --mat-bg: #e2eefd; --mat-ico: #cde0fa; --mat-c: #2f74d0; --mat-txt: #0f3a75; }
+/* rouge */
+html body #tools-panel .tools-section-bruit .tools-card,
+html body #widgets-panel .widgets-section-media .widgets-card { --mat-bg: #fce6e4; --mat-ico: #f8d0cc; --mat-c: #d63a2f; --mat-txt: #6e1610; }
+/* vert */
+html body #tools-panel .tools-section-divers .tools-card { --mat-bg: #e1f6e7; --mat-ico: #c9edd3; --mat-c: #23964f; --mat-txt: #12502a; }
+/* jaune */
+html body #widgets-panel .widgets-section-temps .widgets-card { --mat-bg: #fdf5d3; --mat-ico: #fbeba8; --mat-c: #c99700; --mat-txt: #5c4400; }
+
+/* ── Couleurs (mode sombre) ── */
+/* bleu */
+html body:not(.menu-light) #tools-panel .tools-section-classe .tools-card,
+html body:not(.menu-light) #widgets-panel .widgets-section-orga .widgets-card { --mat-bg: #1c3858; --mat-ico: #234670; --mat-c: #4a90e2; --mat-txt: #d9eaff; }
+/* rouge */
+html body:not(.menu-light) #tools-panel .tools-section-bruit .tools-card,
+html body:not(.menu-light) #widgets-panel .widgets-section-media .widgets-card { --mat-bg: #552220; --mat-ico: #6a2a27; --mat-c: #e5554a; --mat-txt: #ffdcd8; }
+/* vert */
+html body:not(.menu-light) #tools-panel .tools-section-divers .tools-card { --mat-bg: #1b4630; --mat-ico: #22573a; --mat-c: #2fb36d; --mat-txt: #d5f6e1; }
+/* jaune */
+html body:not(.menu-light) #widgets-panel .widgets-section-temps .widgets-card { --mat-bg: #4d4214; --mat-ico: #5e511a; --mat-c: #e6c000; --mat-txt: #fff3c4; }
+
+/* ── Application ── */
+html body #tools-panel .tools-section .tools-card,
+html body #widgets-panel .widgets-section .widgets-card {
+    background: var(--mat-bg, #fff);
+    border-color: color-mix(in srgb, var(--mat-c, #ccc) 40%, transparent);
+}
+html body #tools-panel .tools-section .tools-card:hover,
+html body #widgets-panel .widgets-section .widgets-card:hover {
+    background: var(--mat-bg, #fff);
+    border-color: var(--mat-c, #4a90e2);
+    box-shadow: 0 10px 22px color-mix(in srgb, var(--mat-c, #4a90e2) 32%, transparent);
+}
+html body #tools-panel .tools-section .tools-card .tools-card-ico,
+html body #widgets-panel .widgets-section .widgets-card .widgets-card-ico { background: var(--mat-bg, #fff); }
+html body #tools-panel .tools-section .tools-card .tools-card-name,
+html body #widgets-panel .widgets-section .widgets-card .widgets-card-name { color: var(--mat-txt, #2a2440); }
+html body #tools-panel .tools-section .tools-card .tools-card-desc,
+html body #widgets-panel .widgets-section .widgets-card .widgets-card-desc { color: color-mix(in srgb, var(--mat-txt, #2a2440) 75%, transparent); }
+html body #tools-panel .tools-section .tools-card:focus-visible,
+html body #widgets-panel .widgets-section .widgets-card:focus-visible { outline-color: var(--mat-c, #4a90e2); }

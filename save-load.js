@@ -199,6 +199,11 @@ function buildBoardState() {
         if (w.dataset.type === 'histoire-revolution' && typeof w._rvfGetData === 'function') {
             revolutionData = w._rvfGetData();
         }
+        // Données propres au widget « L'âge industriel »
+        let industrielData = null;
+        if (w.dataset.type === 'histoire-industriel' && typeof w._indGetData === 'function') {
+            industrielData = w._indGetData();
+        }
         // Données propres au widget « Les symboles de la République »
         let symRepData = null;
         if (w.dataset.type === 'symboles-republique' && typeof w._srpGetData === 'function') {
@@ -626,6 +631,7 @@ function buildBoardState() {
 			societeMAData,
 			friseRoisData,
 			revolutionData,
+			industrielData,
 			symRepData,
 			geoFranceData,
 			geoSavoieData,
@@ -939,6 +945,11 @@ function restoreBoardFromJSON(json) {
             widget = createSymbolesRepubliqueWidget();
             if (w.symRepData && typeof widget._srpSetData === 'function') {
                 widget._srpSetData(w.symRepData);
+            }
+        } else if (w.type === 'histoire-industriel') {
+            widget = createAgeIndustrielWidget();
+            if (w.industrielData && typeof widget._indSetData === 'function') {
+                widget._indSetData(w.industrielData);
             }
         } else if (w.type === 'histoire-revolution') {
             widget = createRevolutionFrancaiseWidget();

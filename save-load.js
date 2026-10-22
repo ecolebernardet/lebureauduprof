@@ -194,6 +194,11 @@ function buildBoardState() {
         if (w.dataset.type === 'frise-rois' && typeof w._frrGetData === 'function') {
             friseRoisData = w._frrGetData();
         }
+        // Données propres au widget « La Révolution française »
+        let revolutionData = null;
+        if (w.dataset.type === 'histoire-revolution' && typeof w._rvfGetData === 'function') {
+            revolutionData = w._rvfGetData();
+        }
         // Données propres au widget « Les symboles de la République »
         let symRepData = null;
         if (w.dataset.type === 'symboles-republique' && typeof w._srpGetData === 'function') {
@@ -213,6 +218,11 @@ function buildBoardState() {
         let geoReliefData = null;
         if (w.dataset.type === 'geo-relief' && typeof w._grlGetData === 'function') {
             geoReliefData = w._grlGetData();
+        }
+        // Données propres au widget « Latitude et longitude »
+        let geoLatLongData = null;
+        if (w.dataset.type === 'geo-latlong' && typeof w._gllGetData === 'function') {
+            geoLatLongData = w._gllGetData();
         }
         // Données propres au widget géographie de l'Europe
         let geoEuropeData = null;
@@ -615,10 +625,12 @@ function buildBoardState() {
 			chateauFortData,
 			societeMAData,
 			friseRoisData,
+			revolutionData,
 			symRepData,
 			geoFranceData,
 			geoSavoieData,
 			geoReliefData,
+			geoLatLongData,
 			geoEuropeData,
 			geoMondeData,
 			geoGlobeData,
@@ -928,6 +940,11 @@ function restoreBoardFromJSON(json) {
             if (w.symRepData && typeof widget._srpSetData === 'function') {
                 widget._srpSetData(w.symRepData);
             }
+        } else if (w.type === 'histoire-revolution') {
+            widget = createRevolutionFrancaiseWidget();
+            if (w.revolutionData && typeof widget._rvfSetData === 'function') {
+                widget._rvfSetData(w.revolutionData);
+            }
         } else if (w.type === 'frise-rois') {
             widget = createFriseRoisWidget();
             if (w.friseRoisData && typeof widget._frrSetData === 'function') {
@@ -937,6 +954,11 @@ function restoreBoardFromJSON(json) {
             widget = createGeoFranceWidget();
             if (w.geoFranceData && typeof widget._gfSetData === 'function') {
                 widget._gfSetData(w.geoFranceData);
+            }
+        } else if (w.type === 'geo-latlong') {
+            widget = createGeoLatLongWidget();
+            if (w.geoLatLongData && typeof widget._gllSetData === 'function') {
+                widget._gllSetData(w.geoLatLongData);
             }
         } else if (w.type === 'geo-relief') {
             widget = createGeoReliefWidget();

@@ -234,6 +234,11 @@ function buildBoardState() {
         if (w.dataset.type === 'cycle-eau' && typeof w._ceGetData === 'function') {
             cycleEauData = w._ceGetData();
         }
+        // Données propres au widget « Le corps humain »
+        let corpsHumainData = null;
+        if (w.dataset.type === 'corps-humain' && typeof w._chuGetData === 'function') {
+            corpsHumainData = w._chuGetData();
+        }
         // Données propres au widget « Pays riches, pays pauvres »
         let paysRPData = null;
         if (w.dataset.type === 'pays-riches-pauvres' && typeof w._prpGetData === 'function') {
@@ -608,6 +613,7 @@ function buildBoardState() {
 			geoGlobeData,
 			terreMvtData,
 			cycleEauData,
+			corpsHumainData,
 			paysRPData,
 			volcSeisData,
 			sysSolData,
@@ -944,6 +950,11 @@ function restoreBoardFromJSON(json) {
             widget = createTerreMouvementWidget();
             if (w.terreMvtData && typeof widget._tmSetData === 'function') {
                 widget._tmSetData(w.terreMvtData);
+            }
+        } else if (w.type === 'corps-humain') {
+            widget = createCorpsHumainWidget();
+            if (w.corpsHumainData && typeof widget._chuSetData === 'function') {
+                widget._chuSetData(w.corpsHumainData);
             }
         } else if (w.type === 'cycle-eau') {
             widget = createCycleEauWidget();

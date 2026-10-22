@@ -3914,7 +3914,7 @@ html body:not(.menu-light) #jeux-panel .jeux-section .act-section-label { color:
 /* ── Grille : vignettes un peu plus larges (sur ordinateur seulement) ── */
 @media (min-width: 769px) {
     html body #jeux-panel #jeux-panel-content .act-grid {
-        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
         gap: 8px 10px;
     }
 }
@@ -4089,7 +4089,7 @@ html body:not(.menu-light) #activities-panel .act-section .act-section-label { c
 /* Grille (ordinateur seulement) */
 @media (min-width: 769px) {
     html body #activities-panel #act-panel-content .act-grid {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
         gap: 8px 10px;
         margin-bottom: 0;
     }
@@ -5027,7 +5027,7 @@ html body #jeux-panel .act-card-ico,
 html body #activities-panel .act-card-ico {
     width: 100%;
     height: auto;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 5 / 4;
     border-radius: 10px;
 }
 html body #jeux-panel .act-card-ico img,
@@ -5077,7 +5077,7 @@ html body #tools-panel .tools-card-ico,
 html body #widgets-panel .widgets-card-ico {
     width: 100%;
     height: auto;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 6 / 5;
     border-radius: 10px;
 }
 html body #tools-panel .tools-card-ico img,

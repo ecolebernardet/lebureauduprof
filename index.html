@@ -1226,7 +1226,7 @@ function setVisuelsMode(mode) {
 <script src="jeu-battle-arrondis.js"></script>
 <script src="jeu-battle-orthographe.js"></script>
 <script src="jeu-francais-phrase-desordre.js"></script>
-<script src="activite-francais-phrase-desordre.js"></script>
+<script src="activite-francais-phrase.js"></script>
 <script src="activite-francais-homophones.js"></script>
 <script src="jeu-maths-tour-calculs.js"></script>
 <script src="jeu-francais-mots-meles.js"></script>
@@ -1867,40 +1867,40 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 		<div class="act-section act-section-francais">
 		<div class="act-section-label">📖 ACTIVITÉS DE FRANÇAIS</div>
 		<div class="act-grid">
-            <div class="act-card" onclick="createWidget('mots-alpha');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-ordrealpha6.jpg" alt="Ordre alphabétique" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Ordre alphabétique</div>
-                <div class="act-card-desc">Leçons et exercices : l'alphabet, ranger des mots, chercher dans le dictionnaire</div>
+			<div class="act-card" onclick="createWidget('phrase-desordre');toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-phrase-desordre.jpg" alt="La phrase" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔀'"></div>
+                <div class="act-card-name">La phrase</div>
+                <div class="act-card-desc">Leçons et exercices : phrase en désordre, types et formes de phrases, phrase simple ou complexe</div>
             </div>
-            <div class="act-card" onclick="createConjugaisonWidget();toggleActivitiesPanel()">
+			<div class="act-card" onclick="createWidget('nature-gramm');toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-nature-gramm6.jpg" alt="Nature grammaticale" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Nature grammaticale</div>
+                <div class="act-card-desc">Leçons et exercices : déterminant, nom, adjectif, verbe, pronom, mots invariables</div>
+            </div>
+			<div class="act-card" onclick="createWidget('homophones');toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-homophones.jpg" alt="Les homophones" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='📝'"></div>
+                <div class="act-card-name">Les homophones</div>
+                <div class="act-card-desc">Leçon et entraînement collectif : a/à, et/est, son/sont, on/ont, ce/se…</div>
+            </div>
+			<div class="act-card" onclick="createConjugaisonWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-conjugaison6.jpg" alt="La conjugaison" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='✏️'"></div>
                 <div class="act-card-name">La conjugaison</div>
                 <div class="act-card-desc">Leçons et exercices : présent, imparfait, futur, passé simple et passé composé</div>
             </div>
-            <div class="act-card" onclick="createWidget('nature-gramm');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-nature-gramm6.jpg" alt="Nature grammaticale" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Nature grammaticale</div>
-                <div class="act-card-desc">Classer les mots selon leur nature grammaticale</div>
+            <div class="act-card" onclick="createWidget('mots-alpha');toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-ordrealpha6.jpg" alt="Ordre alphabétique" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Ordre alphabétique</div>
+                <div class="act-card-desc">Leçons et exercices : l'alphabet, ranger des mots, chercher dans le dictionnaire</div>
             </div>
             <div class="act-card" onclick="createMotsMelesWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-motsmeles6.jpg" alt="Mots mêlés" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Mots Mêlés</div>
                 <div class="act-card-desc">Générer et jouer à une grille interactive de mots mêlés</div>
             </div>
-            <div class="act-card" onclick="createWidget('phrase-desordre');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-phrase-desordre.jpg" alt="Phrase en désordre" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔀'"></div>
-                <div class="act-card-name">Phrase en désordre</div>
-                <div class="act-card-desc">Remettre dans l'ordre les mots d'une phrase mélangée</div>
-            </div>
             <div class="act-card" onclick="createMotLePlusLongWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-mot-le-plus-long.jpg" alt="Le mot le plus long" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔤'"></div>
                 <div class="act-card-name">Le mot le plus long</div>
                 <div class="act-card-desc">Former le mot le plus long avec 9 lettres tirées au sort</div>
-            </div>
-            <div class="act-card" onclick="createWidget('homophones');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-homophones.jpg" alt="Les homophones" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='📝'"></div>
-                <div class="act-card-name">Les homophones</div>
-                <div class="act-card-desc">Leçon et entraînement collectif : a/à, et/est, son/sont, on/ont, ce/se…</div>
             </div>
 		</div>
 		</div>

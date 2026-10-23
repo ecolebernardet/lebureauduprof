@@ -165,6 +165,16 @@
     background:linear-gradient(135deg,transparent 50%,#9a8f7a 50%); border-radius:0 0 18px 0; }
 .hm-container:hover .hm-resize { opacity:1; }
 .hm-container.wf-fullboard .hm-resize { display:none; }
+/* Curseur : la flèche partout, la main sur la barre du haut (déplacement) */
+.widget[data-type="homophones"], .hm-container, .hm-container * { cursor:default !important; }
+.hm-container .hm-header { cursor:grab !important; }
+.hm-container .hm-header:active { cursor:grabbing !important; }
+/* Le doigt qui clique sur tout ce qui est cliquable */
+.hm-container button, .hm-container [data-act],
+.hm-container .hm-header button { cursor:pointer !important; }
+.hm-container button:disabled, .hm-container button[disabled] { cursor:default !important; }
+.hm-container input, .hm-container textarea { cursor:text !important; }
+.hm-container .hm-resize { cursor:se-resize !important; }
 `;
         document.head.appendChild(s);
     }

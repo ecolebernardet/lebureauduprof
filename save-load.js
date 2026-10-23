@@ -112,7 +112,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones' || w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2') {
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones' || w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2' || w.dataset.type === 'mots-alpha') {
             // Calculatrice / Phrase en désordre / Visualiseur / 108 heures / Billets aux familles : si le widget est réduit
             // (mini-barre), on garde sa position d'origine (ses dimensions sont gérées par le widget)
             const _calcMini = !!w.querySelector('.wf-mini-bar, .h108-mini-bar, .der-mini-bar');
@@ -146,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones' && w.dataset.type !== 'conjugaison' && w.dataset.type !== 'conjugaison2') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones' && w.dataset.type !== 'conjugaison' && w.dataset.type !== 'conjugaison2' && w.dataset.type !== 'mots-alpha') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -415,6 +415,11 @@ function buildBoardState() {
         if ((w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2') && typeof w._c2GetData === 'function') {
             c2Data = w._c2GetData();
         }
+        // Données propres à l'activité « L'ordre alphabétique » (onglet, leçon, réglages, exercice en cours, taille, plein écran)
+        let alphaData = null;
+        if (w.dataset.type === 'mots-alpha' && typeof w._a2GetData === 'function') {
+            alphaData = w._a2GetData();
+        }
         // Données propres au widget dé
         let deData = null;
         if (w.dataset.type === 'de') {
@@ -657,6 +662,7 @@ function buildBoardState() {
 			frac2Data,
 			homData,
 			c2Data,
+			alphaData,
 			deData,
 			calData,
 			rqData,
@@ -1165,6 +1171,13 @@ function restoreBoardFromJSON(json) {
             // Leçon, réglages, série en cours, taille et plein écran
             if (typeof createHomophonesWidget === 'function') {
                 widget = createHomophonesWidget(w.homData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'mots-alpha') {
+            // Leçon, réglages, exercice en cours (étiquettes placées, réponses), taille et plein écran
+            if (typeof createMotsAlphaWidget === 'function') {
+                widget = createMotsAlphaWidget(w.alphaData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

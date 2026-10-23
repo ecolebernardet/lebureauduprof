@@ -2,7 +2,33 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
+    <script>
+    // ── Téléphone : retour à l'échelle normale après une rotation ──────────
+    // Quand on passe en paysage puis qu'on revient en portrait, le navigateur
+    // du téléphone garde parfois le niveau de zoom (dézoomé) du mode paysage :
+    // la page se croit alors « large » comme sur un PC, les règles mobiles de
+    // style-phone.css ne s'appliquent plus et les onglets deviennent minuscules.
+    // On force ici le navigateur à recalculer la largeur de l'écran.
+    (function() {
+        function resetViewport() {
+            var m = document.getElementById('meta-viewport');
+            if (!m) return;
+            var base = 'width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover';
+            // On change brièvement le contenu pour obliger le navigateur à le relire
+            m.setAttribute('content', base + ', maximum-scale=1.0');
+            setTimeout(function() {
+                m.setAttribute('content', base);
+                window.dispatchEvent(new Event('resize'));
+            }, 300);
+        }
+        if (screen.orientation && screen.orientation.addEventListener) {
+            screen.orientation.addEventListener('change', resetViewport);
+        } else {
+            window.addEventListener('orientationchange', resetViewport);
+        }
+    })();
+    </script>
     <title>Le Bureau du Prof – Tableau blanc numérique pour enseignants</title>
 
     <!-- SEO : indexation Google -->

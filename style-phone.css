@@ -18,12 +18,20 @@
         /* Empêche le rebond/scroll global du navigateur (élastique iOS) */
         height: 100%;
         overflow: hidden;
+        /* Empêche le navigateur d'agrandir/réduire tout seul les textes
+           quand on tourne le téléphone (portrait ↔ paysage) */
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
     }
 
     body {
         overflow: hidden; /* évite le scroll parasite sur mobile */
         height: 100%;
         width: 100%;
+        /* Rien ne doit dépasser en largeur : sinon, après une rotation, le
+           navigateur dézoome pour tout montrer et la page ressemble à un PC */
+        max-width: 100vw;
+        overflow-x: hidden;
         /* Empêche le zoom involontaire au double-tap, garde le pincer-zoomer */
         touch-action: manipulation;
         /* Zones sûres (encoche / barre d'accueil iPhone) */

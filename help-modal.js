@@ -39,7 +39,9 @@
     `<img src="pics/logo-le-bureau-du-prof4.jpg" alt="" class="hm-logo" onerror="this.style.display='none'">` +
     p(`Le Bureau du Prof est un <strong>tableau blanc numérique interactif</strong> conçu pour les enseignants, idéal sur <strong>TBI</strong> ou <strong>VPI</strong>.`) +
     p(`Vous pouvez y poser librement des <strong>jeux</strong>, des <strong>activités</strong> de classe, des <strong>outils</strong> de gestion (tirage au sort, minuteur, sonomètre…), des <strong>widgets</strong> (date, météo, devoirs, PDF, YouTube…), des stickers et des images. Vous pouvez aussi <strong>dessiner</strong>, <strong>écrire</strong>, <strong>annoter des PDF</strong>, changer le <strong>fond</strong> du tableau, et tout <strong>sauvegarder</strong>.`) +
-    p(`Le tableau respecte un <strong>format 16:9</strong> et s'adapte à la taille de votre écran ou vidéoprojecteur.`),
+    p(`Le tableau respecte un <strong>format 16:9</strong> et s'adapte à la taille de votre écran ou vidéoprojecteur.`) +
+    `<p class="hm-p" style="font-size:14px;line-height:1.8;text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #e5e8ee;">Le Bureau du Prof est un outil <strong>libre</strong> et <strong>gratuit</strong>. </p>
+	<p class="hm-p" style="font-size:12px;line-height:1.8;text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #e5e8ee;">🤓 créé et géré par Nicolas Bernardet - prof d'école à Chambéry (Savoie) 🤓</p>`,
     true));
 
   // EXPLORER
@@ -363,11 +365,6 @@
     ])
   ));
 
-  // À PROPOS
-  S.push(section('h-apropos', 'ℹ️ À propos',
-    `<p class="hm-p" style="font-size:14px;line-height:1.8;">Le Bureau du Prof 🤓 Nicolas Bernardet 🤓 Chambéry 🤓 Savoie</p>`
-  ));
-
   // ── Structure de la modale ────────────────────────────────────────────
   const html = `
 <div id="help-modal-overlay">
@@ -406,8 +403,6 @@
       ${nav('h-ecran', '🖥️ Écran')}
       ${nav('h-presentation', '📽️ Mode présentation')}
       ${nav('h-mobile', '📱 Tablette & téléphone')}
-      ${navSep}
-      ${nav('h-apropos', 'ℹ️ À propos')}
     </nav>
 
     <div id="help-content">
@@ -462,7 +457,7 @@
     .hm-h2 { font-size: 1.2em; font-weight: 800; color: #1a1a2e; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #e5e8ee; }
     .hm-h3 { font-size: 0.97em; font-weight: 700; color: #2B7FFF; margin: 16px 0 6px; }
     .hm-p { font-size: 13.5px; color: #444; line-height: 1.65; margin: 0 0 12px; }
-    .hm-logo { display: block; max-width: 220px; max-height: 140px; width: auto; height: auto; margin: 0 auto 18px; border-radius: 12px; }
+    .hm-logo { display: block; max-width: 220px; max-height: 180px; width: auto; height: auto; margin: 0 auto 18px; border-radius: 12px; }
     .hm-img {width: 80%; border-radius: 10px; box-shadow: 0 4px 18px rgba(0,0,0,0.13); display: block; margin: 6px auto 0; }
     .hm-group { font-size: 0.85em; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 8px; }
     .hm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 7px; margin-bottom: 8px; }

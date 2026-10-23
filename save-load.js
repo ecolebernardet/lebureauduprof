@@ -112,7 +112,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones') {
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones' || w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2') {
             // Calculatrice / Phrase en désordre / Visualiseur / 108 heures / Billets aux familles : si le widget est réduit
             // (mini-barre), on garde sa position d'origine (ses dimensions sont gérées par le widget)
             const _calcMini = !!w.querySelector('.wf-mini-bar, .h108-mini-bar, .der-mini-bar');
@@ -146,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones' && w.dataset.type !== 'conjugaison' && w.dataset.type !== 'conjugaison2') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -338,16 +338,6 @@ function buildBoardState() {
             s3dW = w.offsetWidth;
             s3dH = w.offsetHeight;
         }
-        // Données propres au widget conjugaison
-        let conjData = null;
-        if (w.dataset.type === 'conjugaison') {
-            const cc = w.querySelector('.conj-container');
-            const cg = w.querySelector('.conj-grid');
-            conjData = {
-                containerW: cc ? cc.offsetWidth : null,
-                gridH: cg ? (parseInt(cg.style.height) || null) : null
-            };
-        }
         // Données propres au widget heure
         let heureData = null;
         if (w.dataset.type === 'heure') {
@@ -419,6 +409,11 @@ function buildBoardState() {
         let homData = null;
         if (w.dataset.type === 'homophones' && typeof w._homGetData === 'function') {
             homData = w._homGetData();
+        }
+        // Données propres à l'activité « La conjugaison » (onglet, leçon, réglages, exercices et réponses, taille, plein écran)
+        let c2Data = null;
+        if ((w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2') && typeof w._c2GetData === 'function') {
+            c2Data = w._c2GetData();
         }
         // Données propres au widget dé
         let deData = null;
@@ -623,7 +618,6 @@ function buildBoardState() {
 			planData,
 			edtData,
 			heureData,
-			conjData,
 			tableauNumData,
 			motLongData,
 			friseHistData,
@@ -662,6 +656,7 @@ function buildBoardState() {
 			fracData,
 			frac2Data,
 			homData,
+			c2Data,
 			deData,
 			calData,
 			rqData,
@@ -1036,14 +1031,6 @@ function restoreBoardFromJSON(json) {
             if (w.tableauNumData && typeof widget._tnumSetData === 'function') {
                 widget._tnumSetData(w.tableauNumData);
             }
-        } else if (w.type === 'conjugaison') {
-            widget = createConjugaisonWidget();
-            if (w.conjData) {
-                const cc = widget.querySelector('.conj-container');
-                const cg = widget.querySelector('.conj-grid');
-                if (cc && w.conjData.containerW) cc.style.width = w.conjData.containerW + 'px';
-                if (cg && w.conjData.gridH)      cg.style.height = w.conjData.gridH + 'px';
-            }
         } else if (w.type === 'heure') {
             widget = createHeureWidget();
             if (w.heureData) {
@@ -1178,6 +1165,14 @@ function restoreBoardFromJSON(json) {
             // Leçon, réglages, série en cours, taille et plein écran
             if (typeof createHomophonesWidget === 'function') {
                 widget = createHomophonesWidget(w.homData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'conjugaison' || w.type === 'conjugaison2') {
+            // Leçon, réglages, exercices en cours (avec les réponses), taille et plein écran
+            // ('conjugaison2' = nom provisoire, gardé pour relire les tableaux déjà sauvegardés)
+            if (typeof createConjugaisonWidget === 'function') {
+                widget = createConjugaisonWidget(w.c2Data || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

@@ -3625,6 +3625,35 @@ body.presentation-mode #draw-fab-btn { display: none; }
     #draw-fab-btn { cursor: grab; }
 }
 #draw-fab-btn { touch-action: none; }
+
+/* Poignée de déplacement (6 points) : cachée au repos, elle apparaît
+   à gauche du bouton quand il s'élargit au survol */
+.dfab-grip {
+    display: flex; align-items: center; justify-content: center;
+    max-width: 0; height: 30px; overflow: hidden; flex-shrink: 0;
+    border-right: 1px solid rgba(255,255,255,0);
+    opacity: 0;
+    pointer-events: none;           /* tout le bouton se fait glisser */
+    transition: max-width .22s cubic-bezier(.4,0,.2,1), opacity .15s, padding .22s, margin .22s, border-color .15s;
+}
+.dfab-grip svg { width: 8px; height: 14px; fill: currentColor; opacity: .85; }
+@media (hover: hover) and (pointer: fine) {
+    #draw-fab-btn:hover .dfab-grip,
+    #draw-fab-btn:focus-visible .dfab-grip,
+    #draw-fab-btn.dfab-dragging .dfab-grip {
+        max-width: 20px;
+        margin-left: -6px;          /* rapproche la poignée du bord gauche */
+        padding-right: 8px;
+        border-right-color: rgba(255,255,255,0.35);
+        opacity: 1;
+    }
+    #draw-fab-btn.dfab-dragging { gap: 8px; }
+    #draw-fab-btn.dfab-dragging .dfab-lbl { max-width: 90px; opacity: 1; }
+}
+/* Sur un écran tactile sans souris, pas de poignée */
+@media not ((hover: hover) and (pointer: fine)) {
+    .dfab-grip { display: none; }
+}
 #draw-fab-btn.dfab-dragging {
     cursor: grabbing;
     transition: none;

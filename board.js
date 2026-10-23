@@ -998,7 +998,120 @@ function _updateDrawFabBtn() {
     const tb = document.getElementById('draw-toolbar');
     const isOpen = tb && tb.style.display !== 'none';
     btn.classList.toggle('draw-open', isOpen);
+    // Onglet « Dessin » de la colonne latérale (téléphone)
+    const tab = document.getElementById('draw-panel-tab');
+    if (tab) {
+        tab.classList.toggle('is-open', !!isOpen);
+        tab.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
+    }
 }
+
+// Ouvre / ferme la barre Dessin (onglet « Dessin » du téléphone et Alt+9)
+function toggleDrawFromTab() {
+    const tb = document.getElementById('draw-toolbar');
+    const isOpen = tb && tb.style.display && tb.style.display !== 'none';
+    if (isOpen) { if (typeof stopDrawing === 'function') stopDrawing(); }
+    else openMmPanel('draw');
+    _updateDrawFabBtn();
+}
+
+// =========================================================================
+// BOUTON DESSIN DÉPLAÇABLE (ordinateur / TBI)
+// - un appui bref ouvre la barre Dessin, comme avant
+// - si on fait glisser le bouton, il se déplace et sa place est mémorisée
+// - clic droit sur le bouton : il revient à sa place d'origine (en bas à droite)
+// Sur téléphone, le bouton est masqué : l'onglet « Dessin » le remplace.
+// =========================================================================
+(function () {
+    const KEY = 'drawFabPos';      // { x, y } = position du coin haut-gauche, en fraction de l'écran
+    const DRAG_THRESHOLD = 6;      // en px : en dessous, c'est un simple clic
+    const MARGIN = 6;
+
+    function readPos() {
+        try { const p = JSON.parse(localStorage.getItem(KEY)); if (p && isFinite(p.x) && isFinite(p.y)) return p; } catch (e) {}
+        return null;
+    }
+    function clearInline(btn) {
+        ['left', 'top', 'right', 'bottom'].forEach(k => btn.style.removeProperty(k));
+    }
+    function place(btn, left, top) {
+        const w = btn.offsetWidth || 58, h = btn.offsetHeight || 58;
+        left = Math.max(MARGIN, Math.min(left, window.innerWidth  - w - MARGIN));
+        top  = Math.max(MARGIN, Math.min(top,  window.innerHeight - h - MARGIN));
+        btn.style.left = left + 'px';
+        btn.style.top  = top  + 'px';
+        btn.style.right = 'auto';
+        btn.style.bottom = 'auto';
+        return { left, top };
+    }
+    function applySaved(btn) {
+        if (isMobileBoardMode()) { clearInline(btn); return; }
+        const p = readPos();
+        if (!p) { clearInline(btn); return; }
+        place(btn, p.x * window.innerWidth, p.y * window.innerHeight);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const btn = document.getElementById('draw-fab-btn');
+        if (!btn) return;
+        btn.title = 'Dessin et figures (Alt+9) — glisser pour déplacer, clic droit pour remettre en place';
+        applySaved(btn);
+        window.addEventListener('resize', () => applySaved(btn));
+
+        let start = null, dragging = false, justDragged = false;
+
+        btn.addEventListener('pointerdown', (e) => {
+            if (isMobileBoardMode()) return;
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            const r = btn.getBoundingClientRect();
+            start = { x: e.clientX, y: e.clientY, left: r.left, top: r.top, id: e.pointerId };
+            dragging = false;
+        });
+        btn.addEventListener('pointermove', (e) => {
+            if (!start || e.pointerId !== start.id) return;
+            const dx = e.clientX - start.x, dy = e.clientY - start.y;
+            if (!dragging) {
+                if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+                dragging = true;
+                try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+                btn.classList.add('dfab-dragging');
+            }
+            e.preventDefault();
+            place(btn, start.left + dx, start.top + dy);
+        });
+        function end(e) {
+            if (!start || (e && e.pointerId !== start.id)) return;
+            if (dragging) {
+                const r = btn.getBoundingClientRect();
+                try { localStorage.setItem(KEY, JSON.stringify({ x: r.left / window.innerWidth, y: r.top / window.innerHeight })); } catch (err) {}
+                btn.classList.remove('dfab-dragging');
+                justDragged = true;                       // le « clic » qui suit ne doit pas ouvrir la barre
+                setTimeout(() => { justDragged = false; }, 400);
+            }
+            try { btn.releasePointerCapture(start.id); } catch (err) {}
+            start = null; dragging = false;
+        }
+        btn.addEventListener('pointerup', end);
+        btn.addEventListener('pointercancel', end);
+
+        // Phase de capture sur le document : passe avant le onclick du bouton
+        document.addEventListener('click', (e) => {
+            if (justDragged && btn.contains(e.target)) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                justDragged = false;
+            }
+        }, true);
+
+        // Clic droit : remettre le bouton à sa place d'origine
+        btn.addEventListener('contextmenu', (e) => {
+            if (isMobileBoardMode()) return;
+            e.preventDefault();
+            try { localStorage.removeItem(KEY); } catch (err) {}
+            clearInline(btn);
+        });
+    });
+})();
 
 // Fermer le menu au clic extérieur
 document.addEventListener('mousedown', function(e) {

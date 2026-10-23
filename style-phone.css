@@ -84,6 +84,13 @@
     #draw-fab-btn .dfab-lbl { display: none; }
     #draw-fab-btn .dfab-ico { width: 22px; height: 22px; }
 
+    /* Sur téléphone, le bouton flottant est remplacé par l'onglet « Dessin »
+       de la colonne latérale : plus rien ne cache les boutons des widgets. */
+    #draw-fab-btn { display: none !important; }
+    .side-tabs-sep-draw,
+    .side-tabs-group-draw { display: flex; }
+    .side-tabs-sep-draw { display: block; }
+
 
     /* ════════════════════════════════════════════════════════
        3. MENU PRINCIPAL (#main-menu)

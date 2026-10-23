@@ -1227,7 +1227,6 @@ function setVisuelsMode(mode) {
 <script src="jeu-battle-orthographe.js"></script>
 <script src="jeu-francais-phrase-desordre.js"></script>
 <script src="activite-francais-phrase.js"></script>
-<script src="activite-francais-fonctions.js"></script>
 <script src="activite-francais-homophones.js"></script>
 <script src="jeu-maths-tour-calculs.js"></script>
 <script src="jeu-francais-mots-meles.js"></script>
@@ -1873,14 +1872,9 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">La phrase</div>
                 <div class="act-card-desc">Leçons et exercices : phrase en désordre, types et formes de phrases, phrase simple ou complexe</div>
             </div>
-			<div class="act-card" onclick="createWidget('fonctions');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-francais-fonctions.jpg" alt="Les fonctions" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧭'"></div>
-                <div class="act-card-name">Les fonctions dans la phrase</div>
-                <div class="act-card-desc">Leçons et exercices : sujet, COD, COI, compléments circonstanciels, attribut du sujet, complément du nom</div>
-            </div>
 			<div class="act-card" onclick="createWidget('nature-gramm');toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-nature-gramm6.jpg" alt="Nature grammaticale" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">La nature des mots</div>
+                <div class="act-card-name">Nature grammaticale</div>
                 <div class="act-card-desc">Leçons et exercices : déterminant, nom, adjectif, verbe, pronom, mots invariables</div>
             </div>
 			<div class="act-card" onclick="createWidget('homophones');toggleActivitiesPanel()">
@@ -1945,7 +1939,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             </div>
             <div class="act-card mat-emc" onclick="createSymbolesRepubliqueWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-EMC-symboles-republique.jpg" alt="Les symboles de la République" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🇫🇷'"></div>
-                <div class="act-card-name">Symboles de la République</div>
+                <div class="act-card-name">Les symboles de la République</div>
                 <div class="act-card-desc">Le drapeau, la devise, Marianne, La Marseillaise, le 14 Juillet… à découvrir sur la place de la mairie, puis à retrouver en jeu</div>
             </div>
 			<div class="act-card mat-geo" onclick="createGeoGlobeWidget();toggleActivitiesPanel()">
@@ -2738,6 +2732,14 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             <span class="side-tab-switch" aria-hidden="true"><span></span></span>
         </button>
     </div>
+    <!-- Onglet Dessin : visible uniquement sur téléphone (il y remplace le bouton flottant) -->
+    <div class="side-tabs-sep side-tabs-sep-draw" aria-hidden="true"></div>
+    <div class="side-tabs-group side-tabs-group-draw">
+        <button id="draw-panel-tab" class="side-tab" style="--tab-c:#f5b82e" onclick="toggleDrawFromTab()" title="Dessin et figures (Alt+9)" aria-pressed="false">
+            <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-4.8L15.6 4.8a2.3 2.3 0 0 1 3.3 0l.3.3a2.3 2.3 0 0 1 0 3.3L8.8 18.8z"/><path d="M13.8 6.6l3.6 3.6"/><path d="M4 20l4.8-1.2"/></svg>
+            <span class="side-tab-lbl">Dessin</span>
+        </button>
+    </div>
 </nav>
 
 
@@ -3130,11 +3132,8 @@ function _updateEraserBtnInPanel() {
         }
         // Alt+9 : ouvre / ferme la barre Dessin
         if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'Digit9') {
-            var fab = document.getElementById('draw-fab-btn');
-            var tb  = document.getElementById('draw-toolbar');
             e.preventDefault();
-            if (tb && tb.style.display && tb.style.display !== 'none' && typeof stopDrawing === 'function') stopDrawing();
-            else if (fab && fab.getClientRects().length) fab.click(); // (offsetParent vaut toujours null pour un élément « fixed »)
+            if (typeof toggleDrawFromTab === 'function') toggleDrawFromTab();
             return;
         }
         if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -3755,7 +3754,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
     // ainsi que les activités 'droite-num', 'fractions', 'fractions2', 'homophones', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'frise-rois', 'histoire-revolution', 'histoire-industriel', 'symboles-republique', 'geo-france', 'geo-savoie', 'geo-relief', 'geo-latlong', 'geo-europe', 'geo-monde', 'geo-globe', 'pays-riches-pauvres', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'corps-humain', 'cinq-sens', 'volcans-seismes', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', l'activité 'phrase-desordre' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-drapeaux', 'battle-capitales', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'fractions2', 'homophones', 'conjugaison2', 'fonctions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'frise-rois', 'histoire-revolution', 'histoire-industriel', 'symboles-republique', 'geo-france', 'geo-savoie', 'geo-relief', 'geo-latlong', 'geo-europe', 'geo-monde', 'geo-globe', 'pays-riches-pauvres', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'corps-humain', 'cinq-sens', 'volcans-seismes', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama', 'lecteur-video', 'devinettes', 'tableau', 'tableau-conversion', 'tableau-numeration'];
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-drapeaux', 'battle-capitales', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'fractions2', 'homophones', 'conjugaison2', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'frise-rois', 'histoire-revolution', 'histoire-industriel', 'symboles-republique', 'geo-france', 'geo-savoie', 'geo-relief', 'geo-latlong', 'geo-europe', 'geo-monde', 'geo-globe', 'pays-riches-pauvres', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'corps-humain', 'cinq-sens', 'volcans-seismes', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama', 'lecteur-video', 'devinettes', 'tableau', 'tableau-conversion', 'tableau-numeration'];
     var lastLaunch = 0;
 
     function isPhone() {

@@ -1937,61 +1937,9 @@ body.presentation-mode #projects-panel { display: none !important; }
 /* ── Onglet Affichage (9e onglet) ─────────────────────── */
 
 
-/* ── Onglet Historique (10e onglet) ─────────────────────── */
-#history-panel-tab {
-    position: fixed;
-    left: -35px; top: calc(50% + 210px);
-    transform: translateY(-50%) rotate(-90deg);
-    transform-origin: center center;
-    width: 65px; height: 75px;
-    background: #111;
-    border: 1px solid #2e2e3a;
-    border-right: none;
-    border-radius: 0px 0px 8px 8px;
-    z-index: 50005;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: flex-start;
-    font-size: 11px; color: rgba(255,255,255,0.45);
-    transition: width 0.05s, height 0.05s, transform 0.05s, opacity 0.1s, color 0.1s, background 0.1s;
-    letter-spacing: 1px;
-    box-shadow: 2px 0 8px rgba(0,0,0,0.3);
-    opacity: 0.5;
-    white-space: nowrap;
-    flex-direction: column-reverse;
-    gap: 2px;
-}
-#history-panel-tab.tab-js-hover {
-    background: #1a1a1a; color: rgba(255,255,255,0.88); opacity: 1;
-    width: 130px; height: 70px;
-    padding: 0;
-    transform: translateY(-50%) rotate(0deg);
-    flex-direction: column;
-    gap: 4px;
-    font-size: 14px;
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-}
-#history-panel-tab.history-panel-tab-open { display: none !important; }
-body.presentation-mode #history-panel-tab { display: none !important; }
-body.menu-light #history-panel-tab {
-    background: var(--panel-light-bg);
-    border-color: var(--panel-light-border);
-    color: var(--panel-light-muted);
-}
-body.menu-light #history-panel-tab.tab-js-hover {
-    background: var(--panel-light-bg2);
-    color: var(--panel-light-text);
-    transition: width 0.22s cubic-bezier(.4,0,.2,1), height 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.15s, color 0.15s, background 0.15s;
-    justify-content: center;
-    padding-left: 50px;
-}
-body.menu-light #history-panel-tab.history-panel-tab-open { display: none !important; }
-
-/* ── Panneaux Affichage & Historique ───────────────────────── */
+/* ── Panneau Affichage ───────────────────────── */
 :root {
     --display-panel-w: 30vw;
-    --history-panel-w: 90vw;
 }
 #display-panel {
     position: fixed;
@@ -2007,29 +1955,12 @@ body.menu-light #history-panel-tab.history-panel-tab-open { display: none !impor
     font-family: 'Segoe UI', system-ui, sans-serif;
     transition: left 0.25s cubic-bezier(.4,0,.2,1);
 }
-#history-panel {
-    position: fixed;
-    top: 0; left: calc(-1 * var(--history-panel-w));
-    width: var(--history-panel-w);
-    height: calc(100% - 90px);
-    background: #111;
-    border-right: 1px solid #2e2e3a;
-    z-index: 50000;
-    display: flex;
-    flex-direction: column;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    transition: left 0.25s cubic-bezier(.4,0,.2,1);
-}
 #display-panel.display-panel-open  { left: 0; }
-#history-panel.history-panel-open  { left: 0; }
-#display-panel.display-panel-resizing,
-#history-panel.history-panel-resizing { transition: none !important; }
-body.presentation-mode #display-panel,
-body.presentation-mode #history-panel { display: none !important; }
+#display-panel.display-panel-resizing { transition: none !important; }
+body.presentation-mode #display-panel { display: none !important; }
 
 /* Poignées de redimensionnement */
-#display-panel-resize-handle,
-#history-panel-resize-handle {
+#display-panel-resize-handle {
     position: absolute;
     right: -4px; top: 0;
     width: 8px; height: 100%;
@@ -2037,8 +1968,7 @@ body.presentation-mode #history-panel { display: none !important; }
     z-index: 10;
     display: flex; align-items: center; justify-content: center;
 }
-#display-panel-resize-handle::after,
-#history-panel-resize-handle::after {
+#display-panel-resize-handle::after {
     content: '';
     display: block;
     width: 3px; height: 40px;
@@ -2047,35 +1977,32 @@ body.presentation-mode #history-panel { display: none !important; }
     transition: background 0.15s;
 }
 #display-panel-resize-handle:hover::after { background: #4a90e2; }
-#history-panel-resize-handle:hover::after { background: #4a90e2; }
 
-#display-panel-header, #history-panel-header {
+#display-panel-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 16px 14px 50px;
     background: #1a1a1a;
     border-bottom: 1px solid #2e2e3a;
     flex-shrink: 0;
 }
-#display-panel-header h3, #history-panel-header h3 {
+#display-panel-header h3 {
     margin: 0; font-size: 18px; font-weight: 700; color: #ddd;
 }
-#display-panel-close, #history-panel-close {
+#display-panel-close {
     background: none; border: none; color: #aaa;
     font-size: 20px; cursor: pointer; line-height: 1; padding: 0;
     transition: color .15s;
 }
-#display-panel-close:hover, #history-panel-close:hover { color: #fff; }
+#display-panel-close:hover { color: #fff; }
 
-#display-panel-content, #history-panel-content {
+#display-panel-content {
     flex: 1; overflow-y: auto;
     padding: 16px 12px 16px 50px;
 }
-#display-panel-content::-webkit-scrollbar,
-#history-panel-content::-webkit-scrollbar { width: 6px; }
-#display-panel-content::-webkit-scrollbar-thumb,
-#history-panel-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+#display-panel-content::-webkit-scrollbar { width: 6px; }
+#display-panel-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
 
-/* Boutons des panneaux Affichage / Historique */
+/* Boutons du panneau Affichage */
 .disp-section-label, .hist-section-label {
     font-size: 10px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 1px; color: rgba(255,255,255,0.35);
@@ -2173,21 +2100,17 @@ body.menu-light .disp-inline-btn-active {
 .hist-btn-label { flex: 1; }
 .hist-btn-sub { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 1px; }
 
-/* Mode clair pour les nouveaux panneaux */
-body.menu-light #display-panel,
-body.menu-light #history-panel {
+/* Mode clair du panneau Affichage */
+body.menu-light #display-panel {
     background: var(--panel-light-bg);
     border-right-color: var(--panel-light-border);
 }
-body.menu-light #display-panel-header,
-body.menu-light #history-panel-header {
+body.menu-light #display-panel-header {
     background: var(--panel-light-header-bg);
     border-bottom-color: var(--panel-light-border);
 }
-body.menu-light #display-panel-header h3,
-body.menu-light #history-panel-header h3 { color: var(--panel-light-text); }
-body.menu-light #display-panel-close,
-body.menu-light #history-panel-close { color: var(--panel-light-muted); }
+body.menu-light #display-panel-header h3 { color: var(--panel-light-text); }
+body.menu-light #display-panel-close { color: var(--panel-light-muted); }
 body.menu-light .disp-btn, body.menu-light .hist-btn {
     background: var(--panel-light-card-bg);
     border-color: var(--panel-light-card-border);
@@ -3697,6 +3620,26 @@ body.menu-light #draw-fab-btn { border-color: #1f5fa8; }
 /* Masqué en mode présentation */
 body.presentation-mode #draw-fab-btn { display: none; }
 
+/* Déplaçable (ordinateur / TBI) : curseur « main » et pas d'effet pendant le glissement */
+@media (hover: hover) and (pointer: fine) {
+    #draw-fab-btn { cursor: grab; }
+}
+#draw-fab-btn { touch-action: none; }
+#draw-fab-btn.dfab-dragging {
+    cursor: grabbing;
+    transition: none;
+    animation: none;
+    transform: scale(1.06);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.45);
+}
+
+/* Onglet « Dessin » de la colonne latérale : réservé au téléphone
+   (il y remplace le bouton flottant, voir style-phone.css) */
+.side-tabs-sep-draw,
+.side-tabs-group-draw { display: none; }
+body.presentation-mode .side-tabs-group-draw,
+body.presentation-mode .side-tabs-sep-draw { display: none !important; }
+
 /* Respect du réglage « réduire les animations » du système */
 @media (prefers-reduced-motion: reduce) {
     #draw-fab-btn { animation: none; }
@@ -3759,13 +3702,13 @@ body.menu-light .panel-title-ico circle { fill: color-mix(in srgb, var(--tab-c) 
 #sticker-panel-header,
 #widgets-panel-header, #tools-panel-header,
 #act-panel-header, #jeux-panel-header,
-#display-panel-header, #history-panel-header { padding-left: 16px; }
+#display-panel-header { padding-left: 16px; }
 #sticker-panel-tabs,
 #sticker-panel-search,
 #sp-content,
 #widgets-panel-content, #tools-panel-content,
 #act-panel-content, #jeux-panel-content,
-#display-panel-content, #history-panel-content,
+#display-panel-content,
 #image-panel-search, #image-panel-grid,
 #image-panel-footer,
 #image-panel-tabs,

@@ -112,7 +112,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones' || w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2' || w.dataset.type === 'mots-alpha' || w.dataset.type === 'nature-gramm') {
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones' || w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2' || w.dataset.type === 'mots-alpha' || w.dataset.type === 'nature-gramm' || w.dataset.type === 'fonctions') {
             // Calculatrice / Phrase en désordre / Visualiseur / 108 heures / Billets aux familles : si le widget est réduit
             // (mini-barre), on garde sa position d'origine (ses dimensions sont gérées par le widget)
             const _calcMini = !!w.querySelector('.wf-mini-bar, .h108-mini-bar, .der-mini-bar');
@@ -146,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones' && w.dataset.type !== 'conjugaison' && w.dataset.type !== 'conjugaison2' && w.dataset.type !== 'mots-alpha' && w.dataset.type !== 'nature-gramm') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones' && w.dataset.type !== 'conjugaison' && w.dataset.type !== 'conjugaison2' && w.dataset.type !== 'mots-alpha' && w.dataset.type !== 'nature-gramm' && w.dataset.type !== 'fonctions') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -425,6 +425,11 @@ function buildBoardState() {
         if (w.dataset.type === 'nature-gramm' && typeof w._ngGetData === 'function') {
             natureData = w._ngGetData();
         }
+        // Données propres à l'activité « Les fonctions » (onglet, leçon, fonctions cochées, exercice en cours, taille, plein écran)
+        let fonctionsData = null;
+        if (w.dataset.type === 'fonctions' && typeof w._fnGetData === 'function') {
+            fonctionsData = w._fnGetData();
+        }
         // Données propres au widget dé
         let deData = null;
         if (w.dataset.type === 'de') {
@@ -669,6 +674,7 @@ function buildBoardState() {
 			c2Data,
 			alphaData,
 			natureData,
+			fonctionsData,
 			deData,
 			calData,
 			rqData,
@@ -1177,6 +1183,13 @@ function restoreBoardFromJSON(json) {
             // Leçon, réglages, série en cours, taille et plein écran
             if (typeof createHomophonesWidget === 'function') {
                 widget = createHomophonesWidget(w.homData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'fonctions') {
+            // Leçon, fonctions cochées, exercice en cours (réponses, étiquettes), taille et plein écran
+            if (typeof createFonctionsWidget === 'function') {
+                widget = createFonctionsWidget(w.fonctionsData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

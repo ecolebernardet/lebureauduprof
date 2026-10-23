@@ -301,6 +301,7 @@
             align-items: center;
             flex-wrap: wrap;
             position: relative;
+            z-index: 50; /* au-dessus de la grille : le menu « Jours » ne passe plus derrière */
             padding: 4px;
             border-radius: 18px;
             flex-shrink: 0;

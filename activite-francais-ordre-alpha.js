@@ -303,7 +303,10 @@
 .widget[data-type="mots-alpha"], .a2-container, .a2-container * { cursor:default !important; }
 .a2-container .a2-header { cursor:grab !important; }
 .a2-container .a2-header:active { cursor:grabbing !important; }
-.a2-container .a2-header button { cursor:default !important; }
+/* Le doigt qui clique sur tout ce qui est cliquable */
+.a2-container button, .a2-container select, .a2-container [data-act], .a2-container .a2-card,
+.a2-container .a2-header button { cursor:pointer !important; }
+.a2-container .a2-slot, .a2-container .a2-pool, .a2-container button:disabled { cursor:default !important; }
 .a2-container input, .a2-container textarea { cursor:text !important; }
 .a2-container .a2-resize { cursor:se-resize !important; }
 `;

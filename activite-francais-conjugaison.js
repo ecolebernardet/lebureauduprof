@@ -261,6 +261,17 @@
     background:linear-gradient(135deg,transparent 50%,#9a8f7a 50%); border-radius:0 0 18px 0; touch-action:none; }
 .c2-container:hover .c2-resize { opacity:1; }
 .c2-container.wf-fullboard .c2-resize { display:none; }
+/* Curseur : la flèche partout, la main sur la barre du haut (déplacement) */
+.widget[data-type="conjugaison"], .c2-container, .c2-container * { cursor:default !important; }
+.c2-container .c2-header { cursor:grab !important; }
+.c2-container .c2-header:active { cursor:grabbing !important; }
+/* Le doigt qui clique sur tout ce qui est cliquable */
+.c2-container button, .c2-container select, .c2-container [data-act],
+.c2-container .c2-header button { cursor:pointer !important; }
+.c2-container button:disabled { cursor:default !important; }
+.c2-container input, .c2-container textarea { cursor:text !important; }
+.c2-container input:disabled { cursor:default !important; }
+.c2-container .c2-resize { cursor:se-resize !important; }
 `;
         document.head.appendChild(s);
     }

@@ -162,7 +162,77 @@ function _qjInit(c) {
     const input = c.querySelector('.qj-input');
     if (input) qjInputChanged(input);
     _qjRenderRecents(c);
+    // Plein écran (bouton vert) : on suit l'ajout / le retrait de la classe
+    new MutationObserver(() => _qjFitFullboard(c)).observe(c, { attributes: true, attributeFilter: ['class'] });
+    _qjFitFullboard(c);
 }
+
+/* ── Plein écran sur téléphone : laisser la place des onglets À GAUCHE ──
+   Sur téléphone, les onglets latéraux occupent 40 px à gauche de l'écran.
+   Le plein écran doit donc commencer à 40 px du bord gauche et aller
+   jusqu'au bord droit. On pose la position, puis on mesure où le widget
+   s'affiche réellement : si le tableau est décalé ou mis à l'échelle, on
+   corrige l'écart pour que le widget colle bien au bord droit de l'écran. */
+const _QJ_PHONE_Q = '(max-width: 768px), (max-height: 500px) and (pointer: coarse)';
+const _QJ_TABS_W = 40;
+const _QJ_FS_PROPS = ['position', 'inset', 'top', 'right', 'bottom', 'left', 'width', 'height', 'max-width', 'max-height', 'margin', 'transform'];
+function _qjIsPhone() {
+    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
+    return !!(window.matchMedia && window.matchMedia(_QJ_PHONE_Q).matches);
+}
+function _qjFitFullboard(c) {
+    const on = c.classList.contains('wf-media-fullboard') && _qjIsPhone();
+    if (!on) { _qjUnfit(c); return; }
+    if (c._qjFsBusy) return;
+    c._qjFsBusy = true;
+    // Valeurs d'avant le recalage, pour les remettre en sortant du plein écran
+    if (!c._qjFsFitted) {
+        c._qjFsSaved = {};
+        _QJ_FS_PROPS.forEach(p => { c._qjFsSaved[p] = [c.style.getPropertyValue(p), c.style.getPropertyPriority(p)]; });
+    }
+    c._qjFsMine = c._qjFsMine || {};
+    const set = (p, v) => { c.style.setProperty(p, v, 'important'); c._qjFsMine[p] = c.style.getPropertyValue(p); };
+    const vw = window.innerWidth, vh = window.innerHeight;
+    set('position', 'fixed'); set('inset', 'auto'); set('margin', '0'); set('transform', 'none');
+    set('top', '0px'); set('left', _QJ_TABS_W + 'px');
+    set('right', 'auto'); set('bottom', 'auto');
+    set('width', (vw - _QJ_TABS_W) + 'px'); set('height', vh + 'px');
+    set('max-width', 'none'); set('max-height', 'none');
+    c._qjFsFitted = true;
+    // Correction si un parent (tableau) décale ou met à l'échelle l'affichage
+    const r = c.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) {
+        const sx = r.width / (vw - _QJ_TABS_W), sy = r.height / vh;
+        const left = _QJ_TABS_W + (_QJ_TABS_W - r.left) / sx;
+        const top  = (0 - r.top) / sy;
+        if (Math.abs(r.left - _QJ_TABS_W) > 1 || Math.abs(sx - 1) > 0.01) {
+            set('left', left + 'px');
+            set('width', ((vw - _QJ_TABS_W) / sx) + 'px');
+        }
+        if (Math.abs(r.top) > 1 || Math.abs(sy - 1) > 0.01) {
+            set('top', top + 'px');
+            set('height', (vh / sy) + 'px');
+        }
+    }
+    c._qjFsBusy = false;
+}
+// Sortie du plein écran : on ne remet que les propriétés que personne
+// d'autre n'a modifiées entre-temps (la taille normale du widget est gardée)
+function _qjUnfit(c) {
+    if (!c._qjFsFitted) return;
+    const saved = c._qjFsSaved || {}, mine = c._qjFsMine || {};
+    _QJ_FS_PROPS.forEach(p => {
+        if (!(p in mine) || c.style.getPropertyValue(p) !== mine[p]) return;
+        const v = saved[p];
+        if (v && v[0]) c.style.setProperty(p, v[0], v[1]); else c.style.removeProperty(p);
+    });
+    c._qjFsFitted = false; c._qjFsMine = {}; c._qjFsSaved = null;
+}
+// Rotation / redimensionnement : on recale les widgets en plein écran
+window.addEventListener('resize', () => document.querySelectorAll('.qj-v2.wf-media-fullboard').forEach(c => {
+    _qjUnfit(c);
+    _qjFitFullboard(c);
+}));
 function _qjScan(n) {
     if (!n || n.nodeType !== 1) return;
     if (n.matches('.qj-v2')) _qjInit(n);

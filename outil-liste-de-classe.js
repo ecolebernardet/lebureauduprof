@@ -1704,6 +1704,80 @@ if (!window.ClasseEdition) {
     .widget.wf-max[data-type="classe"] .classe-inner,
     .widget.phone-fs[data-type="classe"] .classe-inner { cursor: default; }
 
+    /* ══════════════════════════════════════════════════════════════════
+       TÉLÉPHONE : FICHES ÉLÈVES COMPACTES
+       Une seule ligne par élève : n°, prénom, nom, niveau, F/G, ×.
+       La date de naissance n'apparaît (sur une 2e ligne) que pour l'élève
+       en cours de modification (quand on touche un de ses champs).
+       Sélecteurs volontairement plus précis que les règles « téléphone »
+       précédentes, pour les remplacer.
+       ══════════════════════════════════════════════════════════════════ */
+    @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] {
+            gap: 4px 8px;
+            padding: 6px;
+        }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-col { gap: 4px; }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-col-head { padding: 3px 8px; font-size: 11px; }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row {
+            flex-wrap: wrap;
+            gap: 3px;
+            row-gap: 0;
+            padding: 2px 3px 2px 4px;
+            border-radius: 9px;
+            border-width: 1px;
+            box-shadow: none;
+            min-height: 0;
+        }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-num {
+            width: 16px;
+            font-size: 10px;
+        }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-in {
+            height: 26px;
+            padding: 0 5px;
+            line-height: 1.2;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-in-prenom,
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-in-nom {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-niv {
+            order: 1;
+            height: 24px;
+            min-width: 34px;
+            max-width: 46px;
+            padding: 0 4px;
+        }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-sexe {
+            order: 2;
+            width: 26px;
+            height: 24px;
+            font-size: 11px;
+        }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-del {
+            order: 3;
+            width: 24px;
+            height: 24px;
+            font-size: 16px;
+        }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-in-dob {
+            display: none;
+            order: 10;
+            flex: 1 0 calc(100% - 22px);
+            width: auto;
+            height: 26px;
+            margin: 2px 0 1px 19px;
+            text-align: left;
+        }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row:focus-within .classe-in-dob {
+            display: block;
+        }
+    }
+
     `;
 
     if (!document.getElementById('classe-widget-style')) {

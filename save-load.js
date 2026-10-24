@@ -112,7 +112,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones' || w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2' || w.dataset.type === 'mots-alpha' || w.dataset.type === 'nature-gramm' || w.dataset.type === 'fonctions' || w.dataset.type === 'operations-posees' || w.dataset.type === 'familles-derivation') {
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones' || w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2' || w.dataset.type === 'mots-alpha' || w.dataset.type === 'nature-gramm' || w.dataset.type === 'fonctions' || w.dataset.type === 'operations-posees' || w.dataset.type === 'familles-derivation' || w.dataset.type === 'accord-gn') {
             // Calculatrice / Phrase en désordre / Visualiseur / 108 heures / Billets aux familles : si le widget est réduit
             // (mini-barre), on garde sa position d'origine (ses dimensions sont gérées par le widget)
             const _calcMini = !!w.querySelector('.wf-mini-bar, .h108-mini-bar, .der-mini-bar');
@@ -146,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones' && w.dataset.type !== 'conjugaison' && w.dataset.type !== 'conjugaison2' && w.dataset.type !== 'mots-alpha' && w.dataset.type !== 'nature-gramm' && w.dataset.type !== 'fonctions' && w.dataset.type !== 'operations-posees' && w.dataset.type !== 'familles-derivation') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones' && w.dataset.type !== 'conjugaison' && w.dataset.type !== 'conjugaison2' && w.dataset.type !== 'mots-alpha' && w.dataset.type !== 'nature-gramm' && w.dataset.type !== 'fonctions' && w.dataset.type !== 'operations-posees' && w.dataset.type !== 'familles-derivation' && w.dataset.type !== 'accord-gn') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -571,6 +571,11 @@ function buildBoardState() {
         if (w.dataset.type === 'familles-derivation' && typeof w._fdGetData === 'function') {
             fdData = w._fdGetData();
         }
+        // Données propres à l'activité « La chaîne d'accords » (onglet, leçon, groupe nominal du tableau, exercice en cours, taille, plein écran)
+        let agData = null;
+        if (w.dataset.type === 'accord-gn' && typeof w._agGetData === 'function') {
+            agData = w._agGetData();
+        }
         // Données propres au widget calculatrice
         // Données propres au widget visualiseur (caméra USB)
         let visuData = null;
@@ -712,6 +717,7 @@ function buildBoardState() {
 			pdsData,
 			opData,
 			fdData,
+			agData,
 			calcData,
 			visuData,
 			h108Data,
@@ -1424,6 +1430,13 @@ function restoreBoardFromJSON(json) {
             // Activité « Opérations posées » : leçon, démonstration, réglages, série en cours (réponses), taille, plein écran
             if (typeof createOperationsPoseesWidget === 'function') {
                 widget = createOperationsPoseesWidget(w.opData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'accord-gn') {
+            // Activité « La chaîne d'accords » : leçon, groupe nominal du tableau, exercice en cours, taille, plein écran
+            if (typeof createAccordGNWidget === 'function') {
+                widget = createAccordGNWidget(w.agData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

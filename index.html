@@ -933,6 +933,55 @@ function setVisuelsMode(mode) {
         if (typeof setStickerMode === 'function') setStickerMode(mode);
     }
 }
+
+/* ── Fermeture automatique du panneau Visuels après l'insertion d'un sticker ou d'une image ──
+   On mémorise le moment où l'utilisateur agit dans le panneau (clic, toucher,
+   glisser). Si un élément apparaît sur le tableau juste après (dans les 3 s),
+   c'est qu'il vient du panneau : on referme alors le panneau.
+   Les éléments restaurés au chargement d'un tableau ne sont pas concernés. */
+(function() {
+    var DELAI_MS = 3000;
+    var derniereAction = 0;
+
+    function noteAction() { derniereAction = Date.now(); }
+
+    function fermerVisuels() {
+        var panel = document.getElementById('sticker-panel');
+        if (panel && panel.classList.contains('active') && typeof toggleStickerPanel === 'function') {
+            toggleStickerPanel();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var panel = document.getElementById('sticker-panel');
+        var board = document.getElementById('board');
+        if (!panel || !board) return;
+
+        // Actions dans le panneau (sauf onglets, recherche et boutons de mode)
+        ['click', 'pointerup', 'dragstart', 'dragend'].forEach(function(evt) {
+            panel.addEventListener(evt, function(e) {
+                if (e.target.closest('#sticker-mode-bar, #sticker-panel-tabs, #sticker-panel-search, #sticker-panel-header, #sticker-panel-resize-handle')) return;
+                noteAction();
+            }, true);
+        });
+
+        // Un sticker ou une image vient d'être posé sur le tableau
+        new MutationObserver(function(mutations) {
+            if (Date.now() - derniereAction > DELAI_MS) return;
+            var ajout = mutations.some(function(m) {
+                return Array.prototype.some.call(m.addedNodes, function(n) {
+                    return n.nodeType === 1 && n.classList &&
+                           (n.classList.contains('widget') || n.classList.contains('shape-widget'));
+                });
+            });
+            if (ajout) {
+                derniereAction = 0;
+                // Petit délai : laisse le sticker ou l'image finir de se placer
+                setTimeout(fermerVisuels, 50);
+            }
+        }).observe(board, { childList: true });
+    });
+})();
 </script>
 
 <div id="modal-overlay">

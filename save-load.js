@@ -279,6 +279,11 @@ function buildBoardState() {
         if (w.dataset.type === 'volcans-seismes' && typeof w._vsGetData === 'function') {
             volcSeisData = w._vsGetData();
         }
+        // Données propres au widget « Les circuits électriques »
+        let electriciteData = null;
+        if (w.dataset.type === 'sciences-electricite' && typeof w._elcGetData === 'function') {
+            electriciteData = w._elcGetData();
+        }
         // Données propres au widget « Le système solaire »
         let sysSolData = null;
         if (w.dataset.type === 'systeme-solaire' && typeof w._ssGetData === 'function') {
@@ -681,6 +686,7 @@ function buildBoardState() {
 			cinqSensData,
 			paysRPData,
 			volcSeisData,
+			electriciteData,
 			sysSolData,
 			pauseCalmeData,
 			horlogeData,
@@ -1075,6 +1081,13 @@ function restoreBoardFromJSON(json) {
             widget = createVolcansSeismesWidget();
             if (w.volcSeisData && typeof widget._vsSetData === 'function') {
                 widget._vsSetData(w.volcSeisData);
+            }
+        } else if (w.type === 'sciences-electricite') {
+            // Atelier (composants, fils), défis réussis et montages en cours, objets testés, quiz, vue, taille, plein écran
+            if (typeof createElectriciteWidget === 'function') {
+                widget = createElectriciteWidget(w.electriciteData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
             }
         } else if (w.type === 'systeme-solaire') {
             widget = createSystemeSolaireWidget();

@@ -459,8 +459,7 @@
 /* En-tête */
 .drn-head { flex-shrink: 0; background: linear-gradient(120deg, #1d3a5c, #26527a 60%, #1d3a5c); color: #fff;
     border-bottom: .2em solid var(--gold); }
-.drn-headrow { display: flex; align-items: center; gap: .7em; padding: .45em .8em .35em; cursor: move; }
-.drn-container.drn-fullboard .drn-headrow { cursor: default; }
+.drn-headrow { display: flex; align-items: center; gap: .7em; padding: .45em .8em .35em; }
 .drn-logo { width: 2.1em; height: 2.1em; flex-shrink: 0; }
 .drn-titles { flex: 1; min-width: 0; }
 .drn-t1 { font-size: 1.12em; font-weight: 800; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -670,6 +669,33 @@
 .drn-resize { position: absolute; right: 0; bottom: 0; width: 1.3em; height: 1.3em; cursor: nwse-resize; z-index: 5; touch-action: none;
     background: linear-gradient(135deg, transparent 50%, rgba(122,82,20,.55) 50%); border-radius: 0 0 14px 0; }
 .drn-container.drn-fullboard .drn-resize { display: none; }
+
+/* ── Curseurs ──────────────────────────────────────────────────────────
+   Flèche partout par défaut (y compris sur les textes et les cartes),
+   main qui pointe sur ce qui se clique, main qui attrape sur ce qui se
+   déplace (barre de titre, point de fuite), main fermée pendant le glisser. */
+.drn-container, .drn-container * { cursor: default; }
+.drn-container .drn-tab, .drn-container .drn-btn, .drn-container .wf-btn,
+.drn-container .drn-why-card, .drn-container .drn-why-card *,
+.drn-container .drn-hot, .drn-container .drn-hot *,
+.drn-container .drn-chip, .drn-container .drn-instr-card, .drn-container .drn-instr-card *,
+.drn-container .drn-exp, .drn-container .drn-exp *,
+.drn-container .drn-step, .drn-container .drn-item, .drn-container .drn-item *,
+.drn-container .drn-con, .drn-container .drn-con *,
+.drn-container .drn-rcard, .drn-container .drn-rcard *,
+.drn-container .drn-fev, .drn-container .drn-fev *,
+.drn-container .drn-opt:not([disabled]) { cursor: pointer; }
+.drn-container .drn-btn[disabled], .drn-container .drn-opt[disabled] { cursor: default; }
+.drn-container .drn-press input { cursor: text; }
+.drn-container .drn-headrow, .drn-container .drn-headrow .drn-titles,
+.drn-container .drn-headrow .drn-titles *, .drn-container .drn-headrow .drn-logo,
+.drn-container .drn-headrow .drn-logo * { cursor: grab; }
+.drn-container .drn-persp, .drn-container .drn-persp * { cursor: grab; }
+.drn-container .drn-resize { cursor: nwse-resize; }
+.drn-container.drn-fullboard .drn-headrow, .drn-container.drn-fullboard .drn-headrow *,
+.widget[data-anchored="true"] .drn-container .drn-headrow, .widget[data-anchored="true"] .drn-container .drn-headrow * { cursor: default; }
+.drn-container.drn-fullboard .drn-headrow .wf-btn, .widget[data-anchored="true"] .drn-container .drn-headrow .wf-btn { cursor: pointer; }
+.drn-container.drn-grabbing, .drn-container.drn-grabbing * { cursor: grabbing !important; }
 
 /* Mise en page étroite */
 .drn-narrow .drn-why, .drn-narrow .drn-ship-wrap, .drn-narrow .drn-voy { grid-template-columns: 1fr; }
@@ -1038,7 +1064,7 @@
             function mv(ev) {
                 var dx = ev.clientX - sx, dy = ev.clientY - sy;
                 if (!moved && Math.abs(dx) + Math.abs(dy) < 3) return;
-                if (!moved) { moved = true; if (typeof snapshotNow === 'function') { try { snapshotNow(); } catch (er) {} } }
+                if (!moved) { moved = true; C.classList.add('drn-grabbing'); if (typeof snapshotNow === 'function') { try { snapshotNow(); } catch (er) {} } }
                 widget.style.left = (ox + dx) + 'px';
                 widget.style.top = Math.max(0, oy + dy) + 'px';
                 if (typeof positionActionBar === 'function') { try { positionActionBar(widget); } catch (er) {} }
@@ -1047,6 +1073,7 @@
                 document.removeEventListener('pointermove', mv);
                 document.removeEventListener('pointerup', up);
                 document.removeEventListener('pointercancel', up);
+                C.classList.remove('drn-grabbing');
                 if (moved) { storePercents(); save(); }
             }
             document.addEventListener('pointermove', mv);
@@ -1493,15 +1520,15 @@
             }
             var dragging = false;
             svg.addEventListener('pointerdown', function (e) {
-                dragging = true; try { svg.setPointerCapture(e.pointerId); } catch (er) {}
+                dragging = true; C.classList.add('drn-grabbing'); try { svg.setPointerCapture(e.pointerId); } catch (er) {}
                 var p = toLocal(e); vp.x = Math.max(10, Math.min(390, p.x)); vp.y = Math.max(30, Math.min(180, p.y)); draw();
             });
             svg.addEventListener('pointermove', function (e) {
                 if (!dragging) return;
                 var p = toLocal(e); vp.x = Math.max(10, Math.min(390, p.x)); vp.y = Math.max(30, Math.min(180, p.y)); draw();
             });
-            svg.addEventListener('pointerup', function () { dragging = false; });
-            svg.addEventListener('pointercancel', function () { dragging = false; });
+            svg.addEventListener('pointerup', function () { dragging = false; C.classList.remove('drn-grabbing'); });
+            svg.addEventListener('pointercancel', function () { dragging = false; C.classList.remove('drn-grabbing'); });
             draw();
         }
 

@@ -204,6 +204,11 @@ function buildBoardState() {
         if (w.dataset.type === 'histoire-industriel' && typeof w._indGetData === 'function') {
             industrielData = w._indGetData();
         }
+        // Données propres au widget « Les Grandes découvertes et la Renaissance »
+        let renaissanceData = null;
+        if (w.dataset.type === 'histoire-renaissance' && typeof w._drnGetData === 'function') {
+            renaissanceData = w._drnGetData();
+        }
         // Données propres au widget « Les symboles de la République »
         let symRepData = null;
         if (w.dataset.type === 'symboles-republique' && typeof w._srpGetData === 'function') {
@@ -661,6 +666,7 @@ function buildBoardState() {
 			friseRoisData,
 			revolutionData,
 			industrielData,
+			renaissanceData,
 			symRepData,
 			geoFranceData,
 			geoSavoieData,
@@ -987,6 +993,13 @@ function restoreBoardFromJSON(json) {
             widget = createAgeIndustrielWidget();
             if (w.industrielData && typeof widget._indSetData === 'function') {
                 widget._indSetData(w.industrielData);
+            }
+        } else if (w.type === 'histoire-renaissance') {
+            // Onglet, voyage choisi, jeu des échanges, quiz en cours, taille, plein écran
+            if (typeof createDecouvertesRenaissanceWidget === 'function') {
+                widget = createDecouvertesRenaissanceWidget(w.renaissanceData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
             }
         } else if (w.type === 'histoire-revolution') {
             widget = createRevolutionFrancaiseWidget();

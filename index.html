@@ -1836,6 +1836,12 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         <button id="lessons-panel-close" onclick="toggleLessonsPanel()" title="Fermer">✕</button>
     </div>
     <div id="lessons-panel-content">
+        <div class="lessons-intro">
+            <span class="lessons-intro-step"><b>📘 Leçon</b> pour comprendre</span>
+            <span class="lessons-intro-arrow" aria-hidden="true">➜</span>
+            <span class="lessons-intro-step"><b>✏️ Entraînement</b> avec des exercices corrigés</span>
+            <span class="lessons-intro-note">Chaque module contient toujours les deux parties.</span>
+        </div>
 		<div class="act-section act-section-maths">
 		<div class="act-section-label">🔢 MATHÉMATIQUES</div>
 		<div class="act-grid">
@@ -1853,11 +1859,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activite-maths-nombre-decomp.jpg" alt="Les grands nombres" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔢'"></div>
                 <div class="act-card-name">Les grands nombres</div>
                 <div class="act-card-desc">Leçons, explorateur et exercices : lire, écrire et décomposer les grands nombres avec le tableau de numération</div>
-            </div>
-			<div class="act-card" onclick="createTableauNumWidget();toggleLessonsPanel()">
-                <div class="act-card-ico"><img src="pics/activite-tableau-numeration6.jpg" alt="Tableau de numération" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Tableau de numération</div>
-                <div class="act-card-desc">Manipuler le tableau de numération décimale</div>
             </div>
 			<div class="act-card" onclick="createWidget('fractions2');toggleLessonsPanel()">
                 <div class="act-card-ico"><img src="pics/activite-fractions2.jpg" alt="Comprendre les fractions" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🍕'"></div>
@@ -2879,9 +2880,10 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 7h11a4.5 4.5 0 0 1 4.3 5.8l-1.2 4a2.6 2.6 0 0 1-4.5.9L14.5 16h-5l-1.6 1.7a2.6 2.6 0 0 1-4.5-.9l-1.2-4A4.5 4.5 0 0 1 6.5 7z"/><path d="M7.5 10v3M6 11.5h3"/><circle cx="15.5" cy="10.5" r=".6"/><circle cx="17.5" cy="12.5" r=".6"/></svg>
             <span class="side-tab-lbl">Jeux</span>
         </button>
-        <button id="lessons-panel-tab" class="side-tab" style="--tab-c:#14a3a0" onclick="toggleLessonsPanel()" title="Leçons et entraînements (Alt+2)" aria-controls="lessons-panel" aria-expanded="false">
+        <button id="lessons-panel-tab" class="side-tab" style="--tab-c:#14a3a0" onclick="toggleLessonsPanel()" title="Leçons et entraînements : chaque module a une leçon et des exercices corrigés (Alt+2)" aria-controls="lessons-panel" aria-expanded="false">
             <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.4 5.3 8.2 4.8 4 5v13c4.2-.2 6.4.3 8 1.5 1.6-1.2 3.8-1.7 8-1.5V5c-4.2-.2-6.4.3-8 1.5z"/><path d="M12 6.5v13"/></svg>
             <span class="side-tab-lbl">Leçons</span>
+            <span class="side-tab-sub">+ exercices</span>
         </button>
     </div>
     <div class="side-tabs-title" aria-hidden="true">Prof</div>

@@ -133,8 +133,7 @@
     group('🔢 Mathématiques', [
       ['Les tables de multiplication', 'Astuces, table de Pythagore, exercices'],
       ['Opérations posées', 'Les 4 opérations, avec les retenues'],
-      ['Les grands nombres', 'Lire, écrire, décomposer'],
-      ['Tableau de numération', 'Manipuler les nombres'],
+      ['Les grands nombres', 'Lire, écrire, décomposer avec le tableau de numération'],
       ['Comprendre les fractions', 'Parcours pas à pas'],
     ]) +
     group('📖 Français', [

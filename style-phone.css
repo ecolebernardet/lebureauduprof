@@ -141,7 +141,8 @@
         min-height: 44px;
         padding: 4px 2px 4px 4px;
     }
-    .side-tab-lbl { display: none; }
+    .side-tab-lbl,
+    .side-tab-sub { display: none; }
     .side-tab-ico { width: 21px; height: 21px; }
     .side-tabs-group { gap: 3px; }
     .side-tabs-sep { height: 10px; }

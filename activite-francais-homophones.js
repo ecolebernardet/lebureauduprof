@@ -449,7 +449,7 @@
                 <span class="hm-title">📝 Les homophones</span>
                 <div class="hm-tabs">
                     <button class="hm-tab" data-act="tab" data-tab="lecon"><span>📖</span><span class="hm-tab-lbl">Leçon</span></button>
-                    <button class="hm-tab" data-act="tab" data-tab="train"><span>✏️</span><span class="hm-tab-lbl">Entraînement collectif</span></button>
+                    <button class="hm-tab" data-act="tab" data-tab="train"><span>✏️</span><span class="hm-tab-lbl">Exercices</span></button>
                 </div>
                 <div class="wf-btns" style="margin-left:auto">
                     <button class="hm-icon-btn" data-act="sound" title="Son"></button>
@@ -463,7 +463,7 @@
             <div class="hm-help">
                 <h4>💡 Comment utiliser cette activité ?</h4>
                 <p><b>📖 Leçon</b> — Choisis un homophone à gauche. Chaque mot a sa carte : ce qu'il est, le <b>test de remplacement</b> 🪄 et un exemple. En bas : un moyen de s'en souvenir et le piège à éviter.</p>
-                <p><b>✏️ Entraînement collectif</b> — Une phrase à trous s'affiche en grand. La classe réfléchit (temps réglable), puis on clique sur la réponse proposée par les élèves. Chaque réponse est expliquée avec le test de remplacement.</p>
+                <p><b>✏️ Exercices</b> — Une phrase à trous s'affiche en grand. La classe réfléchit (temps réglable), puis on clique sur la réponse proposée par les élèves. Chaque réponse est expliquée avec le test de remplacement.</p>
                 <p><b>Réglages</b> — Choisis les homophones travaillés, retire « as », « es » ou « ai » s'ils ne sont pas encore étudiés, le nombre de phrases, le temps de réflexion et la taille du texte.</p>
                 <p>« 👁 Révéler » montre la réponse sans la compter comme réussie (pratique avec les ardoises).</p>
             </div>

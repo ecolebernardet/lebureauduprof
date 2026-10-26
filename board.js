@@ -1006,7 +1006,7 @@ function _updateDrawFabBtn() {
     }
 }
 
-// Ouvre / ferme la barre Dessin (onglet « Dessin » du téléphone et Alt+9)
+// Ouvre / ferme la barre Dessin (onglet « Dessin » du téléphone et Alt+0)
 function toggleDrawFromTab() {
     const tb = document.getElementById('draw-toolbar');
     const isOpen = tb && tb.style.display && tb.style.display !== 'none';
@@ -1054,7 +1054,7 @@ function toggleDrawFromTab() {
     document.addEventListener('DOMContentLoaded', function () {
         const btn = document.getElementById('draw-fab-btn');
         if (!btn) return;
-        btn.title = 'Dessin et figures (Alt+9) — glisser pour déplacer, clic droit pour remettre en place';
+        btn.title = 'Dessin et figures (Alt+0) — glisser pour déplacer, clic droit pour remettre en place';
         applySaved(btn);
         window.addEventListener('resize', () => applySaved(btn));
 
@@ -1128,15 +1128,19 @@ document.addEventListener('mousedown', function(e) {
         document.querySelectorAll('.cpick-popup.open').forEach(p => p.classList.remove('open'));
         document.querySelectorAll('.cpick-active').forEach(p => p.classList.remove('cpick-active'));
     }
-    // Fermer le panneau Activités si clic en dehors
-    const actPanel = document.getElementById('activities-panel');
-    const actTab   = document.getElementById('activities-panel-tab');
-    if (actPanel && actPanel.classList.contains('act-panel-open')) {
-        if (!actPanel.contains(e.target) && !(actTab && actTab.contains(e.target))) {
-            actPanel.classList.remove('act-panel-open');
-            if (actTab) actTab.classList.remove('act-panel-tab-open');
+    // Fermer les panneaux Activités et Leçons si clic en dehors
+    [['activities-panel', 'activities-panel-tab', 'act-panel-open',     'act-panel-tab-open'],
+     ['lessons-panel',    'lessons-panel-tab',    'lessons-panel-open', 'lessons-panel-tab-open']
+    ].forEach(function(cfg) {
+        const panel = document.getElementById(cfg[0]);
+        const tab   = document.getElementById(cfg[1]);
+        if (panel && panel.classList.contains(cfg[2])) {
+            if (!panel.contains(e.target) && !(tab && tab.contains(e.target))) {
+                panel.classList.remove(cfg[2]);
+                if (tab) tab.classList.remove(cfg[3]);
+            }
         }
-    }
+    });
 });
 
 // Fermer les barres d'outils quand on clique sur un item du menu

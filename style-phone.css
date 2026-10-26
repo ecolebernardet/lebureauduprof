@@ -147,6 +147,8 @@
     .side-tabs-sep { height: 10px; }
     #pres-mode-tab { min-height: 52px; }
     .side-tab-badge { top: 4px; right: 4px; }
+    /* Titres des familles (Élèves, Prof, Gestion) à la largeur des onglets */
+    .side-tabs-title { width: 40px; font-size: 7.5px; letter-spacing: 0; padding: 3px 1px 3px 2px; margin-top: 9px; }
 
     /* Décalage des panneaux = largeur d'un onglet ouvert sur téléphone (40 + 8 px) */
     :root { --side-tabs-w: 48px; }
@@ -171,7 +173,8 @@
     #projects-panel,
     #pdf-library-panel,
     #image-panel,
-    #jeux-panel {
+    #jeux-panel,
+    #lessons-panel {
         width: 88vw !important;
         /* le panneau est décalé à droite des onglets (--side-tabs-w) */
         max-width: calc(100vw - var(--side-tabs-w)) !important;
@@ -182,7 +185,8 @@
     #jeux-panel-content,
     #act-panel-content,
     #tools-panel-content,
-    #widgets-panel-content {
+    #widgets-panel-content,
+    #lessons-panel-content {
         overflow-x: hidden !important;
         box-sizing: border-box !important;
         padding-right: 8px !important;
@@ -649,7 +653,8 @@
     html body #widgets-panel #widgets-panel-header,
     html body #sticker-panel #sticker-panel-header,
     html body #projects-panel #proj-panel-header,
-    html body #display-panel #display-panel-header {
+    html body #display-panel #display-panel-header,
+    html body #lessons-panel #lessons-panel-header {
         padding: 9px 12px !important;
     }
     html body #jeux-panel #jeux-panel-header h3,
@@ -658,7 +663,8 @@
     html body #widgets-panel #widgets-panel-header h3,
     html body #sticker-panel #sticker-panel-header h3,
     html body #projects-panel #proj-panel-header span,
-    html body #display-panel #display-panel-header h3 {
+    html body #display-panel #display-panel-header h3,
+    html body #lessons-panel #lessons-panel-header h3 {
         font-size: 16px !important;
         gap: 8px !important;
         min-width: 0;
@@ -672,7 +678,8 @@
     html body #widgets-panel #widgets-panel-header .panel-title-ico,
     html body #sticker-panel #sticker-panel-header .panel-title-ico,
     html body #projects-panel #proj-panel-header .panel-title-ico,
-    html body #display-panel #display-panel-header .panel-title-ico {
+    html body #display-panel #display-panel-header .panel-title-ico,
+    html body #lessons-panel #lessons-panel-header .panel-title-ico {
         width: 26px !important; height: 26px !important; padding: 4px !important;
     }
     html body #jeux-panel #jeux-panel-header #jeux-panel-close,
@@ -681,7 +688,8 @@
     html body #widgets-panel #widgets-panel-header #widgets-panel-close,
     html body #sticker-panel #sticker-panel-header .sp-close,
     html body #projects-panel #proj-panel-header #proj-panel-close,
-    html body #display-panel #display-panel-header #display-panel-close {
+    html body #display-panel #display-panel-header #display-panel-close,
+    html body #lessons-panel #lessons-panel-header #lessons-panel-close {
         width: 32px !important; height: 32px !important;
     }
 
@@ -690,7 +698,8 @@
     html body #activities-panel #act-panel-content,
     html body #tools-panel #tools-panel-content,
     html body #widgets-panel #widgets-panel-content,
-    html body #display-panel #display-panel-content {
+    html body #display-panel #display-panel-content,
+    html body #lessons-panel #lessons-panel-content {
         padding: 10px 8px 14px 10px !important;
     }
 
@@ -699,7 +708,8 @@
     html body #activities-panel .act-section,
     html body #tools-panel .tools-section,
     html body #widgets-panel .widgets-section,
-    html body #display-panel .disp-block {
+    html body #display-panel .disp-block,
+    html body #lessons-panel .act-section {
         padding: 8px 8px 10px 12px !important;
         margin-bottom: 10px !important;
         border-radius: 14px !important;
@@ -708,7 +718,8 @@
     html body #activities-panel .act-section::before,
     html body #tools-panel .tools-section::before,
     html body #widgets-panel .widgets-section::before,
-    html body #display-panel .disp-block::before {
+    html body #display-panel .disp-block::before,
+    html body #lessons-panel .act-section::before {
         width: 4px !important;
     }
 
@@ -717,7 +728,8 @@
     html body #activities-panel .act-section .act-section-label,
     html body #tools-panel .tools-section .tools-section-label,
     html body #widgets-panel .widgets-section .widgets-section-label,
-    html body #display-panel .disp-block .disp-section-label {
+    html body #display-panel .disp-block .disp-section-label,
+    html body #lessons-panel .act-section .act-section-label {
         font-size: 10.5px !important;
         padding: 3px 10px !important;
         margin-bottom: 7px !important;
@@ -732,14 +744,16 @@
     html body #jeux-panel .act-card,
     html body #activities-panel .act-card,
     html body #tools-panel .tools-card,
-    html body #widgets-panel .widgets-card {
+    html body #widgets-panel .widgets-card,
+    html body #lessons-panel .act-card {
         border-radius: 12px !important;
         gap: 3px !important;
     }
     html body #jeux-panel .act-card-ico,
     html body #activities-panel .act-card-ico,
     html body #tools-panel .tools-card-ico,
-    html body #widgets-panel .widgets-card-ico {
+    html body #widgets-panel .widgets-card-ico,
+    html body #lessons-panel .act-card-ico {
         border-radius: 8px !important;
     }
 
@@ -754,14 +768,16 @@
     html body #display-panel .disp-inline-btn:hover,
     html body #display-panel .bg-thumb:hover,
     html body #projects-panel .proj-panel-action-btn:hover,
-    html body #projects-panel #proj-panel-new-btn:hover {
+    html body #projects-panel #proj-panel-new-btn:hover,
+    html body #lessons-panel .act-card:hover {
         transform: none !important;
         box-shadow: 0 1px 3px rgba(40,30,70,0.07) !important;
     }
     html body #jeux-panel .act-card:hover .act-card-ico img,
     html body #activities-panel .act-card:hover .act-card-ico img,
     html body #tools-panel .tools-card:hover .tools-card-ico img,
-    html body #widgets-panel .widgets-card:hover .widgets-card-ico img {
+    html body #widgets-panel .widgets-card:hover .widgets-card-ico img,
+    html body #lessons-panel .act-card:hover .act-card-ico img {
         transform: none !important;
     }
     html body #jeux-panel .act-card:active,
@@ -772,7 +788,8 @@
     html body #display-panel .hist-btn:active,
     html body #display-panel .disp-inline-btn:active,
     html body #display-panel .bg-thumb:active,
-    html body #projects-panel .proj-panel-action-btn:active {
+    html body #projects-panel .proj-panel-action-btn:active,
+    html body #lessons-panel .act-card:active {
         transform: scale(0.95) !important;
         border-color: var(--sec-c, #4a90e2) !important;
     }
@@ -848,12 +865,14 @@
 
 @media (max-height: 480px) and (pointer: coarse) {
 
-    /* Onglets latéraux plus compacts pour tenir dans la hauteur */
-    .side-tab { min-height: 36px; }
-    .side-tab-ico { width: 19px; height: 19px; }
+    /* Onglets latéraux plus compacts pour tenir dans la hauteur
+       (10 onglets depuis l'ajout de « Leçons et entraînements ») */
+    .side-tab { min-height: 29px; padding-top: 2px; padding-bottom: 2px; }
+    .side-tab-ico { width: 18px; height: 18px; }
     .side-tabs-group { gap: 2px; }
-    .side-tabs-sep { height: 6px; }
-    #pres-mode-tab { min-height: 44px; }
+    .side-tabs-sep { height: 4px; }
+    #pres-mode-tab { min-height: 36px; }
+    .side-tabs-title { margin-top: 3px; margin-bottom: 2px; padding-top: 1px; padding-bottom: 1px; font-size: 7px; }
 
     #main-menu {
         max-height: 90vh !important;
@@ -895,7 +914,8 @@
     #display-panel,
     #projects-panel,
     #pdf-library-panel,
-    #image-panel {
+    #image-panel,
+    #lessons-panel {
         width: 95vw !important;
     }
 
@@ -917,3 +937,32 @@
     }
 
 }
+
+
+
+/* ══════════════════════════════════════════════════════════════════
+   PANNEAU « LEÇONS ET ENTRAÎNEMENTS » (côté élève)
+   Reprend tout le graphisme du panneau Activités (règles ci-dessus,
+   où #lessons-panel a été ajouté à côté de #activities-panel).
+   Ici : uniquement sa couleur propre (bleu-vert, comme son onglet).
+══════════════════════════════════════════════════════════════════ */
+html body #lessons-panel { --hc: #14a3a0; }
+#lessons-panel-resize-handle:hover::after,
+body.menu-light #lessons-panel-resize-handle:hover::after { background: #14a3a0; }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   PANNEAU « ACTIVITÉS EN CLASSE » (côté prof) — RUBRIQUES PAR USAGE
+   Rituels et projection · Manipuler pour comprendre · Arts et musique
+   Les cartes gardent la couleur de leur matière :
+   .mat-maths → orange · .mat-francais → violet
+══════════════════════════════════════════════════════════════════ */
+html body #activities-panel .act-section-rituels { --sec-c: #7d8899; }
+html body #activities-panel .act-section-manip   { --sec-c: #f08a24; }
+
+/* orange (mode clair / sombre) */
+html body #activities-panel .act-card.mat-maths { --mat-bg: #fdecd9; --mat-ico: #fbdcbb; --mat-c: #e07a12; --mat-txt: #6b3500; }
+html body:not(.menu-light) #activities-panel .act-card.mat-maths { --mat-bg: #553515; --mat-ico: #69421b; --mat-c: #f08a24; --mat-txt: #ffe4c7; }
+/* violet (mode clair / sombre) */
+html body #activities-panel .act-card.mat-francais { --mat-bg: #ece4fd; --mat-ico: #ddd0fb; --mat-c: #7b4fe0; --mat-txt: #3d1f8a; }
+html body:not(.menu-light) #activities-panel .act-card.mat-francais { --mat-bg: #33265a; --mat-ico: #3f2f6e; --mat-c: #9b6cf0; --mat-txt: #e6dcff; }

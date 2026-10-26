@@ -38,7 +38,7 @@
   S.push(section('h-intro', '🏠 Bienvenue sur Le Bureau du Prof',
     `<img src="pics/logo-le-bureau-du-prof4.jpg" alt="" class="hm-logo" onerror="this.style.display='none'">` +
     p(`Le Bureau du Prof est un <strong>tableau blanc numérique interactif</strong> conçu pour les enseignants, idéal sur <strong>TBI</strong> ou <strong>VPI</strong>.`) +
-    p(`Vous pouvez y poser librement des <strong>jeux</strong>, des <strong>activités</strong> de classe, des <strong>outils</strong> de gestion (tirage au sort, minuteur, sonomètre…), des <strong>widgets</strong> (date, météo, devoirs, PDF, YouTube…), des stickers et des images. Vous pouvez aussi <strong>dessiner</strong>, <strong>écrire</strong>, <strong>annoter des PDF</strong>, changer le <strong>fond</strong> du tableau, et tout <strong>sauvegarder</strong>.`) +
+    p(`Vous pouvez y poser librement des <strong>jeux</strong>, des <strong>leçons et entraînements</strong>, des <strong>activités</strong> de classe, des <strong>outils</strong> de gestion (tirage au sort, minuteur, sonomètre…), des <strong>widgets</strong> (date, météo, devoirs, PDF, YouTube…), des stickers et des images. Vous pouvez aussi <strong>dessiner</strong>, <strong>écrire</strong>, <strong>annoter des PDF</strong>, changer le <strong>fond</strong> du tableau, et tout <strong>sauvegarder</strong>.`) +
     p(`Le tableau respecte un <strong>format 16:9</strong> et s'adapte à la taille de votre écran ou vidéoprojecteur.`) +
     `<p class="hm-p" style="font-size:14px;line-height:1.8;text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #e5e8ee;">Le Bureau du Prof est un outil <strong>libre</strong> et <strong>gratuit</strong>. </p>
 	<p class="hm-p" style="font-size:12px;line-height:1.8;text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #e5e8ee;">🤓 créé et géré par Nicolas Bernardet - prof d'école à Chambéry (Savoie) 🤓</p>`,
@@ -48,22 +48,24 @@
   S.push(section('h-explorer', '🗺️ Explorer le bureau',
     p(`Tout part des <strong>onglets</strong> alignés sur le bord gauche de l'écran. Un clic ouvre le panneau correspondant ; un nouveau clic, un clic sur le tableau ou <kbd>Échap</kbd> le referme.`) +
     table(['Onglet', 'Contenu', 'Raccourci'], [
-      ['🎮 Jeux',      'Battles et jeux de maths, de français et divers', '<kbd>Alt+1</kbd>'],
-      ['🎲 Activités', 'Activités de classe : français, maths, histoire-géo-sciences…', '<kbd>Alt+2</kbd>'],
-      ['🧰 Outils',    'Gestion de la classe, gestion du bruit, outils divers', '<kbd>Alt+3</kbd>'],
-      ['📦 Widgets',   'Médias, temps & météo, organisation', '<kbd>Alt+4</kbd>'],
-      ['🖼️ Visuels',   'Stickers animés, émojis classiques et images', '<kbd>Alt+5</kbd>'],
-      ['📁 Tableaux',  'Vos tableaux, sauvegarde et import/export', '<kbd>Alt+6</kbd>'],
-      ['🖥️ Écran',     'Annuler, thème, laser, A4, capture, fonds d\'écran', '<kbd>Alt+7</kbd>'],
-      ['📽️ Présenter', 'Active / désactive le mode présentation', '<kbd>Alt+8</kbd>'],
+      ['🎮 Jeux',      '<em>Côté élève</em> : battles et jeux de maths, de français et divers', '<kbd>Alt+1</kbd>'],
+      ['📘 Leçons',    '<em>Côté élève</em> : leçons et entraînements (maths, français, histoire, EMC, géographie, sciences)', '<kbd>Alt+2</kbd>'],
+      ['🎲 Activités', '<em>Côté prof</em> : rituels à projeter, manipulations au tableau, arts et musique', '<kbd>Alt+3</kbd>'],
+      ['🧰 Outils',    'Gestion de la classe, gestion du bruit, outils divers', '<kbd>Alt+4</kbd>'],
+      ['📦 Widgets',   'Médias, temps & météo, organisation', '<kbd>Alt+5</kbd>'],
+      ['🖼️ Visuels',   'Stickers animés, émojis classiques et images', '<kbd>Alt+6</kbd>'],
+      ['📁 Tableaux',  'Vos tableaux, sauvegarde et import/export', '<kbd>Alt+7</kbd>'],
+      ['🖥️ Écran',     'Annuler, thème, laser, A4, capture, fonds d\'écran', '<kbd>Alt+8</kbd>'],
+      ['📽️ Présenter', 'Active / désactive le mode présentation', '<kbd>Alt+9</kbd>'],
     ]) +
+    p(`Les onglets sont rangés en trois familles, chacune annoncée par un petit titre : <strong>Élèves</strong> (Jeux, Leçons), <strong>Prof</strong> (Activités, Outils, Widgets, Visuels) et <strong>Gestion</strong> (Tableaux, Écran, Présenter).`) +
     h3('✏️ Le bouton Dessiner') +
-    p(`En bas à gauche, le bouton <strong>Dessiner</strong> (<kbd>Alt+9</kbd>) ouvre la barre de dessin et de figures.`) +
+    p(`En bas à droite, le bouton <strong>Dessiner</strong> (<kbd>Alt+0</kbd>) ouvre la barre de dessin et de figures.`) +
     h3('🖱️ Le menu rapide') +
     p(`<strong>Clic droit</strong> (ou <strong>appui long</strong> au doigt ou au stylet) sur une zone vide du tableau : un mini-menu propose <em>Coller, PDF, Écriture Seyes, Texte, Devoirs à noter, Planning du jour, Minuteur / Chrono</em> et <em>Défi calme</em>.`) +
     h3('📥 Glisser-déposer') +
     p(`Glissez un <strong>fichier PDF</strong> ou une ou plusieurs <strong>images</strong> depuis votre ordinateur directement sur le tableau : ils s'ouvrent aussitôt.`) +
-    tip(`Avec la souris, survolez une vignette dans les panneaux Jeux et Activités pour voir sa description.`)
+    tip(`Avec la souris, survolez une vignette dans les panneaux Jeux, Leçons et Activités pour voir sa description.`)
   ));
 
   // JEUX
@@ -125,49 +127,88 @@
     ])
   ));
 
-  // ACTIVITÉS
-  S.push(section('h-activites', '🎲 Activités',
-    p(`Des supports de travail collectif à manipuler au tableau. Chaque activité a son propre bouton d'aide ❓.`) +
-    group('📖 Français', [
-      ['Ordre alphabétique', 'Classer des mots'],
-      ['Conjugaison', 'Présent, imparfait, futur'],
-      ['Nature grammaticale', 'Classer les mots'],
-      ['Mots mêlés', 'Générer une grille'],
-      ['Phrase en désordre', 'Reconstituer une phrase'],
-      ['Le mot le plus long', 'Avec 9 lettres tirées au sort'],
-    ]) +
+  // LEÇONS ET ENTRAÎNEMENTS
+  S.push(section('h-lecons', '📘 Leçons et entraînements',
+    p(`Des modules pensés <strong>pour les élèves</strong> : une partie <strong>leçon</strong> pour comprendre, puis des <strong>exercices corrigés</strong> pour s'entraîner. Ils peuvent être suivis seul, en petit groupe ou collectivement au tableau. Chaque module a son propre bouton d'aide ❓.`) +
     group('🔢 Mathématiques', [
+      ['Les tables de multiplication', 'Astuces, table de Pythagore, exercices'],
+      ['Opérations posées', 'Les 4 opérations, avec les retenues'],
+      ['Les grands nombres', 'Lire, écrire, décomposer'],
+      ['Tableau de numération', 'Manipuler les nombres'],
+      ['Comprendre les fractions', 'Parcours pas à pas'],
+    ]) +
+    group('📖 Français', [
+      ['La phrase', 'Types, formes, phrase simple ou complexe'],
+      ['Les fonctions dans la phrase', 'Sujet, COD, COI, compléments…'],
+      ['La nature des mots', 'Déterminant, nom, adjectif, verbe…'],
+      ['La chaîne d\'accords', 'Accords dans le groupe nominal'],
+      ['Les homophones', 'a/à, et/est, son/sont…'],
+      ['La conjugaison', '5 temps de l\'indicatif'],
+      ['Ordre alphabétique', 'Ranger, chercher dans le dictionnaire'],
+      ['Familles de mots', 'Radical, préfixes, suffixes'],
+    ]) +
+    group('🌍 Histoire, EMC, géographie, sciences', [
+      ['La frise historique', 'Les 5 grandes périodes'],
+      ['Les rois de France', 'Frise et arbre généalogique'],
+      ['Le château fort', 'Extérieur et intérieur'],
+      ['La société médiévale', 'Clergé, noblesse, peuple'],
+      ['Découvertes et Renaissance', 'Explorateurs, imprimerie…'],
+      ['La Révolution française', '1789 – 1799'],
+      ['L\'âge industriel', 'Machine à vapeur, usines, villes'],
+      ['Symboles de la République', 'Drapeau, devise, Marianne…'],
+      ['Le globe terrestre', 'La Terre en 3D'],
+      ['Carte du monde', 'Planisphère interactif'],
+      ['Carte de l\'Europe', 'Pays, capitales, UE'],
+      ['Carte de la France', 'Villes, fleuves, montagnes'],
+      ['Carte de la Savoie', 'Massifs, vallées, lacs'],
+      ['Le relief de montagne', 'Une montagne en 3D'],
+      ['Latitude et longitude', 'Coordonnées géographiques'],
+      ['Pays riches, pays pauvres', 'Les richesses dans le monde'],
+      ['La Terre en mouvement', 'Jour, nuit, saisons'],
+      ['Le système solaire', 'Planètes et tailles'],
+      ['Le cycle de l\'eau', 'États de l\'eau'],
+      ['Volcans et séismes', 'Éruptions, failles, ondes'],
+      ['Les circuits électriques', 'Série, dérivation, défis'],
+      ['Le corps humain', 'Squelette, organes, fonctions'],
+      ['Les 5 sens', 'De l\'organe au cerveau'],
+    ])
+  ));
+
+  // ACTIVITÉS
+  S.push(section('h-activites', '🎲 Activités en classe',
+    p(`Des supports <strong>pour le prof</strong>, à projeter ou à manipuler au tableau avec toute la classe. Chaque activité a son propre bouton d'aide ❓.`) +
+    group('⚡ Rituels et projection', [
       ['Calcul mental', 'S\'entraîner'],
       ['Calcul flash', 'Calculs qui défilent'],
       ['Le compte est bon', 'Atteindre une cible'],
-      ['Tableau de numération', 'Manipuler les nombres'],
-      ['Nombres en chiffres / lettres', 'Écrire un nombre'],
       ['Loto des multiplications', 'Mémoriser les tables'],
+      ['Nombres en chiffres / lettres', 'Écrire un nombre'],
       ['Monnaie', 'Pièces et billets'],
       ['Heures et durées', 'Lire l\'heure, calculer'],
-      ['Horloge interactive', 'Régler les aiguilles'],
       ['Conversion', 'Unités de mesure'],
       ['Droite numérique', 'Placer des nombres'],
+      ['Le mot le plus long', 'Avec 9 lettres tirées au sort'],
+    ]) +
+    group('🧮 Manipuler pour comprendre', [
+      ['Tableau de numération', 'Manipuler les nombres'],
+
+      ['Horloge interactive', 'Régler les aiguilles'],
+
       ['Fractions', 'Figures partageables'],
       ['Solides 3D', 'Manipuler en 3D'],
       ['Tracés géométriques', 'Règle, équerre, compas'],
-      ['Reproduction quadrillage', 'Modèle à reproduire'],
-      ['Symétrie axiale', 'Figure et symétrique'],
     ]) +
-    group('🌍 Histoire, géographie, sciences', [
-      ['Frise historique', 'Les 5 grandes périodes'],
-      ['Géographie de la France', 'Carte interactive'],
-      ['Géographie de l\'Europe', 'Pays, capitales, UE'],
-      ['Géographie du monde', 'Planisphère interactif'],
-      ['Globe terrestre', 'La Terre en 3D'],
-      ['La Terre en mouvement', 'Jour, nuit, saisons'],
-      ['Le système solaire', 'Planètes et tailles'],
+    group('🛠️ Générer des activités', [
+      ['Reproduction quadrillage', 'Créer un modèle à reproduire'],
+      ['Symétrie axiale', 'Créer une figure et son axe'],
+      ['Pixel Art', 'Créer une grille à colorier'],
+      ['Mots mêlés', 'Générer une grille'],
     ]) +
-    group('🎨 Divers', [
-      ['Pixel Art', 'Colorier une grille'],
+    group('🎨 Arts et musique', [
       ['Mélange de couleurs', 'Couleurs primaires'],
       ['Clavier de piano', '3 octaves'],
-    ])
+    ]) +
+    tip(`« Le mot le plus long » et « Mots mêlés » existent aussi dans l'onglet Jeux, dans une version à jouer par les élèves.`)
   ));
 
   // OUTILS
@@ -280,7 +321,7 @@
 
   // DESSIN
   S.push(section('h-dessin', '✏️ Dessin & figures',
-    p(`Le bouton <strong>Dessiner</strong> (<kbd>Alt+9</kbd>) ouvre une barre flottante, déplaçable par sa poignée. Un petit indicateur sous la barre précise si vous dessinez sur le <strong>Board</strong> ou en <strong>Annotation PDF</strong>.`) +
+    p(`Le bouton <strong>Dessiner</strong> (<kbd>Alt+0</kbd>) ouvre une barre flottante, déplaçable par sa poignée. Un petit indicateur sous la barre précise si vous dessinez sur le <strong>Board</strong> ou en <strong>Annotation PDF</strong>.`) +
     table(['Outil', 'Rôle'], [
       ['✏️ Crayon', 'Tracé libre (souris, doigt, stylet)'],
       ['🖍️ Surligneur', 'Trait large semi-transparent'],
@@ -342,21 +383,21 @@
 
   // PRÉSENTATION
   S.push(section('h-presentation', '📽️ Mode présentation',
-    p(`L'onglet <strong>Présenter</strong> (<kbd>Alt+8</kbd>) masque l'interface pour ne laisser que le contenu du tableau, face aux élèves. Son interrupteur indique s'il est actif. Recliquez dessus ou appuyez sur <kbd>Échap</kbd> pour en sortir.`) +
+    p(`L'onglet <strong>Présenter</strong> (<kbd>Alt+9</kbd>) masque l'interface pour ne laisser que le contenu du tableau, face aux élèves. Son interrupteur indique s'il est actif. Recliquez dessus ou appuyez sur <kbd>Échap</kbd> pour en sortir.`) +
     tip(`Les widgets épinglés 📌 restent visibles et utilisables.`)
   ));
 
   // TÉLÉPHONE
   S.push(section('h-mobile', '📱 Tablette & téléphone',
     p(`Le Bureau du Prof fonctionne au doigt et au stylet : <strong>appui long</strong> sur le tableau pour le menu rapide, gestes adaptés pour les boutons.`) +
-    p(`Sur <strong>téléphone</strong>, les jeux, activités et outils ouverts depuis un panneau s'affichent en <strong>plein écran</strong> ; le bouton <strong>⤡</strong> permet d'en sortir.`)
+    p(`Sur <strong>téléphone</strong>, les jeux, leçons, activités et outils ouverts depuis un panneau s'affichent en <strong>plein écran</strong> ; le bouton <strong>⤡</strong> permet d'en sortir.`)
   ));
 
   // RACCOURCIS
   S.push(section('h-raccourcis', '⌨️ Raccourcis clavier',
     table(['Raccourci', 'Action'], [
-      ['<kbd>Alt+1</kbd> … <kbd>Alt+8</kbd>', 'Ouvrir / fermer les onglets (Jeux → Présenter)'],
-      ['<kbd>Alt+9</kbd>', 'Ouvrir / fermer la barre de dessin'],
+      ['<kbd>Alt+1</kbd> … <kbd>Alt+9</kbd>', 'Ouvrir / fermer les onglets (Jeux → Présenter)'],
+      ['<kbd>Alt+0</kbd>', 'Ouvrir / fermer la barre de dessin'],
       ['<kbd>Échap</kbd>', 'Fermer les panneaux, quitter le mode présentation ou le laser'],
       ['<kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd>', 'Annuler / refaire'],
       ['<kbd>Ctrl+C</kbd> / <kbd>Ctrl+V</kbd>', 'Copier / coller des éléments ou une image'],
@@ -387,6 +428,7 @@
       ${navSep}
       ${navTitle('Contenus')}
       ${nav('h-jeux', '🎮 Jeux')}
+      ${nav('h-lecons', '📘 Leçons et entraînements')}
       ${nav('h-activites', '🎲 Activités')}
       ${nav('h-outils', '🧰 Outils')}
       ${nav('h-widgets', '📦 Widgets')}

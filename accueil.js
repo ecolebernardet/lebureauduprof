@@ -4,12 +4,12 @@
 // À l'ouverture de l'application, si le tableau est vide, une carte
 // d'accueil s'affiche au centre :
 //   - « Bonjour ! / Bonsoir ! », l'heure et la date en grand
-//   - 6 grandes tuiles vers les panneaux (mêmes icônes et couleurs que
+//   - 8 grandes tuiles vers les panneaux (mêmes icônes et couleurs que
 //     les onglets latéraux) + 2 actions rapides (Dessiner, Écrire)
 //   - un bouton « Mode d'emploi » sous l'heure, qui ouvre la modale d'aide
 //   - une astuce tirée au hasard
 // Elle disparaît dès qu'on commence à travailler : clic sur une tuile,
-// clic sur un onglet latéral (ou Alt+1…8), ajout d'un widget, ouverture
+// clic sur un onglet latéral (ou Alt+1…9), ajout d'un widget, ouverture
 // de la barre Dessin, clic sur le tableau, mode présentation, touche Échap
 // ou bouton ✕.
 // « Ne plus afficher » la désactive définitivement (localStorage).
@@ -30,6 +30,8 @@
         outils:  '<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M8.5 8V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/><path d="M10 13v2h4v-2"/>',
         widgets: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
         visuels: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M21 15.5l-4.5-4.5L6 19"/>',
+        lecons:  '<path d="M12 6.5C10.4 5.3 8.2 4.8 4 5v13c4.2-.2 6.4.3 8 1.5 1.6-1.2 3.8-1.7 8-1.5V5c-4.2-.2-6.4.3-8 1.5z"/><path d="M12 6.5v13"/>',
+        ecran:   '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/>',
         tableaux:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
         crayon:  '<path d="M4 20l1.2-4.8L15.6 4.8a2.3 2.3 0 0 1 3.3 0l.3.3a2.3 2.3 0 0 1 0 3.3L8.8 18.8z"/><path d="M13.8 6.6l3.6 3.6"/>',
         texte:   '<path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/>',
@@ -41,18 +43,21 @@
     // Tuiles : [icône, libellé, sous-titre, couleur, fonction appelée]
     var TILES = [
         ['jeux',     'Jeux',         'Battles, maths, français…', '#9b6cf0', 'toggleJeuxPanel'],
-        ['act',      'Activités',    'Pour faire classe',          '#f39c12', 'toggleActivitiesPanel'],
+        ['lecons',   'Leçons',       'Leçons et entraînements',    '#14a3a0', 'toggleLessonsPanel'],
+        ['act',      'Activités',    'Rituels, manipulations…',    '#f39c12', 'toggleActivitiesPanel'],
         ['outils',   'Outils',       'Classe, bruit, minuteur…',   '#2ecc71', 'toggleToolsPanel'],
         ['widgets',  'Widgets',      'PDF, date, météo, texte…',   '#4a90e2', 'toggleWidgetsPanel'],
         ['visuels',  'Visuels',      'Stickers et images',         '#e84393', 'toggleStickerPanel'],
-        ['tableaux', 'Mes tableaux', 'Ouvrir ou créer',            '#7d8899', 'toggleProjectsPanel']
+        ['tableaux', 'Mes tableaux', 'Ouvrir ou créer',            '#7d8899', 'toggleProjectsPanel'],
+        ['ecran',    'Écran',        'Fond, thème, capture',       '#7d8899', 'toggleDisplayPanel']
     ];
 
     var ASTUCES = [
         'Clic droit (ou appui long) sur le tableau : menu rapide pour coller, ouvrir un PDF, un minuteur…',
         'Glissez un PDF ou une image directement sur le tableau pour l\'ouvrir.',
         'Sur un PDF, le bouton ✏️ permet d\'écrire, surligner et ajouter du texte, puis 💾 l\'enregistre avec vos annotations.',
-        'Alt+1 à Alt+8 ouvrent les onglets, Alt+9 la barre Dessin, Échap ferme les panneaux.',
+        'Alt+1 à Alt+9 ouvrent les onglets, Alt+0 la barre Dessin, Échap ferme les panneaux.',
+        'Onglet « Leçons » : leçons et exercices corrigés que les élèves peuvent suivre seuls.',
         'Ctrl+C / Ctrl+V copient des widgets d\'un tableau à l\'autre.',
         'Le mode « Présenter » masque tous les outils pour projeter en plein écran.',
         'Panneau Écran : changez le fond (Séyès, tableau vert, tableaux de numération…).'
@@ -65,7 +70,7 @@
         '  font-family:"Nunito","Segoe UI",system-ui,sans-serif;}',
         '#accueil.acc-hide{opacity:0;transition:opacity .35s ease;}',
         '#accueil.acc-hide .acc-card{transform:translateY(12px) scale(.98);transition:transform .35s ease;}',
-        '.acc-card{pointer-events:auto;position:relative;width:min(800px,100%);max-height:calc(100vh - 48px);overflow:auto;',
+        '.acc-card{pointer-events:auto;position:relative;width:min(880px,100%);max-height:calc(100vh - 48px);overflow:auto;',
         '  box-sizing:border-box;padding:26px 28px 18px;border-radius:26px;',
         '  background:rgba(255,255,255,.86);border:1px solid rgba(255,255,255,.7);',
         '  -webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);',
@@ -113,7 +118,7 @@
         '.acc-help:hover{transform:translateY(-2px);filter:brightness(1.06);}',
         '.acc-help svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}',
         /* Tuiles */
-        '.acc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}',
+        '.acc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}',
         '.acc-tile{--c:#4a90e2;display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;cursor:pointer;text-align:left;',
         '  background:#fff;border:1px solid color-mix(in srgb,var(--c) 22%,#e6e4ee);font:inherit;color:inherit;',
         '  box-shadow:0 1px 3px rgba(40,30,70,.07);animation:acc-tile .45s cubic-bezier(.2,.8,.2,1) both;',
@@ -179,7 +184,7 @@
         '  .acc-pdf-txt{font-size:0;line-height:1.2;} .acc-pdf-txt strong{font-size:13px;margin:0;}',
         '  .acc-pdf-btn{padding:7px 12px;font-size:12px;}',
         /* Tuiles : 3 colonnes, icône au-dessus du libellé */
-        '  .acc-grid{grid-template-columns:repeat(3,1fr);gap:6px;}',
+        '  .acc-grid{grid-template-columns:repeat(4,1fr);gap:6px;}',
         '  .acc-tile{flex-direction:column;justify-content:center;text-align:center;padding:8px 4px;gap:4px;border-radius:12px;}',
         '  .acc-ico{width:32px;height:32px;border-radius:9px;} .acc-ico svg{width:18px;height:18px;}',
         '  .acc-lbl{font-size:12px;} .acc-sub{display:none;}',
@@ -191,7 +196,7 @@
         '@media (max-height:500px) and (pointer:coarse) and (min-width:560px){',
         '  .acc-head{flex-direction:row;align-items:center;justify-content:space-between;}',
         '  .acc-time{justify-content:flex-end;}',
-        '  .acc-grid{grid-template-columns:repeat(6,1fr);}',
+        '  .acc-grid{grid-template-columns:repeat(8,1fr);}',
         '}',
         '@media (prefers-reduced-motion:reduce){.acc-card,.acc-tile{animation:none;}#accueil.acc-hide{transition:none;}}'
     ].join('\n');
@@ -255,7 +260,7 @@
                   '<div><p class="acc-hello">Bonjour !</p><h1 class="acc-title">Le Bureau du Prof</h1></div>' +
                 '</div>' +
                   '<p class="acc-intro">Votre <b>tableau blanc numérique</b> pour la classe : écrivez, dessinez, projetez vos documents ' +
-                  'et lancez en un clic des <b>jeux</b>, des <b>activités</b> et des <b>outils</b> pensés pour l\'école, au TBI, au VPI ou sur ordinateur.</p>' +
+                  'et lancez en un clic des <b>jeux</b>, des <b>leçons</b>, des <b>activités</b> et des <b>outils</b> pensés pour l\'école, au TBI, au VPI ou sur ordinateur.</p>' +
                 '</div>' +
                 '<div class="acc-time"><div class="acc-clock">--:--</div><div class="acc-date"></div>' +
                   '<button type="button" class="acc-help" data-act="help">' + svg('aide') + 'Mode d\'emploi</button>' +
@@ -335,7 +340,7 @@
         }).observe(tb, { attributes: true, attributeFilter: ['style'] });
         document.addEventListener('keydown', onKey);
 
-        // Un onglet latéral (ou Alt+1…8, qui simulent un clic) ferme aussi l'accueil
+        // Un onglet latéral (ou Alt+1…9, qui simulent un clic) ferme aussi l'accueil
         var tabs = document.getElementById('side-tabs');
         if (tabs) tabs.addEventListener('click', hide);
     }

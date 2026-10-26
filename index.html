@@ -101,6 +101,7 @@
            Pour revenir à Nunito : supprimer ce bloc. */
         #side-tabs, #side-tabs *,
         #jeux-panel, #jeux-panel *,
+        #lessons-panel, #lessons-panel *,
         #activities-panel, #activities-panel *,
         #tools-panel, #tools-panel *,
         #widgets-panel, #widgets-panel *,
@@ -166,6 +167,8 @@
         /* Masquer les éléments inutiles en mode page-garde */
         body.mode-pagegarde #jeux-panel,
         body.mode-pagegarde #jeux-panel-tab,
+        body.mode-pagegarde #lessons-panel,
+        body.mode-pagegarde #lessons-panel-tab,
         body.mode-pagegarde #activities-panel,
         body.mode-pagegarde #activities-panel-tab,
         body.mode-pagegarde #projects-panel,
@@ -235,6 +238,7 @@
            La bulle elle-même est #card-tooltip (voir ci-dessous). */
         @media (hover: hover) {
             #jeux-panel .act-card .act-card-desc,
+            #lessons-panel .act-card .act-card-desc,
             #activities-panel .act-card .act-card-desc {
                 display: none;
             }
@@ -593,7 +597,7 @@
 		</div>
 	</div>
 
-	<button id="draw-fab-btn" onclick="openMmPanel('draw')" title="Dessin et figures (Alt+9)" aria-label="Dessin et figures">
+	<button id="draw-fab-btn" onclick="openMmPanel('draw')" title="Dessin et figures (Alt+0)" aria-label="Dessin et figures">
 		<span class="dfab-grip" aria-hidden="true"><svg viewBox="0 0 8 14"><circle cx="2" cy="2" r="1.3"/><circle cx="6" cy="2" r="1.3"/><circle cx="2" cy="7" r="1.3"/><circle cx="6" cy="7" r="1.3"/><circle cx="2" cy="12" r="1.3"/><circle cx="6" cy="12" r="1.3"/></svg></span>
 		<svg class="dfab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-4.8L15.6 4.8a2.3 2.3 0 0 1 3.3 0l.3.3a2.3 2.3 0 0 1 0 3.3L8.8 18.8z"/><path d="M13.8 6.6l3.6 3.6"/><path d="M4 20l4.8-1.2"/></svg>
 		<span class="dfab-lbl">Dessiner</span>
@@ -1138,7 +1142,7 @@ function setVisuelsMode(mode) {
         tab.classList.toggle('pres-mode-tab-active', isOn);
         // L'onglet affiche un interrupteur : il suffit de mettre à jour son état
         tab.setAttribute('aria-pressed', isOn ? 'true' : 'false');
-        tab.title = isOn ? 'Quitter le mode présentation (Alt+8)' : 'Mode présentation (Alt+8)';
+        tab.title = isOn ? 'Quitter le mode présentation (Alt+9)' : 'Mode présentation (Alt+9)';
     }
 
     // Patcher togglePresentationMode pour mettre à jour l'onglet
@@ -1645,7 +1649,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
     if (!window.matchMedia || !window.matchMedia('(hover: hover)').matches) return;
     var SHOW_DELAY = 100; // délai d'apparition de la bulle, en millisecondes
     document.addEventListener('DOMContentLoaded', function() {
-        var panels = ['jeux-panel', 'activities-panel']
+        var panels = ['jeux-panel', 'lessons-panel', 'activities-panel']
             .map(function(id) { return document.getElementById(id); })
             .filter(Boolean);
         if (!panels.length) return;
@@ -1703,7 +1707,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 // pas dans la largeur de la carte (« encadrements », « contraires »…) est
 // réduit, par petits pas, jusqu'à ce que ce mot tienne sur une ligne.
 (function() {
-    var PANELS   = ['jeux-panel', 'activities-panel'];
+    var PANELS   = ['jeux-panel', 'lessons-panel', 'activities-panel'];
     var MIN_SIZE = 8;   // taille minimale, en px
     var STEP     = 0.5; // pas de réduction, en px
 
@@ -1824,7 +1828,263 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 })();
 </script>
 
-<!-- ── Panneau latéral Activités ─────────────────────────────────── -->
+<!-- ── Panneau latéral Leçons et entraînements (côté élève : leçon + exercices) ── -->
+<div id="lessons-panel">
+    <div id="lessons-panel-resize-handle" title="Redimensionner le panneau"></div>
+    <div id="lessons-panel-header">
+        <h3><svg class="panel-title-ico" style="--tab-c:#14a3a0" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.4 5.3 8.2 4.8 4 5v13c4.2-.2 6.4.3 8 1.5 1.6-1.2 3.8-1.7 8-1.5V5c-4.2-.2-6.4.3-8 1.5z"/><path d="M12 6.5v13"/></svg>Leçons et entraînements</h3>
+        <button id="lessons-panel-close" onclick="toggleLessonsPanel()" title="Fermer">✕</button>
+    </div>
+    <div id="lessons-panel-content">
+		<div class="act-section act-section-maths">
+		<div class="act-section-label">🔢 MATHÉMATIQUES</div>
+		<div class="act-grid">
+			<div class="act-card" onclick="createWidget('tables-multi');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-maths-tables-multi.jpg" alt="Les tables de multiplication" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='✖️'"></div>
+                <div class="act-card-name">Les tables de multiplication</div>
+                <div class="act-card-desc">Leçons pleines d'astuces (doigts du 9, horloge du 5, doubles…), table de Pythagore qui fond, et exercices sur une table ou toutes, avec la carte de mes progrès</div>
+            </div>
+			<div class="act-card" onclick="createWidget('operations-posees');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-maths-operations-posees.jpg" alt="Opérations posées" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧮'"></div>
+                <div class="act-card-name">Opérations posées</div>
+                <div class="act-card-desc">Leçons animées et exercices corrigés : addition, soustraction, multiplication et division posées, avec les retenues</div>
+            </div>
+			<div class="act-card" onclick="createWidget('nombre-decomp');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-maths-nombre-decomp.jpg" alt="Les grands nombres" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔢'"></div>
+                <div class="act-card-name">Les grands nombres</div>
+                <div class="act-card-desc">Leçons, explorateur et exercices : lire, écrire et décomposer les grands nombres avec le tableau de numération</div>
+            </div>
+			<div class="act-card" onclick="createTableauNumWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-tableau-numeration6.jpg" alt="Tableau de numération" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Tableau de numération</div>
+                <div class="act-card-desc">Manipuler le tableau de numération décimale</div>
+            </div>
+			<div class="act-card" onclick="createWidget('fractions2');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-fractions2.jpg" alt="Comprendre les fractions" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🍕'"></div>
+                <div class="act-card-name">Comprendre les fractions</div>
+                <div class="act-card-desc">Découvrir pas à pas ce qu'est une fraction : parts égales, droite graduée, fractions égales, comparaison et défi</div>
+            </div>
+		</div>
+		</div>
+		<div class="act-section act-section-francais">
+		<div class="act-section-label">📖 FRANÇAIS</div>
+		<div class="act-grid">
+			<div class="act-card" onclick="createWidget('phrase-desordre');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-phrase-desordre.jpg" alt="La phrase" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔀'"></div>
+                <div class="act-card-name">La phrase</div>
+                <div class="act-card-desc">Leçons et exercices : phrase en désordre, types et formes de phrases, phrase simple ou complexe</div>
+            </div>
+			<div class="act-card" onclick="createWidget('fonctions');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-francais-fonctions.jpg" alt="Les fonctions dans la phrase" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧭'"></div>
+                <div class="act-card-name">Les fonctions dans la phrase</div>
+                <div class="act-card-desc">Leçons et exercices : sujet, COD, COI, compléments circonstanciels, attribut du sujet, complément du nom</div>
+            </div>
+			<div class="act-card" onclick="createWidget('nature-gramm');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-nature-gramm6.jpg" alt="La nature des mots" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">La nature des mots</div>
+                <div class="act-card-desc">Leçons et exercices : déterminant, nom, adjectif, verbe, pronom, mots invariables</div>
+            </div>
+			<div class="act-card" onclick="createWidget('accord-gn');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-francais-accord-gn.jpg" alt="La chaîne d'accords" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔗'"></div>
+                <div class="act-card-name">La chaîne d'accords</div>
+                <div class="act-card-desc">Leçons, tableau interactif et exercices : accorder le déterminant et les adjectifs avec le nom du groupe nominal</div>
+            </div>
+			<div class="act-card" onclick="createWidget('homophones');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-homophones.jpg" alt="Les homophones" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='📝'"></div>
+                <div class="act-card-name">Les homophones</div>
+                <div class="act-card-desc">Leçon et entraînement collectif : a/à, et/est, son/sont, on/ont, ce/se…</div>
+            </div>
+			<div class="act-card" onclick="createConjugaisonWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-conjugaison6.jpg" alt="La conjugaison" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='✏️'"></div>
+                <div class="act-card-name">La conjugaison</div>
+                <div class="act-card-desc">Leçons et exercices : présent, imparfait, futur, passé simple et passé composé</div>
+            </div>
+			<div class="act-card" onclick="createWidget('mots-alpha');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-ordrealpha6.jpg" alt="Ordre alphabétique" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Ordre alphabétique</div>
+                <div class="act-card-desc">Leçons et exercices : l'alphabet, ranger des mots, chercher dans le dictionnaire</div>
+            </div>
+			<div class="act-card" onclick="createWidget('familles-derivation');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-francais-familles-derivation.jpg" alt="Familles de mots et dérivation" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧱'"></div>
+                <div class="act-card-name">Familles de mots</div>
+                <div class="act-card-desc">Leçons, atelier de briques et exercices : familles de mots, radical, préfixes, suffixes et dérivation</div>
+            </div>
+		</div>
+		</div>
+		<div class="act-section act-section-hgs">
+		<div class="act-section-label">🌍 HISTOIRE, EMC, GÉOGRAPHIE, SCIENCES</div>
+		<div class="act-grid">
+			<div class="act-card mat-histoire" onclick="createFriseHistoriqueWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-histoire-frise-historique.jpg" alt="Frise historique" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='📜'"></div>
+                <div class="act-card-name">La frise historique</div>
+                <div class="act-card-desc">Les 5 grandes périodes de l'histoire, de la Préhistoire à nos jours</div>
+            </div>
+			<div class="act-card mat-histoire" onclick="createFriseRoisWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-histoire-frise-rois.jpg" alt="Les rois de France" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='👑'"></div>
+                <div class="act-card-name">Les rois de France</div>
+                <div class="act-card-desc">La frise des rois de France de Clovis à Louis-Philippe, dynastie par dynastie, avec l'arbre généalogique</div>
+            </div>
+			<div class="act-card mat-histoire" onclick="createHistoireChateauFortWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-histoire-chateau-fort.jpg" alt="Le château fort" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🏰'"></div>
+                <div class="act-card-name">Le château fort</div>
+                <div class="act-card-desc">Découvrir les éléments d'un château fort, à l'extérieur comme à l'intérieur</div>
+            </div>
+			<div class="act-card mat-histoire" onclick="createHistoireSocieteMoyenAgeWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-histoire-societe-medievale.jpg" alt="La société au Moyen Âge" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='👑'"></div>
+                <div class="act-card-name">La société médiévale</div>
+                <div class="act-card-desc">La pyramide sociale (clergé, noblesse, peuple), la seigneurie et les liens entre seigneurs et paysans</div>
+            </div>
+			<div class="act-card mat-histoire" onclick="createDecouvertesRenaissanceWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-histoire-decouvertes-renaissance.jpg" alt="Les Grandes découvertes et la Renaissance" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⛵'"></div>
+                <div class="act-card-name">Découvertes et Renaissance</div>
+                <div class="act-card-desc">Les voyages de Colomb, Vasco de Gama, Magellan et Cartier sur une carte animée, la caravelle, les échanges avec l'Amérique, l'imprimerie, Léonard de Vinci et François Ier</div>
+            </div>
+			<div class="act-card mat-histoire" onclick="createRevolutionFrancaiseWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-histoire-revolution-francaise.jpg" alt="La Révolution française" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🇫🇷'"></div>
+                <div class="act-card-name">La Révolution française</div>
+                <div class="act-card-desc">La fin de la société d'ordres, les grandes dates de 1789 à 1799 et la Déclaration des droits de l'homme et du citoyen</div>
+            </div>
+			<div class="act-card mat-histoire" onclick="createAgeIndustrielWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-histoire-age-industriel.jpg" alt="L'âge industriel" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🏭'"></div>
+                <div class="act-card-name">L'âge industriel</div>
+                <div class="act-card-desc">La machine à vapeur animée, la vie à l'usine et la ville qui grandit pendant que la campagne se vide (1800 – 1930)</div>
+            </div>
+			<div class="act-card mat-emc" onclick="createSymbolesRepubliqueWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-EMC-symboles-republique.jpg" alt="Les symboles de la République" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🇫🇷'"></div>
+                <div class="act-card-name">Symboles de la République</div>
+                <div class="act-card-desc">Le drapeau, la devise, Marianne, La Marseillaise, le 14 Juillet… à découvrir sur la place de la mairie, puis à retrouver en jeu</div>
+            </div>
+			<div class="act-card mat-geo" onclick="createGeoGlobeWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-geo-globe.jpg" alt="Globe terrestre" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌐'"></div>
+                <div class="act-card-name">Le globe terrestre</div>
+                <div class="act-card-desc">Faire tourner la Terre en 3D : continents, océans et lignes repères</div>
+            </div>
+			<div class="act-card mat-geo" onclick="createGeoMondeWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-geo-monde.jpg" alt="Géographie du monde" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🗺'"></div>
+                <div class="act-card-name">Carte du monde</div>
+                <div class="act-card-desc">Planisphère interactif : continents, océans, fleuves, montagnes, déserts et grandes villes</div>
+            </div>
+			<div class="act-card mat-geo" onclick="createGeoEuropeWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-geo-europe.jpg" alt="Géographie de l'Europe" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌍'"></div>
+                <div class="act-card-name">Carte de l'Europe</div>
+                <div class="act-card-desc">Carte interactive : pays, capitales, Union européenne, fleuves et montagnes</div>
+            </div>
+			<div class="act-card mat-geo" onclick="createGeoFranceWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-geo-france.jpg" alt="Géographie de la France" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🗺'"></div>
+                <div class="act-card-name">Carte de la France</div>
+                <div class="act-card-desc">Carte interactive : villes, fleuves, montagnes et pays frontaliers</div>
+            </div>
+			<div class="act-card mat-geo" onclick="createGeoSavoieWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-geo-savoie.jpg" alt="Géographie de la Savoie" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⛰'"></div>
+                <div class="act-card-name">Carte de la Savoie</div>
+                <div class="act-card-desc">Carte interactive : massifs, vallées, rivières, lacs et villes de Savoie</div>
+            </div>
+			<div class="act-card mat-geo" onclick="createGeoReliefWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-geo-relief.jpg" alt="Le relief de montagne" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⛰️'"></div>
+                <div class="act-card-name">Le relief de montagne</div>
+                <div class="act-card-desc">Une montagne en 3D : sommet, col, versants, adret et ubac, vallée, courbes de niveau, et l'étagement de la végétation</div>
+            </div>
+			<div class="act-card mat-geo" onclick="createGeoLatLongWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-geo-latitude-longitude.jpg" alt="Latitude et longitude" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧭'"></div>
+                <div class="act-card-name">Latitude et longitude</div>
+                <div class="act-card-desc">Le globe et ses coordonnées, une bataille navale sur le planisphère et un quiz pour placer et lire des coordonnées</div>
+            </div>
+			<div class="act-card mat-geo" onclick="createPaysRichesPauvresWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-geo-pays-riches-pauvres.jpg" alt="Pays riches, pays pauvres" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌍'"></div>
+                <div class="act-card-name">Pays riches, pays pauvres</div>
+                <div class="act-card-desc">La répartition des richesses sur la planète : carte du monde, comparaison de pays et le monde en 100 habitants</div>
+            </div>
+			<div class="act-card mat-sciences" onclick="createTerreMouvementWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-sciences-terre-mouvement.jpg" alt="La Terre en mouvement" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌗'"></div>
+                <div class="act-card-name">La Terre en mouvement</div>
+                <div class="act-card-desc">Comprendre le jour et la nuit, et l'origine des saisons</div>
+            </div>
+			<div class="act-card mat-sciences" onclick="createSystemeSolaireWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-sciences-systeme-solaire.jpg" alt="Le système solaire" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🪐'"></div>
+                <div class="act-card-name">Le système solaire</div>
+                <div class="act-card-desc">Voir les planètes tourner autour du Soleil et comparer leurs tailles</div>
+            </div>
+			<div class="act-card mat-sciences" onclick="createCycleEauWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-sciences-cycle-eau.jpg" alt="Le cycle de l'eau" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='💧'"></div>
+                <div class="act-card-name">Le cycle de l'eau</div>
+                <div class="act-card-desc">Évaporation, condensation, précipitations, ruissellement, infiltration, et les états de l'eau</div>
+            </div>
+			<div class="act-card mat-sciences" onclick="createVolcansSeismesWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-sciences-volcans-seismes.jpg" alt="Volcans et séismes" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌋'"></div>
+                <div class="act-card-name">Volcans et séismes</div>
+                <div class="act-card-desc">Déclencher une éruption effusive ou explosive, puis un séisme : faille, foyer, épicentre, ondes et sismographe</div>
+            </div>
+			<div class="act-card mat-sciences" onclick="createElectriciteWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-sciences-electricite.jpg" alt="Les circuits électriques" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='💡'"></div>
+                <div class="act-card-name">Les circuits électriques</div>
+                <div class="act-card-desc">Brancher piles, ampoules, interrupteurs et moteurs : ça s'allume ou pas ? Série, dérivation, court-circuit, conducteurs et isolants, avec 10 défis</div>
+            </div>
+			<div class="act-card mat-sciences" onclick="createCorpsHumainWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-sciences-corps-humain.jpg" alt="Le corps humain" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🫀'"></div>
+                <div class="act-card-name">Le corps humain</div>
+                <div class="act-card-desc">Le squelette, les organes, la digestion, la respiration et la circulation, en calques à afficher ou masquer</div>
+            </div>
+			<div class="act-card mat-sciences" onclick="createCinqSensWidget();toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/activite-sciences-5sens.jpg" alt="Les 5 sens" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🖐️'"></div>
+                <div class="act-card-name">Les 5 sens</div>
+                <div class="act-card-desc">La vue, l'ouïe, l'odorat, le goût et le toucher : de l'organe au cerveau, puis chaque sens en détail avec une expérience</div>
+            </div>
+		</div>
+		</div>
+    </div>
+</div>
+
+<script>
+// ── Panneau Leçons et entraînements ─────────────────────────────────
+(function() {
+    var LEC_W_KEY = 'lessons-panel-w';
+
+    function toggleLessonsPanel() {
+        var panel = document.getElementById('lessons-panel');
+        var tab   = document.getElementById('lessons-panel-tab');
+        if (!panel) return;
+        var isOpen = panel.classList.contains('lessons-panel-open');
+        panel.classList.toggle('lessons-panel-open', !isOpen);
+        if (tab) tab.classList.toggle('lessons-panel-tab-open', !isOpen);
+    }
+    window.toggleLessonsPanel = toggleLessonsPanel;
+
+    // Redimensionnement du panneau (largeur par défaut : 85 % de l'écran, CSS --lessons-panel-w)
+    document.addEventListener('DOMContentLoaded', function() {
+        var handle = document.getElementById('lessons-panel-resize-handle');
+        var panel  = document.getElementById('lessons-panel');
+        var tab    = document.getElementById('lessons-panel-tab');
+        if (!handle || !panel) return;
+
+        var dragging = false, startX = 0, startW = 0;
+        handle.addEventListener('mousedown', function(e) {
+            dragging = true; startX = e.clientX;
+            startW = panel.offsetWidth;
+            panel.classList.add('lessons-panel-resizing');
+            if (tab) tab.classList.add('lessons-panel-resizing');
+            document.body.style.cursor = 'ew-resize';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!dragging) return;
+            var maxW = Math.round(window.innerWidth * 0.85);   // largeur max = largeur d'ouverture (85vw)
+            var w = Math.min(maxW, Math.max(260, startW + e.clientX - startX));
+            panel.style.width = w + 'px';
+            document.documentElement.style.setProperty('--lessons-panel-w', w + 'px');
+        });
+        document.addEventListener('mouseup', function() {
+            if (!dragging) return;
+            dragging = false;
+            panel.classList.remove('lessons-panel-resizing');
+            if (tab) tab.classList.remove('lessons-panel-resizing');
+            document.body.style.cursor = '';
+            localStorage.setItem(LEC_W_KEY, panel.offsetWidth);
+        });
+    });
+})();
+</script>
+
+<!-- ── Panneau latéral Activités (côté prof : projeter, manipuler au tableau) ── -->
 <div id="activities-panel">
     <div id="activities-panel-resize-handle" title="Redimensionner le panneau"></div>
     <div id="act-panel-header">
@@ -1832,300 +2092,125 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
         <button id="act-panel-close" onclick="toggleActivitiesPanel()" title="Fermer">✕</button>
     </div>
     <div id="act-panel-content">
-		<div class="act-section act-section-maths">
-		<div class="act-section-label">🔢 ACTIVITÉS DE MATHÉMATIQUES</div>
+		<div class="act-section act-section-rituels">
+		<div class="act-section-label">⚡ RITUELS ET PROJECTION</div>
 		<div class="act-grid">
-            <div class="act-card" onclick="createWidget('calcul');toggleActivitiesPanel()">
+			<div class="act-card mat-maths" onclick="createWidget('calcul');toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-calcul-mental6.jpg" alt="Calcul mental" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Calcul mental</div>
                 <div class="act-card-desc">S'entraîner au calcul mental</div>
             </div>
-            <div class="act-card" onclick="createWidget('calcul-flash');toggleActivitiesPanel()">
+			<div class="act-card mat-maths" onclick="createWidget('calcul-flash');toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-calculs-flash.jpg" alt="Calculs flash" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Calcul flash</div>
                 <div class="act-card-desc">Faire défiler des calculs au rythme de la classe</div>
             </div>
-            <div class="act-card" onclick="createWidget('operations-posees');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-maths-operations-posees.jpg" alt="Opérations posées" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧮'"></div>
-                <div class="act-card-name">Opérations posées</div>
-                <div class="act-card-desc">Leçons animées et exercices corrigés : addition, soustraction, multiplication et division posées, avec les retenues</div>
-            </div>
-            <div class="act-card" onclick="createCompteEstBonWidget();toggleActivitiesPanel()">
+			<div class="act-card mat-maths" onclick="createCompteEstBonWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-compteestbon6.jpg" alt="Le compte est bon" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Le compte est bon</div>
                 <div class="act-card-desc">Viser un nombre cible avec les opérations</div>
             </div>
-            <div class="act-card" onclick="createTableauNumWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-tableau-numeration6.jpg" alt="Tableau de numération" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Tableau de numération</div>
-                <div class="act-card-desc">Manipuler le tableau de numération décimale</div>
-            </div>
-            <div class="act-card" onclick="createWidget('nombre-decomp');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-maths-nombre-decomp.jpg" alt="Les grands nombres" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔢'"></div>
-                <div class="act-card-name">Les grands nombres</div>
-                <div class="act-card-desc">Leçons, explorateur et exercices : lire, écrire et décomposer les grands nombres avec le tableau de numération</div>
-            </div>
-            <div class="act-card" onclick="createNombresLettresWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-nombre-chiffres-lettres.jpg" alt="Le compte est bon" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Nombres en chiffres/lettres</div>
-                <div class="act-card-desc">Écrire un nombre en lettres ou en chiffres</div>
-            </div>
-            <div class="act-card" onclick="createWidget('tables-multi');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-maths-tables-multi.jpg" alt="Les tables de multiplication" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='✖️'"></div>
-                <div class="act-card-name">Les tables de multiplication</div>
-                <div class="act-card-desc">Leçons pleines d'astuces (doigts du 9, horloge du 5, doubles…), table de Pythagore qui fond, et exercices sur une table ou toutes, avec la carte de mes progrès</div>
-            </div>
-            <div class="act-card" onclick="createWidget('loto-multi');toggleActivitiesPanel()">
+			<div class="act-card mat-maths" onclick="createWidget('loto-multi');toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-loto6.jpg" alt="Fractions" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Loto des Multiplications</div>
                 <div class="act-card-desc">Jeu de loto pour mémoriser les tables de multiplication</div>
             </div>
-            <div class="act-card" onclick="createMonnaieWidget();toggleActivitiesPanel()">
+			<div class="act-card mat-maths" onclick="createNombresLettresWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-nombre-chiffres-lettres.jpg" alt="Le compte est bon" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Nombres en chiffres/lettres</div>
+                <div class="act-card-desc">Écrire un nombre en lettres ou en chiffres</div>
+            </div>
+			<div class="act-card mat-maths" onclick="createMonnaieWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-monnaie6.jpg" alt="La monnaie" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Monnaie</div>
                 <div class="act-card-desc">Calculer avec les pièces et les billets</div>
             </div>
-            <div class="act-card" onclick="createHeureWidget();toggleActivitiesPanel()">
+			<div class="act-card mat-maths" onclick="createHeureWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-horloge6.jpg" alt="Heures et durées" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Heures et durées</div>
                 <div class="act-card-desc">Lire l'heure ou calculer une durée</div>
             </div>
-            <div class="act-card" onclick="createHorlogeWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-horloge-interactive6.jpg" alt="Horloge interactive" style="width:100%;height:100%;object-fit:contain;">️</div>
-                <div class="act-card-name">Horloge interactive</div>
-                <div class="act-card-desc">Manipuler les aiguilles pour régler l'heure</div>
-            </div>
-            <div class="act-card" onclick="createConversionWidget();toggleActivitiesPanel()">
+			<div class="act-card mat-maths" onclick="createConversionWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-conversion6.jpg" alt="Conversion" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Conversion</div>
                 <div class="act-card-desc">S'entraîner aux conversions de mesures</div>
             </div>
-            <div class="act-card" onclick="createWidget('droite-num');toggleActivitiesPanel()">
+			<div class="act-card mat-maths" onclick="createWidget('droite-num');toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-droite-num6.jpg" alt="Fractions" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Droite numérique</div>
                 <div class="act-card-desc">Placer des nombres sur une droite graduée</div>
             </div>
-            <div class="act-card" onclick="createWidget('fractions');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-fractions6.jpg" alt="Fractions" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Fractions</div>
-                <div class="act-card-desc">Manipuler des fractions avec des figures partageables</div>
-            </div>
-            <div class="act-card" onclick="createWidget('fractions2');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-fractions2.jpg" alt="Comprendre les fractions" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🍕'"></div>
-                <div class="act-card-name">Comprendre les fractions</div>
-                <div class="act-card-desc">Découvrir pas à pas ce qu'est une fraction : parts égales, droite graduée, fractions égales, comparaison et défi</div>
-            </div>
-            <div class="act-card" onclick="createSolide3DWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-solides6.jpg" alt="Solides 3D" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Solides 3D</div>
-                <div class="act-card-desc">Manipuler les solides en 3 dimensions</div>
-            </div>
-            <div class="act-card" onclick="lancerTracesGeometriques();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-traces-geom6.jpg" alt="Tracés géométriques" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Tracés géométriques</div>
-                <div class="act-card-desc">Utiliser la règle, l'équerre et le compas</div>
-            </div>
-            <div class="act-card" onclick="createReproQuadrillageWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-repro6.jpg" alt="Tracés géométriques" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Reproduction quadrillage</div>
-                <div class="act-card-desc">Dessiner un modèle à reproduire sur un quadrillage</div>
-            </div>
-            <div class="act-card" onclick="createSymetrieAxialeWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-symetrie6.jpg" alt="Symétrie axiale" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Symétrie axiale</div>
-                <div class="act-card-desc">Dessiner une figure et son symétrique par rapport à un axe</div>
-            </div>
-		</div>
-		</div>
-		<div class="act-section act-section-francais">
-		<div class="act-section-label">📖 ACTIVITÉS DE FRANÇAIS</div>
-		<div class="act-grid">
-			<div class="act-card" onclick="createWidget('phrase-desordre');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-phrase-desordre.jpg" alt="La phrase" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔀'"></div>
-                <div class="act-card-name">La phrase</div>
-                <div class="act-card-desc">Leçons et exercices : phrase en désordre, types et formes de phrases, phrase simple ou complexe</div>
-            </div>
-			<div class="act-card" onclick="createWidget('fonctions');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-francais-fonctions.jpg" alt="Les fonctions dans la phrase" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧭'"></div>
-                <div class="act-card-name">Les fonctions dans la phrase</div>
-                <div class="act-card-desc">Leçons et exercices : sujet, COD, COI, compléments circonstanciels, attribut du sujet, complément du nom</div>
-            </div>
-			<div class="act-card" onclick="createWidget('nature-gramm');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-nature-gramm6.jpg" alt="La nature des mots" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">La nature des mots</div>
-                <div class="act-card-desc">Leçons et exercices : déterminant, nom, adjectif, verbe, pronom, mots invariables</div>
-            </div>
-			<div class="act-card" onclick="createWidget('accord-gn');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-francais-accord-gn.jpg" alt="La chaîne d'accords" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔗'"></div>
-                <div class="act-card-name">La chaîne d'accords</div>
-                <div class="act-card-desc">Leçons, tableau interactif et exercices : accorder le déterminant et les adjectifs avec le nom du groupe nominal</div>
-            </div>
-			<div class="act-card" onclick="createWidget('homophones');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-homophones.jpg" alt="Les homophones" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='📝'"></div>
-                <div class="act-card-name">Les homophones</div>
-                <div class="act-card-desc">Leçon et entraînement collectif : a/à, et/est, son/sont, on/ont, ce/se…</div>
-            </div>
-			<div class="act-card" onclick="createConjugaisonWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-conjugaison6.jpg" alt="La conjugaison" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='✏️'"></div>
-                <div class="act-card-name">La conjugaison</div>
-                <div class="act-card-desc">Leçons et exercices : présent, imparfait, futur, passé simple et passé composé</div>
-            </div>
-            <div class="act-card" onclick="createWidget('mots-alpha');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-ordrealpha6.jpg" alt="Ordre alphabétique" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Ordre alphabétique</div>
-                <div class="act-card-desc">Leçons et exercices : l'alphabet, ranger des mots, chercher dans le dictionnaire</div>
-            </div>
-            <div class="act-card" onclick="createWidget('familles-derivation');toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-francais-familles-derivation.jpg" alt="Familles de mots et dérivation" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧱'"></div>
-                <div class="act-card-name">Familles de mots</div>
-                <div class="act-card-desc">Leçons, atelier de briques et exercices : familles de mots, radical, préfixes, suffixes et dérivation</div>
-            </div>
-            <div class="act-card" onclick="createMotsMelesWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-motsmeles6.jpg" alt="Mots mêlés" style="width:100%;height:100%;object-fit:contain;"></div>
-                <div class="act-card-name">Mots Mêlés</div>
-                <div class="act-card-desc">Générer et jouer à une grille interactive de mots mêlés</div>
-            </div>
-            <div class="act-card" onclick="createMotLePlusLongWidget();toggleActivitiesPanel()">
+			<div class="act-card mat-francais" onclick="createMotLePlusLongWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-mot-le-plus-long.jpg" alt="Le mot le plus long" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔤'"></div>
                 <div class="act-card-name">Le mot le plus long</div>
                 <div class="act-card-desc">Former le mot le plus long avec 9 lettres tirées au sort</div>
             </div>
 		</div>
 		</div>
-		<div class="act-section act-section-hgs">
-		<div class="act-section-label">🌍 HISTOIRE, EMC, GÉOGRAPHIE, SCIENCES</div>
+		<div class="act-section act-section-manip">
+		<div class="act-section-label">🧮 MANIPULER POUR COMPRENDRE</div>
 		<div class="act-grid">
-            <div class="act-card mat-histoire" onclick="createFriseHistoriqueWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-histoire-frise-historique.jpg" alt="Frise historique" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='📜'"></div>
-                <div class="act-card-name">La frise historique</div>
-                <div class="act-card-desc">Les 5 grandes périodes de l'histoire, de la Préhistoire à nos jours</div>
+			<div class="act-card mat-maths" onclick="createTableauNumWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-tableau-numeration6.jpg" alt="Tableau de numération" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Tableau de numération</div>
+                <div class="act-card-desc">Manipuler le tableau de numération décimale</div>
             </div>
-			<div class="act-card mat-histoire" onclick="createFriseRoisWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-histoire-frise-rois.jpg" alt="Les rois de France" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='👑'"></div>
-                <div class="act-card-name">Les rois de France</div>
-                <div class="act-card-desc">La frise des rois de France de Clovis à Louis-Philippe, dynastie par dynastie, avec l'arbre généalogique</div>
+			<div class="act-card mat-maths" onclick="createHorlogeWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-horloge-interactive6.jpg" alt="Horloge interactive" style="width:100%;height:100%;object-fit:contain;">️</div>
+                <div class="act-card-name">Horloge interactive</div>
+                <div class="act-card-desc">Manipuler les aiguilles pour régler l'heure</div>
             </div>
-            <div class="act-card mat-histoire" onclick="createHistoireChateauFortWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-histoire-chateau-fort.jpg" alt="Le château fort" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🏰'"></div>
-                <div class="act-card-name">Le château fort</div>
-                <div class="act-card-desc">Découvrir les éléments d'un château fort, à l'extérieur comme à l'intérieur</div>
+			<div class="act-card mat-maths" onclick="createWidget('fractions');toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-fractions6.jpg" alt="Fractions" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Fractions</div>
+                <div class="act-card-desc">Manipuler des fractions avec des figures partageables</div>
             </div>
-            <div class="act-card mat-histoire" onclick="createHistoireSocieteMoyenAgeWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-histoire-societe-medievale.jpg" alt="La société au Moyen Âge" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='👑'"></div>
-                <div class="act-card-name">La société médiévale</div>
-                <div class="act-card-desc">La pyramide sociale (clergé, noblesse, peuple), la seigneurie et les liens entre seigneurs et paysans</div>
+			<div class="act-card mat-maths" onclick="createSolide3DWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-solides6.jpg" alt="Solides 3D" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Solides 3D</div>
+                <div class="act-card-desc">Manipuler les solides en 3 dimensions</div>
             </div>
-			<div class="act-card mat-histoire" onclick="createDecouvertesRenaissanceWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-histoire-decouvertes-renaissance.jpg" alt="Les Grandes découvertes et la Renaissance" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⛵'"></div>
-                <div class="act-card-name">Découvertes et Renaissance</div>
-                <div class="act-card-desc">Les voyages de Colomb, Vasco de Gama, Magellan et Cartier sur une carte animée, la caravelle, les échanges avec l'Amérique, l'imprimerie, Léonard de Vinci et François Ier</div>
-            </div>
-            <div class="act-card mat-histoire" onclick="createRevolutionFrancaiseWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-histoire-revolution-francaise.jpg" alt="La Révolution française" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🇫🇷'"></div>
-                <div class="act-card-name">La Révolution française</div>
-                <div class="act-card-desc">La fin de la société d'ordres, les grandes dates de 1789 à 1799 et la Déclaration des droits de l'homme et du citoyen</div>
-            </div>
-            <div class="act-card mat-histoire" onclick="createAgeIndustrielWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-histoire-age-industriel.jpg" alt="L'âge industriel" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🏭'"></div>
-                <div class="act-card-name">L'âge industriel</div>
-                <div class="act-card-desc">La machine à vapeur animée, la vie à l'usine et la ville qui grandit pendant que la campagne se vide (1800 – 1930)</div>
-            </div>
-            <div class="act-card mat-emc" onclick="createSymbolesRepubliqueWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-EMC-symboles-republique.jpg" alt="Les symboles de la République" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🇫🇷'"></div>
-                <div class="act-card-name">Symboles de la République</div>
-                <div class="act-card-desc">Le drapeau, la devise, Marianne, La Marseillaise, le 14 Juillet… à découvrir sur la place de la mairie, puis à retrouver en jeu</div>
-            </div>
-			<div class="act-card mat-geo" onclick="createGeoGlobeWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-geo-globe.jpg" alt="Globe terrestre" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌐'"></div>
-                <div class="act-card-name">Le globe terrestre</div>
-                <div class="act-card-desc">Faire tourner la Terre en 3D : continents, océans et lignes repères</div>
-            </div>
-			<div class="act-card mat-geo" onclick="createGeoMondeWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-geo-monde.jpg" alt="Géographie du monde" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🗺'"></div>
-                <div class="act-card-name">Carte du monde</div>
-                <div class="act-card-desc">Planisphère interactif : continents, océans, fleuves, montagnes, déserts et grandes villes</div>
-            </div>
-			<div class="act-card mat-geo" onclick="createGeoEuropeWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-geo-europe.jpg" alt="Géographie de l'Europe" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌍'"></div>
-                <div class="act-card-name">Carte de l'Europe</div>
-                <div class="act-card-desc">Carte interactive : pays, capitales, Union européenne, fleuves et montagnes</div>
-            </div>
-            <div class="act-card mat-geo" onclick="createGeoFranceWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-geo-france.jpg" alt="Géographie de la France" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🗺'"></div>
-                <div class="act-card-name">Carte de la France</div>
-                <div class="act-card-desc">Carte interactive : villes, fleuves, montagnes et pays frontaliers</div>
-            </div>
-            <div class="act-card mat-geo" onclick="createGeoSavoieWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-geo-savoie.jpg" alt="Géographie de la Savoie" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⛰'"></div>
-                <div class="act-card-name">Carte de la Savoie</div>
-                <div class="act-card-desc">Carte interactive : massifs, vallées, rivières, lacs et villes de Savoie</div>
-            </div>
-            <div class="act-card mat-geo" onclick="createGeoReliefWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-geo-relief.jpg" alt="Le relief de montagne" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⛰️'"></div>
-                <div class="act-card-name">Le relief de montagne</div>
-                <div class="act-card-desc">Une montagne en 3D : sommet, col, versants, adret et ubac, vallée, courbes de niveau, et l'étagement de la végétation</div>
-            </div>
-            <div class="act-card mat-geo" onclick="createGeoLatLongWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-geo-latitude-longitude.jpg" alt="Latitude et longitude" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧭'"></div>
-                <div class="act-card-name">Latitude et longitude</div>
-                <div class="act-card-desc">Le globe et ses coordonnées, une bataille navale sur le planisphère et un quiz pour placer et lire des coordonnées</div>
-            </div>
-            <div class="act-card mat-geo" onclick="createPaysRichesPauvresWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-geo-pays-riches-pauvres.jpg" alt="Pays riches, pays pauvres" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌍'"></div>
-                <div class="act-card-name">Pays riches, pays pauvres</div>
-                <div class="act-card-desc">La répartition des richesses sur la planète : carte du monde, comparaison de pays et le monde en 100 habitants</div>
-            </div>
-            <div class="act-card mat-sciences" onclick="createTerreMouvementWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-sciences-terre-mouvement.jpg" alt="La Terre en mouvement" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌗'"></div>
-                <div class="act-card-name">La Terre en mouvement</div>
-                <div class="act-card-desc">Comprendre le jour et la nuit, et l'origine des saisons</div>
-            </div>
-            <div class="act-card mat-sciences" onclick="createSystemeSolaireWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-sciences-systeme-solaire.jpg" alt="Le système solaire" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🪐'"></div>
-                <div class="act-card-name">Le système solaire</div>
-                <div class="act-card-desc">Voir les planètes tourner autour du Soleil et comparer leurs tailles</div>
-            </div>
-			<div class="act-card mat-sciences" onclick="createCycleEauWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-sciences-cycle-eau.jpg" alt="Le cycle de l'eau" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='💧'"></div>
-                <div class="act-card-name">Le cycle de l'eau</div>
-                <div class="act-card-desc">Évaporation, condensation, précipitations, ruissellement, infiltration, et les états de l'eau</div>
-            </div>
-			<div class="act-card mat-sciences" onclick="createVolcansSeismesWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-sciences-volcans-seismes.jpg" alt="Volcans et séismes" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🌋'"></div>
-                <div class="act-card-name">Volcans et séismes</div>
-                <div class="act-card-desc">Déclencher une éruption effusive ou explosive, puis un séisme : faille, foyer, épicentre, ondes et sismographe</div>
-            </div>
-            <div class="act-card mat-sciences" onclick="createElectriciteWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-sciences-electricite.jpg" alt="Les circuits électriques" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='💡'"></div>
-                <div class="act-card-name">Les circuits électriques</div>
-                <div class="act-card-desc">Brancher piles, ampoules, interrupteurs et moteurs : ça s'allume ou pas ? Série, dérivation, court-circuit, conducteurs et isolants, avec 10 défis</div>
-            </div>
-            <div class="act-card mat-sciences" onclick="createCorpsHumainWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-sciences-corps-humain.jpg" alt="Le corps humain" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🫀'"></div>
-                <div class="act-card-name">Le corps humain</div>
-                <div class="act-card-desc">Le squelette, les organes, la digestion, la respiration et la circulation, en calques à afficher ou masquer</div>
-            </div>
-            <div class="act-card mat-sciences" onclick="createCinqSensWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-sciences-5sens.jpg" alt="Les 5 sens" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🖐️'"></div>
-                <div class="act-card-name">Les 5 sens</div>
-                <div class="act-card-desc">La vue, l'ouïe, l'odorat, le goût et le toucher : de l'organe au cerveau, puis chaque sens en détail avec une expérience</div>
+			<div class="act-card mat-maths" onclick="lancerTracesGeometriques();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-traces-geom6.jpg" alt="Tracés géométriques" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Tracés géométriques</div>
+                <div class="act-card-desc">Utiliser la règle, l'équerre et le compas</div>
             </div>
 		</div>
 		</div>
-		<div class="act-section act-section-divers">
-		<div class="act-section-label">🎨 ACTIVITÉS DIVERSES</div>
+		<div class="act-section act-section-generer">
+		<div class="act-section-label">🛠️ GÉNÉRER DES ACTIVITÉS</div>
 		<div class="act-grid">
-            <div class="act-card" onclick="createPixelArtWidget();toggleActivitiesPanel()">
+			<div class="act-card mat-maths" onclick="createReproQuadrillageWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-repro6.jpg" alt="Tracés géométriques" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Reproduction quadrillage</div>
+                <div class="act-card-desc">Dessiner un modèle à reproduire sur un quadrillage</div>
+            </div>
+			<div class="act-card mat-maths" onclick="createSymetrieAxialeWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-symetrie6.jpg" alt="Symétrie axiale" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Symétrie axiale</div>
+                <div class="act-card-desc">Dessiner une figure et son symétrique par rapport à un axe</div>
+            </div>
+			<div class="act-card mat-arts" onclick="createPixelArtWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-pixelart2.jpg" alt="Pixel Art" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎨'"></div>
                 <div class="act-card-name">Pixel Art</div>
                 <div class="act-card-desc">Colorier une grille de pixels</div>
             </div>
-            <div class="act-card" onclick="createCouleursWidget();toggleActivitiesPanel()">
+			<div class="act-card mat-francais" onclick="createMotsMelesWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-motsmeles6.jpg" alt="Mots mêlés" style="width:100%;height:100%;object-fit:contain;"></div>
+                <div class="act-card-name">Mots Mêlés</div>
+                <div class="act-card-desc">Générer et jouer à une grille interactive de mots mêlés</div>
+            </div>
+		</div>
+		</div>
+		<div class="act-section act-section-divers">
+		<div class="act-section-label">🎨 ARTS ET MUSIQUE</div>
+		<div class="act-grid">
+			<div class="act-card" onclick="createCouleursWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-couleurs6.jpg" alt="Mélange de couleurs" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Mélange de couleurs</div>
                 <div class="act-card-desc">Mélanger les couleurs primaires pour en créer de nouvelles</div>
             </div>
-            <div class="act-card" onclick="createWidget('musique-clavier');toggleActivitiesPanel()">
+			<div class="act-card" onclick="createWidget('musique-clavier');toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-piano6.jpg" alt="Clavier de piano" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="act-card-name">Clavier de piano</div>
                 <div class="act-card-desc">Jouer les notes sur 3 octaves pour découvrir les sons</div>
@@ -2780,51 +2865,56 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 </div>
 <!-- ══════════════════════════════════════════════════════════════════
      ONGLETS LATÉRAUX — regroupés dans une seule colonne (#side-tabs)
-     3 familles séparées par un petit espace :
-       1) contenu : Jeux, Activités, Outils, Widgets, Visuels
-       2) gestion : Tableaux
-       3) affichage : Écran, Présenter
+     3 familles, chacune annoncée par un petit titre :
+       « Élèves »  : Jeux, Leçons et entraînements
+       « Prof »    : Activités, Outils, Widgets, Visuels
+       « Gestion » : Tableaux, Écran, Présenter
      Chaque onglet a sa couleur (--tab-c), une icône SVG (rendu identique
-     sur tous les appareils), et un raccourci clavier Alt+1 … Alt+8.
+     sur tous les appareils), et un raccourci clavier Alt+1 … Alt+9 (Alt+0 : Dessin).
 ═══════════════════════════════════════════════════════════════════ -->
 <nav id="side-tabs" aria-label="Panneaux">
-    <div class="side-tabs-group">
+    <div class="side-tabs-title" aria-hidden="true">Élèves</div>
+    <div class="side-tabs-group" role="group" aria-label="Élèves">
         <button id="jeux-panel-tab" class="side-tab" style="--tab-c:#9b6cf0" onclick="toggleJeuxPanel()" title="Jeux (Alt+1)" aria-controls="jeux-panel" aria-expanded="false">
             <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 7h11a4.5 4.5 0 0 1 4.3 5.8l-1.2 4a2.6 2.6 0 0 1-4.5.9L14.5 16h-5l-1.6 1.7a2.6 2.6 0 0 1-4.5-.9l-1.2-4A4.5 4.5 0 0 1 6.5 7z"/><path d="M7.5 10v3M6 11.5h3"/><circle cx="15.5" cy="10.5" r=".6"/><circle cx="17.5" cy="12.5" r=".6"/></svg>
             <span class="side-tab-lbl">Jeux</span>
         </button>
-        <button id="activities-panel-tab" class="side-tab" style="--tab-c:#f39c12" onclick="toggleActivitiesPanel()" title="Activités (Alt+2)" aria-controls="activities-panel" aria-expanded="false">
+        <button id="lessons-panel-tab" class="side-tab" style="--tab-c:#14a3a0" onclick="toggleLessonsPanel()" title="Leçons et entraînements (Alt+2)" aria-controls="lessons-panel" aria-expanded="false">
+            <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.4 5.3 8.2 4.8 4 5v13c4.2-.2 6.4.3 8 1.5 1.6-1.2 3.8-1.7 8-1.5V5c-4.2-.2-6.4.3-8 1.5z"/><path d="M12 6.5v13"/></svg>
+            <span class="side-tab-lbl">Leçons</span>
+        </button>
+    </div>
+    <div class="side-tabs-title" aria-hidden="true">Prof</div>
+    <div class="side-tabs-group" role="group" aria-label="Prof">
+        <button id="activities-panel-tab" class="side-tab" style="--tab-c:#f39c12" onclick="toggleActivitiesPanel()" title="Activités en classe (Alt+3)" aria-controls="activities-panel" aria-expanded="false">
             <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r=".8"/><circle cx="15.5" cy="8.5" r=".8"/><circle cx="12" cy="12" r=".8"/><circle cx="8.5" cy="15.5" r=".8"/><circle cx="15.5" cy="15.5" r=".8"/></svg>
             <span class="side-tab-lbl">Activités</span>
         </button>
-        <button id="tools-panel-tab" class="side-tab" style="--tab-c:#2ecc71" onclick="toggleToolsPanel()" title="Outils (Alt+3)" aria-controls="tools-panel" aria-expanded="false">
+        <button id="tools-panel-tab" class="side-tab" style="--tab-c:#2ecc71" onclick="toggleToolsPanel()" title="Outils (Alt+4)" aria-controls="tools-panel" aria-expanded="false">
             <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M8.5 8V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/><path d="M10 13v2h4v-2"/></svg>
             <span class="side-tab-lbl">Outils</span>
         </button>
-        <button id="widgets-panel-tab" class="side-tab" style="--tab-c:#4a90e2" onclick="toggleWidgetsPanel()" title="Widgets (Alt+4)" aria-controls="widgets-panel" aria-expanded="false">
+        <button id="widgets-panel-tab" class="side-tab" style="--tab-c:#4a90e2" onclick="toggleWidgetsPanel()" title="Widgets (Alt+5)" aria-controls="widgets-panel" aria-expanded="false">
             <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>
             <span class="side-tab-lbl">Widgets</span>
         </button>
-        <button id="sticker-panel-tab" class="side-tab" style="--tab-c:#e84393" onclick="toggleStickerPanel()" title="Visuels — stickers, émojis et images (Alt+5)" aria-controls="sticker-panel" aria-expanded="false">
+        <button id="sticker-panel-tab" class="side-tab" style="--tab-c:#e84393" onclick="toggleStickerPanel()" title="Visuels — stickers, émojis et images (Alt+6)" aria-controls="sticker-panel" aria-expanded="false">
             <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M21 15.5l-4.5-4.5L6 19"/></svg>
             <span class="side-tab-lbl">Visuels</span>
         </button>
     </div>
-    <div class="side-tabs-sep" aria-hidden="true"></div>
-    <div class="side-tabs-group">
-        <button id="projects-panel-tab" class="side-tab" style="--tab-c:#a0a8b4" onclick="toggleProjectsPanel()" title="Mes tableaux (Alt+6)" aria-controls="projects-panel" aria-expanded="false">
+    <div class="side-tabs-title" aria-hidden="true">Gestion</div>
+    <div class="side-tabs-group" role="group" aria-label="Gestion">
+        <button id="projects-panel-tab" class="side-tab" style="--tab-c:#a0a8b4" onclick="toggleProjectsPanel()" title="Mes tableaux (Alt+7)" aria-controls="projects-panel" aria-expanded="false">
             <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
             <span class="side-tab-lbl">Tableaux</span>
             <span class="side-tab-badge" title="Brouillon non enregistré"></span>
         </button>
-    </div>
-    <div class="side-tabs-sep" aria-hidden="true"></div>
-    <div class="side-tabs-group">
-        <button id="display-panel-tab" class="side-tab" style="--tab-c:#a0a8b4" onclick="toggleDisplayPanel()" title="Écran : fond, thème, capture (Alt+7)" aria-controls="display-panel" aria-expanded="false">
+        <button id="display-panel-tab" class="side-tab" style="--tab-c:#a0a8b4" onclick="toggleDisplayPanel()" title="Écran : fond, thème, capture (Alt+8)" aria-controls="display-panel" aria-expanded="false">
             <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/></svg>
             <span class="side-tab-lbl">Écran</span>
         </button>
-        <button id="pres-mode-tab" class="side-tab" style="--tab-c:#2ecc71" onclick="togglePresentationMode()" title="Mode présentation (Alt+8)" aria-pressed="false">
+        <button id="pres-mode-tab" class="side-tab" style="--tab-c:#2ecc71" onclick="togglePresentationMode()" title="Mode présentation (Alt+9)" aria-pressed="false">
             <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18"/><path d="M4.5 4v9a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V4"/><path d="M12 14v3M9 21l3-4 3 4"/></svg>
             <span class="side-tab-lbl">Présenter</span>
             <span class="side-tab-switch" aria-hidden="true"><span></span></span>
@@ -2833,7 +2923,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
     <!-- Onglet Dessin : visible uniquement sur téléphone (il y remplace le bouton flottant) -->
     <div class="side-tabs-sep side-tabs-sep-draw" aria-hidden="true"></div>
     <div class="side-tabs-group side-tabs-group-draw">
-        <button id="draw-panel-tab" class="side-tab" style="--tab-c:#f5b82e" onclick="toggleDrawFromTab()" title="Dessin et figures (Alt+9)" aria-pressed="false">
+        <button id="draw-panel-tab" class="side-tab" style="--tab-c:#f5b82e" onclick="toggleDrawFromTab()" title="Dessin et figures (Alt+0)" aria-pressed="false">
             <svg class="side-tab-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-4.8L15.6 4.8a2.3 2.3 0 0 1 3.3 0l.3.3a2.3 2.3 0 0 1 0 3.3L8.8 18.8z"/><path d="M13.8 6.6l3.6 3.6"/><path d="M4 20l4.8-1.2"/></svg>
             <span class="side-tab-lbl">Dessin</span>
         </button>
@@ -2944,7 +3034,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 
         // Fermeture croisée : le panneau Écran se ferme quand un autre panneau s'ouvre
         var _origPanels = [
-            'toggleJeuxPanel','toggleActivitiesPanel','toggleToolsPanel','toggleWidgetsPanel',
+            'toggleJeuxPanel','toggleLessonsPanel','toggleActivitiesPanel','toggleToolsPanel','toggleWidgetsPanel',
             'toggleProjectsPanel','toggleStickerPanel'
         ];
         _origPanels.forEach(function(fname) {
@@ -2972,6 +3062,7 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             var closers = [
                 { panelId: 'display-panel',    openClass: 'display-panel-open',    tabId: 'display-panel-tab',    tabClass: 'display-panel-tab-open' },
                 { panelId: 'jeux-panel',       openClass: 'jeux-panel-open',       tabId: 'jeux-panel-tab',       tabClass: 'jeux-panel-tab-open' },
+                { panelId: 'lessons-panel',    openClass: 'lessons-panel-open',    tabId: 'lessons-panel-tab',    tabClass: 'lessons-panel-tab-open' },
                 { panelId: 'activities-panel', openClass: 'act-panel-open',        tabId: 'activities-panel-tab', tabClass: 'act-panel-tab-open' },
                 { panelId: 'tools-panel',      openClass: 'tools-panel-open',      tabId: 'tools-panel-tab',      tabClass: 'tools-panel-tab-open' },
                 { panelId: 'widgets-panel',    openClass: 'widgets-panel-open',    tabId: 'widgets-panel-tab',    tabClass: 'widgets-panel-tab-open' },
@@ -3108,6 +3199,7 @@ document.addEventListener('pointerdown', function(e) {
 document.addEventListener('pointerdown', function(e) {
     var panels = [
         { panel: 'jeux-panel',       tab: 'jeux-panel-tab',       openClass: 'jeux-panel-open',      tabClass: 'jeux-panel-tab-open' },
+        { panel: 'lessons-panel',    tab: 'lessons-panel-tab',    openClass: 'lessons-panel-open',   tabClass: 'lessons-panel-tab-open' },
         { panel: 'activities-panel', tab: 'activities-panel-tab', openClass: 'act-panel-open',       tabClass: 'act-panel-tab-open' },
         { panel: 'tools-panel',      tab: 'tools-panel-tab',      openClass: 'tools-panel-open',     tabClass: 'tools-panel-tab-open' },
         { panel: 'widgets-panel',    tab: 'widgets-panel-tab',    openClass: 'widgets-panel-open',   tabClass: 'widgets-panel-tab-open' },
@@ -3159,6 +3251,7 @@ function _updateEraserBtnInPanel() {
     // [id onglet, id panneau, classe « ouvert » du panneau]
     var TABS = [
         ['jeux-panel-tab',       'jeux-panel',       'jeux-panel-open'],
+        ['lessons-panel-tab',    'lessons-panel',    'lessons-panel-open'],
         ['activities-panel-tab', 'activities-panel', 'act-panel-open'],
         ['tools-panel-tab',      'tools-panel',      'tools-panel-open'],
         ['widgets-panel-tab',    'widgets-panel',    'widgets-panel-open'],
@@ -3216,11 +3309,11 @@ function _updateEraserBtnInPanel() {
         }
     });
 
-    // Raccourcis : Alt+1 … Alt+8 ouvrent/ferment les onglets dans l'ordre,
+    // Raccourcis : Alt+1 … Alt+9 ouvrent/ferment les onglets dans l'ordre,
     // Échap ferme le panneau ouvert.
     document.addEventListener('keydown', function(e) {
-        if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code !== 'Digit9') {
-            var n = /^Digit([1-8])$/.exec(e.code || '');
+        if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code !== 'Digit0') {
+            var n = /^Digit([1-9])$/.exec(e.code || '');
             if (!n) return;
             var tab = document.getElementById(TABS[+n[1] - 1][0]);
             if (!tab || tab.offsetParent === null) return; // onglet masqué (ex. mode présentation)
@@ -3228,8 +3321,8 @@ function _updateEraserBtnInPanel() {
             tab.click();
             return;
         }
-        // Alt+9 : ouvre / ferme la barre Dessin
-        if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'Digit9') {
+        // Alt+0 : ouvre / ferme la barre Dessin
+        if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'Digit0') {
             e.preventDefault();
             if (typeof toggleDrawFromTab === 'function') toggleDrawFromTab();
             return;
@@ -3677,10 +3770,10 @@ document.addEventListener('DOMContentLoaded', function() {
             '    background: white !important; }',
             '  body > *:not(#board) { display: none !important; }',
             '  #toolbar-container, #toolbar-container * { display: none !important; }',
-            '  #sticker-panel-tab, #activities-panel-tab,',
+            '  #sticker-panel-tab, #activities-panel-tab, #lessons-panel-tab,',
             '  #widgets-panel-tab, #tools-panel-tab, #projects-panel-tab,',
             '  #pres-mode-tab, #display-panel-tab { display: none !important; }',
-            '  #sticker-panel, #activities-panel,',
+            '  #sticker-panel, #activities-panel, #lessons-panel,',
             '  #widgets-panel, #tools-panel, #projects-panel,',
             '  #display-panel, #shape-edit-panel { display: none !important; }',
             '  #draw-toolbar, #shape-toolbar, #global-toolbar,',

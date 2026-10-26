@@ -4124,7 +4124,7 @@ html body:not(.menu-light) #lessons-panel .act-section .act-section-label { colo
 @media (min-width: 769px) {
     html body #activities-panel #act-panel-content .act-grid,
 html body #lessons-panel #lessons-panel-content .act-grid {
-        grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: 8px 10px;
         margin-bottom: 0;
     }
@@ -5103,7 +5103,7 @@ html body #activities-panel .act-card-ico,
 html body #lessons-panel .act-card-ico {
     width: 100%;
     height: auto;
-    aspect-ratio: 5 / 4;
+    aspect-ratio: 4 / 4;
     border-radius: 10px;
 }
 html body #jeux-panel .act-card-ico img,
@@ -5158,7 +5158,7 @@ html body #tools-panel .tools-card-ico,
 html body #widgets-panel .widgets-card-ico {
     width: 100%;
     height: auto;
-    aspect-ratio: 6 / 5;
+    aspect-ratio: 6 / 6;
     border-radius: 10px;
 }
 html body #tools-panel .tools-card-ico img,
@@ -5289,3 +5289,16 @@ body:not(.menu-light) .lessons-intro-note { color: #9cc4c2; }
 body.menu-light .side-tab-sub { color: color-mix(in srgb, var(--tab-c) 70%, #000); }
 #side-tabs .side-tab.is-open .side-tab-sub { color: inherit; }
 @media (max-height: 560px) { .side-tab-sub { font-size: 7.5px; } }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   PANNEAU LEÇONS — BORDURE NOIRE AUTOUR DES IMAGES DES CARTES
+   Pour revenir en arrière : supprimer ce bloc.
+══════════════════════════════════════════════════════════════════ */
+html body #lessons-panel .act-card-ico {
+    border: 3px solid #000;
+    box-sizing: border-box;
+}
+
+
+}

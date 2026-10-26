@@ -176,7 +176,11 @@
 .cvl-key  { background:#fff1dc; border:3px solid var(--orange); font-size:17px; }
 .cvl-key b.t { font-size:18px; color:#b85a00; }
 .cvl-num { font-family:'MarelleBaton','Nunito',sans-serif; font-size:1.35em; font-weight:700; }
-.cvl-strike { color:var(--rouge); text-decoration:line-through 3px; }
+.cvl-strike { position:relative; display:inline-block; color:var(--rouge); text-decoration:none; opacity:.75; }
+/* Virgule barrée d'une croix (le trait habituel passerait au-dessus de la virgule) */
+.cvl-strike::after { content:''; position:absolute; left:-.14em; right:-.14em; top:auto; bottom:-.12em; height:.5em; pointer-events:none;
+    background:linear-gradient(to top right, transparent 42%, var(--rouge) 42%, var(--rouge) 58%, transparent 58%),
+               linear-gradient(to bottom right, transparent 42%, var(--rouge) 42%, var(--rouge) 58%, transparent 58%); }
 .cvl-btn { border:none; border-radius:14px; padding:10px 18px; font:inherit; font-weight:900; font-size:16px;
     touch-action:manipulation; background:var(--bleu); color:#fff; box-shadow:0 4px 0 #1d5bb0; transition:transform .08s; }
 .cvl-btn:active { transform:translateY(3px); box-shadow:0 1px 0 #1d5bb0; }
@@ -191,7 +195,7 @@
 .cvl-hint { font-size:12.5px; color:#5d6a85; }
 
 /* ── Tableau de conversion ── */
-.cvl-tw { overflow-x:auto; padding:6px 2px 4px; }
+.cvl-tw { overflow-x:auto; padding:6px 2px 10px; }
 .cvl-table { border-collapse:collapse; width:100%; table-layout:fixed; background:#fff; font-family:'MarelleBaton','Nunito',sans-serif; }
 .cvl-table th { background:#e7eefb; color:var(--encre); font-weight:900; font-size:calc(var(--tf) * .62); padding:.3em 0; border:2px solid #b9c7e0;
     transition:background .3s, color .3s; font-family:'Nunito','Segoe UI',sans-serif; }
@@ -217,7 +221,8 @@
 .cvl-d.zero { color:#d4387a; }
 .cvl-d.zero.ko { color:var(--rouge); text-decoration:line-through 3px; }
 .cvl-d.new { animation:cvl-drop .55s both; }
-.cvl-comma { position:absolute; right:-.2em; bottom:.12em; font-size:1.35em; font-weight:900; color:var(--rouge); z-index:2; line-height:.6; pointer-events:none; }
+/* La virgule est calée sur la ligne de base des chiffres (milieu de la case), à cheval sur le trait de droite */
+.cvl-comma { position:absolute; right:-.22em; top:calc(50% - .62em); font-size:1.35em; font-weight:900; color:var(--rouge); z-index:2; line-height:1; pointer-events:none; text-shadow:0 0 3px #fff, 0 0 3px #fff; }
 .cvl-comma.new { animation:cvl-comma .9s both; }
 @keyframes cvl-drop { 0% { transform:translateY(-1.3em) scale(.5); opacity:0; } 70% { transform:translateY(.08em) scale(1.12); opacity:1; } 100% { transform:none; opacity:1; } }
 @keyframes cvl-comma { 0% { transform:translateY(-2.2em) scale(2.2); opacity:0; } 55% { transform:translateY(.1em) scale(1); opacity:1; } 75% { transform:translateY(-.15em); } 100% { transform:none; opacity:1; } }

@@ -112,7 +112,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones' || w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2' || w.dataset.type === 'mots-alpha' || w.dataset.type === 'nature-gramm' || w.dataset.type === 'fonctions' || w.dataset.type === 'operations-posees' || w.dataset.type === 'familles-derivation' || w.dataset.type === 'accord-gn' || w.dataset.type === 'nombre-decomp') {
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones' || w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2' || w.dataset.type === 'mots-alpha' || w.dataset.type === 'nature-gramm' || w.dataset.type === 'fonctions' || w.dataset.type === 'operations-posees' || w.dataset.type === 'familles-derivation' || w.dataset.type === 'accord-gn' || w.dataset.type === 'nombre-decomp' || w.dataset.type === 'tables-multi') {
             // Calculatrice / Phrase en désordre / Visualiseur / 108 heures / Billets aux familles : si le widget est réduit
             // (mini-barre), on garde sa position d'origine (ses dimensions sont gérées par le widget)
             const _calcMini = !!w.querySelector('.wf-mini-bar, .h108-mini-bar, .der-mini-bar');
@@ -146,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones' && w.dataset.type !== 'conjugaison' && w.dataset.type !== 'conjugaison2' && w.dataset.type !== 'mots-alpha' && w.dataset.type !== 'nature-gramm' && w.dataset.type !== 'fonctions' && w.dataset.type !== 'operations-posees' && w.dataset.type !== 'familles-derivation' && w.dataset.type !== 'accord-gn' && w.dataset.type !== 'nombre-decomp') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones' && w.dataset.type !== 'conjugaison' && w.dataset.type !== 'conjugaison2' && w.dataset.type !== 'mots-alpha' && w.dataset.type !== 'nature-gramm' && w.dataset.type !== 'fonctions' && w.dataset.type !== 'operations-posees' && w.dataset.type !== 'familles-derivation' && w.dataset.type !== 'accord-gn' && w.dataset.type !== 'nombre-decomp' && w.dataset.type !== 'tables-multi') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -587,6 +587,11 @@ function buildBoardState() {
             agData = w._agGetData();
         }
         // Données propres à l'activité « Les grands nombres » (onglet, leçon, nombre de l'explorateur, exercice en cours, taille, plein écran)
+        // Données propres à l'activité « Les tables de multiplication » (onglet, leçon, réglages, série en cours, carte des tables, taille, plein écran)
+        let tmuData = null;
+        if (w.dataset.type === 'tables-multi' && typeof w._tmuGetData === 'function') {
+            tmuData = w._tmuGetData();
+        }
         let ndData = null;
         if (w.dataset.type === 'nombre-decomp' && typeof w._ndGetData === 'function') {
             ndData = w._ndGetData();
@@ -733,6 +738,7 @@ function buildBoardState() {
 			jgfData,
 			pdsData,
 			opData,
+			tmuData,
 			fdData,
 			agData,
 			ndData,
@@ -1462,6 +1468,13 @@ function restoreBoardFromJSON(json) {
             // Activité « Opérations posées » : leçon, démonstration, réglages, série en cours (réponses), taille, plein écran
             if (typeof createOperationsPoseesWidget === 'function') {
                 widget = createOperationsPoseesWidget(w.opData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'tables-multi') {
+            // Activité « Les tables de multiplication » : leçon, réglages, série en cours, carte des tables, taille, plein écran
+            if (typeof createTablesMultiWidget === 'function') {
+                widget = createTablesMultiWidget(w.tmuData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

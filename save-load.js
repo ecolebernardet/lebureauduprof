@@ -184,6 +184,11 @@ function buildBoardState() {
         if (w.dataset.type === 'zoom-decimaux' && typeof w._zdGetData === 'function') {
             zdData = w._zdGetData();
         }
+        // Données propres au widget « Conjugaison flash » (réglages, mode, question en cours, série, taille, plein écran)
+        let cjfData = null;
+        if (w.dataset.type === 'conjugaison-flash' && typeof w._cjfGetData === 'function') {
+            cjfData = w._cjfGetData();
+        }
         // Données propres au widget frise historique
         let friseHistData = null;
         if (w.dataset.type === 'frise-historique' && typeof w._fhGetData === 'function') {
@@ -687,6 +692,7 @@ function buildBoardState() {
 			motLongData,
 			pdjData,
 			zdData,
+			cjfData,
 			friseHistData,
 			chateauFortData,
 			societeMAData,
@@ -998,6 +1004,15 @@ function restoreBoardFromJSON(json) {
             widget = createMotLePlusLongWidget();
             if (w.motLongData && typeof widget._mlSetData === 'function') {
                 widget._mlSetData(w.motLongData);
+            }
+        } else if (w.type === 'conjugaison-flash') {
+            if (typeof createConjugaisonFlashWidget === 'function') {
+                widget = createConjugaisonFlashWidget();
+                if (typeof widget._cjfSetData === 'function') {
+                    widget._cjfSetData(w.cjfData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
             }
         } else if (w.type === 'zoom-decimaux') {
             if (typeof createZoomDecimauxWidget === 'function') {

@@ -179,6 +179,11 @@ function buildBoardState() {
         if (w.dataset.type === 'phrase-du-jour' && typeof w._pdjGetData === 'function') {
             pdjData = w._pdjGetData();
         }
+        // Données propres au widget « Zoom sur les décimaux » (zooms, nombre choisi, défi en cours, score, taille, plein écran)
+        let zdData = null;
+        if (w.dataset.type === 'zoom-decimaux' && typeof w._zdGetData === 'function') {
+            zdData = w._zdGetData();
+        }
         // Données propres au widget frise historique
         let friseHistData = null;
         if (w.dataset.type === 'frise-historique' && typeof w._fhGetData === 'function') {
@@ -681,6 +686,7 @@ function buildBoardState() {
 			tableauNumData,
 			motLongData,
 			pdjData,
+			zdData,
 			friseHistData,
 			chateauFortData,
 			societeMAData,
@@ -992,6 +998,15 @@ function restoreBoardFromJSON(json) {
             widget = createMotLePlusLongWidget();
             if (w.motLongData && typeof widget._mlSetData === 'function') {
                 widget._mlSetData(w.motLongData);
+            }
+        } else if (w.type === 'zoom-decimaux') {
+            if (typeof createZoomDecimauxWidget === 'function') {
+                widget = createZoomDecimauxWidget();
+                if (typeof widget._zdSetData === 'function') {
+                    widget._zdSetData(w.zdData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
             }
         } else if (w.type === 'phrase-du-jour') {
             if (typeof createPhraseDuJourWidget === 'function') {

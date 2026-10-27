@@ -55,31 +55,35 @@
 @font-face { font-family:'MarelleBaton'; src:url('polices/MarelleBaton-Regular.ttf') format('truetype'); }
 .widget[data-type="fractions2"] { min-width:unset; background:transparent !important; border:none !important; box-shadow:none !important; }
 .fr2-container {
-    position:relative; width:960px; height:660px; min-width:420px; min-height:360px;
-    background:#fffdf8; border:1.5px solid #e8dcc8; border-radius:18px;
-    box-shadow:0 6px 22px rgba(0,0,0,.14); box-sizing:border-box;
+    --encre:#2A1F4A; --or:#FFC933; --vert:#2FBF71; --rouge:#FF4F5E; --violet:#6C4FD8; --creme:#FFF8EC;
+    position:relative; width:960px; height:660px; min-width:420px; min-height:360px; box-sizing:border-box;
     display:flex; flex-direction:column; overflow:hidden; user-select:none;
-    font-family:'Nunito','Segoe UI',system-ui,sans-serif; color:#2d3748;
+    background:var(--creme); border-radius:22px; border:3px solid var(--encre);
+    box-shadow:0 7px 0 #16102B, 0 14px 34px rgba(20,10,50,.3);
+    font-family:'Nunito','Segoe UI',system-ui,sans-serif; color:var(--encre);
 }
 .fr2-container.fr2-fullboard { position:fixed !important; inset:0 !important; width:100% !important; height:100% !important;
-    z-index:9999 !important; border-radius:0 !important; padding-left:60px !important; }
+    z-index:9999 !important; border-radius:0 !important; border:none !important; padding-left:60px !important; }
 @media (max-width:768px), (max-height:500px) and (pointer:coarse) {
     .fr2-container.fr2-fullboard { left:40px !important; width:calc(100vw - 40px) !important; height:100dvh !important; min-width:0 !important; padding-left:0 !important; }
     .fr2-tab .fr2-tab-lbl { display:none; }
+    .fr2-title { font-size:17px !important; }
+    .fr2-title small { display:none; }
 }
-.fr2-header { display:flex; align-items:center; gap:10px; padding:10px 14px 6px; cursor:move; flex-shrink:0; }
-.fr2-title { font-size:15px; font-weight:900; color:#7a4b1e; white-space:nowrap; pointer-events:none; }
-.fr2-title small { font-weight:700; color:#b08a62; font-size:11px; margin-left:6px; }
-.fr2-help-btn { width:22px; height:22px; border-radius:50%; border:1px solid #d6c4a8; background:#fff7ea; color:#7a4b1e;
-    font-weight:900; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
-.fr2-tabs { display:flex; gap:6px; padding:0 12px 8px; flex-shrink:0; overflow-x:auto; scrollbar-width:thin; }
+.fr2-header { display:flex; align-items:center; gap:8px 10px; padding:10px 14px 10px; background:var(--encre); flex-shrink:0; flex-wrap:wrap; }
+.fr2-title { font-size:22px; font-weight:900; color:var(--or); text-shadow:0 2px 0 #B3470F; white-space:nowrap; pointer-events:none; letter-spacing:.3px; }
+.fr2-title small { font-weight:800; color:rgba(255,255,255,.6); font-size:12px; margin-left:8px; text-shadow:none; letter-spacing:0; }
+.fr2-help-btn { width:26px; height:26px; border-radius:50%; border:none; padding:0; background:rgba(255,255,255,.14);
+    color:#fff; font-size:13px; font-weight:900; display:flex; align-items:center; justify-content:center; }
+.fr2-help-btn:hover { background:rgba(255,255,255,.28); }
+.fr2-tabs { order:3; flex-basis:100%; display:flex; gap:6px; overflow-x:auto; scrollbar-width:thin; }
 .fr2-tab { flex:1 1 0; min-width:44px; display:flex; align-items:center; justify-content:center; gap:6px;
-    padding:7px 8px; border-radius:12px; border:2px solid #eadfcd; background:#fff; cursor:pointer;
-    font-size:13px; font-weight:800; color:#7b6a55; white-space:nowrap; touch-action:manipulation; transition:all .15s; }
-.fr2-tab:hover { border-color:#f2b56b; }
-.fr2-tab.active { background:linear-gradient(180deg,#ffb35c,#f2994a); border-color:#e07f2a; color:#fff; box-shadow:0 3px 8px rgba(242,153,74,.35); }
-.fr2-tab-ico { font-size:17px; }
-.fr2-body { flex:1; min-height:0; overflow:auto; padding:4px 16px 14px; position:relative; }
+    border:2px solid rgba(255,255,255,.25); background:transparent; color:#fff; border-radius:999px; padding:5px 12px;
+    font:inherit; font-weight:900; font-size:14px; white-space:nowrap; touch-action:manipulation; }
+.fr2-tab:hover { background:rgba(255,255,255,.1); }
+.fr2-tab.active { background:var(--or); border-color:var(--or); color:var(--encre); }
+.fr2-tab-ico { font-size:16px; }
+.fr2-body { flex:1; min-height:0; overflow:auto; padding:14px 16px 16px; position:relative; }
 .fr2-cols { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; }
 .fr2-left { flex:1 1 360px; min-width:280px; display:flex; flex-direction:column; align-items:center; gap:8px; }
 .fr2-right { flex:1 1 340px; min-width:260px; display:flex; flex-direction:column; gap:10px; }
@@ -87,103 +91,110 @@
 .fr2-svg { width:100%; height:auto; display:block; overflow:visible; }
 .fr2-visual { width:100%; max-width:340px; }
 .fr2-visual.wide { max-width:860px; }
-.fr2-click { cursor:pointer; transition:opacity .12s; }
+.fr2-click { transition:opacity .12s; }
 .fr2-click:hover { opacity:.82; }
-.fr2-hint { font-size:12px; color:#9a8770; font-style:italic; text-align:center; }
-.fr2-seg { display:inline-flex; background:#f4ebdd; border-radius:12px; padding:3px; gap:3px; flex-wrap:wrap; justify-content:center; }
-.fr2-seg button { border:none; background:transparent; padding:6px 12px; border-radius:9px; font-weight:800; font-size:13px;
-    color:#7b6a55; cursor:pointer; touch-action:manipulation; }
-.fr2-seg button.on { background:#fff; color:#d35400; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+.fr2-hint { font-size:12.5px; color:#6a6380; font-style:italic; text-align:center; }
+.fr2-seg { display:inline-flex; gap:6px; flex-wrap:wrap; justify-content:center; }
+.fr2-seg button { border:2px solid #d9cdb6; background:#fff; border-radius:999px; padding:4px 13px; font:inherit; font-weight:800; font-size:14px;
+    color:var(--encre); touch-action:manipulation; }
+.fr2-seg button.on { background:var(--violet); border-color:var(--violet); color:#fff; }
 /* Fraction écrite */
 .fr2-f { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; line-height:1.05;
     font-family:'MarelleBaton','Nunito',sans-serif; font-weight:700; margin:0 3px; font-size:1.15em; }
 .fr2-fn { color:${C_NUM}; } .fr2-fd { color:${C_DEN}; }
-.fr2-fb { align-self:stretch; min-width:.9em; height:2px; background:#2d3748; border-radius:1px; margin:1px 0; }
+.fr2-fb { align-self:stretch; min-width:.9em; height:2px; background:var(--encre); border-radius:1px; margin:1px 0; }
 .fr2-f.plain .fr2-fn, .fr2-f.plain .fr2-fd { color:inherit; }
 /* Grande fraction avec steppers */
 .fr2-big { display:grid; grid-template-columns:auto 1fr; column-gap:14px; row-gap:4px; align-items:center;
-    background:#fff; border:2px solid #f0e3cf; border-radius:16px; padding:12px 14px; }
+    background:#fff; border:3px solid var(--violet); border-radius:18px; padding:12px 14px; }
 .fr2-stp { display:flex; align-items:center; gap:6px; justify-self:center; }
-.fr2-stp button, .fr2-mini button { width:34px; height:34px; border-radius:10px; border:2px solid #e2d5c2; background:#fff;
-    font-size:20px; font-weight:900; color:#5a4a36; cursor:pointer; display:flex; align-items:center; justify-content:center;
-    padding:0; line-height:1; touch-action:manipulation; transition:transform .08s, background .12s; }
-.fr2-stp button:hover, .fr2-mini button:hover { background:#fff3e2; }
-.fr2-stp button:active, .fr2-mini button:active { transform:scale(.9); }
+.fr2-stp button, .fr2-mini button { width:34px; height:34px; border-radius:10px; border:none; background:#f1edff;
+    font-size:20px; font-weight:900; color:var(--encre); display:flex; align-items:center; justify-content:center;
+    padding:0; line-height:1; touch-action:manipulation; box-shadow:0 3px 0 #cfc3f7; transition:transform .08s; }
+.fr2-stp button:active, .fr2-mini button:active { transform:translateY(2px); box-shadow:0 1px 0 #cfc3f7; }
 .fr2-bignum { min-width:52px; text-align:center; font-size:44px; line-height:1; font-family:'MarelleBaton','Nunito',sans-serif; }
 .fr2-bignum.n { color:${C_NUM}; } .fr2-bignum.d { color:${C_DEN}; }
-.fr2-bigbar { height:4px; background:#2d3748; border-radius:2px; justify-self:stretch; margin:0 38px; }
-.fr2-lbl { font-size:13px; line-height:1.35; color:#4a5568; }
+.fr2-bigbar { height:4px; background:var(--encre); border-radius:2px; justify-self:stretch; margin:0 38px; }
+.fr2-lbl { font-size:13px; line-height:1.35; color:#3d3654; }
 .fr2-lbl b.n { color:${C_NUM}; } .fr2-lbl b.d { color:${C_DEN}; }
-.fr2-reading { text-align:center; font-size:22px; font-weight:900; color:#7a4b1e; background:#fff3df; border-radius:14px; padding:8px 10px; }
-.fr2-explain { font-size:15px; line-height:1.55; background:#fff; border:2px dashed #eadbc4; border-radius:14px; padding:10px 14px; }
+.fr2-reading { text-align:center; font-size:22px; font-weight:900; color:var(--encre); background:#f1edff; border:2px solid #c8bbf5; border-radius:14px; padding:8px 10px; }
+.fr2-explain { font-size:15px; line-height:1.55; background:#fff; border:2px solid #e3d8c3; border-radius:14px; padding:10px 14px; }
 .fr2-explain b.n { color:${C_NUM}; } .fr2-explain b.d { color:${C_DEN}; }
-.fr2-retenir { font-size:13.5px; line-height:1.5; background:#eef6ff; border-left:5px solid #3b7ddd; border-radius:10px; padding:9px 12px; color:#244063; }
-.fr2-retenir > b:first-child { display:block; margin-bottom:3px; font-size:14px; }
-.fr2-retenir ul { margin:4px 0 0; padding-left:18px; }
-.fr2-warn { background:#fff1f0; border-left-color:#e74c3c; color:#7b241c; }
+.fr2-retenir { font-size:15px; line-height:1.5; background:#e9f8f0; border:2px solid #8fd8b0; border-radius:14px; padding:10px 14px; color:var(--encre); }
+.fr2-retenir > b:first-child { display:block; margin-bottom:2px; font-size:15px; }
+.fr2-retenir ul { margin:4px 0 0; padding-left:22px; }
+.fr2-warn { background:#ffecee; border-color:#f6a7b0; color:var(--encre); }
 /* Mascotte */
 .fr2-mascot { display:flex; align-items:flex-end; gap:8px; margin-top:12px; }
 .fr2-owl { font-size:40px; line-height:1; animation:fr2-bob 2.6s ease-in-out infinite; }
 @keyframes fr2-bob { 0%,100% { transform:translateY(0) rotate(-3deg); } 50% { transform:translateY(-5px) rotate(3deg); } }
-.fr2-bubble { position:relative; background:#fff8c9; border:2px solid #f1d96b; border-radius:14px; padding:8px 12px; font-size:13.5px; line-height:1.45; flex:1; }
-.fr2-bubble::before { content:''; position:absolute; left:-10px; bottom:12px; border:8px solid transparent; border-right-color:#f1d96b; border-left:0; }
-.fr2-bubble b.who { color:#9c6b00; }
-.fr2-linkbtn { border:none; background:none; color:#b0700a; font-weight:800; cursor:pointer; font-size:12.5px; padding:0 0 0 4px; text-decoration:underline; }
+.fr2-bubble { position:relative; background:#fff6d6; border:2px solid #f3d36b; border-radius:14px; padding:8px 12px; font-size:14px; line-height:1.5; flex:1; }
+.fr2-bubble::before { content:''; position:absolute; left:-10px; bottom:12px; border:8px solid transparent; border-right-color:#f3d36b; border-left:0; }
+.fr2-bubble b.who { color:#B3470F; }
+.fr2-linkbtn { border:none; background:none; color:var(--violet); font:inherit; font-weight:900; font-size:13px; padding:0 0 0 4px; text-decoration:underline; }
 /* Petits steppers */
 .fr2-ctrls { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; align-items:center; }
-.fr2-mini { display:flex; align-items:center; gap:5px; background:#fff; border:2px solid #f0e3cf; border-radius:12px; padding:4px 8px; }
-.fr2-mini span.l { font-size:12px; font-weight:800; color:#7b6a55; }
+.fr2-mini { display:flex; align-items:center; gap:5px; background:#fff; border:2px solid #e3d8c3; border-radius:12px; padding:4px 8px; }
+.fr2-mini span.l { font-size:13px; font-weight:900; color:var(--encre); }
 .fr2-mini span.v { min-width:26px; text-align:center; font-size:22px; font-family:'MarelleBaton','Nunito',sans-serif; }
 .fr2-mini button { width:28px; height:28px; font-size:17px; border-radius:8px; }
 .fr2-eq { font-size:26px; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; font-weight:800; }
 .fr2-eq .fr2-f { font-size:30px; }
-.fr2-btn { border:none; border-radius:12px; padding:9px 16px; font-weight:900; font-size:15px; cursor:pointer; touch-action:manipulation;
-    background:#f2994a; color:#fff; box-shadow:0 3px 0 #c97424; transition:transform .08s; }
-.fr2-btn:active { transform:translateY(2px); box-shadow:0 1px 0 #c97424; }
-.fr2-btn.alt { background:#fff; color:#7a4b1e; border:2px solid #eadbc4; box-shadow:0 3px 0 #e2d2b8; }
-.fr2-btn.yes { background:#27ae60; box-shadow:0 3px 0 #1e8449; }
-.fr2-btn.no  { background:#e74c3c; box-shadow:0 3px 0 #b03a2e; }
-.fr2-btn[disabled] { opacity:.45; cursor:default; }
-.fr2-score { font-weight:900; color:#7a4b1e; background:#fff3df; border-radius:20px; padding:4px 12px; font-size:13px; }
-.fr2-feedback { font-size:15px; line-height:1.5; border-radius:14px; padding:10px 14px; width:100%; box-sizing:border-box; }
-.fr2-feedback.ok { background:#e9f9ef; border:2px solid #7dd3a0; }
-.fr2-feedback.ko { background:#fdecea; border:2px solid #f1a39a; }
+.fr2-btn { border:none; border-radius:14px; padding:10px 18px; font:inherit; font-weight:900; font-size:16px; touch-action:manipulation;
+    background:var(--violet); color:#fff; box-shadow:0 4px 0 #4a34a3; transition:transform .08s; }
+.fr2-btn:active { transform:translateY(3px); box-shadow:0 1px 0 #4a34a3; }
+.fr2-btn.alt { background:#fff; color:var(--encre); border:2px solid #d9cdb6; box-shadow:0 4px 0 #e3d8c3; }
+.fr2-btn.yes { background:var(--vert); box-shadow:0 4px 0 #1e8a50; }
+.fr2-btn.no  { background:var(--rouge); box-shadow:0 4px 0 #b02a37; }
+.fr2-btn[disabled] { opacity:.45; }
+.fr2-score { background:var(--encre); color:#fff; border-radius:999px; padding:4px 12px; font-weight:900; font-size:14px; white-space:nowrap; }
+.fr2-feedback { font-size:16px; line-height:1.5; border-radius:14px; padding:8px 12px; width:100%; box-sizing:border-box; text-align:center; }
+.fr2-feedback.ok { background:#e2f7ec; border:2px solid #8fd8b0; }
+.fr2-feedback.ko { background:#ffe9eb; border:2px solid #f6a7b0; }
 .fr2-prompt { font-size:19px; font-weight:800; text-align:center; line-height:1.5; }
 .fr2-prompt .fr2-f { font-size:28px; }
 /* Comparer */
 .fr2-cmp-row { display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap; }
-.fr2-cmp-box { display:flex; flex-direction:column; align-items:center; gap:4px; background:#fff; border:2px solid #f0e3cf; border-radius:14px; padding:8px 10px; }
-.fr2-sign { font-size:46px; font-weight:900; min-width:60px; text-align:center; color:#2d3748; }
-.fr2-sign.q { color:#c0a98a; }
+.fr2-cmp-box { display:flex; flex-direction:column; align-items:center; gap:4px; background:#fff; border:3px solid #e3d8c3; border-radius:18px; padding:8px 10px; }
+.fr2-sign { font-size:46px; font-weight:900; min-width:60px; text-align:center; color:var(--encre); }
+.fr2-sign.q { color:#b3abc4; }
 .fr2-guess { display:flex; gap:8px; }
 .fr2-guess .fr2-btn { font-size:24px; padding:4px 18px; }
 /* Défi */
-.fr2-dots { display:flex; gap:5px; justify-content:center; }
-.fr2-dot { width:14px; height:14px; border-radius:50%; background:#eadfcd; }
-.fr2-dot.ok { background:#27ae60; } .fr2-dot.ko { background:#e74c3c; } .fr2-dot.cur { background:#f2994a; box-shadow:0 0 0 3px #ffd9ad; }
+.fr2-dots { display:flex; gap:4px; justify-content:center; }
+.fr2-dot { width:13px; height:13px; border-radius:50%; background:#e3d8c3; }
+.fr2-dot.ok { background:var(--vert); } .fr2-dot.ko { background:var(--rouge); } .fr2-dot.cur { background:var(--violet); box-shadow:0 0 0 3px #cfc3f7; }
 .fr2-choices { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; width:100%; max-width:720px; }
-.fr2-choice { border:3px solid #eadbc4; background:#fff; border-radius:14px; padding:10px; min-height:62px; font-size:18px; font-weight:800;
-    cursor:pointer; color:#2d3748; touch-action:manipulation; display:flex; align-items:center; justify-content:center; transition:transform .1s, border-color .15s; }
-.fr2-choice:hover { border-color:#f2b56b; transform:translateY(-2px); }
+.fr2-choice { border:3px solid #f1edff; background:#f1edff; border-radius:16px; padding:10px; min-height:62px; font:inherit; font-size:18px; font-weight:800;
+    color:var(--encre); touch-action:manipulation; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 0 #cfc3f7; transition:transform .08s; }
+.fr2-choice:active { transform:translateY(3px); box-shadow:0 1px 0 #cfc3f7; }
 .fr2-choice .fr2-f { font-size:28px; }
-.fr2-choice.good { border-color:#27ae60; background:#e9f9ef; }
-.fr2-choice.bad { border-color:#e74c3c; background:#fdecea; }
-.fr2-choice[disabled] { cursor:default; transform:none; }
-.fr2-streak { font-weight:900; color:#e67e22; }
+.fr2-choice.good { border-color:var(--vert); background:#e2f7ec; box-shadow:0 4px 0 #1e8a50; }
+.fr2-choice.bad { border-color:var(--rouge); background:#ffe9eb; box-shadow:0 4px 0 #b02a37; }
+.fr2-choice[disabled] { transform:none; }
+.fr2-streak { background:#FF7A1A; color:#fff; border-radius:999px; padding:4px 12px; font-weight:900; font-size:14px; white-space:nowrap; }
 .fr2-stars { font-size:54px; letter-spacing:6px; }
 .fr2-confetti { position:absolute; pointer-events:none; font-size:24px; z-index:30; animation:fr2-pop 1.3s ease-out forwards; }
 @keyframes fr2-pop { 0% { transform:translateY(0) scale(.4) rotate(0); opacity:0; } 15% { opacity:1; } 100% { transform:translateY(-170px) scale(1.2) rotate(200deg); opacity:0; } }
 /* Aide */
-.fr2-help { display:none; position:absolute; top:44px; right:12px; z-index:40; width:360px; max-width:calc(100% - 24px);
-    background:#fff; border:1px solid #e2d5c2; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.18); padding:12px 14px;
-    font-size:12.5px; line-height:1.55; color:#4a5568; }
+.fr2-help { display:none; position:absolute; top:50px; right:12px; z-index:40; width:430px; max-width:calc(100% - 24px); max-height:calc(100% - 70px); overflow:auto;
+    background:#fff; color:#3d3654; border:2px solid var(--encre); border-radius:14px; box-shadow:0 10px 26px rgba(0,0,0,.25); padding:12px 14px; font-size:13px; line-height:1.55; }
 .fr2-help.show { display:block; }
-.fr2-help h4 { margin:0 0 6px; font-size:14px; color:#7a4b1e; }
-.fr2-help p { margin:0 0 5px; }
-.fr2-resize { position:absolute; right:0; bottom:0; width:18px; height:18px; cursor:se-resize; z-index:35;
-    background:linear-gradient(135deg,transparent 50%,#c8b39a 50%); border-radius:0 0 16px 0; opacity:0; transition:opacity .2s; }
+.fr2-help h4 { margin:0 0 6px; font-size:15px; color:var(--encre); }
+.fr2-help p { margin:0 0 6px; }
+.fr2-resize { position:absolute; right:0; bottom:0; width:18px; height:18px; z-index:35; opacity:0; transition:opacity .2s;
+    background:linear-gradient(135deg,transparent 50%,#9a8f7a 50%); border-radius:0 0 18px 0; touch-action:none; }
 .fr2-container:hover .fr2-resize { opacity:1; }
 .fr2-container.fr2-fullboard .fr2-resize { display:none; }
+@media (prefers-reduced-motion: reduce) { .fr2-container * { animation:none !important; } }
+/* Curseur : la flèche partout, la main sur la barre du haut (déplacement) */
+.widget[data-type="fractions2"], .fr2-container, .fr2-container * { cursor:default !important; }
+.fr2-container .fr2-header, .fr2-container .fr2-tabs { cursor:grab !important; }
+.fr2-container .fr2-header:active, .fr2-container .fr2-tabs:active { cursor:grabbing !important; }
+.fr2-container button, .fr2-container button *, .fr2-container [data-act], .fr2-container [data-act] * { cursor:pointer !important; }
+.fr2-container button:disabled, .fr2-container button:disabled * { cursor:default !important; }
+.fr2-container .fr2-resize { cursor:se-resize !important; }
 `;
         document.head.appendChild(s);
     }
@@ -202,8 +213,8 @@
       <button class="wf-btn wf-btn-max"   data-act="max"   title="Plein écran"></button>
       <button class="wf-btn wf-btn-close" data-act="close" title="Fermer"></button>
     </div>
+    <div class="fr2-tabs"></div>
   </div>
-  <div class="fr2-tabs"></div>
   <div class="fr2-body"></div>
   <div class="fr2-help">
     <h4>💡 Comment utiliser cette activité ?</h4>
@@ -274,7 +285,7 @@
         const S = 260, C = 130, R = 104;
         const g0 = i => o.clickable ? `<g class="fr2-click" data-act="part" data-part="${i}">` : '<g>';
         let s = `<svg class="fr2-svg" viewBox="0 0 ${S} ${S}" xmlns="http://www.w3.org/2000/svg">`;
-        s += `<circle cx="${C}" cy="${C}" r="${R + 15}" fill="#eef2f7" stroke="#cfd6e2" stroke-width="2"/>`;
+        s += `<circle cx="${C}" cy="${C}" r="${R + 15}" fill="#f3ecdd" stroke="#e3d8c3" stroke-width="2"/>`;
         if (den <= 1) {
             const t = col.has(0);
             s += g0(0) + `<circle cx="${C}" cy="${C}" r="${R - 4}" fill="${t ? CHEESE : PALE}" stroke="${t ? CRUST : PALE_CRUST}" stroke-width="8"/>`;
@@ -360,7 +371,7 @@
                + `<line x1="${f2(x0 + 2)}" y1="${ya}" x2="${f2(x1 - 2)}" y2="${ya}" stroke="${cu}" stroke-width="2"/>`
                + `<polygon points="${f2(x0 + 1)},${ya} ${f2(x0 + 11)},${ya - 5} ${f2(x0 + 11)},${ya + 5}" fill="${cu}"/>`
                + `<polygon points="${f2(x1 - 1)},${ya} ${f2(x1 - 11)},${ya - 5} ${f2(x1 - 11)},${ya + 5}" fill="${cu}"/>`
-               + `<rect x="${f2((x0 + x1) / 2 - 34)}" y="${ya - 9}" width="68" height="18" rx="9" fill="#fffdf8"/>`
+               + `<rect x="${f2((x0 + x1) / 2 - 34)}" y="${ya - 9}" width="68" height="18" rx="9" fill="#FFF8EC"/>`
                + `<text x="${f2((x0 + x1) / 2)}" y="${ya + 4.5}" text-anchor="middle" font-size="13" font-weight="800" fill="${cu}">1 unité</text>`;
         }
         s += `<line x1="${L - 14}" y1="${y}" x2="${W - 14}" y2="${y}" stroke="#1f2937" stroke-width="3"/>`;
@@ -396,7 +407,7 @@
         for (let i = 0; i < d; i++) s += `<rect x="${f2(P + i * BW / d)}" y="${y1}" width="${f2(BW / d)}" height="${BH}" fill="${i < n ? C_FILL : '#fff'}" stroke="#374151" stroke-width="2.5"/>`;
         for (let j = 0; j < d * k; j++) s += `<rect x="${f2(P + j * BW / (d * k))}" y="${y2}" width="${f2(BW / (d * k))}" height="${BH}" fill="${j < n * k ? '#f6b26b' : '#fff'}" stroke="${j % k === 0 ? '#374151' : '#9ca3af'}" stroke-width="${j % k === 0 ? 2.5 : 1.3}"/>`;
         for (let i = 1; i < d; i++) { const x = f2(P + i * BW / d); s += `<line x1="${x}" y1="${y1 + BH}" x2="${x}" y2="${y2 + BH}" stroke="#374151" stroke-width="2.5"/>`; }
-        for (let i = 1; i < d; i++) { const x = f2(P + i * BW / d); s += `<line x1="${x}" y1="${y1 + BH}" x2="${x}" y2="${y2}" stroke="#fffdf8" stroke-width="2.5" stroke-dasharray="4 6"/>`; }
+        for (let i = 1; i < d; i++) { const x = f2(P + i * BW / d); s += `<line x1="${x}" y1="${y1 + BH}" x2="${x}" y2="${y2}" stroke="#FFF8EC" stroke-width="2.5" stroke-dasharray="4 6"/>`; }
         s += `<rect x="${P}" y="${y1}" width="${BW}" height="${BH}" fill="none" stroke="#1f2937" stroke-width="3"/><rect x="${P}" y="${y2}" width="${BW}" height="${BH}" fill="none" stroke="#1f2937" stroke-width="3"/>`;
         const xe = f2(P + BW * n / d);
         s += `<line x1="${xe}" y1="${y1 - 10}" x2="${xe}" y2="${y2 + BH + 12}" stroke="#e74c3c" stroke-width="3" stroke-dasharray="8 5"/>`;
@@ -416,7 +427,7 @@
             const xe = f2(P + BW * fr.n / fr.d);
             s += `<line x1="${xe}" y1="${y - 6}" x2="${xe}" y2="${y + BH + 6}" stroke="${col}" stroke-width="3" stroke-dasharray="6 4"/>`;
         });
-        s += `<text x="${P + BW / 2}" y="${H - 4}" text-anchor="middle" font-size="12" font-weight="700" fill="#7b6a55">Les deux barres représentent la même unité</text>`;
+        s += `<text x="${P + BW / 2}" y="${H - 4}" text-anchor="middle" font-size="12" font-weight="700" fill="#6a6380">Les deux barres représentent la même unité</text>`;
         return s + '</svg>';
     }
 
@@ -525,7 +536,7 @@
                 rule = `Même numérateur : on prend autant de parts. Mais plus le dénominateur est grand, plus les parts sont <b>petites</b> ! La plus grande fraction a le plus petit dénominateur.`;
             }
             const c = A[0] * B[1] - B[0] * A[1], sign = c < 0 ? '<' : c > 0 ? '>' : '=';
-            q.prompt = `Choisis le bon signe :<br>${F(A[0], A[1])} <span style="color:#c0a98a;font-size:28px">?</span> ${F(B[0], B[1])}`;
+            q.prompt = `Choisis le bon signe :<br>${F(A[0], A[1])} <span style="color:#b3abc4;font-size:28px">?</span> ${F(B[0], B[1])}`;
             q.choices = ['<', '=', '>'].map(sg => ({ html: `<span style="font-size:30px">${sg.replace('<', '&lt;').replace('>', '&gt;')}</span>`, ok: sg === sign }));
             q.explain = rule + `<br>Donc ${F(A[0], A[1])} ${sign.replace('<', '&lt;').replace('>', '&gt;')} ${F(B[0], B[1])}.`;
         }
@@ -669,7 +680,7 @@
               <div class="fr2-right">
                 <div class="fr2-big">
                   ${stepper('dec-num', n, 'n')}<div class="fr2-lbl"><b class="n">Numérateur</b> (en haut)<br>le nombre de parts que je <b>prends</b></div>
-                  <div class="fr2-bigbar"></div><div class="fr2-lbl" style="font-size:12px;color:#9a8770">trait de fraction = « partagé en »</div>
+                  <div class="fr2-bigbar"></div><div class="fr2-lbl" style="font-size:12px;color:#6a6380">trait de fraction = « partagé en »</div>
                   ${stepper('dec-den', den, 'd')}<div class="fr2-lbl"><b class="d">Dénominateur</b> (en bas)<br>en combien de parts <b>égales</b> on a partagé</div>
                 </div>
                 <div class="fr2-reading">${F(n, den)} se lit « ${fracName(n, den)} »</div>
@@ -742,12 +753,12 @@
                 ? 'Augmente le nombre « Je coupe chaque part en… » pour voir ce qui se passe.'
                 : `Je coupe chaque part en <b>${k}</b> : il y a ${k} fois plus de parts (${den} × ${k} = <b class="d">${den * k}</b>) et j'en prends ${k} fois plus (${num} × ${k} = <b class="n">${num * k}</b>).<br>
                    La partie coloriée <b>n'a pas changé de taille</b> : ${F(num, den)} et ${F(num * k, den * k)} sont deux écritures de la même quantité.<br>
-                   <span style="color:#7b6a55">Dans l'autre sens : ${F(num * k, den * k)} = ${F(num, den)} en divisant en haut et en bas par ${k}. C'est <b>simplifier</b> la fraction.</span>`;
+                   <span style="color:#6a6380">Dans l'autre sens : ${F(num * k, den * k)} = ${F(num, den)} en divisant en haut et en bas par ${k}. C'est <b>simplifier</b> la fraction.</span>`;
             return `<div class="fr2-full">
                 <div class="fr2-ctrls">
                   ${mini('eq-num', 'Numérateur', num, C_NUM)}
                   ${mini('eq-den', 'Dénominateur', den, C_DEN)}
-                  ${mini('eq-k', '✂️ Je coupe chaque part en', k, '#7a4b1e')}
+                  ${mini('eq-k', '✂️ Je coupe chaque part en', k, '#2A1F4A')}
                 </div>
                 <div class="fr2-eq">${F(num, den)} = ${F(num + ' × ' + k, den + ' × ' + k, 'plain')} = ${F(num * k, den * k)}</div>
                 <div class="fr2-visual wide">${equivSVG(num, den, k)}</div>
@@ -808,12 +819,12 @@
                 const st = D.score >= 9 ? 3 : D.score >= 7 ? 2 : D.score >= 5 ? 1 : 0;
                 const msg = ['Continue à t\'entraîner : relis les onglets et retente ta chance ! 💪', 'Pas mal du tout ! Encore un effort. 👍', 'Très bien ! Tu maîtrises les fractions. 🌟', 'Champion·ne des fractions ! 🏆'][st];
                 return `<div class="fr2-full" style="padding-top:20px">
-                    <div style="font-size:26px;font-weight:900;color:#7a4b1e">Défi terminé !</div>
+                    <div style="font-size:26px;font-weight:900;color:#2A1F4A">Défi terminé !</div>
                     <div class="fr2-stars">${'⭐'.repeat(st)}${'☆'.repeat(3 - st)}</div>
                     <div style="font-size:22px;font-weight:800">${D.score} bonne${D.score > 1 ? 's' : ''} réponse${D.score > 1 ? 's' : ''} sur ${N}</div>
                     <div class="fr2-dots">${D.results.map(r => `<span class="fr2-dot ${r ? 'ok' : 'ko'}"></span>`).join('')}</div>
                     <div style="font-size:16px">${msg}</div>
-                    <div style="font-size:14px;color:#7b6a55">Meilleure série : 🔥 ${D.best}</div>
+                    <div style="font-size:14px;color:#6a6380">Meilleure série : 🔥 ${D.best}</div>
                     <button class="fr2-btn" data-act="defi-restart">🔄 Rejouer</button>
                   </div>${mascot('defi')}`;
             }

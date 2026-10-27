@@ -588,14 +588,14 @@
         const sideCol = q => side0 + (CW - 1 - q);
         L.side = { sep: sideSep, c1: side0, c2: side0 + CW - 1, r1: rP[0], r2: rP[rP.length - 1] };
         step(L, `On pose la multiplication : les unités sous les unités. Je multiplie ${Lb === 1 ? 'le chiffre du bas par chaque chiffre du nombre du haut' : 'par chaque chiffre du nombre du bas, l\'un après l\'autre'}, en commençant par la droite.`);
-        let prevCar = [];
+        // Une retenue utilisée est barrée dès l'étape où on l'ajoute
+        const strike = (id, st) => { if (id) { byId(L, id).off = st; byId(L, id).offType = 'strike'; } };
         const partIds = [];
         NZ.forEach((i, j) => {
             const bi = dAt(bS, i), row = rP[j];
             partIds[j] = {};
             if (i > 0) {
                 const st = L.steps.length;
-                prevCar.forEach(id => { byId(L, id).off = st; byId(L, id).offType = 'fade'; });
                 for (let p = 0; p < i; p++) partIds[j][p] = put(L, { r: row, c: col(p), ch: '0', k: 'd', ans: 1, expect: '0', step: st });
                 let txt = '';
                 const skipped = []; for (let q = (j > 0 ? NZ[j - 1] + 1 : 0); q < i; q++) skipped.push(placeN(q));
@@ -607,18 +607,18 @@
             }
             for (let q = 0; q < CW; q++) L.slots.push({ r: row, c: sideCol(q), k: 'car', cls: 'side' });
             let carry = 0, carryId = null;
-            const cars = [];
             let nCar = 0;
             for (let k = 0; k < La; k++) {
                 const ak = dAt(aS, k), prod = ak * bi, tot = prod + carry, last = k === La - 1;
                 const st = L.steps.length;
                 const hl = [aId[k], bId[i], carryId];
-                let txt = `${bi} × ${ak} = ${prod}` + (carry ? `, plus la retenue ${R(carry)} : ${tot}` : '');
+                if (carry) strike(carryId, st);
+                let txt = `${bi} × ${ak} = ${prod}` + (carry ? `, plus la retenue ${R(carry)} (je la barre) : ${tot}` : '');
                 if (!last) {
                     const digit = tot % 10, nc = Math.floor(tot / 10);
                     partIds[j][i + k] = put(L, { r: row, c: col(i + k), ch: String(digit), k: 'd', ans: 1, expect: String(digit), step: st });
                     carryId = null;
-                    if (nc) { carryId = put(L, { r: row, c: sideCol(nCar++), ch: String(nc), k: 'car', cls: 'side', ans: 1, opt: 1, expect: String(nc), step: st }); cars.push(carryId); }
+                    if (nc) { carryId = put(L, { r: row, c: sideCol(nCar++), ch: String(nc), k: 'car', cls: 'side', ans: 1, opt: 1, expect: String(nc), step: st }); }
                     txt += nc ? `. J'écris <b>${digit}</b> et je retiens ${R(nc)} (je l'écris à droite de l'opération).` : `. J'écris <b>${digit}</b>.`;
                     carry = nc;
                 } else {
@@ -631,11 +631,9 @@
             const ppLen = String(a * bi).length;
             if (multi) blanks(L, row, col, i + ppLen, i + La, L.steps.length - 1);
             else blanks(L, row, col, i + ppLen, W - 1, L.steps.length - 1);
-            prevCar = cars;
         });
         if (multi) {
             const st = L.steps.length;
-            prevCar.forEach(id => { byId(L, id).off = st; byId(L, id).offType = 'fade'; });
             put(L, { r: rP[rP.length - 1], c: 0, ch: '+', k: 'sign', step: st });
             L.lines.push({ r: rP[rP.length - 1], c1: 0, c2: lastDigitCol, step: st });
             step(L, `J'ai tous les <b>produits partiels</b>. Maintenant, je les additionne, colonne par colonne.`);
@@ -651,19 +649,22 @@
                 const digit = sum % 10, nc = Math.floor(sum / 10);
                 const st2 = L.steps.length;
                 put(L, { r: rR, c: col(p), ch: String(digit), k: 'd', ans: 1, expect: String(digit), step: st2 });
+                if (carry) strike(carryId, st2);
                 let ncId = null;
                 if (nc) ncId = put(L, { r: rC2, c: col(p + 1), ch: String(nc), k: 'car', ans: 1, opt: 1, expect: String(nc), step: st2 });
                 let t = `Colonne ${ofPlace(p)} : `;
                 if (parts.length === 1) t += `il n'y a que ${parts[0]} : j'écris <b>${digit}</b>.`;
                 else t += `${parts.join(' + ')} = <b>${sum}</b>. ` + (nc ? `J'écris <b>${digit}</b> et je retiens ${R(nc)}.` : `J'écris <b>${digit}</b>.`);
+                if (carry) t += ` Je barre la retenue ${R(carry)} que je viens d'utiliser.`;
                 step(L, t, hl);
                 carry = nc; carryId = ncId;
             }
             let top = mx - 1;
             if (carry) {
                 const st3 = L.steps.length;
+                strike(carryId, st3);
                 put(L, { r: rR, c: col(mx), ch: String(carry), k: 'd', ans: 1, expect: String(carry), step: st3 });
-                step(L, `J'abaisse la dernière retenue ${R(carry)}.`, [carryId]);
+                step(L, `J'abaisse la dernière retenue ${R(carry)} et je la barre.`, [carryId]);
                 top = mx;
             }
             blanks(L, rR, col, top + 1, W - 1, L.steps.length - 1);
@@ -1114,6 +1115,12 @@
                 else h += `<div class="opp-line" style="grid-column:${ln.c1 + 1} / ${ln.c2 + 2};grid-row:${ln.r + 1 + off}"></div>`;
             });
             const Rn = o.R;
+            // Exercice de multiplication : une retenue écrite par l'élève est barrée
+            // dès qu'il a écrit un chiffre de l'étape qui l'utilise
+            const usedStep = {};
+            if (!anim && Rn && Rn.wret && L.op === 'mul') L.items.forEach(it => {
+                if (it.ans && !it.opt && it.expect !== '' && (Rn.ans[it.id] || '') !== '') usedStep[it.step] = 1;
+            });
             L.items.forEach(it => {
                 const pos = `grid-row:${it.r + 1 + off};grid-column:${it.c + 1}`;
                 if (anim) {
@@ -1151,6 +1158,7 @@
                 if (mk === 'ok' && v !== '') cls += ' ok';
                 if (mk === 'ko') cls += ' ko';
                 if (!editable) cls += ' lock';
+                if (it.k === 'car' && v !== '' && it.offType === 'strike' && usedStep[it.off]) cls += ' struck';
                 h += `<div class="${cls}"${act} style="${pos}">${esc(v)}</div>`;
             });
             return h + `</div>`;

@@ -240,6 +240,71 @@ if (!window._wfIsPhone) {
         @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
             .vs-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
+    
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="volcans-seismes"], .vs-container, .vs-container * { cursor: default !important; }
+        .vs-container .vs-header, .vs-container .vs-header * { cursor: grab !important; }
+        .vs-container .vs-header:active, .vs-container .vs-header:active * { cursor: grabbing !important; }
+        .vs-container button, .vs-container button *, .vs-container .vs-header button,
+        .vs-container .vs-header button *,
+        .vs-container input[type="range"] { cursor: pointer !important; }
+        .vs-container button:disabled, .vs-container button:disabled *,
+        .vs-container .vs-canvas { cursor: default !important; }
+        .vs-container input { cursor: text !important; }
+        .vs-container .vs-resize-handle { cursor: se-resize !important; }
+
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .vs-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .vs-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .vs-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .vs-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .vs-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .vs-help-popup { top: 56px; }
+        .vs-container.wf-fullboard .vs-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .vs-container.wf-fullboard .vs-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .vs-title { font-size: 17px; }
+        }
+        .vs-tabs { background: transparent; padding: 0; gap: 6px; border-radius: 0; margin-left: 6px; }
+        .vs-tab {
+            min-height: 0; border: 2px solid rgba(255,255,255,.25); background: transparent; color: #fff;
+            border-radius: 999px; padding: 5px 14px; font-size: 14px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif; box-shadow: none;
+        }
+        .vs-tab:hover { background: rgba(255,255,255,.1); }
+        .vs-tab.on { background: #FFC933; border-color: #FFC933; color: #2A1F4A; box-shadow: none; }
+        .vs-header { flex-wrap: nowrap; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .vs-header { margin: -10px -10px 0; padding: 8px 10px 7px; gap: 6px; }
+            .vs-container.wf-fullboard .vs-header {
+                margin-right: calc(-10px - env(safe-area-inset-right));
+                padding-right: calc(10px + env(safe-area-inset-right));
+            }
+            .vs-tab { padding: 3px 10px; font-size: 12px; }
+            .vs-help-popup { top: 50px; }
+        }
+        @media (max-width: 560px) {
+            .vs-tab { padding: 3px 8px; font-size: 11.5px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -496,6 +561,14 @@ function createVolcansSeismesWidget() {
     const wfBtnsDiv = header.querySelector('.wf-btns');
     wfBtnsDiv.insertBefore(helpBtn, wfBtnsDiv.firstChild);
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.vs-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     // Ligne 1 : lancer / recommencer / vitesse / options
     const row1 = document.createElement('div');
@@ -1405,6 +1478,44 @@ function createVolcansSeismesWidget() {
         window.addEventListener('pointerup', onEnd, true);
         window.addEventListener('pointercancel', onEnd, true);
     });
+    // Curseur du dessin : doigt au-dessus d'un élément touchable
+    let _cur = '';
+    function setCursor(c) { if (c !== _cur) { _cur = c; canvas.style.setProperty('cursor', c, 'important'); } }
+    function hoverCursor(e) {
+        if (drag) { return; }
+        const L = local(e), x = L.x, y = L.y;
+        if (labelHits.some(h => x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h)) { setCursor('pointer'); return; }
+        const nx = x / cssW, ny = y / cssH, m = Math.min(cssW, cssH);
+        let hit = -1;
+        const idx = id => (mode === 'volcan' ? VS_V_PARTS : VS_S_PARTS).findIndex(p => p.id === id);
+        if (mode === 'volcan') {
+            const [cx, cy, rx, ry] = VS_CHAMBER;
+            const r = riseEnd(), expl = vType === 'explosif';
+            const nearPath = pts => distToPolyPx(x, y, pts) < Math.max(14, m * 0.03);
+            if (Math.pow((nx - cx) / rx, 2) + Math.pow((ny - cy) / ry, 2) <= 1.3) hit = idx('chambre');
+            else if (Math.abs(nx - 0.5) < 0.03 && ny > VS_CRATER_Y + 0.03 && ny < VS_CHIM_BOT) hit = idx('cheminee');
+            else if (Math.hypot(x - X(0.5), y - Y(0.245)) < m * 0.07) hit = idx('cratere');
+            else if (!expl && vT !== null && vT >= r && (nearPath(VS_LAVA_L) || nearPath(VS_LAVA_R))) hit = idx('coulee');
+            else if (expl && vT !== null && vT >= r + 2.5 && nearPath(VS_NUEE)) hit = idx('nuee');
+            else if (expl && landed.some(([bx, by]) => Math.hypot(x - X(bx), y - Y(by)) < Math.max(14, m * 0.025))) hit = idx('bombes');
+            else if (expl && vT !== null && vT >= r && ny < VS_CRATER_Y - 0.02 && Math.abs(nx - 0.55) < 0.25) hit = idx('panache');
+            else if (nx > VS_CONE_L && nx < VS_CONE_R && ny >= _vsConeY(nx) && ny <= VS_SURF_V) hit = idx('cone');
+        } else {
+            const S = SS_SURF, slip = slipNow();
+            const F = [X(SS_FOYER[0]), Y(SS_FOYER[1])];
+            const b = sismoBox;
+            if (b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) hit = idx('sismographe');
+            else if (Math.hypot(x - X(SS_STATION), y - Y(surfAt(SS_STATION, slip)) + m * 0.04) < m * 0.06) hit = idx('sismographe');
+            else if (Math.hypot(x - F[0], y - F[1]) < Math.max(18, m * 0.05)) hit = idx('foyer');
+            else if (Math.abs(nx - SS_FOYER[0]) < 0.04 && Math.abs(ny - S) < 0.05) hit = idx('epicentre');
+            else if (distToPolyPx(x, y, [[_ssFaultX(1.06), 1.06], SS_F1]) < Math.max(14, m * 0.025)) hit = idx('faille');
+            else if (ny > S + 0.03 && qT !== null && qT >= SS_RUPT && !qDone()) hit = idx('ondes');
+        }
+        setCursor(hit >= 0 ? 'pointer' : 'default');
+    }
+    canvas.addEventListener('pointermove', hoverCursor);
+    canvas.addEventListener('pointerup', hoverCursor);
+    canvas.addEventListener('pointerleave', () => { if (!drag) setCursor('default'); });
     canvas.addEventListener('pointermove', e => {
         if (!drag || drag.id !== e.pointerId) return;
         if (e.pointerType === 'mouse' && e.buttons === 0) { onEnd(e); return; }

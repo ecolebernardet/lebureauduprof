@@ -793,6 +793,9 @@
 .elc-container .elc-tool, .elc-container .elc-tool *,
 .elc-container .elc-t-switch .elc-lever, .elc-container .elc-t-switch .elc-lever * { cursor: pointer; }
 .elc-container .elc-btn[disabled], .elc-container .elc-opt[disabled] { cursor: default; }
+/* L'intérieur des boutons (icônes, textes) garde aussi le doigt */
+.elc-container .elc-tab *, .elc-container .elc-btn *, .elc-container .elc-opt:not([disabled]) *, .elc-container button * { cursor: pointer; }
+.elc-container .elc-btn[disabled] *, .elc-container .elc-opt[disabled] *, .elc-container button:disabled * { cursor: default; }
 .elc-container .elc-headrow, .elc-container .elc-headrow .elc-titles, .elc-container .elc-headrow .elc-titles *,
 .elc-container .elc-headrow .elc-logo, .elc-container .elc-headrow .elc-logo *,
 .elc-container .elc-pal, .elc-container .elc-pal *,
@@ -806,6 +809,20 @@
 .elc-container.elc-fullboard .elc-headrow .wf-btn, .widget[data-anchored="true"] .elc-container .elc-headrow .wf-btn { cursor: pointer; }
 .elc-container.elc-grabbing, .elc-container.elc-grabbing * { cursor: grabbing !important; }
 body.elc-grabbing, body.elc-grabbing * { cursor: grabbing !important; }
+
+/* ── Barre du haut : même style que les tables de multiplication ── */
+.elc-head { background: #2A1F4A; border-bottom: none; padding-bottom: .55em; }
+.elc-headrow { padding: .6em .9em .45em; gap: .6em; }
+.elc-t1 { font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F; letter-spacing: .3px; }
+.elc-t2 { font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,.65); opacity: 1; }
+.elc-tabs { gap: 6px; padding: 0 .9em; }
+.elc-tab { border: 2px solid rgba(255,255,255,.25); border-radius: 999px; padding: 5px 14px; font-size: 14px; font-weight: 900; color: #fff; }
+.elc-tab:hover { background: rgba(255,255,255,.1); color: #fff; }
+.elc-tab.on { background: #FFC933; border-color: #FFC933; color: #2A1F4A; }
+@media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+    .elc-t1 { font-size: 17px; }
+    .elc-tab { padding: 3px 10px; font-size: 12px; }
+}
 `;
         var st = document.createElement('style');
         st.id = 'elc-style';

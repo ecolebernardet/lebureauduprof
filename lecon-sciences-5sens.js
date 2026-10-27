@@ -250,6 +250,71 @@ if (!window._wfIsPhone) {
         @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
             .c5s-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
+    
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="cinq-sens"], .c5s-container, .c5s-container * { cursor: default !important; }
+        .c5s-container .c5s-header, .c5s-container .c5s-header * { cursor: grab !important; }
+        .c5s-container .c5s-header:active, .c5s-container .c5s-header:active * { cursor: grabbing !important; }
+        .c5s-container button, .c5s-container button *, .c5s-container .c5s-header button,
+        .c5s-container .c5s-header button *,
+        .c5s-container input[type="range"] { cursor: pointer !important; }
+        .c5s-container button:disabled, .c5s-container button:disabled *,
+        .c5s-container .c5s-canvas { cursor: default !important; }
+        .c5s-container input { cursor: text !important; }
+        .c5s-container .c5s-resize-handle { cursor: se-resize !important; }
+
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .c5s-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .c5s-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .c5s-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .c5s-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .c5s-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .c5s-help-popup { top: 56px; }
+        .c5s-container.wf-fullboard .c5s-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .c5s-container.wf-fullboard .c5s-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .c5s-title { font-size: 17px; }
+        }
+        .c5s-tabs { background: transparent; padding: 0; gap: 6px; border-radius: 0; margin-left: 6px; }
+        .c5s-tab {
+            min-height: 0; border: 2px solid rgba(255,255,255,.25); background: transparent; color: #fff;
+            border-radius: 999px; padding: 5px 14px; font-size: 14px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif; box-shadow: none;
+        }
+        .c5s-tab:hover { background: rgba(255,255,255,.1); }
+        .c5s-tab.on { background: #FFC933; border-color: #FFC933; color: #2A1F4A; box-shadow: none; }
+        .c5s-header { flex-wrap: nowrap; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .c5s-header { margin: -10px -10px 0; padding: 8px 10px 7px; gap: 6px; }
+            .c5s-container.wf-fullboard .c5s-header {
+                margin-right: calc(-10px - env(safe-area-inset-right));
+                padding-right: calc(10px + env(safe-area-inset-right));
+            }
+            .c5s-tab { padding: 3px 10px; font-size: 12px; }
+            .c5s-help-popup { top: 50px; }
+        }
+        @media (max-width: 560px) {
+            .c5s-tab { padding: 3px 8px; font-size: 11.5px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -585,6 +650,14 @@ function createCinqSensWidget() {
     const wfBtnsDiv = header.querySelector('.wf-btns');
     wfBtnsDiv.insertBefore(helpBtn, wfBtnsDiv.firstChild);
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.c5s-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     // Ligne 1 : lecture, visite, navigation, étiquettes
     const row1 = document.createElement('div');
@@ -1502,6 +1575,18 @@ function createCinqSensWidget() {
         window.addEventListener('pointerup', onEnd, true);
         window.addEventListener('pointercancel', onEnd, true);
     });
+    // Curseur du dessin : doigt au-dessus d'un élément touchable
+    let _cur = '';
+    function setCursor(c) { if (c !== _cur) { _cur = c; canvas.style.setProperty('cursor', c, 'important'); } }
+    function hoverCursor(e) {
+        if (drag) { return; }
+        const L = local(e), x = L.x, y = L.y;
+        const near = anchorHits.some(a => Math.hypot(x - a.x, y - a.y) < Math.max(20, m * 0.06));
+        setCursor(labelHits.some(h => x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h) || near ? 'pointer' : 'default');
+    }
+    canvas.addEventListener('pointermove', hoverCursor);
+    canvas.addEventListener('pointerup', hoverCursor);
+    canvas.addEventListener('pointerleave', () => { if (!drag) setCursor('default'); });
     canvas.addEventListener('pointermove', e => {
         if (!drag || drag.id !== e.pointerId) return;
         if (e.pointerType === 'mouse' && e.buttons === 0) { onEnd(e); return; }

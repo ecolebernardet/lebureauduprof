@@ -241,6 +241,71 @@ if (!window._wfIsPhone) {
         @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
             .ce-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
+    
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="cycle-eau"], .ce-container, .ce-container * { cursor: default !important; }
+        .ce-container .ce-header, .ce-container .ce-header * { cursor: grab !important; }
+        .ce-container .ce-header:active, .ce-container .ce-header:active * { cursor: grabbing !important; }
+        .ce-container button, .ce-container button *, .ce-container .ce-header button,
+        .ce-container .ce-header button *,
+        .ce-container input[type="range"] { cursor: pointer !important; }
+        .ce-container button:disabled, .ce-container button:disabled *,
+        .ce-container .ce-canvas { cursor: default !important; }
+        .ce-container input { cursor: text !important; }
+        .ce-container .ce-resize-handle { cursor: se-resize !important; }
+
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .ce-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .ce-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .ce-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .ce-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .ce-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .ce-help-popup { top: 56px; }
+        .ce-container.wf-fullboard .ce-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .ce-container.wf-fullboard .ce-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .ce-title { font-size: 17px; }
+        }
+        .ce-tabs { background: transparent; padding: 0; gap: 6px; border-radius: 0; margin-left: 6px; }
+        .ce-tab {
+            min-height: 0; border: 2px solid rgba(255,255,255,.25); background: transparent; color: #fff;
+            border-radius: 999px; padding: 5px 14px; font-size: 14px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif; box-shadow: none;
+        }
+        .ce-tab:hover { background: rgba(255,255,255,.1); }
+        .ce-tab.on { background: #FFC933; border-color: #FFC933; color: #2A1F4A; box-shadow: none; }
+        .ce-header { flex-wrap: nowrap; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .ce-header { margin: -10px -10px 0; padding: 8px 10px 7px; gap: 6px; }
+            .ce-container.wf-fullboard .ce-header {
+                margin-right: calc(-10px - env(safe-area-inset-right));
+                padding-right: calc(10px + env(safe-area-inset-right));
+            }
+            .ce-tab { padding: 3px 10px; font-size: 12px; }
+            .ce-help-popup { top: 50px; }
+        }
+        @media (max-width: 560px) {
+            .ce-tab { padding: 3px 8px; font-size: 11.5px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -436,6 +501,14 @@ function createCycleEauWidget() {
     const wfBtnsDiv = header.querySelector('.wf-btns');
     wfBtnsDiv.insertBefore(helpBtn, wfBtnsDiv.firstChild);
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.ce-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     // Ligne 1 : lecture, options
     const row1 = document.createElement('div');
@@ -1287,6 +1360,41 @@ function createCycleEauWidget() {
         window.addEventListener('pointerup', onEnd, true);
         window.addEventListener('pointercancel', onEnd, true);
     });
+    // Curseur du dessin : doigt au-dessus d'un élément touchable
+    let _cur = '';
+    function setCursor(c) { if (c !== _cur) { _cur = c; canvas.style.setProperty('cursor', c, 'important'); } }
+    function hoverCursor(e) {
+        if (drag) { return; }
+        const L = local(e), x = L.x, y = L.y;
+        if (mode === 'etats') {
+            const onBox = stGeo && stGeo.boxes.some(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+            setCursor(stGeo && (onBox || onThermo(L)) ? 'pointer' : 'default');
+            return;
+        }
+        if (labelHits.some(h => x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h)) { setCursor('pointer'); return; }
+        // Parties du paysage
+        const nx = x / cssW, ny = y / cssH, m = Math.min(cssW, cssH);
+        let hit = -1;
+        let dRiver = Infinity;
+        for (let i = 1; i < CE_RIVER.length; i++) {
+            const a = CE_RIVER[i - 1], b = CE_RIVER[i];
+            const ax = X(a[0]), ay = Y(a[1]), bx = X(b[0]), by = Y(b[1]);
+            const vx = bx - ax, vy = by - ay, l2 = vx * vx + vy * vy || 1;
+            const u = Math.max(0, Math.min(1, ((x - ax) * vx + (y - ay) * vy) / l2));
+            dRiver = Math.min(dRiver, Math.hypot(x - ax - u * vx, y - ay - u * vy));
+        }
+        const inCloud = (c, s) => Math.hypot((x - X(c[0])) / 1.8, y - Y(c[1])) < s;
+        if (dRiver < Math.max(14, m * 0.03)) hit = 3;
+        else if (inCloud(CE_CLOUD_A, m * 0.09)) hit = 1;
+        else if (inCloud(CE_CLOUD_B, m * 0.11) || (nx > 0.6 && nx < 0.87 && ny > 0.12 && ny < _ceGroundY(nx) && ny < 0.45)) hit = 2;
+        else if (nx > 0.40 && nx < 0.56 && ny > 0.52 && ny < _ceGroundY(nx) + 0.02) hit = 5;
+        else if (nx > 0.30 && ny > CE_SOIL_Y && ny > _ceGroundY(Math.max(0.37, nx))) hit = 4;
+        else if (nx < 0.36 && ny > 0.3) hit = 0;
+        setCursor(hit >= 0 ? 'pointer' : 'default');
+    }
+    canvas.addEventListener('pointermove', hoverCursor);
+    canvas.addEventListener('pointerup', hoverCursor);
+    canvas.addEventListener('pointerleave', () => { if (!drag) setCursor('default'); });
     canvas.addEventListener('pointermove', e => {
         if (!drag || drag.id !== e.pointerId) return;
         if (e.pointerType === 'mouse' && e.buttons === 0) { onEnd(e); return; }

@@ -404,6 +404,50 @@ if (!window._wfPhoneAutoMax) {
         }
         .sm-container:hover .sm-resize-handle { opacity: 1; }
         .sm-container.wf-fullboard .sm-resize-handle { display: none; }
+    
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="histoire-societe-moyen-age"], .sm-container, .sm-container * { cursor: default !important; }
+        .sm-container .sm-header, .sm-container .sm-header * { cursor: grab !important; }
+        .sm-container .sm-header:active, .sm-container .sm-header:active * { cursor: grabbing !important; }
+        .sm-container button, .sm-container button *, .sm-container .sm-header button,
+        .sm-container .sm-header button *,
+        .sm-container .sm-svg .sm-part, .sm-container .sm-svg .sm-part *,
+        .sm-container .sm-svg .sm-lbl, .sm-container .sm-svg .sm-lbl * { cursor: pointer !important; }
+        .sm-container button:disabled, .sm-container button:disabled * { cursor: default !important; }
+        .sm-container input { cursor: text !important; }
+        .sm-container .sm-resize-handle { cursor: se-resize !important; }
+
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .sm-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .sm-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .sm-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .sm-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .sm-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .sm-help-popup { top: 56px; }
+        .sm-container.wf-fullboard .sm-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .sm-container.wf-fullboard .sm-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .sm-title { font-size: 17px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -1130,6 +1174,14 @@ function createHistoireSocieteMoyenAgeWidget() {
     container.appendChild(resizeHandle);
 
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.sm-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     // ── État interne ──────────────────────────────────────────────────────
     const uid = 'sm' + Math.random().toString(36).slice(2, 9);

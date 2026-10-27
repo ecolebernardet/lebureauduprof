@@ -271,6 +271,74 @@ if (!window._wfIsPhone) {
         @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
             .rvf-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
+    
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="histoire-revolution"], .rvf-container, .rvf-container * { cursor: default !important; }
+        .rvf-container .rvf-header, .rvf-container .rvf-header * { cursor: grab !important; }
+        .rvf-container .rvf-header:active, .rvf-container .rvf-header:active * { cursor: grabbing !important; }
+        .rvf-container button, .rvf-container button *, .rvf-container .rvf-header button,
+        .rvf-container .rvf-header button *,
+        .rvf-container input[type="range"] { cursor: pointer !important; }
+        .rvf-container button:disabled, .rvf-container button:disabled *,
+        .rvf-container .rvf-canvas { cursor: default !important; }
+        .rvf-container input { cursor: text !important; }
+        .rvf-container .rvf-resize-handle { cursor: se-resize !important; }
+
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .rvf-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .rvf-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .rvf-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .rvf-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .rvf-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .rvf-help-popup { top: 56px; }
+        .rvf-container.wf-fullboard .rvf-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .rvf-container.wf-fullboard .rvf-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .rvf-title { font-size: 17px; }
+        }
+        .rvf-tabs { background: transparent; padding: 0; gap: 6px; border-radius: 0; margin-left: 6px; }
+        .rvf-tab {
+            min-height: 0; border: 2px solid rgba(255,255,255,.25); background: transparent; color: #fff;
+            border-radius: 999px; padding: 5px 14px; font-size: 14px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif; box-shadow: none;
+        }
+        .rvf-tab:hover { background: rgba(255,255,255,.1); }
+        .rvf-tab.on { background: #FFC933; border-color: #FFC933; color: #2A1F4A; box-shadow: none; }
+        /* Trois onglets longs : ils passent sur une 2e ligne de la barre au lieu d'être coupés */
+        .rvf-header { flex-wrap: wrap; row-gap: 8px; }
+        .rvf-tabs { order: 3; flex: 1 1 100%; margin-left: 0; overflow-x: auto; scrollbar-width: none; }
+        .rvf-tab { flex: 0 0 auto; overflow: visible; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .rvf-header { margin: -10px -10px 0; padding: 8px 10px 7px; gap: 6px; }
+            .rvf-container.wf-fullboard .rvf-header {
+                margin-right: calc(-10px - env(safe-area-inset-right));
+                padding-right: calc(10px + env(safe-area-inset-right));
+            }
+            .rvf-tab { padding: 3px 10px; font-size: 12px; }
+            .rvf-help-popup { top: 50px; }
+        }
+        @media (max-width: 620px) {
+            .rvf-tab { padding: 3px 8px; font-size: 11.5px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -605,6 +673,14 @@ function createRevolutionFrancaiseWidget() {
     const wfBtnsDiv = header.querySelector('.wf-btns');
     wfBtnsDiv.insertBefore(helpBtn, wfBtnsDiv.firstChild);
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.rvf-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     const row1 = document.createElement('div');
     row1.className = 'rvf-row';
@@ -1285,6 +1361,28 @@ function createRevolutionFrancaiseWidget() {
         window.addEventListener('pointerup', onEnd, true);
         window.addEventListener('pointercancel', onEnd, true);
     });
+    // Curseur du dessin : doigt au-dessus d'un élément touchable, main pour faire défiler
+    let _cur = '';
+    function setCursor(c) { if (c !== _cur) { _cur = c; canvas.style.setProperty('cursor', c, 'important'); } }
+    function hoverCursor(e) {
+        if (drag) { setCursor(drag.moved && mode === 'dates' ? 'grabbing' : _cur || 'default'); return; }
+        const L = local(e), x = L.x, y = L.y;
+        let hit = false;
+        if (mode === 'ordres') {
+            const dx = (x - OX) / S, dy = (y - OY) / S;
+            if (stage === 'ordres') hit = hits.some(h => h.poly && inPoly(dx, dy, h.poly));
+            else if (stage === 'etats') hit = hits.some(h => h.rect && dx >= h.rect[0] && dx <= h.rect[0] + h.rect[2] && dy >= h.rect[1] && dy <= h.rect[1] + h.rect[3]);
+            else hit = collapseT >= 1;
+            setCursor(hit ? 'pointer' : 'default');
+        } else if (mode === 'dates') {
+            hit = cards.some(c => x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h)
+               || (zoom === 'all' && bandHits.some(h => x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h));
+            setCursor(hit ? 'pointer' : 'grab');
+        } else setCursor('default');
+    }
+    canvas.addEventListener('pointermove', hoverCursor);
+    canvas.addEventListener('pointerup', hoverCursor);
+    canvas.addEventListener('pointerleave', () => { if (!drag) setCursor('default'); });
     canvas.addEventListener('pointermove', e => {
         if (!drag || drag.id !== e.pointerId) return;
         if (e.pointerType === 'mouse' && e.buttons === 0) { onEnd(e); return; }

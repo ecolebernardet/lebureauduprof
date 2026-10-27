@@ -229,6 +229,71 @@ if (!window._wfIsPhone) {
         @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
             .ind-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
+    
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="histoire-industriel"], .ind-container, .ind-container * { cursor: default !important; }
+        .ind-container .ind-header, .ind-container .ind-header * { cursor: grab !important; }
+        .ind-container .ind-header:active, .ind-container .ind-header:active * { cursor: grabbing !important; }
+        .ind-container button, .ind-container button *, .ind-container .ind-header button,
+        .ind-container .ind-header button *,
+        .ind-container input[type="range"] { cursor: pointer !important; }
+        .ind-container button:disabled, .ind-container button:disabled *,
+        .ind-container .ind-canvas { cursor: default !important; }
+        .ind-container input { cursor: text !important; }
+        .ind-container .ind-resize-handle { cursor: se-resize !important; }
+
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .ind-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .ind-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .ind-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .ind-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .ind-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .ind-help-popup { top: 56px; }
+        .ind-container.wf-fullboard .ind-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .ind-container.wf-fullboard .ind-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .ind-title { font-size: 17px; }
+        }
+        .ind-tabs { background: transparent; padding: 0; gap: 6px; border-radius: 0; margin-left: 6px; }
+        .ind-tab {
+            min-height: 0; border: 2px solid rgba(255,255,255,.25); background: transparent; color: #fff;
+            border-radius: 999px; padding: 5px 14px; font-size: 14px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif; box-shadow: none;
+        }
+        .ind-tab:hover { background: rgba(255,255,255,.1); }
+        .ind-tab.on { background: #FFC933; border-color: #FFC933; color: #2A1F4A; box-shadow: none; }
+        .ind-header { flex-wrap: nowrap; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .ind-header { margin: -10px -10px 0; padding: 8px 10px 7px; gap: 6px; }
+            .ind-container.wf-fullboard .ind-header {
+                margin-right: calc(-10px - env(safe-area-inset-right));
+                padding-right: calc(10px + env(safe-area-inset-right));
+            }
+            .ind-tab { padding: 3px 10px; font-size: 12px; }
+            .ind-help-popup { top: 50px; }
+        }
+        @media (max-width: 620px) {
+            .ind-tab { padding: 3px 8px; font-size: 11.5px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -445,6 +510,14 @@ function createAgeIndustrielWidget() {
     const wfBtnsDiv = header.querySelector('.wf-btns');
     wfBtnsDiv.insertBefore(helpBtn, wfBtnsDiv.firstChild);
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.ind-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     const row1 = document.createElement('div');
     row1.className = 'ind-row';
@@ -1033,6 +1106,24 @@ function createAgeIndustrielWidget() {
         window.addEventListener('pointerup', onEnd, true);
         window.addEventListener('pointercancel', onEnd, true);
     });
+    // Curseur du dessin : doigt au-dessus d'un élément touchable
+    let _cur = '';
+    function setCursor(c) { if (c !== _cur) { _cur = c; canvas.style.setProperty('cursor', c, 'important'); } }
+    function hoverCursor(e) {
+        if (drag) { return; }
+        const L = local(e), x = L.x, y = L.y;
+        const dx = (x - OX) / S, dy = (y - OY) / S;
+        const inZone = z => z && dx >= z[0] && dx <= z[2] && dy >= z[1] && dy <= z[3];
+        let hit = false;
+        if (mode !== 'ville' && labelHits.some(h => dx >= h.x && dx <= h.x + h.w && dy >= h.y && dy <= h.y + h.h)) hit = true;
+        else if (mode === 'vapeur') hit = IND_V_PARTS.some(p => inZone(p.zone));
+        else if (mode === 'usine') hit = IND_U_PARTS.some(p => inZone(p.zone));
+        else hit = Object.keys(cRegions).some(k => inZone(cRegions[k]));
+        setCursor(hit ? 'pointer' : 'default');
+    }
+    canvas.addEventListener('pointermove', hoverCursor);
+    canvas.addEventListener('pointerup', hoverCursor);
+    canvas.addEventListener('pointerleave', () => { if (!drag) setCursor('default'); });
     canvas.addEventListener('pointermove', e => {
         if (!drag || drag.id !== e.pointerId) return;
         if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > TAP_TOL) drag.moved = true;

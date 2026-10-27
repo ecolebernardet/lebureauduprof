@@ -5296,7 +5296,7 @@ body.menu-light .side-tab-sub { color: color-mix(in srgb, var(--tab-c) 70%, #000
    Pour revenir en arrière : supprimer ce bloc.
 ══════════════════════════════════════════════════════════════════ */
 html body #lessons-panel .act-card-ico {
-    border: 3px solid #000;
+    border: 0px solid #000;
     box-sizing: border-box;
 }
 

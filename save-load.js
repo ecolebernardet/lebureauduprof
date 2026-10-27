@@ -189,6 +189,11 @@ function buildBoardState() {
         if (w.dataset.type === 'conjugaison-flash' && typeof w._cjfGetData === 'function') {
             cjfData = w._cjfGetData();
         }
+        // Données propres au widget « Dictée flash » (liste, réglages, mot en cours, taille, plein écran)
+        let dcfData = null;
+        if (w.dataset.type === 'dictee-flash' && typeof w._dcfGetData === 'function') {
+            dcfData = w._dcfGetData();
+        }
         // Données propres au widget frise historique
         let friseHistData = null;
         if (w.dataset.type === 'frise-historique' && typeof w._fhGetData === 'function') {
@@ -693,6 +698,7 @@ function buildBoardState() {
 			pdjData,
 			zdData,
 			cjfData,
+			dcfData,
 			friseHistData,
 			chateauFortData,
 			societeMAData,
@@ -1004,6 +1010,15 @@ function restoreBoardFromJSON(json) {
             widget = createMotLePlusLongWidget();
             if (w.motLongData && typeof widget._mlSetData === 'function') {
                 widget._mlSetData(w.motLongData);
+            }
+        } else if (w.type === 'dictee-flash') {
+            if (typeof createDicteeFlashWidget === 'function') {
+                widget = createDicteeFlashWidget();
+                if (typeof widget._dcfSetData === 'function') {
+                    widget._dcfSetData(w.dcfData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
             }
         } else if (w.type === 'conjugaison-flash') {
             if (typeof createConjugaisonFlashWidget === 'function') {

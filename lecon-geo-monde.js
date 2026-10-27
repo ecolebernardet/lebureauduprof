@@ -487,6 +487,52 @@ if (!window._wfIsPhone) {
         @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
             .gw-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
+    
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="geo-monde"], .gw-container, .gw-container * { cursor: default !important; }
+        .gw-container .gw-header, .gw-container .gw-header * { cursor: grab !important; }
+        .gw-container .gw-header:active, .gw-container .gw-header:active * { cursor: grabbing !important; }
+        .gw-container button, .gw-container button *, .gw-container .gw-header button,
+        .gw-container .gw-header button *,
+        .gw-container .gw-item, .gw-container .gw-item * { cursor: pointer !important; }
+        .gw-container button:disabled, .gw-container button:disabled * { cursor: default !important; }
+        .gw-container input { cursor: text !important; }
+        .gw-container .gw-resize-handle { cursor: se-resize !important; }
+
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .gw-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .gw-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .gw-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .gw-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .gw-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .gw-help-popup { top: 56px; }
+        .gw-container.wf-fullboard .gw-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .gw-container.wf-fullboard .gw-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .gw-title { font-size: 17px; }
+        }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .gw-header { margin: -10px -10px 0; padding: 8px 10px 7px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -1004,6 +1050,14 @@ function createGeoMondeWidget() {
     container.appendChild(resizeHandle);
 
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.gw-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     // ── État interne ──────────────────────────────────────────────────────
     const layers = { continents: true, oceans: true, fleuves: true, montagnes: true, deserts: true, villes: true, reperes: false };

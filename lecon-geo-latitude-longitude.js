@@ -262,6 +262,70 @@ if (!window._wfIsPhone) {
         @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
             .gll-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
+    
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="geo-latlong"], .gll-container, .gll-container * { cursor: default !important; }
+        .gll-container .gll-header, .gll-container .gll-header * { cursor: grab !important; }
+        .gll-container .gll-header:active, .gll-container .gll-header:active * { cursor: grabbing !important; }
+        .gll-container button, .gll-container button *, .gll-container .gll-header button,
+        .gll-container .gll-header button * { cursor: pointer !important; }
+        .gll-container button:disabled, .gll-container button:disabled *,
+        .gll-container .gll-canvas { cursor: default !important; }
+        .gll-container input { cursor: text !important; }
+        .gll-container .gll-resize-handle { cursor: se-resize !important; }
+
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .gll-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .gll-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .gll-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .gll-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .gll-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .gll-help-popup { top: 56px; }
+        .gll-container.wf-fullboard .gll-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .gll-container.wf-fullboard .gll-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .gll-title { font-size: 17px; }
+        }
+        .gll-tabs { background: transparent; padding: 0; gap: 6px; border-radius: 0; margin-left: 6px; }
+        .gll-tab {
+            min-height: 0; border: 2px solid rgba(255,255,255,.25); background: transparent; color: #fff;
+            border-radius: 999px; padding: 5px 14px; font-size: 14px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif; box-shadow: none;
+        }
+        .gll-tab:hover { background: rgba(255,255,255,.1); }
+        .gll-tab.on { background: #FFC933; border-color: #FFC933; color: #2A1F4A; box-shadow: none; }
+        .gll-header { flex-wrap: nowrap; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .gll-header { margin: -10px -10px 0; padding: 8px 10px 7px; gap: 6px; }
+            .gll-container.wf-fullboard .gll-header {
+                margin-right: calc(-10px - env(safe-area-inset-right));
+                padding-right: calc(10px + env(safe-area-inset-right));
+            }
+            .gll-tab { padding: 3px 10px; font-size: 12px; }
+            .gll-help-popup { top: 50px; }
+        }
+        @media (max-width: 620px) {
+            .gll-tab { padding: 3px 8px; font-size: 11.5px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -444,6 +508,14 @@ function createGeoLatLongWidget() {
     const wfBtnsDiv = header.querySelector('.wf-btns');
     wfBtnsDiv.insertBefore(helpBtn, wfBtnsDiv.firstChild);
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.gll-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     const row1 = document.createElement('div');
     row1.className = 'gll-row';
@@ -1370,6 +1442,21 @@ function createGeoLatLongWidget() {
         window.addEventListener('pointerup', onEnd, true);
         window.addEventListener('pointercancel', onEnd, true);
     });
+    // Curseur du dessin : doigt au-dessus d'un élément touchable, main pour faire défiler
+    let _cur = '';
+    function setCursor(c) { if (c !== _cur) { _cur = c; canvas.style.setProperty('cursor', c, 'important'); } }
+    function hoverCursor(e) {
+        if (drag) { setCursor(drag.moved && mode === 'comprendre' && view === 'globe' ? 'grabbing' : _cur || 'default'); return; }
+        const L = local(e), x = L.x, y = L.y;
+        let hit = false;
+        if (mode === 'comprendre') hit = view === 'globe' ? !!gInv(x, y) : inMap(x, y);
+        else if (mode === 'bataille') hit = !!(bat && !bat.over && inMap(x, y));
+        else hit = !!(quiz && !quiz.done && !quiz.answered && quiz.q.type === 'place' && inMap(x, y));
+        setCursor(hit ? 'pointer' : 'default');
+    }
+    canvas.addEventListener('pointermove', hoverCursor);
+    canvas.addEventListener('pointerup', hoverCursor);
+    canvas.addEventListener('pointerleave', () => { if (!drag) setCursor('default'); });
     canvas.addEventListener('pointermove', e => {
         if (!drag || drag.id !== e.pointerId) return;
         if (e.pointerType === 'mouse' && e.buttons === 0) { onEnd(e); return; }

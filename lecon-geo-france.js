@@ -548,6 +548,52 @@ if (!window._wfIsPhone) {
         @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
             .gf-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
+    
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="geo-france"], .gf-container, .gf-container * { cursor: default !important; }
+        .gf-container .gf-header, .gf-container .gf-header * { cursor: grab !important; }
+        .gf-container .gf-header:active, .gf-container .gf-header:active * { cursor: grabbing !important; }
+        .gf-container button, .gf-container button *, .gf-container .gf-header button,
+        .gf-container .gf-header button *,
+        .gf-container .gf-item, .gf-container .gf-item * { cursor: pointer !important; }
+        .gf-container button:disabled, .gf-container button:disabled * { cursor: default !important; }
+        .gf-container input { cursor: text !important; }
+        .gf-container .gf-resize-handle { cursor: se-resize !important; }
+
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .gf-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .gf-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .gf-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .gf-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .gf-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .gf-help-popup { top: 56px; }
+        .gf-container.wf-fullboard .gf-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .gf-container.wf-fullboard .gf-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .gf-title { font-size: 17px; }
+        }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .gf-header { margin: -10px -10px 0; padding: 8px 10px 7px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -1315,6 +1361,14 @@ function createGeoFranceWidget() {
     container.appendChild(resizeHandle);
 
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.gf-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     // ── État interne ──────────────────────────────────────────────────────
     const layers = { villes: true, fleuves: true, massifs: true, pays: true, mers: true,

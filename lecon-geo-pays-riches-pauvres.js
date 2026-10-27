@@ -249,6 +249,73 @@ if (!window._wfIsPhone) {
         @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
             .prp-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
+    
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="pays-riches-pauvres"], .prp-container, .prp-container * { cursor: default !important; }
+        .prp-container .prp-header, .prp-container .prp-header * { cursor: grab !important; }
+        .prp-container .prp-header:active, .prp-container .prp-header:active * { cursor: grabbing !important; }
+        .prp-container button, .prp-container button *, .prp-container .prp-header button,
+        .prp-container .prp-header button * { cursor: pointer !important; }
+        .prp-container button:disabled, .prp-container button:disabled *,
+        .prp-container .prp-canvas { cursor: default !important; }
+        .prp-container input { cursor: text !important; }
+        .prp-container .prp-resize-handle { cursor: se-resize !important; }
+
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .prp-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .prp-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .prp-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .prp-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .prp-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .prp-help-popup { top: 56px; }
+        .prp-container.wf-fullboard .prp-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .prp-container.wf-fullboard .prp-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .prp-title { font-size: 17px; }
+        }
+        .prp-tabs { background: transparent; padding: 0; gap: 6px; border-radius: 0; margin-left: 6px; }
+        .prp-tab {
+            min-height: 0; border: 2px solid rgba(255,255,255,.25); background: transparent; color: #fff;
+            border-radius: 999px; padding: 5px 14px; font-size: 14px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif; box-shadow: none;
+        }
+        .prp-tab:hover { background: rgba(255,255,255,.1); }
+        .prp-tab.on { background: #FFC933; border-color: #FFC933; color: #2A1F4A; box-shadow: none; }
+        /* Onglets longs : ils passent sur une 2e ligne de la barre au lieu d'être coupés */
+        .prp-header { flex-wrap: wrap; row-gap: 8px; }
+        .prp-tabs { order: 3; flex: 1 1 100%; margin-left: 0; overflow-x: auto; scrollbar-width: none; }
+        .prp-tab { flex: 0 0 auto; overflow: visible; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .prp-header { margin: -10px -10px 0; padding: 8px 10px 7px; gap: 6px; }
+            .prp-container.wf-fullboard .prp-header {
+                margin-right: calc(-10px - env(safe-area-inset-right));
+                padding-right: calc(10px + env(safe-area-inset-right));
+            }
+            .prp-tab { padding: 3px 10px; font-size: 12px; }
+            .prp-help-popup { top: 50px; }
+        }
+        @media (max-width: 560px) {
+            .prp-tab { padding: 3px 8px; font-size: 11.5px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -647,6 +714,14 @@ function createPaysRichesPauvresWidget() {
     const wfBtnsDiv = header.querySelector('.wf-btns');
     wfBtnsDiv.insertBefore(helpBtn, wfBtnsDiv.firstChild);
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.prp-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     const cOpts = PRP_C_ORDER.map(k => `<option value="${k}">${PRP_COUNTRIES[k].name}</option>`).join('');
 
@@ -1283,6 +1358,27 @@ function createPaysRichesPauvresWidget() {
         window.addEventListener('pointerup', onEnd, true);
         window.addEventListener('pointercancel', onEnd, true);
     });
+    // Curseur du dessin : doigt au-dessus d'un élément touchable
+    let _cur = '';
+    function setCursor(c) { if (c !== _cur) { _cur = c; canvas.style.setProperty('cursor', c, 'important'); } }
+    function hoverCursor(e) {
+        if (drag) { return; }
+        const L = local(e), x = L.x, y = L.y;
+        let hit = false;
+        if (mode === 'village' || mode === 'comparer') hit = true;
+        else {
+            const inB = h => x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h;
+            hit = dotHits.some(inB) || labelHits.some(inB);
+            if (!hit && mapGeo) {
+                const lon = (x - mapGeo.ox) / mapGeo.s - 180, lat = 84 - (y - mapGeo.oy) / mapGeo.s;
+                hit = PRP_ZONES.some(z => z.polys.some(pl => _prpInPoly(lon, lat, pl)));
+            }
+        }
+        setCursor(hit ? 'pointer' : 'default');
+    }
+    canvas.addEventListener('pointermove', hoverCursor);
+    canvas.addEventListener('pointerup', hoverCursor);
+    canvas.addEventListener('pointerleave', () => { if (!drag) setCursor('default'); });
     canvas.addEventListener('pointermove', e => {
         if (!drag || drag.id !== e.pointerId) return;
         if (e.pointerType === 'mouse' && e.buttons === 0) { onEnd(e); return; }

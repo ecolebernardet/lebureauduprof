@@ -318,6 +318,52 @@ if (!window._wfIsPhone) {
         @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
             .gg-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
+    
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="geo-globe"], .gg-container, .gg-container * { cursor: default !important; }
+        .gg-container .gg-header, .gg-container .gg-header * { cursor: grab !important; }
+        .gg-container .gg-header:active, .gg-container .gg-header:active * { cursor: grabbing !important; }
+        .gg-container button, .gg-container button *, .gg-container .gg-header button,
+        .gg-container .gg-header button * { cursor: pointer !important; }
+        .gg-container button:disabled, .gg-container button:disabled *,
+        .gg-container .gg-canvas { cursor: default !important; }
+        .gg-container input { cursor: text !important; }
+        .gg-container .gg-resize-handle { cursor: se-resize !important; }
+
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .gg-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .gg-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .gg-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .gg-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .gg-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .gg-help-popup { top: 56px; }
+        .gg-container.wf-fullboard .gg-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .gg-container.wf-fullboard .gg-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .gg-title { font-size: 17px; }
+        }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .gg-header { margin: -10px -10px 0; padding: 8px 10px 7px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -480,6 +526,14 @@ function createGeoGlobeWidget() {
     wfBtnsDiv.insertBefore(helpBtn, wfBtnsDiv.firstChild);
 
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.gg-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     // Données indispensables (fournies par widget-geo-monde.js)
     if (typeof GW_SHAPES === 'undefined' || typeof GW_CONTINENTS === 'undefined') {
@@ -1117,6 +1171,17 @@ function createGeoGlobeWidget() {
         }
     });
 
+    // Curseur du globe : main pour le faire tourner, doigt au-dessus d'un élément touchable
+    let _cur = '';
+    function setCursor(c) { if (c !== _cur) { _cur = c; canvas.style.setProperty('cursor', c, 'important'); } }
+    function hoverCursor(e) {
+        if (pointers.size) { setCursor(drag && drag.moved ? 'grabbing' : (_cur || 'grab')); return; }
+        const L = local(e);
+        setCursor(hitTest(L.x, L.y) ? 'pointer' : 'grab');
+    }
+    canvas.addEventListener('pointermove', hoverCursor);
+    canvas.addEventListener('pointerup', e => requestAnimationFrame(() => hoverCursor(e)));
+    canvas.addEventListener('pointerleave', () => { if (!pointers.size) setCursor('grab'); });
     canvas.addEventListener('pointermove', e => {
         if (!pointers.has(e.pointerId)) return;
         if (e.pointerType === 'mouse' && e.buttons === 0) { onEnd(e); return; }   // bouton relâché hors fenêtre

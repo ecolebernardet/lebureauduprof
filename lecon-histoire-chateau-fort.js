@@ -374,6 +374,50 @@ if (!window._wfPhoneAutoMax) {
         }
         .ch-container:hover .ch-resize-handle { opacity: 1; }
         .ch-container.wf-fullboard .ch-resize-handle { display: none; }
+
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="histoire-chateau-fort"], .ch-container, .ch-container * { cursor: default !important; }
+        .ch-container .ch-header, .ch-container .ch-header * { cursor: grab !important; }
+        .ch-container .ch-header:active, .ch-container .ch-header:active * { cursor: grabbing !important; }
+        .ch-container button, .ch-container button *, .ch-container .ch-header button,
+        .ch-container .ch-header button *,
+        .ch-container .ch-svg .ch-part, .ch-container .ch-svg .ch-part *,
+        .ch-container .ch-svg .ch-lbl, .ch-container .ch-svg .ch-lbl * { cursor: pointer !important; }
+        .ch-container button:disabled, .ch-container button:disabled * { cursor: default !important; }
+        .ch-container input { cursor: text !important; }
+        .ch-container .ch-resize-handle { cursor: se-resize !important; }
+    
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .ch-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .ch-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .ch-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .ch-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .ch-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .ch-help-popup { top: 56px; }
+        .ch-container.wf-fullboard .ch-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .ch-container.wf-fullboard .ch-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .ch-title { font-size: 17px; }
+        }
     `;
     document.head.appendChild(s);
 })();
@@ -994,6 +1038,14 @@ function createHistoireChateauFortWidget() {
     container.appendChild(resizeHandle);
 
     widget.appendChild(container);
+
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.ch-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
 
     // ── État interne ──────────────────────────────────────────────────────
     const uid = 'ch' + Math.random().toString(36).slice(2, 9);

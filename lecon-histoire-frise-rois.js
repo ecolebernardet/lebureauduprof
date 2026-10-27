@@ -189,6 +189,18 @@ if (!window._wfIsPhone) {
             border-radius: 0 0 14px 0; opacity: .6; z-index: 5; touch-action: none;
         }
         .frr-resize-handle:hover { opacity: 1; }
+
+        /* Curseur : la flèche partout, la main sur la barre du haut (déplacement),
+           le doigt sur tout ce qui est cliquable (y compris ce qu'il y a dedans) */
+        .widget[data-type="frise-rois"], .frr-container, .frr-container * { cursor: default !important; }
+        .frr-container .frr-header, .frr-container .frr-header * { cursor: grab !important; }
+        .frr-container .frr-header:active, .frr-container .frr-header:active * { cursor: grabbing !important; }
+        .frr-container button, .frr-container button *, .frr-container .frr-header button,
+        .frr-container .frr-header button * { cursor: pointer !important; }
+        .frr-container button:disabled, .frr-container button:disabled *,
+        .frr-container .frr-canvas { cursor: default !important; }
+        .frr-container input { cursor: text !important; }
+        .frr-container .frr-resize-handle { cursor: se-resize !important; }
         .frr-container[data-mode="arbre"] .frr-only-frise { display: none !important; }
         .frr-container[data-mode="frise"] .frr-only-arbre { display: none !important; }
 
@@ -230,6 +242,58 @@ if (!window._wfIsPhone) {
         }
         @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
             .frr-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
+        }
+    
+        /* ── Barre du haut : même style que les tables de multiplication ── */
+        .frr-header {
+            margin: -14px -16px 0; padding: 10px 14px 8px;
+            background: #2A1F4A; flex-wrap: wrap; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .frr-title {
+            font-size: 22px; font-weight: 900; color: #FFC933; text-shadow: 0 2px 0 #B3470F;
+            letter-spacing: .3px; white-space: nowrap; font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+        }
+        .frr-badge {
+            background: rgba(255,255,255,.14); color: #fff; border-radius: 999px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800; letter-spacing: 0;
+        }
+        .frr-help-btn {
+            width: 26px; height: 26px; border-radius: 50%; border: none; padding: 0;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .frr-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .frr-help-popup { top: 56px; }
+        .frr-container.wf-fullboard .frr-header { margin-left: -50px; padding-left: 64px; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .frr-container.wf-fullboard .frr-header {
+                margin-left: calc(-10px - env(safe-area-inset-left));
+                padding-left: calc(14px + env(safe-area-inset-left));
+            }
+            .frr-title { font-size: 17px; }
+        }
+        .frr-tabs { background: transparent; padding: 0; gap: 6px; border-radius: 0; margin-left: 6px; }
+        .frr-tab {
+            min-height: 0; border: 2px solid rgba(255,255,255,.25); background: transparent; color: #fff;
+            border-radius: 999px; padding: 5px 14px; font-size: 14px; font-weight: 900;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif; box-shadow: none;
+        }
+        .frr-tab:hover { background: rgba(255,255,255,.1); }
+        .frr-tab.on { background: #FFC933; border-color: #FFC933; color: #2A1F4A; box-shadow: none; }
+        .frr-header { flex-wrap: nowrap; }
+        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+            .frr-header { margin: -10px -10px 0; padding: 8px 10px 7px; gap: 6px; }
+            .frr-container.wf-fullboard .frr-header {
+                margin-right: calc(-10px - env(safe-area-inset-right));
+                padding-right: calc(10px + env(safe-area-inset-right));
+            }
+            .frr-tab { padding: 3px 10px; font-size: 12px; }
+            .frr-help-popup { top: 50px; }
+        }
+        @media (max-width: 560px) {
+            .frr-tab { padding: 3px 8px; font-size: 11.5px; }
         }
     `;
     document.head.appendChild(s);
@@ -1402,6 +1466,16 @@ function createFriseRoisWidget() {
         window.addEventListener('pointerup', onEnd, true);
         window.addEventListener('pointercancel', onEnd, true);
     });
+    // Curseur du canvas : doigt au-dessus d'un élément touchable, main pour faire défiler l'arbre
+    let _cur = '';
+    function setCursor(c) { if (c !== _cur) { _cur = c; canvas.style.setProperty('cursor', c, 'important'); } }
+    function hoverCursor(e) {
+        if (drag) { setCursor(drag.moved && mode === 'arbre' && treeMaxPan > 0 ? 'grabbing' : 'pointer'); return; }
+        const L = local(e);
+        setCursor(hitTest(L.x, L.y) ? 'pointer' : (mode === 'arbre' && treeMaxPan > 0 ? 'grab' : 'default'));
+    }
+    canvas.addEventListener('pointermove', hoverCursor);
+    canvas.addEventListener('pointerleave', () => { if (!drag) setCursor('default'); });
     canvas.addEventListener('pointermove', e => {
         if (!drag || drag.id !== e.pointerId) return;
         if (e.pointerType === 'mouse' && e.buttons === 0) { onEnd(e); return; }
@@ -1420,6 +1494,7 @@ function createFriseRoisWidget() {
         try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
         if (e.type === 'pointercancel') return;
         if (!d.moved) { const L = local(e); onTap(L.x, L.y); }
+        if (e.type === 'pointerup') hoverCursor(e);
     }
     canvas.addEventListener('wheel', e => {
         if (mode !== 'arbre' || treeMaxPan <= 0) return;
@@ -1451,6 +1526,13 @@ function createFriseRoisWidget() {
     }
 
     // ── Contrôles ─────────────────────────────────────────────────────────
+    // Seule la barre du haut déplace le widget (comme les autres activités) :
+    // ailleurs, la flèche s'affiche et un appui ne fait pas glisser la fenêtre.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev => container.addEventListener(ev, e => {
+        if (e.target.closest('.frr-header') && !e.target.closest('button')) return;
+        if (ev !== 'touchstart' && typeof bringToFront === 'function') bringToFront(widget);
+        e.stopPropagation();
+    }, ev === 'touchstart' ? { passive: true } : false));
     [row1, row2, header].forEach(el => {
         el.addEventListener('pointerdown', e => { if (e.target.closest('button,input,select')) e.stopPropagation(); });
         el.addEventListener('mousedown', e => { if (e.target.closest('button,input,select')) e.stopPropagation(); });

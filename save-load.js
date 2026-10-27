@@ -174,6 +174,11 @@ function buildBoardState() {
         if (w.dataset.type === 'mot-long' && typeof w._mlGetData === 'function') {
             motLongData = w._mlGetData();
         }
+        // Données propres au widget « La phrase du jour » (phrase choisie, marques des élèves, étape de correction, taille, plein écran)
+        let pdjData = null;
+        if (w.dataset.type === 'phrase-du-jour' && typeof w._pdjGetData === 'function') {
+            pdjData = w._pdjGetData();
+        }
         // Données propres au widget frise historique
         let friseHistData = null;
         if (w.dataset.type === 'frise-historique' && typeof w._fhGetData === 'function') {
@@ -675,6 +680,7 @@ function buildBoardState() {
 			heureData,
 			tableauNumData,
 			motLongData,
+			pdjData,
 			friseHistData,
 			chateauFortData,
 			societeMAData,
@@ -986,6 +992,15 @@ function restoreBoardFromJSON(json) {
             widget = createMotLePlusLongWidget();
             if (w.motLongData && typeof widget._mlSetData === 'function') {
                 widget._mlSetData(w.motLongData);
+            }
+        } else if (w.type === 'phrase-du-jour') {
+            if (typeof createPhraseDuJourWidget === 'function') {
+                widget = createPhraseDuJourWidget();
+                if (typeof widget._pdjSetData === 'function') {
+                    widget._pdjSetData(w.pdjData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
             }
         } else if (w.type === 'frise-historique') {
             widget = createFriseHistoriqueWidget();

@@ -179,6 +179,11 @@ function buildBoardState() {
         if (w.dataset.type === 'phrase-du-jour' && typeof w._pdjGetData === 'function') {
             pdjData = w._pdjGetData();
         }
+        // Données propres au widget « L'atelier de phrases » (phrase, manipulations, mode, affichage, phrase perso en cours, taille, plein écran)
+        let atpData = null;
+        if (w.dataset.type === 'atelier-phrases' && typeof w._atpGetData === 'function') {
+            atpData = w._atpGetData();
+        }
         // Données propres au widget « Le mot du jour » (niveau, mot, volets ouverts, mot caché, historique affiché, taille, plein écran)
         let mdjData = null;
         if (w.dataset.type === 'mot-du-jour' && typeof w._mdjGetData === 'function') {
@@ -702,6 +707,7 @@ function buildBoardState() {
 			motLongData,
 			pdjData,
 			mdjData,
+			atpData,
 			zdData,
 			cjfData,
 			dcfData,
@@ -1040,6 +1046,15 @@ function restoreBoardFromJSON(json) {
                 widget = createZoomDecimauxWidget();
                 if (typeof widget._zdSetData === 'function') {
                     widget._zdSetData(w.zdData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'atelier-phrases') {
+            if (typeof createAtelierPhrasesWidget === 'function') {
+                widget = createAtelierPhrasesWidget();
+                if (typeof widget._atpSetData === 'function') {
+                    widget._atpSetData(w.atpData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

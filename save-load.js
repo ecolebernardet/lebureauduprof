@@ -179,6 +179,11 @@ function buildBoardState() {
         if (w.dataset.type === 'phrase-du-jour' && typeof w._pdjGetData === 'function') {
             pdjData = w._pdjGetData();
         }
+        // Données propres au widget « L'intrus » (niveau, série, choix de la classe, indice, correction, score, réglages, taille, plein écran)
+        let itrData = null;
+        if (w.dataset.type === 'intrus' && typeof w._itrGetData === 'function') {
+            itrData = w._itrGetData();
+        }
         // Données propres au widget « Transforme la phrase » (niveau, phrase, contrainte, correction, réglages, minuteur, taille, plein écran)
         let tfpData = null;
         if (w.dataset.type === 'transforme-phrase' && typeof w._tfpGetData === 'function') {
@@ -714,6 +719,7 @@ function buildBoardState() {
 			mdjData,
 			atpData,
 			tfpData,
+			itrData,
 			zdData,
 			cjfData,
 			dcfData,
@@ -1052,6 +1058,15 @@ function restoreBoardFromJSON(json) {
                 widget = createZoomDecimauxWidget();
                 if (typeof widget._zdSetData === 'function') {
                     widget._zdSetData(w.zdData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'intrus') {
+            if (typeof createIntrusWidget === 'function') {
+                widget = createIntrusWidget();
+                if (typeof widget._itrSetData === 'function') {
+                    widget._itrSetData(w.itrData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

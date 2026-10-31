@@ -179,6 +179,11 @@ function buildBoardState() {
         if (w.dataset.type === 'phrase-du-jour' && typeof w._pdjGetData === 'function') {
             pdjData = w._pdjGetData();
         }
+        // Données propres au widget « Transforme la phrase » (niveau, phrase, contrainte, correction, réglages, minuteur, taille, plein écran)
+        let tfpData = null;
+        if (w.dataset.type === 'transforme-phrase' && typeof w._tfpGetData === 'function') {
+            tfpData = w._tfpGetData();
+        }
         // Données propres au widget « L'atelier de phrases » (phrase, manipulations, mode, affichage, phrase perso en cours, taille, plein écran)
         let atpData = null;
         if (w.dataset.type === 'atelier-phrases' && typeof w._atpGetData === 'function') {
@@ -708,6 +713,7 @@ function buildBoardState() {
 			pdjData,
 			mdjData,
 			atpData,
+			tfpData,
 			zdData,
 			cjfData,
 			dcfData,
@@ -1046,6 +1052,15 @@ function restoreBoardFromJSON(json) {
                 widget = createZoomDecimauxWidget();
                 if (typeof widget._zdSetData === 'function') {
                     widget._zdSetData(w.zdData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'transforme-phrase') {
+            if (typeof createTransformePhraseWidget === 'function') {
+                widget = createTransformePhraseWidget();
+                if (typeof widget._tfpSetData === 'function') {
+                    widget._tfpSetData(w.tfpData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

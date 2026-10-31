@@ -3,7 +3,7 @@
 // Mode professeur uniquement : dessiner un modèle sur quadrillage
 // et générer un PDF prêt à imprimer.
 //
-// Outils : ligne, cercle, remplissage (polygone), gomme
+// Outils : ligne, cercle, pot de peinture (zone fermée), gomme
 // Dépendances : board, findFreePosition(), makeDraggable(),
 //   makeDraggableRotate(), bringToFront(), snapshotNow(), saveBoard()
 // =========================================================================
@@ -311,6 +311,10 @@
         .rq-svg.cursor-gomme {
             cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' style='font-size:24px'><text y='24'>🧽</text></svg>") 16 16, pointer !important;
         }
+        /* Curseur pot de peinture (même dessin que l'outil de draw.js) */
+        .rq-svg.cursor-bucket {
+            cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M6 12 L14 4 L23 13 L15 21 Z' fill='%23fff' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cpath d='M6 12 L15 21' stroke='%23000' stroke-width='1.6'/%3E%3Cpath d='M23 13 C26 17 26 20 24 21 C22 22 21 19 23 13 Z' fill='%23888' stroke='%23000' stroke-width='1.2'/%3E%3Ccircle cx='3' cy='25' r='2.2' fill='%23000'/%3E%3C/svg%3E") 3 25, crosshair !important;
+        }
         .rq-grid-line { stroke: #e5e7eb; stroke-width: 1; }
         .rq-grid-main { stroke: #9ca3af; stroke-width: 2; }
 
@@ -503,8 +507,8 @@ function createReproQuadrillageWidget(savedData) {
             Cliquez sur le centre, puis cliquez pour définir le rayon.
         </div>
         <div class="rq-help-section">
-            <strong>🎨 Remplissage</strong><br>
-            Cliquez sur chaque sommet de la forme. Refermez en recliquant sur le premier point.
+            <strong>🪣 Pot de peinture</strong><br>
+            Choisissez gris clair ou gris foncé, puis cliquez à l'intérieur d'une zone fermée par des traits pour la remplir. Recliquez avec l'autre gris pour changer la couleur.
         </div>
         <div class="rq-help-section">
             <strong>🧽 Gomme</strong><br>
@@ -523,7 +527,7 @@ function createReproQuadrillageWidget(savedData) {
     toolbar.innerHTML = `
         <button class="rq-tool-btn active" data-tool="line" title="Tracer une ligne">📏</button>
         <button class="rq-tool-btn" data-tool="circle" title="Tracer un cercle">⭕</button>
-        <button class="rq-tool-btn" data-tool="fill" title="Remplir une zone">🎨</button>
+        <button class="rq-tool-btn" data-tool="fill" title="Pot de peinture : remplir une zone fermée">🪣</button>
         <div class="rq-fillcolor-wrap">
             <button type="button" class="rq-fillcolor-btn active" data-fillcolor="light" title="Gris clair" style="background:#d9d9d9;"></button>
             <button type="button" class="rq-fillcolor-btn" data-fillcolor="dark" title="Gris foncé" style="background:#8a8f98;"></button>
@@ -631,6 +635,7 @@ function createReproQuadrillageWidget(savedData) {
         };
         Object.values(helpLayer).forEach(el => helpGroup.appendChild(el));
         svg.appendChild(helpGroup);
+        if (currentTool === 'fill' || isGommeActive) helpLayer.hoverDot.setAttribute('visibility', 'hidden');
     }
 
     // ── Coordonnées snappées à la grille ─────────────────────────────────
@@ -666,6 +671,7 @@ function createReproQuadrillageWidget(savedData) {
         svg.classList.remove('cursor-gomme');
         svg.style.cursor = 'crosshair';
         resetAide();
+        updateBucketCursor();
         updateToolButtons();
     }
 
@@ -678,7 +684,190 @@ function createReproQuadrillageWidget(savedData) {
             svg.classList.remove('cursor-gomme');
             svg.style.cursor = 'crosshair';
         }
+        updateBucketCursor();
         updateToolButtons();
+    }
+
+    // Curseur 🪣 + point de survol masqué quand le pot de peinture est actif
+    function updateBucketCursor() {
+        const on = currentTool === 'fill' && !isGommeActive;
+        svg.classList.toggle('cursor-bucket', on);
+        if (helpLayer.hoverDot) helpLayer.hoverDot.setAttribute('visibility', on || isGommeActive ? 'hidden' : 'visible');
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // POT DE PEINTURE
+    // Les traits (lignes, cercles, contours) sont rasterisés sur un canvas
+    // 600×600 (1 px = 1 unité SVG), on fait un remplissage par diffusion
+    // depuis le point cliqué, puis la zone obtenue est convertie en un
+    // <path> SVG fait de rectangles (fusion des lignes identiques).
+    // → c'est un vrai élément SVG : sauvegarde, PDF, gomme, annuler OK.
+    // Le remplissage est placé SOUS les traits, qui restent nets par-dessus.
+    // ══════════════════════════════════════════════════════════════════════
+    const RQ_FILL_DILATE = 1; // débord sous les traits (évite un liseré blanc)
+
+    // Coordonnées SVG non arrondies à la grille
+    function getRawCoords(e) {
+        const rect = svg.getBoundingClientRect();
+        const clientX = e.clientX ?? (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY ?? (e.touches && e.touches[0].clientY);
+        return {
+            x: ((clientX - rect.left) / rect.width)  * RQ_VIEW_SIZE - RQ_PAD,
+            y: ((clientY - rect.top)  / rect.height) * RQ_VIEW_SIZE - RQ_PAD
+        };
+    }
+
+    // Dessine les contours (traits noirs) sur un canvas
+    function rasterizeBoundaries() {
+        const N = RQ_INTERNAL_SIZE;
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = N;
+        const ctx = cv.getContext('2d');
+        ctx.strokeStyle = '#000';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        svg.querySelectorAll('.rq-line-group:not(.rq-fill-group)').forEach(g => {
+            if (g.style.display === 'none') return;
+            g.querySelectorAll('line, circle, path').forEach(el => {
+                if (el.classList.contains('rq-eraser-zone')) return;
+                const stroke = el.getAttribute('stroke');
+                if (!stroke || stroke === 'none' || stroke === 'transparent') return;
+                ctx.lineWidth = parseFloat(el.getAttribute('stroke-width')) || 4;
+                const tag = el.tagName.toLowerCase();
+                ctx.beginPath();
+                if (tag === 'line') {
+                    ctx.moveTo(+el.getAttribute('x1'), +el.getAttribute('y1'));
+                    ctx.lineTo(+el.getAttribute('x2'), +el.getAttribute('y2'));
+                    ctx.stroke();
+                } else if (tag === 'circle') {
+                    ctx.arc(+el.getAttribute('cx'), +el.getAttribute('cy'), +el.getAttribute('r'), 0, Math.PI * 2);
+                    ctx.stroke();
+                } else if (tag === 'path') {
+                    // Anciennes formes remplies (polygones) : seul le contour compte
+                    try { ctx.stroke(new Path2D(el.getAttribute('d') || '')); } catch (_) {}
+                }
+            });
+        });
+        return ctx.getImageData(0, 0, N, N).data;
+    }
+
+    // Zone libre contenant (sx, sy) : masque + boîte englobante
+    function floodRegion(data, N, sx, sy) {
+        const free = (p) => data[p * 4 + 3] < 128;
+        if (!free(sy * N + sx)) return null;          // clic sur un trait
+        const mask = new Uint8Array(N * N);
+        let minX = sx, maxX = sx, minY = sy, maxY = sy;
+        const stack = [sx, sy];
+        while (stack.length) {
+            const y = stack.pop(), x = stack.pop();
+            let xl = x;
+            while (xl >= 0 && !mask[y * N + xl] && free(y * N + xl)) xl--;
+            xl++;
+            let xr = x;
+            while (xr < N && !mask[y * N + xr] && free(y * N + xr)) xr++;
+            xr--;
+            if (xl > xr) continue;
+            for (let xx = xl; xx <= xr; xx++) mask[y * N + xx] = 1;
+            if (xl < minX) minX = xl;
+            if (xr > maxX) maxX = xr;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            for (const ny of [y - 1, y + 1]) {
+                if (ny < 0 || ny >= N) continue;
+                let inRun = false;
+                for (let xx = xl; xx <= xr; xx++) {
+                    const p = ny * N + xx;
+                    const ok = !mask[p] && free(p);
+                    if (ok && !inRun) { stack.push(xx, ny); inRun = true; }
+                    else if (!ok) inRun = false;
+                }
+            }
+        }
+        return { mask, minX, maxX, minY, maxY };
+    }
+
+    // Masque → chemin SVG en rectangles (avec un léger débord sous les traits)
+    function maskToPath(region, N) {
+        const { mask, minX, maxX, minY, maxY } = region;
+        const D = RQ_FILL_DILATE;
+        const x0 = Math.max(0, minX - D), x1 = Math.min(N - 1, maxX + D);
+        const y0 = Math.max(0, minY - D), y1 = Math.min(N - 1, maxY + D);
+        const at = (x, y) => {
+            for (let dy = -D; dy <= D; dy++) {
+                const yy = y + dy; if (yy < 0 || yy >= N) continue;
+                for (let dx = -D; dx <= D; dx++) {
+                    const xx = x + dx; if (xx < 0 || xx >= N) continue;
+                    if (mask[yy * N + xx]) return true;
+                }
+            }
+            return false;
+        };
+        let d = '';
+        let open = new Map();                          // "xa,xb" → y de départ
+        const close = (key, yStart, yEnd) => {
+            const [xa, xb] = key.split(',').map(Number);
+            d += `M${xa} ${yStart}h${xb - xa + 1}v${yEnd - yStart}h${-(xb - xa + 1)}z`;
+        };
+        for (let y = y0; y <= y1 + 1; y++) {
+            const runs = new Map();
+            if (y <= y1) {
+                let x = x0;
+                while (x <= x1) {
+                    if (!at(x, y)) { x++; continue; }
+                    const xs = x;
+                    while (x <= x1 && at(x, y)) x++;
+                    const key = xs + ',' + (x - 1);
+                    runs.set(key, open.has(key) ? open.get(key) : y);
+                }
+            }
+            open.forEach((yStart, key) => { if (!runs.has(key)) close(key, yStart, y); });
+            open = runs;
+        }
+        return d;
+    }
+
+    // Les remplissages sont rangés juste sous le premier trait
+    function insertShapeGroup(group) {
+        const helpLayerEl = svg.querySelector('#rq-help-layer');
+        if (group.classList.contains('rq-fill-group')) {
+            const firstStroke = svg.querySelector('.rq-line-group:not(.rq-fill-group)');
+            svg.insertBefore(group, firstStroke || helpLayerEl);
+        } else {
+            svg.insertBefore(group, helpLayerEl);
+        }
+    }
+
+    function bucketFill(e) {
+        const N = RQ_INTERNAL_SIZE;
+        const raw = getRawCoords(e);
+        const sx = Math.floor(raw.x), sy = Math.floor(raw.y);
+        if (sx < 0 || sy < 0 || sx >= N || sy >= N) return;   // hors du quadrillage
+
+        const region = floodRegion(rasterizeBoundaries(), N, sx, sy);
+        if (!region) return;
+        const d = maskToPath(region, N);
+        if (!d) return;
+        const color = RQ_FILL_COLORS[currentFillColor] || RQ_FILL_COLORS.light;
+
+        // Même zone déjà remplie : on remplace (changement de gris) ou on ne fait rien
+        const same = Array.from(svg.querySelectorAll('.rq-fill-group'))
+            .find(g => g.firstChild && g.firstChild.getAttribute('d') === d);
+        if (same && same.firstChild.getAttribute('fill') === color) return;
+
+        const group = createSVGEl('g', { class: 'rq-line-group rq-fill-group' });
+        group.appendChild(createSVGEl('path', {
+            d, fill: color, stroke: 'none', 'shape-rendering': 'crispEdges', style: 'pointer-events:all;'
+        }));
+        if (same) {
+            group.dataset.replaced = '1';
+            same.replaceWith(group);
+            undoStack.push({ type: 'replace', element: group, previous: same });
+        } else {
+            insertShapeGroup(group);
+            undoStack.push({ type: 'draw', element: group });
+        }
+        redoStack = [];
+        autoSave();
     }
 
     function updateToolButtons() {
@@ -698,7 +887,7 @@ function createReproQuadrillageWidget(savedData) {
             const group = e.target.closest('.rq-line-group');
             if (group) {
                 undoStack.push({ type: 'erase', element: group });
-                svg.removeChild(group);
+                group.remove();
                 redoStack = [];
                 autoSave();
             }
@@ -709,25 +898,7 @@ function createReproQuadrillageWidget(savedData) {
         const helpLayerEl = svg.querySelector('#rq-help-layer');
 
         if (currentTool === 'fill') {
-            if (fillPoints.length > 0 && c.x === fillPoints[0].x && c.y === fillPoints[0].y) {
-                if (fillPoints.length >= 3) {
-                    const d = fillPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
-                    const group = createSVGEl('g', { class: 'rq-line-group' });
-                    group.appendChild(createSVGEl('path', { d, fill: 'transparent', class: 'rq-eraser-zone', style: 'pointer-events:all;' }));
-                    group.appendChild(createSVGEl('path', { d, fill: RQ_FILL_COLORS[currentFillColor] || RQ_FILL_COLORS.light, stroke: 'black', 'stroke-width': '4', 'stroke-linejoin': 'round', style: 'pointer-events:all;' }));
-                    svg.insertBefore(group, helpLayerEl);
-                    undoStack.push({ type: 'draw', element: group });
-                    fillPoints = [];
-                    helpLayer.ghostPath.setAttribute('visibility', 'hidden');
-                    helpLayer.anchorDot.setAttribute('visibility', 'hidden');
-                    autoSave();
-                }
-            } else {
-                fillPoints.push(c);
-                helpLayer.anchorDot.setAttribute('cx', c.x);
-                helpLayer.anchorDot.setAttribute('cy', c.y);
-                helpLayer.anchorDot.setAttribute('visibility', 'visible');
-            }
+            bucketFill(e);
             return;
         }
 
@@ -757,14 +928,11 @@ function createReproQuadrillageWidget(savedData) {
     }
 
     function handlePointerMove(e) {
-        if (isGommeActive) return;
+        if (isGommeActive || currentTool === 'fill') return;
         const c = getCoords(e);
         helpLayer.hoverDot.setAttribute('cx', c.x);
         helpLayer.hoverDot.setAttribute('cy', c.y);
-        if (currentTool === 'fill' && fillPoints.length > 0) {
-            helpLayer.ghostPath.setAttribute('d', fillPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ` L ${c.x} ${c.y} Z`);
-            helpLayer.ghostPath.setAttribute('visibility', 'visible');
-        } else if (lastPoint) {
+        if (lastPoint) {
             if (currentTool === 'line') {
                 helpLayer.ghostLine.setAttribute('x1', lastPoint.x); helpLayer.ghostLine.setAttribute('y1', lastPoint.y);
                 helpLayer.ghostLine.setAttribute('x2', c.x); helpLayer.ghostLine.setAttribute('y2', c.y);
@@ -783,16 +951,18 @@ function createReproQuadrillageWidget(savedData) {
         if (!undoStack.length) return;
         const a = undoStack.pop();
         redoStack.push(a);
-        if (a.type === 'draw') svg.removeChild(a.element);
-        else svg.insertBefore(a.element, svg.querySelector('#rq-help-layer'));
+        if (a.type === 'draw') a.element.remove();
+        else if (a.type === 'replace') a.element.replaceWith(a.previous);
+        else insertShapeGroup(a.element);
         autoSave();
     }
     function redo() {
         if (!redoStack.length) return;
         const a = redoStack.pop();
         undoStack.push(a);
-        if (a.type === 'draw') svg.insertBefore(a.element, svg.querySelector('#rq-help-layer'));
-        else svg.removeChild(a.element);
+        if (a.type === 'draw') insertShapeGroup(a.element);
+        else if (a.type === 'replace') a.previous.replaceWith(a.element);
+        else a.element.remove();
         autoSave();
     }
 
@@ -915,7 +1085,7 @@ function createReproQuadrillageWidget(savedData) {
         const dataModel = await captureSVG(false);
         const dataEmpty = await captureSVG(true);
         svg.querySelectorAll('.rq-line-group').forEach(g => g.style.display = '');
-        if (helpLayer.hoverDot) helpLayer.hoverDot.setAttribute('visibility', 'visible');
+        if (helpLayer.hoverDot && currentTool !== 'fill' && !isGommeActive) helpLayer.hoverDot.setAttribute('visibility', 'visible');
 
         const pdf = new jsPDF('p', 'mm', 'a4');
         const imgSize = 70, marginL = 20, gap = 15, startY = 20, rowGap = 15;

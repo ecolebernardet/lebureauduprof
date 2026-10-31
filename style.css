@@ -1500,7 +1500,7 @@
 
 
 /* ── Panneau Widgets ──────────────────────────────────────────────────── */
-:root { --widgets-panel-w: 85vw; }
+:root { --widgets-panel-w: 75vw; }
 #widgets-panel {
     display: flex;
     position: fixed;
@@ -1598,7 +1598,7 @@ body.menu-light .widgets-card-ico img { border-color: #bbb; }
 
 
 /* ── Panneau Outils ──────────────────────────────────────────────────── */
-:root { --tools-panel-w: 85vw; }
+:root { --tools-panel-w: 75vw; }
 #tools-panel {
     display: flex;
     position: fixed;

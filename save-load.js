@@ -179,6 +179,11 @@ function buildBoardState() {
         if (w.dataset.type === 'phrase-du-jour' && typeof w._pdjGetData === 'function') {
             pdjData = w._pdjGetData();
         }
+        // Données propres au widget « Le mot du jour » (niveau, mot, volets ouverts, mot caché, historique affiché, taille, plein écran)
+        let mdjData = null;
+        if (w.dataset.type === 'mot-du-jour' && typeof w._mdjGetData === 'function') {
+            mdjData = w._mdjGetData();
+        }
         // Données propres au widget « Zoom sur les décimaux » (zooms, nombre choisi, défi en cours, score, taille, plein écran)
         let zdData = null;
         if (w.dataset.type === 'zoom-decimaux' && typeof w._zdGetData === 'function') {
@@ -696,6 +701,7 @@ function buildBoardState() {
 			tableauNumData,
 			motLongData,
 			pdjData,
+			mdjData,
 			zdData,
 			cjfData,
 			dcfData,
@@ -1034,6 +1040,15 @@ function restoreBoardFromJSON(json) {
                 widget = createZoomDecimauxWidget();
                 if (typeof widget._zdSetData === 'function') {
                     widget._zdSetData(w.zdData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'mot-du-jour') {
+            if (typeof createMotDuJourWidget === 'function') {
+                widget = createMotDuJourWidget();
+                if (typeof widget._mdjSetData === 'function') {
+                    widget._mdjSetData(w.mdjData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

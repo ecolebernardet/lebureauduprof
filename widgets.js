@@ -277,11 +277,30 @@ function findFreePosition(widgetW, widgetH) {
 // Centre le widget horizontalement en haut du board.
 function snapWidgetToTopRight(widget) {
     requestAnimationFrame(() => {
-        // Le widget s'ouvre à 100px du bord gauche du board.
-        widget.style.left = '100px';
+        // Le widget s'ouvre à 100px du bord gauche du board,
+        // ou juste à droite des onglets latéraux s'ils sont plus larges.
+        widget.style.left = Math.max(100, _boardSafeLeft()) + 'px';
         widget.style.top  = '20px';
+        clampWidgetToBoardRight(widget);   // ne pas dépasser à droite
     });
 }
+
+// Bord gauche « libre » du board : juste à droite des onglets latéraux
+// (Jeux, Leçons, Activités…), pour qu'ils ne cachent pas le widget.
+// Renvoie une position en px relative au board (0 si pas d'onglets visibles).
+function _boardSafeLeft() {
+    const GAP = 14;
+    let right = 0;
+    document.querySelectorAll('#side-tabs .side-tab').forEach(t => {
+        if (t.offsetParent === null) return;              // onglet masqué
+        const r = t.getBoundingClientRect();
+        if (r.width > 0) right = Math.max(right, r.right);
+    });
+    if (!right) return 0;
+    const b = (typeof board !== 'undefined' && board) ? board.getBoundingClientRect().left : 0;
+    return Math.max(0, Math.round(right - b + GAP));
+}
+window._boardSafeLeft = _boardSafeLeft;
 
 // Empêche un widget de dépasser du bord droit du board après rendu.
 function clampWidgetToBoardRight(widget) {
@@ -289,8 +308,28 @@ function clampWidgetToBoardRight(widget) {
         const curW = window.innerWidth;
         const wLeft = widget.offsetLeft;
         const wW    = widget.offsetWidth;
+        // Widget PDF : ne jamais passer sous les onglets latéraux
+        const isPdf   = widget.dataset.type === 'pdf' && !widget.dataset.subtype;
+        const minLeft = isPdf ? _boardSafeLeft() : 0;
+        if (isPdf) {
+            // Trop large pour tenir entre les onglets et le bord droit : on le rétrécit
+            const RIGHT_GAP = 12;
+            const maxW = curW - minLeft - RIGHT_GAP;
+            const c = widget.querySelector('.editor-container');
+            if (c && wW > maxW && maxW > 300) {
+                const extra = wW - c.offsetWidth;                 // bordures / marges du widget
+                const ratio = c.offsetHeight / (c.offsetWidth || 1);
+                const newW  = Math.max(300, maxW - extra);
+                c.style.width  = newW + 'px';
+                c.style.height = Math.round(newW * ratio) + 'px';
+            }
+            const w2 = widget.offsetWidth;
+            const left = Math.min(Math.max(wLeft, minLeft), Math.max(minLeft, curW - w2 - RIGHT_GAP));
+            widget.style.left = left + 'px';
+            return;
+        }
         if (wLeft + wW > curW) {
-            widget.style.left = Math.max(0, curW - wW) + 'px';
+            widget.style.left = Math.max(minLeft, curW - wW) + 'px';
         }
     });
 }

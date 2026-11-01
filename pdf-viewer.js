@@ -2939,8 +2939,42 @@ function _pdfFlash(c, text) {
     }, true);
 })();
 
+// ── Plein écran board : laisser la place aux onglets latéraux ────────────
+// En plein écran, le PDF (et sa barre d'onglets multi-PDF) commence juste
+// à droite des onglets Jeux / Leçons / Activités… au lieu de passer dessous.
+// Le décalage est mesuré (il suit la largeur réelle des onglets) et rangé
+// dans la variable CSS --pdf-fs-left. En mode présentation, les onglets se
+// cachent : pas de décalage.
+function _pdfFsUpdateLeft() {
+    let left = 0;
+    if (!document.body.classList.contains('presentation-mode')) {
+        document.querySelectorAll('#side-tabs .side-tab').forEach(t => {
+            if (!t.getClientRects().length) return;            // onglet masqué
+            const r = t.getBoundingClientRect();
+            // Seulement les onglets collés au bord gauche (pas une barre en bas d'écran)
+            if (r.width > 0 && r.left < 30 && r.right < 160) left = Math.max(left, Math.ceil(r.right));
+        });
+        if (left) left += 6;                                    // petit espace
+    }
+    const v = left + 'px';
+    if (document.documentElement.style.getPropertyValue('--pdf-fs-left') !== v) {
+        document.documentElement.style.setProperty('--pdf-fs-left', v);
+    }
+}
+window._pdfFsUpdateLeft = _pdfFsUpdateLeft;
+window.addEventListener('resize', _pdfFsUpdateLeft);
+(function () {
+    const go = () => {
+        _pdfFsUpdateLeft();
+        // Entrée / sortie du mode présentation
+        new MutationObserver(_pdfFsUpdateLeft).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    };
+    if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
+})();
+
 // ── Bouton ✏️ allumé pendant l'annotation de ce PDF ──────────────────────
 setInterval(() => {
+    if (document.querySelector('.editor-container.wf-pdf-fullboard')) _pdfFsUpdateLeft();
     document.querySelectorAll('.editor-container.pdf-v2').forEach(c => {
         const b = c.querySelector('.pdf-annot-widget-btn');
         if (!b) return;
@@ -3036,6 +3070,9 @@ setInterval(() => {
   background:rgba(0,0,0,.8);color:#fff;font-size:14px;font-weight:700;pointer-events:none;opacity:0;transition:opacity .25s;
   white-space:nowrap;font-variant-numeric:tabular-nums}
 .pdf-v2 > .pdf-flash.is-on{opacity:1}
+/* Plein écran board : à droite des onglets latéraux */
+html body .editor-container.wf-pdf-fullboard{left:var(--pdf-fs-left,0px) !important;right:0 !important;width:auto !important}
+html body #pdf-fs-tabbar{left:var(--pdf-fs-left,0px) !important}
 /* Onglets du plein écran (plusieurs PDF) */
 #pdf-fs-tabbar{background:#18181c;box-shadow:0 1px 0 #2f2f37,0 2px 10px rgba(0,0,0,.5)}
 #pdf-fs-tabbar .pdf-fs-tab{background:#232329;border-color:#2f2f37;color:#9a9aa6;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;

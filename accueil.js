@@ -6,7 +6,9 @@
 //   - « Bonjour ! / Bonsoir ! », l'heure et la date en grand
 //   - 8 grandes tuiles vers les panneaux (mêmes icônes et couleurs que
 //     les onglets latéraux) + 2 actions rapides (Dessiner, Écrire)
-//   - un bouton « Mode d'emploi » sous l'heure, qui ouvre la modale d'aide
+//   - un bouton « Mode d'emploi » sous l'heure, qui ouvre la modale d'aide,
+//     et un bouton « Remarques » qui ouvre le formulaire de contact
+//     (openContactForm, défini dans index.html)
 //   - une astuce tirée au hasard
 // Elle disparaît dès qu'on commence à travailler : clic sur une tuile,
 // clic sur un onglet latéral (ou Alt+1…9), ajout d'un widget, ouverture
@@ -36,6 +38,7 @@
         crayon:  '<path d="M4 20l1.2-4.8L15.6 4.8a2.3 2.3 0 0 1 3.3 0l.3.3a2.3 2.3 0 0 1 0 3.3L8.8 18.8z"/><path d="M13.8 6.6l3.6 3.6"/>',
         texte:   '<path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/>',
         pdf:     '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 14.5l2 2 4-4.5"/>',
+        bulle:   '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z"/><path d="M8.5 11h7M8.5 14.5h4.5"/>',
         aide:    '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17h.01"/>'
     };
     function svg(k) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICO[k] + '</svg>'; }
@@ -116,6 +119,9 @@
         '  background:linear-gradient(120deg,#f5a623,#e8890c);box-shadow:0 4px 12px rgba(232,137,12,.35);',
         '  transition:transform .12s,filter .15s;touch-action:manipulation;white-space:nowrap;}',
         '.acc-help:hover{transform:translateY(-2px);filter:brightness(1.06);}',
+        '.acc-help.acc-contact{background:linear-gradient(120deg,#4a90e2,#3a74c4);box-shadow:0 4px 12px rgba(74,144,226,.35);}',
+        '.acc-time-btns{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:6px;margin-top:10px;}',
+        '.acc-time-btns .acc-help{margin-top:0;}',
         '.acc-help svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}',
         /* Tuiles */
         '.acc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}',
@@ -178,6 +184,7 @@
         '  .acc-time{text-align:left;display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;}',
         '  .acc-clock{font-size:24px;} .acc-date{font-size:12px;margin-top:0;}',
         '  .acc-help{margin-top:0;padding:5px 10px;font-size:12px;} .acc-help svg{width:14px;height:14px;}',
+        '  .acc-time-btns{margin-top:0;justify-content:flex-start;}',
         /* Bandeau PDF : on garde le titre et le bouton, sans la description */
         '  .acc-pdf{gap:8px;padding:8px;margin-bottom:8px;border-radius:12px;}',
         '  .acc-pdf-ico{width:30px;height:30px;border-radius:9px;} .acc-pdf-ico svg{width:17px;height:17px;}',
@@ -263,7 +270,10 @@
                   'et lancez en un clic des <b>jeux</b>, des <b>leçons</b>, des <b>activités</b> et des <b>outils</b> pensés pour l\'école, au TBI, au VPI ou sur ordinateur.</p>' +
                 '</div>' +
                 '<div class="acc-time"><div class="acc-clock">--:--</div><div class="acc-date"></div>' +
-                  '<button type="button" class="acc-help" data-act="help">' + svg('aide') + 'Mode d\'emploi</button>' +
+                  '<div class="acc-time-btns">' +
+                    '<button type="button" class="acc-help" data-act="help">' + svg('aide') + 'Mode d\'emploi</button>' +
+                    '<button type="button" class="acc-help acc-contact" data-act="contact" title="Envoyer une remarque à l\'auteur du site">' + svg('bulle') + 'Remarques</button>' +
+                  '</div>' +
                 '</div>' +
               '</div>' +
               '<ul class="acc-points"><li>Gratuit</li><li>Sans compte</li><li>Tableaux enregistrés sur cet appareil</li><li>Fonctionne à la souris, au stylet et au doigt</li></ul>' +
@@ -318,6 +328,10 @@
         root.querySelector('[data-act="help"]').addEventListener('click', function () {
             hide();
             if (typeof openHelpModal === 'function') openHelpModal();
+        });
+        root.querySelector('[data-act="contact"]').addEventListener('click', function () {
+            hide();
+            if (typeof openContactForm === 'function') openContactForm();
         });
         root.querySelector('.acc-close').addEventListener('click', hide);
         root.querySelector('.acc-never input').addEventListener('change', function (e) {

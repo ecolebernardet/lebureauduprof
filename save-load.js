@@ -184,6 +184,11 @@ function buildBoardState() {
         if (w.dataset.type === 'balance' && typeof w._balGetData === 'function') {
             balData = w._balGetData();
         }
+        // Données propres au widget « Le matériel base dix » (mode, niveau, pièces de chaque colonne, exercice, retenues / emprunts, affichage, taille, plein écran)
+        let b10Data = null;
+        if (w.dataset.type === 'base-dix' && typeof w._b10GetData === 'function') {
+            b10Data = w._b10GetData();
+        }
         // Données propres au widget « Estimation » (niveau, image ou photo perso, estimations, révélation, aides, affichage limité, taille, plein écran)
         let estData = null;
         if (w.dataset.type === 'estimation' && typeof w._estGetData === 'function') {
@@ -732,6 +737,7 @@ function buildBoardState() {
 			itrData,
 			estData,
 			balData,
+			b10Data,
 			zdData,
 			cjfData,
 			dcfData,
@@ -1079,6 +1085,15 @@ function restoreBoardFromJSON(json) {
                 widget = createBalanceWidget();
                 if (typeof widget._balSetData === 'function') {
                     widget._balSetData(w.balData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'base-dix') {
+            if (typeof createBaseDixWidget === 'function') {
+                widget = createBaseDixWidget();
+                if (typeof widget._b10SetData === 'function') {
+                    widget._b10SetData(w.b10Data || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

@@ -204,6 +204,26 @@
         .est-answer-num { font-size: 46px; font-weight: 900; color: #b91c1c; font-variant-numeric: tabular-nums; line-height: 1.1; }
         .est-answer-lbl { font-size: 18px; font-weight: 700; }
         .est-line { width: 100%; height: 120px; display: block; margin: 4px 0; }
+
+        /* Bandeau de révélation, posé en bas de l'image : toujours visible sans défiler */
+        .est-band {
+            position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; display: none;
+            background: rgba(255,255,255,.94); border-top: 3px solid #dc2626;
+            box-shadow: 0 -4px 14px rgba(0,0,0,.25); padding: 6px 14px 4px;
+            animation: estBandIn .35s ease-out;
+        }
+        .est-band.show { display: block; }
+        .est-band .est-answer-num { font-size: var(--est-band-num, 40px); }
+        .est-band .est-answer-lbl { font-size: var(--est-band-lbl, 17px); }
+        .est-band .est-line { height: var(--est-band-line, 110px); margin: 0; }
+        .est-band-toggle {
+            position: absolute; right: 8px; top: 6px; border: 1px solid #ddd; background: #fff; color: #374151;
+            border-radius: 8px; font-size: 11px; font-weight: 700; padding: 3px 8px; cursor: pointer;
+        }
+        .est-band-toggle:hover { background: #f3f4f6; }
+        .est-band.mini .est-line, .est-band.mini .est-band-note { display: none; }
+        .est-band-note { text-align: center; font-size: 13px; color: #475569; padding-bottom: 4px; }
+        @keyframes estBandIn { from { transform: translateY(100%); } to { transform: none; } }
         .est-rank { display: flex; flex-direction: column; gap: 3px; font-size: 15px; }
         .est-rank-item { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
         .est-rank-item .pos { min-width: 30px; font-weight: 800; }
@@ -714,6 +734,9 @@ function createEstimationWidget() {
     stage.appendChild(countdownEl);
     stage.appendChild(cover);
     stage.appendChild(emptyEl);
+    const band = document.createElement('div');
+    band.className = 'est-band';
+    stage.appendChild(band);
     container.appendChild(questionEl);
     container.appendChild(stage);
 
@@ -780,7 +803,7 @@ function createEstimationWidget() {
         <p><b>🔍 Repère</b> : un cadre indique le nombre exact d'objets qu'il contient. Combien de cadres comme
         celui-ci faudrait-il pour couvrir l'image ?</p>
         <p>Notez les estimations (avec ou sans prénom), puis <b>🎉 Révéler la réponse</b> : compteur, classement
-        des plus proches, droite graduée. <b>🧮 Paquets de 10</b> colore les objets par dizaines pour vérifier.</p>
+        des plus proches, et la droite graduée qui s'affiche en bas de l'image (« ▾ Voir l'image » la replie). <b>🧮 Paquets de 10</b> colore les objets par dizaines pour vérifier.</p>
         <p><b>📷 Ma photo</b> : chargez votre propre image (pâtes dans un bocal, photo de classe…) et indiquez la vraie réponse.</p>
     `;
     container.appendChild(helpPopup);
@@ -806,6 +829,7 @@ function createEstimationWidget() {
     let photoImg = null;         // Image chargée
     let pendingPhoto = null;     // dataURL en attente de validation
     let animIv = null;
+    let bandMini = false;        // bandeau réduit pour revoir toute l'image
 
     function save() { if (typeof saveBoard === 'function') saveBoard(); }
 
@@ -1021,13 +1045,23 @@ function createEstimationWidget() {
 
     function renderResult(animate) {
         stopAnim();
-        if (!revealed || !cur) { result.classList.remove('show'); result.innerHTML = ''; return; }
+        if (!revealed || !cur) {
+            result.classList.remove('show'); result.innerHTML = '';
+            band.classList.remove('show'); band.innerHTML = '';
+            return;
+        }
         const a = answer();
-        let html = `<div class="est-answer"><span class="est-answer-lbl">La vraie réponse :</span>` +
+        // Bandeau en bas de l'image : la réponse et la droite graduée
+        band.innerHTML = `<button class="est-band-toggle" data-act="band">${bandMini ? '▴ Afficher la droite' : '▾ Voir l\'image'}</button>` +
+            `<div class="est-answer"><span class="est-answer-lbl">La vraie réponse :</span>` +
             `<span class="est-answer-num">${animate ? '0' : _estFmt(a)}</span>` +
-            `<span class="est-answer-lbl">${_estEsc(unitText())}</span></div>`;
+            `<span class="est-answer-lbl">${_estEsc(unitText())}</span></div>` +
+            (guesses.length ? lineSVG(a) : `<div class="est-band-note">Aucune estimation notée : comparez avec les ardoises !</div>`);
+        band.classList.toggle('mini', bandMini);
+        band.classList.add('show');
+        fitBand();
+        let html = '';
         if (guesses.length) {
-            html += lineSVG(a);
             const sorted = guesses.map(g => ({ g, d: Math.abs(g.v - a) })).sort((p, q) => p.d - q.d);
             const m = sorted[0].d;
             html += `<div class="est-rank">`;
@@ -1044,17 +1078,15 @@ function createEstimationWidget() {
             });
             if (sorted.length > 10) html += `<div class="est-rank-item gap">… et ${sorted.length - 10} autres estimations.</div>`;
             html += `</div>`;
-        } else {
-            html += `<div style="text-align:center;font-size:14px;color:#475569">Aucune estimation notée : comparez avec les ardoises !</div>`;
         }
         if (showGroups && !cur.photo) {
             const t = Math.floor(a / 10), u = a % 10;
             html += `<div class="est-groups-txt">🧮 ${t} paquet${t > 1 ? 's' : ''} de 10` + (u ? ` et ${u} en plus` : '') + ` = ${_estFmt(a)}</div>`;
         }
         result.innerHTML = html;
-        result.classList.add('show');
+        result.classList.toggle('show', !!html);
         if (animate) {
-            const el = result.querySelector('.est-answer-num');
+            const el = band.querySelector('.est-answer-num');
             const t0 = Date.now(), dur = 1300;
             animIv = setInterval(() => {
                 const k = Math.min(1, (Date.now() - t0) / dur);
@@ -1091,9 +1123,19 @@ function createEstimationWidget() {
         renderResult(animate);
         renderCover();
         fitQuestion();
+        fitBand();
         requestAnimationFrame(draw);
     }
 
+    function fitBand() {
+        const w = stage.clientWidth, h = stage.clientHeight;
+        if (!w || !h) return;
+        const lineH = Math.max(70, Math.min(150, h * 0.24, w * 0.13));
+        const num = Math.max(24, Math.min(56, h * 0.1, w / 20));
+        stage.style.setProperty('--est-band-line', lineH + 'px');
+        stage.style.setProperty('--est-band-num', num + 'px');
+        stage.style.setProperty('--est-band-lbl', Math.max(13, num * 0.42) + 'px');
+    }
     function fitQuestion() {
         const w = stage.clientWidth;
         if (!w) return;
@@ -1205,7 +1247,7 @@ function createEstimationWidget() {
             case 'repere':       showRepere = !showRepere; renderAll(); save(); break;
             case 'groups':       showGroups = !showGroups; renderAll(); save(); break;
             case 'add':          addGuess(); break;
-            case 'reveal':       reveal(); break;
+            case 'reveal':       bandMini = false; reveal(); break;
             case 'hide':         revealed = false; showGroups = false; renderAll(); save(); break;
             case 'clear':        guesses = []; renderAll(); save(); break;
         }
@@ -1232,6 +1274,10 @@ function createEstimationWidget() {
     });
     [sceneSel, limitSel].forEach(sel => sel.addEventListener('keydown', (e) => e.stopPropagation()));
 
+    band.addEventListener('click', (e) => e.stopPropagation());
+    band.addEventListener('click', (e) => {
+        if (e.target.closest('[data-act="band"]')) { bandMini = !bandMini; renderResult(false); save(); }
+    });
     [stage, photoRow, aids, guessRow, revealRow, result, controls].forEach(el => {
         el.addEventListener('mousedown', (e) => e.stopPropagation());
         el.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
@@ -1247,6 +1293,7 @@ function createEstimationWidget() {
             container.style.width = Math.max(460, startW + x - x0) + 'px';
             stage.style.height    = Math.max(160, startH + y - y0) + 'px';
             fitQuestion();
+            fitBand();
             draw();
         };
     }
@@ -1273,6 +1320,7 @@ function createEstimationWidget() {
     function onWinResize() {
         if (!document.body.contains(widget)) { window.removeEventListener('resize', onWinResize); stopCountdown(); stopAnim(); return; }
         fitQuestion();
+        fitBand();
         draw();
     }
     window.addEventListener('resize', onWinResize);
@@ -1288,10 +1336,10 @@ function createEstimationWidget() {
         e.stopPropagation();
         if (_isMax) wfMax.click();
         if (typeof window._wfMiniBarCollapse === 'function') {
-            window._wfMiniBarCollapse(widget, '🫙 Estimation', { onExpand: () => requestAnimationFrame(() => { fitQuestion(); draw(); }) });
+            window._wfMiniBarCollapse(widget, '🫙 Estimation', { onExpand: () => requestAnimationFrame(() => { fitQuestion(); fitBand(); draw(); }) });
         } else {
             container.classList.toggle('wf-minimized');
-            requestAnimationFrame(() => { fitQuestion(); draw(); });
+            requestAnimationFrame(() => { fitQuestion(); fitBand(); draw(); });
         }
     });
 
@@ -1308,7 +1356,7 @@ function createEstimationWidget() {
             if (_savedW) container.style.width = _savedW;
             if (_savedH) stage.style.height = _savedH;
         }
-        requestAnimationFrame(() => { fitQuestion(); draw(); });
+        requestAnimationFrame(() => { fitQuestion(); fitBand(); draw(); });
         save();
     });
 
@@ -1347,7 +1395,7 @@ function createEstimationWidget() {
         level, sceneChoice,
         cur: cur ? (cur.photo ? { photo: true, img: cur.img, answer: cur.answer, q: cur.q } : { scene: cur.scene, count: cur.count, seed: cur.seed }) : null,
         guesses: guesses.slice(),
-        revealed, showRepere, showGroups,
+        revealed, showRepere, showGroups, bandMini,
         limit, hidden,
         fullboard: _isMax && !_autoMax
     });
@@ -1386,6 +1434,7 @@ function createEstimationWidget() {
         showRepere = !!(d.showRepere && cur && !cur.photo);
         showGroups = !!(d.showGroups && revealed && cur && !cur.photo);
         hidden = !!(d.hidden && cur && !revealed && limit);
+        bandMini = !!d.bandMini;
         renderAll();
         if (!toPhoneFull() && d.fullboard && !_isMax) wfMax.click();
         setTimeout(() => { fitQuestion(); draw(); }, 250);

@@ -179,6 +179,11 @@ function buildBoardState() {
         if (w.dataset.type === 'phrase-du-jour' && typeof w._pdjGetData === 'function') {
             pdjData = w._pdjGetData();
         }
+        // Données propres au widget « La balance à plateaux » (mode, niveau, plateaux, défi, valeur cachée, affichage, taille, plein écran)
+        let balData = null;
+        if (w.dataset.type === 'balance' && typeof w._balGetData === 'function') {
+            balData = w._balGetData();
+        }
         // Données propres au widget « Estimation » (niveau, image ou photo perso, estimations, révélation, aides, affichage limité, taille, plein écran)
         let estData = null;
         if (w.dataset.type === 'estimation' && typeof w._estGetData === 'function') {
@@ -726,6 +731,7 @@ function buildBoardState() {
 			tfpData,
 			itrData,
 			estData,
+			balData,
 			zdData,
 			cjfData,
 			dcfData,
@@ -1064,6 +1070,15 @@ function restoreBoardFromJSON(json) {
                 widget = createZoomDecimauxWidget();
                 if (typeof widget._zdSetData === 'function') {
                     widget._zdSetData(w.zdData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'balance') {
+            if (typeof createBalanceWidget === 'function') {
+                widget = createBalanceWidget();
+                if (typeof widget._balSetData === 'function') {
+                    widget._balSetData(w.balData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

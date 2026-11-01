@@ -404,8 +404,8 @@ function togglePdfCollapse(container) {
         }
 
         // Restaurer l'editor-container
-        container.style.width        = container.dataset.savedW  || '600px';
-        container.style.height       = container.dataset.savedH  || '500px';
+        container.style.width        = container.dataset.savedW  || '1100px';
+        container.style.height       = container.dataset.savedH  || '707px';
         container.style.overflow     = '';
         container.style.borderRadius = '';
         container.style.background   = '';

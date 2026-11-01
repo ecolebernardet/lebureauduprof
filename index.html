@@ -2156,6 +2156,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">Droite numérique</div>
                 <div class="act-card-desc">Placer des nombres sur une droite graduée</div>
             </div>
+			<div class="act-card mat-maths" onclick="createEstimationWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-divers-estimation.jpg" alt="Estimation" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🫙'"></div>
+                <div class="act-card-name">Estimation</div>
+                <div class="act-card-desc">Un bocal de billes, une foule, des moutons… Chacun donne une estimation, puis on révèle la vraie réponse</div>
+            </div>
 			<div class="act-card mat-francais" onclick="createMotLePlusLongWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-mot-le-plus-long.jpg" alt="Le mot le plus long" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔤'"></div>
                 <div class="act-card-name">Le mot le plus long</div>
@@ -2180,11 +2185,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activite-francais-intrus.jpg" alt="L'intrus" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🕵️'"></div>
                 <div class="act-card-name">L'intrus</div>
                 <div class="act-card-desc">Cinq mots dont un intrus (nature, champ lexical, famille de mots ou son) : le trouver et justifier son choix</div>
-            </div>
-			<div class="act-card mat-maths" onclick="createEstimationWidget();toggleActivitiesPanel()">
-                <div class="act-card-ico"><img src="pics/activite-divers-estimation.jpg" alt="Estimation" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🫙'"></div>
-                <div class="act-card-name">Estimation</div>
-                <div class="act-card-desc">Un bocal de billes, une foule, des moutons… Chacun donne une estimation, puis on révèle la vraie réponse</div>
             </div>
 			<div class="act-card mat-francais" onclick="createConjugaisonFlashWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-francais-conjugaison-flash.jpg" alt="Conjugaison flash" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚡'"></div>

@@ -189,6 +189,11 @@ function buildBoardState() {
         if (w.dataset.type === 'base-dix' && typeof w._b10GetData === 'function') {
             b10Data = w._b10GetData();
         }
+        // Données propres au widget « Le partage équitable » (mode, niveau, thème, nombres, distribution en cours, prévision, affichage, taille, plein écran)
+        let peqData = null;
+        if (w.dataset.type === 'partage-equitable' && typeof w._peqGetData === 'function') {
+            peqData = w._peqGetData();
+        }
         // Données propres au widget « Estimation » (niveau, image ou photo perso, estimations, révélation, aides, affichage limité, taille, plein écran)
         let estData = null;
         if (w.dataset.type === 'estimation' && typeof w._estGetData === 'function') {
@@ -738,6 +743,7 @@ function buildBoardState() {
 			estData,
 			balData,
 			b10Data,
+			peqData,
 			zdData,
 			cjfData,
 			dcfData,
@@ -1094,6 +1100,15 @@ function restoreBoardFromJSON(json) {
                 widget = createBaseDixWidget();
                 if (typeof widget._b10SetData === 'function') {
                     widget._b10SetData(w.b10Data || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'partage-equitable') {
+            if (typeof createPartageEquitableWidget === 'function') {
+                widget = createPartageEquitableWidget();
+                if (typeof widget._peqSetData === 'function') {
+                    widget._peqSetData(w.peqData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

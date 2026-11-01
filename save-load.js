@@ -179,6 +179,11 @@ function buildBoardState() {
         if (w.dataset.type === 'phrase-du-jour' && typeof w._pdjGetData === 'function') {
             pdjData = w._pdjGetData();
         }
+        // Données propres au widget « Estimation » (niveau, image ou photo perso, estimations, révélation, aides, affichage limité, taille, plein écran)
+        let estData = null;
+        if (w.dataset.type === 'estimation' && typeof w._estGetData === 'function') {
+            estData = w._estGetData();
+        }
         // Données propres au widget « L'intrus » (niveau, série, choix de la classe, indice, correction, score, réglages, taille, plein écran)
         let itrData = null;
         if (w.dataset.type === 'intrus' && typeof w._itrGetData === 'function') {
@@ -720,6 +725,7 @@ function buildBoardState() {
 			atpData,
 			tfpData,
 			itrData,
+			estData,
 			zdData,
 			cjfData,
 			dcfData,
@@ -1058,6 +1064,15 @@ function restoreBoardFromJSON(json) {
                 widget = createZoomDecimauxWidget();
                 if (typeof widget._zdSetData === 'function') {
                     widget._zdSetData(w.zdData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'estimation') {
+            if (typeof createEstimationWidget === 'function') {
+                widget = createEstimationWidget();
+                if (typeof widget._estSetData === 'function') {
+                    widget._estSetData(w.estData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

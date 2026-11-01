@@ -2977,42 +2977,44 @@ setInterval(() => {
   font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 .editor-container.pdf-v2.wf-pdf-fullboard{border:0 !important}
 /* Barre du haut */
-.pdf-v2 > .editor-toolbar{background:#232329 !important;border-bottom:1px solid #2f2f37 !important;padding:6px 10px !important;gap:6px !important;
-  row-gap:4px !important;min-height:44px !important;box-sizing:border-box;flex-wrap:wrap !important;visibility:visible;opacity:1;user-select:none;-webkit-user-select:none}
-.pdf-v2 > .editor-toolbar button:not(.wf-btn){height:30px !important;min-width:30px;border:0 !important;border-radius:8px !important;background:transparent !important;
-  color:#cfcfd6 !important;font-size:15px !important;line-height:1 !important;padding:0 6px !important;align-items:center;justify-content:center;
+.pdf-v2 > .editor-toolbar{background:#232329 !important;border-bottom:1px solid #2f2f37 !important;padding:5px 8px !important;gap:4px !important;
+  min-height:42px !important;box-sizing:border-box;flex-wrap:nowrap !important;overflow:hidden;visibility:visible;opacity:1;user-select:none;-webkit-user-select:none}
+.pdf-v2 > .editor-toolbar > *{flex-shrink:0}
+.pdf-v2 > .editor-toolbar > div[style*="flex:1"]{flex:1 1 0 !important;min-width:0}
+.pdf-v2 > .editor-toolbar button:not(.wf-btn){height:28px !important;min-width:26px;border:0 !important;border-radius:7px !important;background:transparent !important;
+  color:#cfcfd6 !important;font-size:14px !important;line-height:1 !important;padding:0 4px !important;align-items:center;justify-content:center;
   box-shadow:none;transition:background .12s,color .12s}
 .pdf-v2 > .editor-toolbar button:not(.wf-btn):hover{background:rgba(255,255,255,.1) !important;color:#fff !important}
 .pdf-v2 > .editor-toolbar :focus-visible{outline:2px solid #4a90e2;outline-offset:1px}
 /* Ouvrir un PDF */
-.pdf-v2 .pdf-open-btn{display:inline-flex !important;align-items:center;gap:6px;height:30px;box-sizing:border-box;padding:0 12px !important;border-radius:99px !important;
+.pdf-v2 .pdf-open-btn{display:inline-flex !important;align-items:center;gap:6px;height:28px;box-sizing:border-box;padding:0 10px !important;border-radius:99px !important;
   background:#4a90e2 !important;color:#fff !important;font-size:12px !important;font-weight:600;flex:none}
 .pdf-v2 .pdf-open-btn:hover{background:#3b7fd0 !important}
-.pdf-v2.pdf-loaded .pdf-open-btn{background:rgba(255,255,255,.08) !important;padding:0 9px !important}
+.pdf-v2.pdf-loaded .pdf-open-btn{background:rgba(255,255,255,.08) !important;padding:0 7px !important}
 .pdf-v2.pdf-loaded .pdf-open-btn:hover{background:rgba(255,255,255,.16) !important}
 .pdf-v2.pdf-loaded .pdf-open-lbl{display:none}
 .pdf-v2 .pdf-open-ico{font-size:14px}
 /* Nom du fichier */
-.pdf-v2 .pdf-filename{flex:0 1 auto !important;max-width:280px !important;min-width:0;color:#ddd !important;font-size:12px !important;
-  background:rgba(255,255,255,.07);border-radius:99px;padding:5px 12px;box-sizing:border-box}
+.pdf-v2 .pdf-filename{flex:0 1 auto !important;flex-shrink:1 !important;max-width:240px !important;min-width:0;color:#ddd !important;font-size:12px !important;
+  background:rgba(255,255,255,.07);border-radius:99px;padding:5px 10px;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pdf-v2 .pdf-filename:empty{display:none}
 /* Groupes navigation / zoom */
 .pdf-v2 .pdf-nav,.pdf-v2 .pdf-zoom-bar{background:#2f2f38;border-radius:99px;padding:2px !important;gap:1px !important;flex:none}
-.pdf-v2 .pdf-nav button:not(.wf-btn),.pdf-v2 .pdf-zoom-bar button:not(.wf-btn){height:26px !important;min-width:28px;border-radius:99px !important;font-size:13px !important}
+.pdf-v2 .pdf-nav button:not(.wf-btn),.pdf-v2 .pdf-zoom-bar button:not(.wf-btn){height:26px !important;min-width:24px;border-radius:99px !important;font-size:13px !important}
 .pdf-v2 .pdf-zoom-bar .pdf-zoom-in,.pdf-v2 .pdf-zoom-bar .pdf-zoom-out{font-size:17px !important}
 .pdf-v2 .pdf-page-box{background:transparent !important;border:0 !important;border-radius:99px !important;height:26px;align-items:center}
 .pdf-v2 .pdf-page-box > div{background:#4a4a55 !important;width:1px;margin:6px 0}
-.pdf-v2 .pdf-page-input{width:36px !important;height:26px !important;color:#fff !important;background:transparent !important;border:0 !important;
+.pdf-v2 .pdf-page-input{width:30px !important;height:26px !important;color:#fff !important;background:transparent !important;border:0 !important;
   font-size:13px !important;font-weight:600;padding:0 2px !important;cursor:text !important;font-variant-numeric:tabular-nums}
 .pdf-v2 .pdf-page-input:focus{background:rgba(74,144,226,.25) !important;border-radius:99px}
-.pdf-v2 .pdf-page-box button{color:#bdbdc6 !important;font-size:12px !important;min-width:58px !important;font-variant-numeric:tabular-nums}
-.pdf-v2 .pdf-zoom-label{color:#bdbdc6 !important;font-size:11px !important;min-width:42px !important;font-variant-numeric:tabular-nums}
+.pdf-v2 .pdf-page-box button{color:#bdbdc6 !important;font-size:12px !important;min-width:48px !important;font-variant-numeric:tabular-nums}
+.pdf-v2 .pdf-zoom-label{color:#bdbdc6 !important;font-size:11px !important;min-width:36px !important;font-variant-numeric:tabular-nums}
 /* Annoter / enregistrer / fond d'écran */
 .pdf-v2 .pdf-annot-widget-btn.pdf-on{background:rgba(74,144,226,.3) !important;color:#fff !important;box-shadow:inset 0 0 0 1px #4a90e2 !important}
-.pdf-v2 .wf-btns{margin-left:6px !important}
-@container (max-width: 760px){ .pdf-v2 .pdf-filename{max-width:150px !important} }
-@container (max-width: 620px){ .pdf-v2 .pdf-zoom-fit,.pdf-v2 .pdf-zoom-page,.pdf-v2 .pdf-wallpaper-btn{display:none !important} .pdf-v2 .pdf-filename{display:none} }
-@container (max-width: 470px){ .pdf-v2 .pdf-zoom-bar{display:none !important} .pdf-v2 .pdf-open-lbl{display:none} }
+.pdf-v2 .wf-btns{margin-left:4px !important;gap:6px !important;flex-shrink:0 !important}
+@container (max-width: 820px){ .pdf-v2 .pdf-filename{max-width:130px !important} }
+@container (max-width: 680px){ .pdf-v2 .pdf-zoom-fit,.pdf-v2 .pdf-zoom-page,.pdf-v2 .pdf-wallpaper-btn{display:none !important} .pdf-v2 .pdf-filename{display:none} }
+@container (max-width: 520px){ .pdf-v2 .pdf-zoom-bar{display:none !important} .pdf-v2 .pdf-open-lbl{display:none} }
 /* Pages */
 .pdf-v2 .pdf-canvas-wrap{background:#2b2b31 !important;scrollbar-color:#55555f transparent}
 .pdf-v2 .pdf-canvas{box-shadow:0 4px 18px rgba(0,0,0,.55) !important}

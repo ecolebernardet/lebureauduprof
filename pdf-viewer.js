@@ -2948,13 +2948,18 @@ function _pdfFlash(c, text) {
 function _pdfFsUpdateLeft() {
     let left = 0;
     if (!document.body.classList.contains('presentation-mode')) {
+        // Largeur AU REPOS des onglets (variable CSS --tab-w), et non leur largeur
+        // mesurée : un onglet survolé ou ouvert s'élargit, la marge doit rester fixe.
+        let tabW = 0, tabLeft = Infinity;
         document.querySelectorAll('#side-tabs .side-tab').forEach(t => {
             if (!t.getClientRects().length) return;            // onglet masqué
             const r = t.getBoundingClientRect();
-            // Seulement les onglets collés au bord gauche (pas une barre en bas d'écran)
-            if (r.width > 0 && r.left < 30 && r.right < 160) left = Math.max(left, Math.ceil(r.right));
+            if (!(r.width > 0 && r.left < 30 && r.right < 160)) return;  // seulement au bord gauche
+            tabLeft = Math.min(tabLeft, r.left);
+            const cssW = parseFloat(getComputedStyle(t).getPropertyValue('--tab-w'));
+            tabW = cssW > 0 ? cssW : (tabW ? Math.min(tabW, r.width) : r.width);
         });
-        if (left) left += 6;                                    // petit espace
+        if (tabW) left = Math.ceil(Math.max(0, tabLeft) + tabW) + 6;   // + petit espace
     }
     const v = left + 'px';
     if (document.documentElement.style.getPropertyValue('--pdf-fs-left') !== v) {

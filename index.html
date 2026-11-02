@@ -4430,6 +4430,61 @@ body.menu-light #contact-status.err { color: #d33a3f; }
 })();
 </script>
 
+<script>
+// ── Raccourci : ouvrir directement un outil, une activité ou un widget ──
+// Exemples : ?ouvrir=minuteur   ?ouvrir=jeu-memory   ?ouvrir=tirage
+// Accepte : un type de createWidget('…'), un alias ci-dessous,
+// ou le nom exact d'une fonction create…/lancer… (ex. ?ouvrir=createGeoFranceWidget)
+(function() {
+    var params = new URLSearchParams(window.location.search);
+    var cible = params.get('ouvrir');
+    if (!cible) return;
+    window._lancementDirect = true;   // l'écran d'accueil (accueil.js) ne s'affiche pas
+
+    var ALIAS = {
+        'tirage':        'createTirageWidget',
+        'equipes':       'createEquipesWidget',
+        'classe':        'createClasseWidget',
+        'liste-edition': 'createListeEditionWidget',
+        'sondage':       'createSondageWidget',
+        'deroule':       'createDerouleWidget',
+        'deficalme':     'createDeficalmeWidget',
+        'deficalme2':    'createDeficalme2Widget',
+        'pause-calme':   'createPauseCalmWidget',
+        'seyes':         'createSeyesWidget',
+        'cache':         'createCacheWidget',
+        'loupe':         'createLoupeWidget',
+        'calendrier':    'createCalendrierWidget',
+        'compte-est-bon':'createCompteEstBonWidget',
+        'horloge':       'createHorlogeWidget',
+        'heure':         'createHeureWidget',
+        'monnaie':       'createMonnaieWidget',
+        'conversion':    'createConversionWidget',
+        'conjugaison':   'createConjugaisonWidget',
+        'traces':        'lancerTracesGeometriques'
+    };
+
+    window.addEventListener('load', function() {
+        // Petit délai : laisse le tableau se restaurer avant d'ajouter l'outil
+        setTimeout(function() {
+            var nomFonction = ALIAS[cible] || cible;
+            try {
+                if (/^(create|lancer)\w*$/.test(nomFonction) && typeof window[nomFonction] === 'function') {
+                    window[nomFonction]();
+                } else if (typeof createWidget === 'function') {
+                    window._wfLastLaunch = Date.now(); // plein écran sur téléphone, comme depuis un panneau
+                    createWidget(cible);
+                }
+            } catch (e) { console.warn('Raccourci ?ouvrir=' + cible + ' :', e); }
+            // Retire le paramètre de l'adresse : un F5 ne relancera pas l'outil une 2e fois
+            params.delete('ouvrir');
+            var reste = params.toString();
+            history.replaceState(null, '', location.pathname + (reste ? '?' + reste : '') + location.hash);
+        }, 600);
+    });
+})();
+</script>
+
 <!-- Écran d'accueil à l'ouverture (tableau vide). Pour le retirer : supprimer cette ligne. -->
 <script src="accueil.js"></script>
 

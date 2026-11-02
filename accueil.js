@@ -25,6 +25,10 @@
     var HIDE_KEY = 'accueilMasque';          // « Ne plus afficher »
     try { if (localStorage.getItem(HIDE_KEY) === '1') return; } catch (e) {}
 
+    // Lancement direct d'un outil par l'adresse (?ouvrir=minuteur…) :
+    // pas d'écran d'accueil, l'outil demandé s'affiche tout de suite.
+    if (window._lancementDirect || /[?&]ouvrir=/.test(window.location.search)) return;
+
     // ── Icônes : identiques à celles des onglets latéraux ────────────────
     var ICO = {
         jeux:    '<path d="M6.5 7h11a4.5 4.5 0 0 1 4.3 5.8l-1.2 4a2.6 2.6 0 0 1-4.5.9L14.5 16h-5l-1.6 1.7a2.6 2.6 0 0 1-4.5-.9l-1.2-4A4.5 4.5 0 0 1 6.5 7z"/><path d="M7.5 10v3M6 11.5h3"/><circle cx="15.5" cy="10.5" r=".6"/><circle cx="17.5" cy="12.5" r=".6"/>',

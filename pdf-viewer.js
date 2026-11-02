@@ -2861,6 +2861,17 @@ function _pdfV2Init(c) {
         f.className = 'pdf-flash';
         c.appendChild(f);
     }
+    // Bouton zoom « page entière » : dessin d'une feuille avec une flèche haut/bas
+    // (l'ancien dessin ressemblait trop au bouton plein écran)
+    const zPage = tb && tb.querySelector('.pdf-zoom-page');
+    if (zPage && !zPage.querySelector('.pdf-zp-ico')) {
+        zPage.innerHTML = '<svg class="pdf-zp-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M6 2.5h8.5l4 4v15H6z"/><path d="M14.5 2.5v4h4"/>' +
+            '<path d="M12 8.5v10M9.5 11l2.5-2.5 2.5 2.5M9.5 16l2.5 2.5 2.5-2.5"/></svg>';
+        zPage.title = 'Voir la page entière';
+    }
+    // Bouton plein écran Windows (vrai plein écran, différent du plein écran board)
+    _pdfAddOsFsBtn(c, tb);
     // PDF déjà affiché (widget restauré)
     const wrap = c.querySelector('.pdf-canvas-wrap');
     if (wrap && wrap.style.display && wrap.style.display !== 'none') c.classList.add('pdf-loaded');
@@ -2886,6 +2897,125 @@ function _pdfV2Init(c) {
         _pdfLoadFile(c, file);
     });
 }
+
+// =========================================================================
+// PLEIN ÉCRAN WINDOWS (API Fullscreen du navigateur)
+// -------------------------------------------------------------------------
+// Bouton ⛶ dans la barre du haut. Il passe tout l'écran en plein écran
+// (comme F11, sans la barre des tâches ni la barre du navigateur) ET met le
+// PDF en plein écran board pour qu'il occupe tout l'écran. Les barres
+// d'annotation restent utilisables. Échap ou un 2e clic sur le bouton
+// ramènent le PDF exactement dans l'état où il était.
+// =========================================================================
+const _PDF_OSFS_ICO_ON  = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+const _PDF_OSFS_ICO_OFF = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+
+function _pdfOsFsElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function _pdfOsFsActive(c) {
+    return !!_pdfOsFsElement() && window._pdfOsFsContainer === c;
+}
+
+function _pdfAddOsFsBtn(c, tb) {
+    if (!tb || tb.querySelector('.pdf-osfs-btn')) return;
+    const doc = document.documentElement;
+    if (!(doc.requestFullscreen || doc.webkitRequestFullscreen)) return;   // navigateur non compatible
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pdf-osfs-btn';
+    btn.title = 'Plein écran (tout l’écran)';
+    btn.innerHTML = _PDF_OSFS_ICO_ON;
+
+    // Placé juste avant les pastilles (réduire / plein écran board / fermer)
+    const wf = tb.querySelector(':scope > .wf-btns') || tb.querySelector('.wf-btns');
+    if (wf && wf.parentNode) wf.parentNode.insertBefore(btn, wf);
+    else tb.appendChild(btn);
+
+    // Empêcher le déplacement du widget / le dessin sur le board
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(ev =>
+        btn.addEventListener(ev, e => e.stopPropagation(), { passive: true }));
+
+    // Stylet / doigt (VPI) : on agit au pointerup, le click qui suit est ignoré
+    btn.addEventListener('pointerup', e => {
+        if (e.pointerType !== 'pen' && e.pointerType !== 'touch') return;
+        e.preventDefault(); e.stopPropagation();
+        if (btn._penBusy) return;
+        btn._penBusy = true; btn._penTime = Date.now();
+        setTimeout(() => { btn._penBusy = false; }, 600);
+        _pdfToggleOsFullscreen(c);
+    });
+    btn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (btn._penTime && Date.now() - btn._penTime < 700) return;
+        _pdfToggleOsFullscreen(c);
+    });
+}
+
+function _pdfToggleOsFullscreen(c) {
+    if (!c) return;
+    if (_pdfOsFsElement()) {
+        // Déjà en plein écran Windows → en sortir (la remise en état se fait dans fullscreenchange)
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        return;
+    }
+    // Déplier le PDF s'il est réduit
+    if (c.dataset.collapsed === 'true' && typeof togglePdfCollapse === 'function') togglePdfCollapse(c);
+
+    // Mettre le PDF en plein écran board (on retient si c'est nous qui l'avons fait)
+    const wasBoard = c.classList.contains('wf-pdf-fullboard');
+    if (!wasBoard && typeof togglePdfBoardFullscreen === 'function') togglePdfBoardFullscreen(c);
+    else if (wasBoard && c.classList.contains('pdf-fs-hidden') && typeof _activatePdfFsTab === 'function') _activatePdfFsTab(c);
+
+    window._pdfOsFsContainer = c;
+    c._pdfOsFsAddedBoard = !wasBoard;
+    document.body.classList.add('pdf-os-fs');
+    _pdfFsUpdateLeft();
+
+    const doc = document.documentElement;
+    let p;
+    try { p = (doc.requestFullscreen || doc.webkitRequestFullscreen).call(doc); } catch (err) { p = Promise.reject(err); }
+    if (p && typeof p.catch === 'function') {
+        p.catch(err => {
+            console.warn('Plein écran refusé :', err);
+            _pdfOsFsRestore();
+            _pdfFlash(c, 'Plein écran impossible');
+        });
+    }
+}
+
+// Remet le PDF dans l'état d'avant le plein écran Windows
+function _pdfOsFsRestore() {
+    const c = window._pdfOsFsContainer;
+    window._pdfOsFsContainer = null;
+    document.body.classList.remove('pdf-os-fs');
+    if (c && c._pdfOsFsAddedBoard && c.isConnected && c.classList.contains('wf-pdf-fullboard') &&
+        typeof togglePdfBoardFullscreen === 'function') {
+        togglePdfBoardFullscreen(c);
+    }
+    if (c) c._pdfOsFsAddedBoard = false;
+    _pdfFsUpdateLeft();
+}
+
+function _pdfOsFsRefreshButtons() {
+    document.querySelectorAll('.editor-container.pdf-v2').forEach(c => {
+        const b = c.querySelector('.pdf-osfs-btn');
+        if (!b) return;
+        const on = _pdfOsFsActive(c);
+        if (b.classList.contains('pdf-on') === on && b.innerHTML) return;
+        b.classList.toggle('pdf-on', on);
+        b.innerHTML = on ? _PDF_OSFS_ICO_OFF : _PDF_OSFS_ICO_ON;
+        b.title = on ? 'Quitter le plein écran (Échap)' : 'Plein écran (tout l’écran)';
+    });
+}
+
+['fullscreenchange', 'webkitfullscreenchange'].forEach(ev =>
+    document.addEventListener(ev, () => {
+        if (!_pdfOsFsElement() && window._pdfOsFsContainer) _pdfOsFsRestore();
+        _pdfOsFsRefreshButtons();
+    }));
 
 function _pdfFlash(c, text) {
     const f = c && c.querySelector(':scope > .pdf-flash');
@@ -2947,7 +3077,8 @@ function _pdfFlash(c, text) {
 // cachent : pas de décalage.
 function _pdfFsUpdateLeft() {
     let left = 0;
-    if (!document.body.classList.contains('presentation-mode')) {
+    if (!document.body.classList.contains('presentation-mode') &&
+        !document.body.classList.contains('pdf-os-fs')) {   // plein écran Windows : tout l'écran
         // Largeur AU REPOS des onglets (variable CSS --tab-w), et non leur largeur
         // mesurée : un onglet survolé ou ouvert s'élargit, la marge doit rester fixe.
         let tabW = 0, tabLeft = Infinity;
@@ -2980,6 +3111,13 @@ window.addEventListener('resize', _pdfFsUpdateLeft);
 // ── Bouton ✏️ allumé pendant l'annotation de ce PDF ──────────────────────
 setInterval(() => {
     if (document.querySelector('.editor-container.wf-pdf-fullboard')) _pdfFsUpdateLeft();
+    // Plein écran Windows : si le PDF a quitté le plein écran board (bouton vert,
+    // « Tout quitter », fermeture), on quitte aussi le plein écran Windows
+    const osc = window._pdfOsFsContainer;
+    if (osc && _pdfOsFsElement() && (!osc.isConnected || !osc.classList.contains('wf-pdf-fullboard'))) {
+        osc._pdfOsFsAddedBoard = false;
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    }
     document.querySelectorAll('.editor-container.pdf-v2').forEach(c => {
         const b = c.querySelector('.pdf-annot-widget-btn');
         if (!b) return;
@@ -3050,6 +3188,10 @@ setInterval(() => {
 .pdf-v2 .pdf-zoom-label{color:#bdbdc6 !important;font-size:11px !important;min-width:36px !important;font-variant-numeric:tabular-nums}
 /* Annoter / enregistrer / fond d'écran */
 .pdf-v2 .pdf-annot-widget-btn.pdf-on{background:rgba(74,144,226,.3) !important;color:#fff !important;box-shadow:inset 0 0 0 1px #4a90e2 !important}
+.pdf-v2 > .editor-toolbar .pdf-osfs-btn{display:inline-flex !important;margin-left:2px}
+.pdf-v2 .pdf-zoom-page .pdf-zp-ico{display:block;pointer-events:none}
+.pdf-v2 > .editor-toolbar .pdf-osfs-btn svg{display:block;pointer-events:none}
+.pdf-v2 > .editor-toolbar .pdf-osfs-btn.pdf-on{background:rgba(74,144,226,.3) !important;color:#fff !important;box-shadow:inset 0 0 0 1px #4a90e2 !important}
 .pdf-v2 .wf-btns{margin-left:4px !important;gap:6px !important;flex-shrink:0 !important}
 @container (max-width: 820px){ .pdf-v2 .pdf-filename{max-width:130px !important} }
 @container (max-width: 680px){ .pdf-v2 .pdf-zoom-fit,.pdf-v2 .pdf-zoom-page,.pdf-v2 .pdf-wallpaper-btn{display:none !important} .pdf-v2 .pdf-filename{display:none} }

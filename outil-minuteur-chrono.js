@@ -336,8 +336,8 @@
 
     /* ── Mode « barre compacte » : le widget devient une fine barre une fois lancé ── */
     .widget[data-type="minuteur"] .mc-outer.mc-flat {
-        width: max-content !important;
-        height: auto !important;
+        width: 300px !important;
+        height: 60px !important;
         min-width: 0 !important;
         min-height: 0 !important;
         resize: none !important;
@@ -347,19 +347,19 @@
     .widget[data-type="minuteur"] .mc-outer.mc-flat > :not(.mc-flatbar) { display: none !important; }
     .widget[data-type="minuteur"] .mc-flatbar { display: none; }
     .widget[data-type="minuteur"] .mc-outer.mc-flat .mc-flatbar {
-        display: flex; align-items: center; gap: 5px;
+        display: flex; align-items: center; gap: 6px;
         position: relative;
-        height: 38px; box-sizing: border-box;
-        padding: 0 5px 0 12px;
+        width: 100%; height: 50px; box-sizing: border-box;
+        padding: 0 7px 0 14px;
         background: rgba(255,255,255,0.92);
         border-radius: 999px;
         box-shadow: inset 0 2px 6px rgba(10,20,35,0.08);
         user-select: none;
     }
-    .widget[data-type="minuteur"] .mc-fb-ico { font-size: 15px; line-height: 1; pointer-events: none; }
+    .widget[data-type="minuteur"] .mc-fb-ico { font-size: 19px; line-height: 1; pointer-events: none; }
     .widget[data-type="minuteur"] .mc-fb-time {
-        min-width: 70px; text-align: center;
-        font-size: 22px; font-weight: 700; line-height: 1;
+        flex: 1; min-width: 0; text-align: center;
+        font-size: 28px; font-weight: 700; line-height: 1;
         font-variant-numeric: tabular-nums; color: var(--mc-ink);
         pointer-events: none; transition: color .3s;
     }
@@ -369,11 +369,11 @@
     .widget[data-type="minuteur"] .mc-outer.mc-flat:has(.mc-flatbar.is-finished) { animation: mc-fb-alert 0.6s infinite alternate; }
     @keyframes mc-fb-alert { from { background-color: var(--mc-bg); } to { background-color: #F08A80; } }
     .widget[data-type="minuteur"] .mc-fb-btn {
-        width: 28px; height: 28px; flex-shrink: 0;
+        width: 34px; height: 34px; flex-shrink: 0;
         display: flex; align-items: center; justify-content: center;
         border: none; border-radius: 50%; padding: 0;
         background: #F4F6F9; color: var(--mc-ink);
-        font-size: 12px; line-height: 1;
+        font-size: 15px; line-height: 1;
         box-shadow: 0 2px 0 rgba(20,32,46,0.12);
         transition: filter .15s, background .15s;
     }
@@ -381,7 +381,7 @@
     .widget[data-type="minuteur"] .mc-fb-btn[data-fb="toggle"] { background: #D98A10; color: #fff; }
     .widget[data-type="minuteur"] .mc-flatbar:not(.is-running) .mc-fb-btn[data-fb="toggle"] { background: #23915A; }
     .widget[data-type="minuteur"] .mc-fb-prog {
-        position: absolute; left: 14px; right: 14px; bottom: 3px; height: 3px;
+        position: absolute; left: 18px; right: 18px; bottom: 4px; height: 4px;
         border-radius: 99px; background: rgba(20,32,46,0.08); overflow: hidden;
         pointer-events: none;
     }
@@ -1743,11 +1743,65 @@
         if (phone && widget._mcEnterMax) widget._mcEnterMax();
     }
 
+    // =========================================================================
+    // AU-DESSUS D'UN PDF EN PLEIN TABLEAU
+    // Le PDF en plein tableau passe son widget en position fixe avec
+    // z-index 9999 : tant qu'un PDF est dans cet état, les minuteurs passent
+    // au-dessus (z-index 10000), puis retrouvent leur z-index d'origine.
+    // =========================================================================
+    var MC_Z_OVER_PDF = 10000;
+    function mcPdfFullboardOn() {
+        return !!document.querySelector('.editor-container.wf-pdf-fullboard');
+    }
+    function mcRaiseOverPdf(w) {
+        if ((parseInt(w.style.zIndex, 10) || 0) >= MC_Z_OVER_PDF) return;
+        if (w.dataset.mcZSaved === undefined) w.dataset.mcZSaved = w.style.zIndex || '';
+        w.style.zIndex = MC_Z_OVER_PDF;
+    }
+    function mcSyncPdfLayer() {
+        var on = mcPdfFullboardOn();
+        document.querySelectorAll('.widget[data-type="minuteur"]').forEach(function (w) {
+            if (on) mcRaiseOverPdf(w);
+            else if (w.dataset.mcZSaved !== undefined) {
+                w.style.zIndex = w.dataset.mcZSaved;
+                delete w.dataset.mcZSaved;
+            }
+        });
+    }
+    // Vérification légère et régulière : couvre le passage en plein tableau
+    // après l'ouverture du minuteur, et un éventuel « mettre au premier plan »
+    // du tableau qui redonnerait un z-index plus faible au minuteur.
+    if (!window._mcPdfLayerTimer) window._mcPdfLayerTimer = setInterval(mcSyncPdfLayer, 400);
+
+    // À l'ouverture par-dessus un PDF : visible tout de suite, et dans l'écran
+    function openOverPdf(widget) {
+        if (!mcPdfFullboardOn()) return;
+        mcRaiseOverPdf(widget);
+        requestAnimationFrame(function () { requestAnimationFrame(function () {
+            var r = widget.getBoundingClientRect();
+            var tabbar = document.getElementById('pdf-fs-tabbar');
+            var minTop = (tabbar && tabbar.style.display !== 'none') ? tabbar.getBoundingClientRect().bottom + 12 : 60;
+            var maxTop = Math.max(minTop, window.innerHeight - Math.min(r.height, window.innerHeight) - 12);
+            var wanted = Math.max(minTop, Math.min(r.top, maxTop));
+            if (Math.abs(wanted - r.top) > 1) {
+                widget.style.top = (widget.offsetTop + (wanted - r.top)) + 'px';
+                var curVH = typeof virtualH === 'function' ? virtualH(window.innerWidth) : window.innerHeight;
+                widget.dataset.topPercent = (widget.offsetTop / curVH) * 100;
+            }
+        }); });
+    }
+
+    function onMinuteurCreated(widget) {
+        initMinuteurWidget(widget);
+        openMaxOnPhone(widget);
+        openOverPdf(widget);
+    }
+
     var _orig = window.createWidget;
     if (typeof _orig === 'function') {
         window.createWidget = function (type) {
             var widget = _orig.apply(this, arguments);
-            if (type === 'minuteur' && widget) { initMinuteurWidget(widget); openMaxOnPhone(widget); }
+            if (type === 'minuteur' && widget) onMinuteurCreated(widget);
             return widget;
         };
     } else {
@@ -1756,7 +1810,7 @@
             if (typeof orig === 'function') {
                 window.createWidget = function (type) {
                     var widget = orig.apply(this, arguments);
-                    if (type === 'minuteur' && widget) { initMinuteurWidget(widget); openMaxOnPhone(widget); }
+                    if (type === 'minuteur' && widget) onMinuteurCreated(widget);
                     return widget;
                 };
             }

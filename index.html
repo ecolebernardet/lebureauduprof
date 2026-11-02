@@ -4464,23 +4464,69 @@ body.menu-light #contact-status.err { color: #d33a3f; }
         'traces':        'lancerTracesGeometriques'
     };
 
+    var nomFonction = ALIAS[cible] || cible;
+    var widgetCree = null;    // l'élément ajouté au tableau par le raccourci
+    var essais = 0;
+    var timer = null;
+
+    function outilPresent() {
+        return widgetCree && document.contains(widgetCree);
+    }
+
+    function lancer() {
+        if (outilPresent() || essais >= 3) return;
+        essais++;
+        var avant = new Set(document.querySelectorAll('.widget'));
+        try {
+            if (/^(create|lancer)\w*$/.test(nomFonction) && typeof window[nomFonction] === 'function') {
+                window._wfLastLaunch = Date.now();
+                window[nomFonction]();
+            } else if (typeof createWidget === 'function') {
+                window._wfLastLaunch = Date.now(); // plein écran sur téléphone, comme depuis un panneau
+                createWidget(cible);
+            }
+        } catch (e) { console.warn('Raccourci ?ouvrir=' + cible + ' :', e); }
+        // Repère le widget qui vient d'apparaître
+        widgetCree = null;
+        document.querySelectorAll('.widget').forEach(function(w) {
+            if (!widgetCree && !avant.has(w)) widgetCree = w;
+        });
+    }
+
+    function planifier(delai) {
+        clearTimeout(timer);
+        timer = setTimeout(lancer, delai);
+    }
+
     window.addEventListener('load', function() {
-        // Petit délai : laisse le tableau se restaurer avant d'ajouter l'outil
+        var t0 = Date.now();
+
+        // board.js restaure le tableau enregistré ~1 s après « load » et le
+        // reconstruit : un outil ajouté avant serait effacé. On lance donc
+        // l'outil APRÈS chaque restauration qui a lieu au démarrage.
+        if (typeof window.restoreBoardFromJSON === 'function') {
+            var _origRestore = window.restoreBoardFromJSON;
+            window.restoreBoardFromJSON = function() {
+                var r = _origRestore.apply(this, arguments);
+                if (Date.now() - t0 < 6000) planifier(400);
+                return r;
+            };
+            // Garder les marqueurs éventuels de l'original (ex. _wpgPatched)
+            Object.keys(_origRestore).forEach(function(k) { window.restoreBoardFromJSON[k] = _origRestore[k]; });
+        }
+
+        // Lancement principal, une fois la restauration normalement terminée
+        planifier(1500);
+
+        // Filet de sécurité : si l'outil a disparu entre-temps, on le rouvre
+        setTimeout(function() { if (widgetCree && !outilPresent()) lancer(); }, 3000);
+
+        // Retire le paramètre de l'adresse : un F5 ne relancera pas l'outil une 2e fois
         setTimeout(function() {
-            var nomFonction = ALIAS[cible] || cible;
-            try {
-                if (/^(create|lancer)\w*$/.test(nomFonction) && typeof window[nomFonction] === 'function') {
-                    window[nomFonction]();
-                } else if (typeof createWidget === 'function') {
-                    window._wfLastLaunch = Date.now(); // plein écran sur téléphone, comme depuis un panneau
-                    createWidget(cible);
-                }
-            } catch (e) { console.warn('Raccourci ?ouvrir=' + cible + ' :', e); }
-            // Retire le paramètre de l'adresse : un F5 ne relancera pas l'outil une 2e fois
             params.delete('ouvrir');
             var reste = params.toString();
             history.replaceState(null, '', location.pathname + (reste ? '?' + reste : '') + location.hash);
-        }, 600);
+        }, 3200);
     });
 })();
 </script>

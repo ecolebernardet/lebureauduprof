@@ -334,6 +334,63 @@
         outline: none !important;
     }
 
+    /* ── Mode « barre compacte » : le widget devient une fine barre une fois lancé ── */
+    .widget[data-type="minuteur"] .mc-outer.mc-flat {
+        width: max-content !important;
+        height: auto !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        resize: none !important;
+        border-radius: 999px;
+        padding: 5px;
+    }
+    .widget[data-type="minuteur"] .mc-outer.mc-flat > :not(.mc-flatbar) { display: none !important; }
+    .widget[data-type="minuteur"] .mc-flatbar { display: none; }
+    .widget[data-type="minuteur"] .mc-outer.mc-flat .mc-flatbar {
+        display: flex; align-items: center; gap: 5px;
+        position: relative;
+        height: 38px; box-sizing: border-box;
+        padding: 0 5px 0 12px;
+        background: rgba(255,255,255,0.92);
+        border-radius: 999px;
+        box-shadow: inset 0 2px 6px rgba(10,20,35,0.08);
+        user-select: none;
+    }
+    .widget[data-type="minuteur"] .mc-fb-ico { font-size: 15px; line-height: 1; pointer-events: none; }
+    .widget[data-type="minuteur"] .mc-fb-time {
+        min-width: 70px; text-align: center;
+        font-size: 22px; font-weight: 700; line-height: 1;
+        font-variant-numeric: tabular-nums; color: var(--mc-ink);
+        pointer-events: none; transition: color .3s;
+    }
+    .widget[data-type="minuteur"] .mc-flatbar.is-running .mc-fb-time  { color: #23915A; }
+    .widget[data-type="minuteur"] .mc-flatbar.is-paused .mc-fb-time   { color: #B9770E; }
+    .widget[data-type="minuteur"] .mc-flatbar.is-finished .mc-fb-time { color: #C0392B; animation: mc-blink 0.6s infinite alternate; }
+    .widget[data-type="minuteur"] .mc-outer.mc-flat:has(.mc-flatbar.is-finished) { animation: mc-fb-alert 0.6s infinite alternate; }
+    @keyframes mc-fb-alert { from { background-color: var(--mc-bg); } to { background-color: #F08A80; } }
+    .widget[data-type="minuteur"] .mc-fb-btn {
+        width: 28px; height: 28px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        border: none; border-radius: 50%; padding: 0;
+        background: #F4F6F9; color: var(--mc-ink);
+        font-size: 12px; line-height: 1;
+        box-shadow: 0 2px 0 rgba(20,32,46,0.12);
+        transition: filter .15s, background .15s;
+    }
+    .widget[data-type="minuteur"] .mc-fb-btn:hover { filter: brightness(0.93); }
+    .widget[data-type="minuteur"] .mc-fb-btn[data-fb="toggle"] { background: #D98A10; color: #fff; }
+    .widget[data-type="minuteur"] .mc-flatbar:not(.is-running) .mc-fb-btn[data-fb="toggle"] { background: #23915A; }
+    .widget[data-type="minuteur"] .mc-fb-prog {
+        position: absolute; left: 14px; right: 14px; bottom: 3px; height: 3px;
+        border-radius: 99px; background: rgba(20,32,46,0.08); overflow: hidden;
+        pointer-events: none;
+    }
+    .widget[data-type="minuteur"] .mc-fb-bar {
+        height: 100%; width: 100%; border-radius: 99px;
+        background: var(--mc-op); transition: width .25s linear;
+    }
+    .widget[data-type="minuteur"] .mc-fb-bar.mc-low { background: #C0392B; }
+
     /* ── Téléphone : plein écran, hauteur réelle de l'écran ── */
     @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
         .widget[data-type="minuteur"] .mc-outer.mc-max {
@@ -392,7 +449,8 @@
     };
     const MC_DEFAULT_THEME = 'jaune';
     const MC_ICON_CLOCK   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2"/><path d="M10 2.5h4"/><path d="M12 2.5V6"/></svg>';
-    const MC_ICON_PALETTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg>';
+    const MC_ICON_FLAT    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="9" width="19" height="6" rx="3"/><path d="M12 2.5v4M10 4.5l2 2 2-2"/><path d="M12 21.5v-4M10 19.5l2-2 2 2"/></svg>';
+    const MC_ICON_PALETTE ='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg>';
 
     // ── Template ─────────────────────────────────────────────────────────
     if (!document.getElementById('template-minuteur')) {
@@ -545,6 +603,7 @@
             header.innerHTML = `
                 <div class="mc-title">${MC_ICON_CLOCK}<span>Minuteur &amp; Chrono</span></div>
                 <div class="mc-tools">
+                    <button class="mc-icon-btn mc-flat-btn" title="Barre compacte au lancement">${MC_ICON_FLAT}</button>
                     <button class="mc-icon-btn mc-theme-btn" title="Couleur du cadre">${MC_ICON_PALETTE}</button>
                     <span class="mc-hsep"></span>
                     <div class="wf-btns">
@@ -555,6 +614,25 @@
                 </div>`;
             outer.insertBefore(header, outer.firstChild);
         }
+        // En-tête venant d'une ancienne sauvegarde : ajouter le bouton « barre compacte »
+        if (!outer.querySelector('.mc-flat-btn')) {
+            const tb = outer.querySelector('.mc-theme-btn');
+            if (tb) tb.insertAdjacentHTML('beforebegin',
+                '<button class="mc-icon-btn mc-flat-btn" title="Barre compacte au lancement">' + MC_ICON_FLAT + '</button>');
+        }
+        // Barre compacte (recréée à chaque initialisation)
+        outer.classList.remove('mc-flat');
+        outer.querySelectorAll('.mc-flatbar').forEach(el => el.remove());
+        const flatBar = document.createElement('div');
+        flatBar.className = 'mc-flatbar';
+        flatBar.innerHTML =
+            '<span class="mc-fb-ico"></span>' +
+            '<span class="mc-fb-time">00:00</span>' +
+            '<button class="mc-fb-btn" data-fb="toggle" title="Pause / reprendre"></button>' +
+            '<button class="mc-fb-btn" data-fb="reset"  title="Remettre à zéro">&#8635;</button>' +
+            '<button class="mc-fb-btn" data-fb="expand" title="Agrandir le widget">&#x2922;</button>' +
+            '<div class="mc-fb-prog"><div class="mc-fb-bar"></div></div>';
+        outer.appendChild(flatBar);
         if (!outer.querySelector('.mc-pop')) {
             const pop = document.createElement('div');
             pop.className = 'mc-pop';
@@ -746,6 +824,7 @@
 
         function mcCollapse() {
             if (widget.dataset.collapsed === '1') return;
+            exitFlat();
             mcExitMax();
 
             // Mémoriser l'état d'origine
@@ -852,6 +931,103 @@
             });
         }
 
+        // ── Barre compacte au lancement ──────────────────────────────────────
+        // Option (bouton dans l'en-tête) : dès qu'un décompte / le chrono démarre,
+        // le widget se réduit en une fine barre (temps + pause + reset + agrandir).
+        const flatBtn   = outer.querySelector('.mc-flat-btn');
+        const fbIco     = flatBar.querySelector('.mc-fb-ico');
+        const fbTime    = flatBar.querySelector('.mc-fb-time');
+        const fbToggle  = flatBar.querySelector('[data-fb="toggle"]');
+        const fbReset   = flatBar.querySelector('[data-fb="reset"]');
+        const fbExpand  = flatBar.querySelector('[data-fb="expand"]');
+        const fbBar     = flatBar.querySelector('.mc-fb-bar');
+        const flatApi   = {};          // fourni par chaque panneau : info(), toggle(), reset()
+        const FB_ICONS  = { min: '⏳', vis: '🔴', chr: '⏱️' };
+        let flatSrc     = null;        // panneau affiché dans la barre
+        let flatTimer   = null;
+
+        function flatOptOn() { return widget.dataset.mcFlat === '1'; }
+        function applyFlatOpt(on) {
+            widget.dataset.mcFlat = on ? '1' : '0';
+            if (flatBtn) {
+                flatBtn.classList.toggle('is-on', on);
+                flatBtn.title = on ? 'Barre compacte au lancement : activée'
+                                   : 'Barre compacte au lancement : désactivée';
+            }
+        }
+        widget._mcApplyFlatOpt = applyFlatOpt;
+
+        function renderFlat() {
+            if (!document.contains(widget)) { exitFlat(); return; }
+            const api = flatApi[flatSrc];
+            if (!api) return;
+            const inf = api.info();
+            fbIco.textContent = FB_ICONS[flatSrc] || '';
+            fbTime.textContent = inf.text;
+            flatBar.classList.toggle('is-running',  inf.state === 'running');
+            flatBar.classList.toggle('is-paused',   inf.state === 'paused');
+            flatBar.classList.toggle('is-finished', inf.state === 'finished');
+            fbToggle.innerHTML = inf.state === 'running' ? '&#10074;&#10074;'
+                               : inf.state === 'finished' ? '&#8635;' : '&#9654;';
+            fbToggle.title = inf.state === 'running' ? 'Pause'
+                           : inf.state === 'finished' ? 'Relancer' : 'Reprendre';
+            fbReset.style.display = inf.state === 'finished' ? 'none' : '';
+            const prog = fbBar.parentNode;
+            if (inf.frac == null) { prog.style.display = 'none'; }
+            else {
+                prog.style.display = '';
+                fbBar.style.width = (Math.max(0, Math.min(1, inf.frac)) * 100) + '%';
+                fbBar.style.background = inf.color || '';
+                fbBar.classList.toggle('mc-low', !inf.color && inf.frac <= 0.2);
+            }
+        }
+
+        function enterFlat(id) {
+            if (id) flatSrc = id;
+            if (!flatApi[flatSrc]) return;
+            mcExitMax();
+            themePop.classList.remove('show');
+            themeBtn.classList.remove('is-on');
+            outer.classList.add('mc-flat');
+            renderFlat();
+            if (!flatTimer) flatTimer = setInterval(renderFlat, 200);
+        }
+        function exitFlat() {
+            if (flatTimer) { clearInterval(flatTimer); flatTimer = null; }
+            if (!outer.classList.contains('mc-flat')) return;
+            outer.classList.remove('mc-flat');
+            applyScale();
+        }
+        // Appelé par chaque panneau quand il passe en « marche »
+        function onRunStart(id) {
+            flatSrc = id;
+            if (flatOptOn() && widget.dataset.collapsed !== '1') enterFlat(id);
+            else if (outer.classList.contains('mc-flat')) renderFlat();
+        }
+
+        if (flatBtn) {
+            flatBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const on = !flatOptOn();
+                applyFlatOpt(on);
+                // Activée pendant qu'un décompte tourne : on réduit tout de suite
+                if (on && flatSrc && flatApi[flatSrc] && flatApi[flatSrc].info().state === 'running') enterFlat(flatSrc);
+                if (typeof saveBoard === 'function') saveBoard();
+            });
+        }
+        [fbToggle, fbReset, fbExpand].forEach(b => {
+            b.addEventListener('pointerdown', e => e.stopPropagation());
+            b.addEventListener('mousedown',   e => e.stopPropagation());
+            b.addEventListener('touchstart',  e => e.stopPropagation(), { passive: true });
+        });
+        fbToggle.addEventListener('click', (e) => { e.stopPropagation(); if (flatApi[flatSrc]) flatApi[flatSrc].toggle(); renderFlat(); });
+        fbReset.addEventListener('click',  (e) => { e.stopPropagation(); if (flatApi[flatSrc]) flatApi[flatSrc].reset(); exitFlat(); });
+        fbExpand.addEventListener('click', (e) => { e.stopPropagation(); exitFlat(); });
+        // Double-clic sur la barre : agrandir
+        flatBar.addEventListener('dblclick', (e) => { if (!e.target.closest('button')) exitFlat(); });
+
+        applyFlatOpt(widget.dataset.mcFlat === '1');
+
         // ── Onglets ──────────────────────────────────────────────────────────
         const tabs   = widget.querySelectorAll('.mc-tab');
         const panels = widget.querySelectorAll('.mc-panel');
@@ -883,6 +1059,7 @@
             var inpH = inputs[0], inpM = inputs[1], inpS = inputs[2];
 
             var totalSec = 0, remaining = 0, startTime = null;
+            var fullSec = 0;   // durée de départ (pour la barre compacte)
             var intervalId = null;
             var state = 'idle'; // idle | running | paused | finished
 
@@ -969,6 +1146,7 @@
                     totalSec = getTotal();
                     if (totalSec <= 0) return;
                     remaining  = totalSec;
+                    fullSec    = totalSec;
                     startTime  = Date.now();
                     state      = 'running';
                     setup.style.display    = 'none';
@@ -981,6 +1159,7 @@
                     btnStart.textContent   = 'Pause';
                     btnStart.className     = 'mc-btn mc-btn-pause';
                     btnReset.style.display = 'inline-block';
+                    onRunStart('min');
 
                 } else if (state === 'running') {
                     clearInterval(intervalId); intervalId = null;
@@ -997,8 +1176,19 @@
                     intervalId           = setInterval(tick, 250);
                     btnStart.textContent = 'Pause';
                     btnStart.className   = 'mc-btn mc-btn-pause';
+                    onRunStart('min');
                 }
             });
+
+            flatApi.min = {
+                info: function () {
+                    var r = state === 'idle' ? getTotal() : remaining;
+                    return { text: fmt(r), state: state,
+                             frac: state === 'idle' || !fullSec ? 1 : remaining / fullSec };
+                },
+                toggle: function () { btnStart.click(); },
+                reset:  function () { btnReset.click(); }
+            };
 
             btnReset.addEventListener('click', function() {
                 clearInterval(intervalId); intervalId = null;
@@ -1331,7 +1521,18 @@
                     timerId = setInterval(tick, 100);
                 }
                 updateButtons();
+                if (state === 'running') onRunStart('vis');
             });
+
+            flatApi.vis = {
+                info: function () {
+                    return { text: fmt(remaining), state: state,
+                             frac: setSec > 0 ? remaining / setSec : 1,
+                             color: wedge.getAttribute('fill') || '' };
+                },
+                toggle: function () { btnStart.click(); },
+                reset:  function () { btnReset.click(); }
+            };
 
             btnReset.addEventListener('click', function () {
                 stopTimer();
@@ -1408,6 +1609,7 @@
                     btnStart.className     = 'mc-btn mc-btn-pause';
                     btnLap.style.display   = 'inline-block';
                     btnReset.style.display = 'none';
+                    onRunStart('chr');
                 } else {
                     cancelAnimationFrame(rafId); rafId = null;
                     running = false;
@@ -1418,6 +1620,16 @@
                     btnReset.style.display = 'inline-block';
                 }
             });
+
+            flatApi.chr = {
+                info: function () {
+                    return { text: fmt(running ? Date.now() - startTime : elapsed),
+                             state: running ? 'running' : (elapsed > 0 ? 'paused' : 'idle'),
+                             frac: null };
+                },
+                toggle: function () { btnStart.click(); },
+                reset:  function () { btnReset.click(); }
+            };
 
             btnLap.addEventListener('click', function() {
                 var split = elapsed - lapStart;
@@ -1469,6 +1681,7 @@
                         const saved = list.filter(w => w && w.type === 'minuteur');
                         document.querySelectorAll('.widget[data-type="minuteur"]').forEach((w, i) => {
                             if (saved[i] && w.dataset.mcTheme) saved[i].mcTheme = w.dataset.mcTheme;
+                            if (saved[i]) saved[i].mcFlat = w.dataset.mcFlat === '1';
                         });
                     } catch (e) {}
                     return state;
@@ -1491,14 +1704,19 @@
             const _orig = window.restoreBoardFromJSON;
             if (typeof _orig !== 'function' || _orig._mcPatched) return;
             const patched = function (json) {
-                let themes = [];
+                let themes = [], flats = [];
                 try {
                     const parsed  = JSON.parse(json);
                     const widgets = Array.isArray(parsed) ? parsed : (parsed.widgets || []);
                     themes = widgets.filter(w => w && w.type === 'minuteur').map(w => w.mcTheme || '');
+                    flats  = widgets.filter(w => w && w.type === 'minuteur').map(w => !!w.mcFlat);
                 } catch (e) {}
                 const res = _orig.apply(this, arguments);
                 const apply = () => document.querySelectorAll('.widget[data-type="minuteur"]').forEach((w, i) => {
+                    if (typeof flats[i] === 'boolean') {
+                        w.dataset.mcFlat = flats[i] ? '1' : '0';
+                        if (typeof w._mcApplyFlatOpt === 'function') w._mcApplyFlatOpt(flats[i]);
+                    }
                     if (!themes[i]) return;
                     w.dataset.mcTheme = themes[i];
                     if (typeof w._mcApplyTheme === 'function') w._mcApplyTheme(themes[i]);

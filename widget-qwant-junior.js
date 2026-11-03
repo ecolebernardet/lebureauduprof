@@ -23,7 +23,7 @@ const _QJ_LS_RECENT = 'lbdp-qwant-junior-recents';
 
 document.body.insertAdjacentHTML('beforeend', `
 <template id="template-qwant-junior">
-    <div class="editor-container qj-v2" style="height:340px;width:560px;">
+    <div class="editor-container qj-v2" style="height:500px;width:800px;">
         <div class="qj-bar editor-toolbar" title="Glisser pour déplacer">
             <span class="qj-bar-title">🔎 Qwant Junior</span>
             <div class="wf-btns"${_QJ_STOP}>
@@ -289,7 +289,7 @@ function _qjInit(c) {
     if (c.querySelector('iframe.qj-frame')) {
         const tpl = document.getElementById('template-qwant-junior');
         const fresh = tpl && tpl.content.querySelector('.qj-v2');
-        if (fresh) { c.innerHTML = fresh.innerHTML; c.style.width = '560px'; c.style.height = '340px'; }
+        if (fresh) { c.innerHTML = fresh.innerHTML; c.style.width = '800px'; c.style.height = '500px'; }
     }
     // Widget sauvegardé avec un seul bouton « Chercher » : on met les deux boutons
     const oldGo = c.querySelector('.qj-go[data-qj-action="go"]');

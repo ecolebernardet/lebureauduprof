@@ -704,6 +704,11 @@ function buildBoardState() {
         if (w.dataset.type === 'qr-code' && typeof window.qrcGetData === 'function') {
             qrcData = window.qrcGetData(w);
         }
+        // Données propres au widget Œuvre d'art du jour (œuvre, questions révélées, cartel, taille du texte, mode projection)
+        let oadData = null;
+        if (w.dataset.type === 'oeuvre-art-du-jour' && typeof window.oadGetData === 'function') {
+            oadData = window.oadGetData(w);
+        }
         let derData = null;
         if (w.dataset.type === 'deroule' && typeof w._derGetData === 'function') {
             derData = w._derGetData();
@@ -839,7 +844,8 @@ function buildBoardState() {
 			tconvData,
 			tnrData,
 			dicData,
-			qrcData
+			qrcData,
+			oadData
 		});
     });
     const shapes = [];
@@ -1785,6 +1791,10 @@ function restoreBoardFromJSON(json) {
         // QR code : réafficher le code, sa légende, sa couleur et le mode projection
         if (w.type === 'qr-code' && w.qrcData && typeof window.qrcSetData === 'function') {
             window.qrcSetData(widget, w.qrcData);
+        }
+        // Œuvre d'art du jour : réafficher l'œuvre (ou celle du nouveau jour), les questions et le cartel
+        if (w.type === 'oeuvre-art-du-jour' && w.oadData && typeof window.oadSetData === 'function') {
+            window.oadSetData(widget, w.oadData);
         }
         const c = widget.querySelector('.editor-container');
         const hP = w.contentHPercent !== undefined ? w.contentHPercent : w.heightPercent;

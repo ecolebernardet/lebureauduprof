@@ -1168,6 +1168,7 @@ function setVisuelsMode(mode) {
 <script src="widget-qwant-junior.js"></script>
 <script src="widget-dictionnaire.js"></script>
 <script src="widget-qr-code.js"></script>
+<script src="widget-oeuvre-art-du-jour.js"></script>
 <script src="widget-carte.js"></script>
 <script src="outil-outilsprofs.js"></script>
 <script src="help-modal.js"></script>
@@ -2400,6 +2401,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="widgets-card-ico"><img src="pics/widget-qr-code.jpg" alt="Créer un QR code à scanner" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔳'"></div>
                 <div class="widgets-card-name">QR code</div>
                 <div class="widgets-card-desc">Transformer une adresse en code à scanner</div>
+            </div>
+            <div class="widgets-card" onclick="createWidget('oeuvre-art-du-jour');toggleWidgetsPanel()">
+                <div class="widgets-card-ico"><img src="pics/widget-oeuvre-art-du-jour.jpg" alt="Observer un tableau célèbre chaque jour" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🖼️'"></div>
+                <div class="widgets-card-name">Œuvre d'art du jour</div>
+                <div class="widgets-card-desc">Un tableau célèbre à observer chaque jour</div>
             </div>
 			<div class="widgets-card" onclick="createWidget('diaporama');toggleWidgetsPanel()">
                 <div class="widgets-card-ico"><img src="pics/widget-diaporama.jpg" alt="Projeter les images d'un dossier en diaporama" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎞️'"></div>
@@ -4128,6 +4134,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'dictionnaire': function(c) { return c.classList.contains('wf-media-fullboard')
                                      ? null : (typeof toggleMediaBoardFullscreen === 'function' ? toggleMediaBoardFullscreen : null); },
         'qr-code': function(c) { return c.classList.contains('wf-media-fullboard')
+                                     ? null : (typeof toggleMediaBoardFullscreen === 'function' ? toggleMediaBoardFullscreen : null); },
+        'oeuvre-art-du-jour': function(c) { return c.classList.contains('wf-media-fullboard')
                                      ? null : (typeof toggleMediaBoardFullscreen === 'function' ? toggleMediaBoardFullscreen : null); },
         'carte':   function(c) { return c.classList.contains('wf-media-fullboard')
                                      ? null : (typeof toggleMediaBoardFullscreen === 'function' ? toggleMediaBoardFullscreen : null); }

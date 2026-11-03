@@ -694,6 +694,11 @@ function buildBoardState() {
         if (w.dataset.type === 'tableau-numeration' && typeof window.tnrGetData === 'function') {
             tnrData = window.tnrGetData(w);
         }
+        // Données propres au widget Dictionnaire (mot affiché, saisie, taille du texte)
+        let dicData = null;
+        if (w.dataset.type === 'dictionnaire' && typeof window.dicGetData === 'function') {
+            dicData = window.dicGetData(w);
+        }
         let derData = null;
         if (w.dataset.type === 'deroule' && typeof w._derGetData === 'function') {
             derData = w._derGetData();
@@ -827,7 +832,8 @@ function buildBoardState() {
 			derData,
 			tabData,
 			tconvData,
-			tnrData
+			tnrData,
+			dicData
 		});
     });
     const shapes = [];
@@ -1765,6 +1771,10 @@ function restoreBoardFromJSON(json) {
         // Tableau de numération : réappliquer les classes affichées, les options, les dessins, chiffres et couleurs
         if (w.type === 'tableau-numeration' && w.tnrData && typeof window.tnrSetData === 'function') {
             window.tnrSetData(widget, w.tnrData);
+        }
+        // Dictionnaire : réafficher le mot consulté et la taille du texte
+        if (w.type === 'dictionnaire' && w.dicData && typeof window.dicSetData === 'function') {
+            window.dicSetData(widget, w.dicData);
         }
         const c = widget.querySelector('.editor-container');
         const hP = w.contentHPercent !== undefined ? w.contentHPercent : w.heightPercent;

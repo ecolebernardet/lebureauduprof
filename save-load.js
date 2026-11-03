@@ -699,6 +699,11 @@ function buildBoardState() {
         if (w.dataset.type === 'dictionnaire' && typeof window.dicGetData === 'function') {
             dicData = window.dicGetData(w);
         }
+        // Données propres au widget QR code (texte, légende, couleur, correction, mode projection)
+        let qrcData = null;
+        if (w.dataset.type === 'qr-code' && typeof window.qrcGetData === 'function') {
+            qrcData = window.qrcGetData(w);
+        }
         let derData = null;
         if (w.dataset.type === 'deroule' && typeof w._derGetData === 'function') {
             derData = w._derGetData();
@@ -833,7 +838,8 @@ function buildBoardState() {
 			tabData,
 			tconvData,
 			tnrData,
-			dicData
+			dicData,
+			qrcData
 		});
     });
     const shapes = [];
@@ -1775,6 +1781,10 @@ function restoreBoardFromJSON(json) {
         // Dictionnaire : réafficher le mot consulté et la taille du texte
         if (w.type === 'dictionnaire' && w.dicData && typeof window.dicSetData === 'function') {
             window.dicSetData(widget, w.dicData);
+        }
+        // QR code : réafficher le code, sa légende, sa couleur et le mode projection
+        if (w.type === 'qr-code' && w.qrcData && typeof window.qrcSetData === 'function') {
+            window.qrcSetData(widget, w.qrcData);
         }
         const c = widget.querySelector('.editor-container');
         const hP = w.contentHPercent !== undefined ? w.contentHPercent : w.heightPercent;

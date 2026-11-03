@@ -5,9 +5,12 @@
 // navigateurs bloquent la page dans une fenêtre intégrée). Le widget est donc
 // un « lanceur » de recherche, dans le style du widget « Fenêtre web » :
 //   - grande barre de recherche adaptée aux enfants
-//   - Entrée ou « Chercher » : les résultats s'ouvrent dans un nouvel onglet
+//   - deux boutons : « Pages web » et « Images » (Entrée = pages web) ;
+//     les résultats s'ouvrent dans un nouvel onglet
 //   - bouton « Ouvrir Qwant Junior » pour la page d'accueil
-//   - dernières recherches en pastilles (gardées dans ce navigateur)
+//   - dernières recherches dans un menu déroulant, effaçable
+//     (gardées dans ce navigateur)
+//   - déplacement du widget en le tirant par sa barre de titre
 //   - boutons fenêtre jaune / vert / rouge habituels
 //
 // Utilisation : createWidget('qwant-junior')
@@ -21,7 +24,7 @@ const _QJ_LS_RECENT = 'lbdp-qwant-junior-recents';
 document.body.insertAdjacentHTML('beforeend', `
 <template id="template-qwant-junior">
     <div class="editor-container qj-v2" style="height:340px;width:560px;">
-        <div class="qj-bar editor-toolbar">
+        <div class="qj-bar editor-toolbar" title="Glisser pour déplacer">
             <span class="qj-bar-title">🔎 Qwant Junior</span>
             <div class="wf-btns"${_QJ_STOP}>
                 <button class="wf-btn wf-btn-min"   title="Réduire"          onclick="toggleMediaCollapse(this.closest('.editor-container'))"></button>
@@ -40,11 +43,12 @@ document.body.insertAdjacentHTML('beforeend', `
                     <button type="button" class="qj-clear" data-qj-action="clear" title="Effacer" aria-label="Effacer">✕</button>
                 </div>
                 <div class="qj-btns">
-                    <button type="button" class="qj-go" data-qj-action="go">🔎 Chercher</button>
+                    <button type="button" class="qj-go" data-qj-action="go-web" title="Chercher des pages web">🌐 Pages web</button>
+                    <button type="button" class="qj-go qj-go-img" data-qj-action="go-images" title="Chercher des images">🖼️ Images</button>
                     <button type="button" class="qj-home" data-qj-action="home">Ouvrir Qwant Junior</button>
                 </div>
                 <div class="qj-recents"></div>
-                <div class="qj-note">Les résultats s’ouvrent dans un nouvel onglet.</div>
+                <div class="qj-note">Entrée = pages web. Les résultats s’ouvrent dans un nouvel onglet.</div>
             </div>
             <div class="qj-flash"></div>
         </div>
@@ -56,7 +60,8 @@ document.body.insertAdjacentHTML('beforeend', `
 const _qjEsc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function _qjLsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
 function _qjLsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-const _qjSearchUrl = q => QJ_HOME + '?q=' + encodeURIComponent(q);
+// type : 'web' (pages web) ou 'images'
+const _qjSearchUrl = (q, type) => QJ_HOME + '?q=' + encodeURIComponent(q) + (type === 'images' ? '&t=images' : '');
 
 function _qjFlash(c, text, ms) {
     const f = c && c.querySelector('.qj-flash');
@@ -87,32 +92,98 @@ function _qjLaunch(c, url) {
     if (!w) _qjFlash(c, '⚠ Le navigateur a bloqué l’ouverture : autorise les fenêtres pour ce site.', 4000);
 }
 
-function _qjSearch(c) {
+function _qjSearch(c, type) {
     const input = c.querySelector('.qj-input');
     const q = (input ? input.value : '').trim();
     if (!q) { _qjNudge(c, 'Tape d’abord ce que tu cherches'); return; }
     _qjAddRecent(q);
-    _qjLaunch(c, _qjSearchUrl(q));
-    _qjFlash(c, '🔎 Résultats ouverts dans un nouvel onglet');
+    _qjLaunch(c, _qjSearchUrl(q, type));
+    _qjFlash(c, type === 'images' ? '🖼️ Images ouvertes dans un nouvel onglet' : '🌐 Pages web ouvertes dans un nouvel onglet');
 }
 
 /* ── Dernières recherches ───────────────────────────────────────── */
+const _QJ_RECENT_MAX = 15;
+const _qjRecentList = () => _qjLsGet(_QJ_LS_RECENT, []).filter(x => typeof x === 'string').slice(0, _QJ_RECENT_MAX);
+function _qjRenderAll() { document.querySelectorAll('.qj-v2').forEach(_qjRenderRecents); }
 function _qjAddRecent(q) {
-    const list = _qjLsGet(_QJ_LS_RECENT, []).filter(x => typeof x === 'string' && x.toLowerCase() !== q.toLowerCase());
+    const list = _qjRecentList().filter(x => x.toLowerCase() !== q.toLowerCase());
     list.unshift(q);
-    _qjLsSet(_QJ_LS_RECENT, list.slice(0, 8));
-    document.querySelectorAll('.qj-v2').forEach(_qjRenderRecents);
+    _qjLsSet(_QJ_LS_RECENT, list.slice(0, _QJ_RECENT_MAX));
+    _qjRenderAll();
 }
+// Bouton « Historique ▾ » (caché s'il n'y a rien) + menu s'il est ouvert
 function _qjRenderRecents(c) {
     const box = c.querySelector('.qj-recents');
     if (!box) return;
-    const list = _qjLsGet(_QJ_LS_RECENT, []).filter(x => typeof x === 'string').slice(0, 6);
+    const list = _qjRecentList();
+    const open = !!c.querySelector('.qj-menu');
     box.innerHTML = list.length
-        ? '<span class="qj-recents-h">Dernières recherches :</span>' + list.map(q =>
-            `<span class="qj-chip" data-qj-action="recent" data-q="${_qjEsc(q)}" title="Chercher « ${_qjEsc(q)} »">${_qjEsc(q)}` +
-            `<button type="button" class="qj-chip-x" data-qj-action="recent-del" data-q="${_qjEsc(q)}" title="Retirer" aria-label="Retirer">✕</button></span>`).join('')
+        ? `<button type="button" class="qj-hist-btn${open ? ' is-open' : ''}" data-qj-action="hist-toggle" aria-haspopup="true" aria-expanded="${open}">` +
+          `🕘 Dernières recherches (${list.length}) <span class="qj-hist-caret">▾</span></button>`
         : '';
+    if (open) { if (list.length) _qjMenuBuild(c); else _qjMenuClose(c); }
 }
+function _qjMenuBuild(c) {
+    let m = c.querySelector('.qj-menu');
+    if (!m) {
+        m = document.createElement('div');
+        m.className = 'qj-menu';
+        m.setAttribute('role', 'menu');
+        ['pointerdown', 'mousedown', 'touchstart'].forEach(t => m.addEventListener(t, ev => ev.stopPropagation()));
+        c.appendChild(m);
+    }
+    const list = _qjRecentList();
+    m.innerHTML = '<div class="qj-menu-list">' + list.map(q =>
+        `<div class="qj-mi" role="menuitem" data-qj-action="recent" data-q="${_qjEsc(q)}" title="Chercher « ${_qjEsc(q)} »">` +
+        `<span class="qj-mi-t">${_qjEsc(q)}</span>` +
+        `<button type="button" class="qj-mi-x" data-qj-action="recent-del" data-q="${_qjEsc(q)}" title="Retirer de l’historique" aria-label="Retirer">✕</button></div>`).join('') +
+        '</div><button type="button" class="qj-menu-clear" data-qj-action="hist-clear">🗑 Effacer tout l’historique</button>';
+    _qjMenuPlace(c, m);
+}
+// Place le menu sous le bouton (ou au-dessus s'il manque de place)
+function _qjMenuPlace(c, m) {
+    const btn = c.querySelector('.qj-hist-btn');
+    if (!btn) return;
+    const cr = c.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    const s = (c.offsetHeight && cr.height / c.offsetHeight) || 1;
+    const H = c.offsetHeight, W = c.offsetWidth;
+    const bTop = (br.top - cr.top) / s, bBot = (br.bottom - cr.top) / s;
+    const bMid = (br.left + br.width / 2 - cr.left) / s;
+    const w = Math.min(280, W - 16);
+    m.style.width = w + 'px';
+    m.style.left = Math.max(8, Math.min(W - w - 8, bMid - w / 2)) + 'px';
+    const below = H - bBot - 8, above = bTop - 48;          // 48 = barre de titre + marge
+    m.style.top = m.style.bottom = '';
+    if (below >= 150 || below >= above) {
+        m.style.top = (bBot + 4) + 'px';
+        m.style.maxHeight = Math.max(90, below - 4) + 'px';
+    } else {
+        m.style.bottom = (H - bTop + 4) + 'px';
+        m.style.maxHeight = Math.max(90, above) + 'px';
+    }
+}
+function _qjMenuClose(c) {
+    const m = c && c.querySelector('.qj-menu');
+    if (m) m.remove();
+    const b = c && c.querySelector('.qj-hist-btn');
+    if (b) { b.classList.remove('is-open'); b.setAttribute('aria-expanded', 'false'); }
+}
+function _qjMenuToggle(c) {
+    if (c.querySelector('.qj-menu')) { _qjMenuClose(c); return; }
+    document.querySelectorAll('.qj-v2').forEach(o => { if (o !== c) _qjMenuClose(o); });
+    _qjMenuBuild(c);
+    const b = c.querySelector('.qj-hist-btn');
+    if (b) { b.classList.add('is-open'); b.setAttribute('aria-expanded', 'true'); }
+}
+// Clic ailleurs ou Échap : on ferme le menu
+document.addEventListener('pointerdown', e => {
+    const t = e.target;
+    if (t && t.closest && (t.closest('.qj-menu') || t.closest('.qj-hist-btn'))) return;
+    document.querySelectorAll('.qj-v2 .qj-menu').forEach(m => _qjMenuClose(m.closest('.qj-v2')));
+}, true);
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.qj-v2 .qj-menu').forEach(m => _qjMenuClose(m.closest('.qj-v2')));
+}, true);
 
 /* ── Saisie ─────────────────────────────────────────────────────── */
 function qjInputKey(e, input) {
@@ -134,19 +205,83 @@ document.addEventListener('click', e => {
     if (!c) return;
     const input = c.querySelector('.qj-input');
     switch (btn.getAttribute('data-qj-action')) {
-        case 'go':     _qjSearch(c); break;
+        case 'go':
+        case 'go-web':    _qjSearch(c, 'web'); break;
+        case 'go-images': _qjSearch(c, 'images'); break;
         case 'home':   _qjLaunch(c, QJ_HOME); break;
         case 'clear':  input.value = ''; qjInputChanged(input); input.focus(); break;
-        case 'recent': input.value = btn.getAttribute('data-q') || ''; qjInputChanged(input); _qjSearch(c); break;
+        case 'hist-toggle': _qjMenuToggle(c); break;
+        case 'recent':
+            _qjMenuClose(c);
+            input.value = btn.getAttribute('data-q') || ''; qjInputChanged(input); _qjSearch(c, 'web');
+            break;
         case 'recent-del': {
             e.stopPropagation();
             const q = btn.getAttribute('data-q');
-            _qjLsSet(_QJ_LS_RECENT, _qjLsGet(_QJ_LS_RECENT, []).filter(x => x !== q));
-            document.querySelectorAll('.qj-v2').forEach(_qjRenderRecents);
+            _qjLsSet(_QJ_LS_RECENT, _qjRecentList().filter(x => x !== q));
+            _qjRenderAll();
             break;
         }
+        case 'hist-clear':
+            _qjLsSet(_QJ_LS_RECENT, []);
+            document.querySelectorAll('.qj-v2').forEach(_qjMenuClose);
+            _qjRenderAll();
+            _qjFlash(c, '🗑 Historique effacé');
+            break;
     }
 });
+/* ── Déplacement du widget en tirant la barre de titre ───────────── */
+function _qjDragStart(e) {
+    const bar = e.currentTarget, c = bar.closest('.qj-v2');
+    if (!c || (e.button !== undefined && e.button !== 0)) return;
+    if (e.target.closest('button, .wf-btns, input')) return;
+    e.stopPropagation();                                   // le tableau ne gère pas ce glisser
+    if (c.classList.contains('wf-media-fullboard')) return; // pas de déplacement en plein écran
+    e.preventDefault();
+    _qjMenuClose(c);
+    const w = c.closest('.widget') || c;
+    const cs = getComputedStyle(w);
+    if (cs.position === 'static') w.style.position = 'absolute';
+    const r = w.getBoundingClientRect();
+    const sx = (w.offsetWidth && r.width / w.offsetWidth) || 1;
+    const sy = (w.offsetHeight && r.height / w.offsetHeight) || 1;
+    const L0 = parseFloat(cs.left) || w.offsetLeft || 0, T0 = parseFloat(cs.top) || w.offsetTop || 0;
+    const X0 = e.clientX, Y0 = e.clientY;
+    let moved = false;
+    try { bar.setPointerCapture(e.pointerId); } catch (err) {}
+    bar.classList.add('is-dragging');
+    const move = ev => {
+        const dx = (ev.clientX - X0) / sx, dy = (ev.clientY - Y0) / sy;
+        if (!moved) {
+            if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+            moved = true;
+            if (typeof snapshotNow === 'function') try { snapshotNow(); } catch (err) {}
+        }
+        w.style.left = (L0 + dx) + 'px';
+        w.style.top = (T0 + dy) + 'px';
+    };
+    const end = () => {
+        bar.removeEventListener('pointermove', move);
+        bar.removeEventListener('pointerup', end);
+        bar.removeEventListener('pointercancel', end);
+        bar.classList.remove('is-dragging');
+        if (moved && typeof saveBoard === 'function') try { saveBoard(); } catch (err) {}
+    };
+    bar.addEventListener('pointermove', move);
+    bar.addEventListener('pointerup', end);
+    bar.addEventListener('pointercancel', end);
+}
+function _qjBindDrag(c) {
+    const bar = c.querySelector('.qj-bar');
+    if (!bar || bar._qjDrag) return;
+    bar._qjDrag = true;
+    bar.addEventListener('pointerdown', _qjDragStart);
+    // Les anciens événements souris / tactiles ne doivent pas lancer un 2ᵉ glisser
+    ['mousedown', 'touchstart'].forEach(t => bar.addEventListener(t, ev => {
+        if (!ev.target.closest('button, .wf-btns')) ev.stopPropagation();
+    }));
+}
+
 /* ── Mise en route des widgets (nouveaux ou restaurés) ───────────── */
 function _qjInit(c) {
     if (!c || c._qjInited || !c.classList.contains('qj-v2')) return;
@@ -156,11 +291,25 @@ function _qjInit(c) {
         const fresh = tpl && tpl.content.querySelector('.qj-v2');
         if (fresh) { c.innerHTML = fresh.innerHTML; c.style.width = '560px'; c.style.height = '340px'; }
     }
+    // Widget sauvegardé avec un seul bouton « Chercher » : on met les deux boutons
+    const oldGo = c.querySelector('.qj-go[data-qj-action="go"]');
+    if (oldGo) {
+        const tpl = document.getElementById('template-qwant-junior');
+        const freshBtns = tpl && tpl.content.querySelector('.qj-btns');
+        const btns = oldGo.closest('.qj-btns');
+        if (freshBtns && btns) btns.innerHTML = freshBtns.innerHTML;
+    }
+    const note = c.querySelector('.qj-note');
+    if (note) note.textContent = 'Entrée = pages web. Les résultats s’ouvrent dans un nouvel onglet.';
     c._qjInited = true;
     const bar = c.querySelector('.qj-bar');
     if (bar) bar.classList.add('editor-toolbar');
     const input = c.querySelector('.qj-input');
     if (input) qjInputChanged(input);
+    c.querySelectorAll('.qj-menu').forEach(m => m.remove());   // menu resté ouvert à la sauvegarde
+    const bar2 = c.querySelector('.qj-bar');
+    if (bar2) bar2.title = 'Glisser pour déplacer';
+    _qjBindDrag(c);
     _qjRenderRecents(c);
     // Plein écran (bouton vert) : on suit l'ajout / le retrait de la classe
     new MutationObserver(() => _qjFitFullboard(c)).observe(c, { attributes: true, attributeFilter: ['class'] });
@@ -289,21 +438,38 @@ window.createQwantJuniorWidget = function () {
 .qj-v2 .qj-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
 .qj-v2 .qj-go{height:42px;border:0;border-radius:99px;padding:0 24px;cursor:pointer;color:#fff;font-size:15px;font-weight:800;
   background:linear-gradient(90deg,var(--qj-accent),#7b61d9);box-shadow:0 4px 14px rgba(92,107,255,.45)}
+.qj-v2 .qj-go-img{background:linear-gradient(90deg,var(--qj-accent-2),#e8508a);box-shadow:0 4px 14px rgba(255,122,89,.45)}
 .qj-v2 .qj-go:hover{filter:brightness(1.1)}
 .qj-v2 .qj-home{height:42px;border:0;border-radius:99px;padding:0 18px;cursor:pointer;color:#fff;font-size:13px;font-weight:600;
   background:rgba(255,255,255,.14)}
 .qj-v2 .qj-home:hover{background:rgba(255,255,255,.24)}
-.qj-v2 .qj-recents{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;margin-top:14px}
+.qj-v2 .qj-recents{display:flex;justify-content:center;margin-top:14px}
 .qj-v2 .qj-recents:empty{display:none}
-.qj-v2 .qj-recents-h{font-size:12px;color:#b9b9c8;margin-right:2px}
-.qj-v2 .qj-chip{display:inline-flex;align-items:center;gap:2px;max-width:180px;height:28px;box-sizing:border-box;padding:0 4px 0 12px;border-radius:99px;
-  background:rgba(255,255,255,.12);color:#fff;font-size:12px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.qj-v2 .qj-chip:hover{background:rgba(255,255,255,.22)}
-.qj-v2 .qj-chip-x{flex:none;width:20px;height:20px;border:0;border-radius:50%;background:transparent;color:#b9b9c8;font-size:9px;cursor:pointer;
-  display:none;align-items:center;justify-content:center;padding:0}
-.qj-v2 .qj-chip:hover .qj-chip-x{display:inline-flex}
-.qj-v2 .qj-chip-x:hover{background:#c0392b;color:#fff}
-@media (hover: none){ .qj-v2 .qj-chip-x{display:inline-flex} }
+.qj-v2 .qj-hist-btn{height:32px;border:0;border-radius:99px;padding:0 14px;background:rgba(255,255,255,.12);color:#fff;font-size:12.5px;font-weight:600}
+.qj-v2 .qj-hist-btn:hover,.qj-v2 .qj-hist-btn.is-open{background:rgba(255,255,255,.24)}
+.qj-v2 .qj-hist-caret{display:inline-block;margin-left:4px;transition:transform .15s}
+.qj-v2 .qj-hist-btn.is-open .qj-hist-caret{transform:rotate(180deg)}
+/* Menu déroulant de l'historique */
+.qj-v2 .qj-menu{position:absolute;z-index:12;display:flex;flex-direction:column;box-sizing:border-box;padding:6px;border-radius:12px;
+  background:#26262f;border:1px solid #3a3a46;box-shadow:0 10px 30px rgba(0,0,0,.5);text-align:left}
+.qj-v2 .qj-menu-list{flex:1;min-height:0;overflow:auto}
+.qj-v2 .qj-mi{display:flex;align-items:center;gap:6px;height:32px;padding:0 4px 0 10px;border-radius:8px;color:#eee;font-size:13px}
+.qj-v2 .qj-mi:hover{background:rgba(255,255,255,.1)}
+.qj-v2 .qj-mi-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qj-v2 .qj-mi-x{flex:none;width:24px;height:24px;border:0;border-radius:50%;background:transparent;color:#9a9aa6;font-size:10px;
+  display:inline-flex;align-items:center;justify-content:center;padding:0}
+.qj-v2 .qj-mi-x:hover{background:#c0392b;color:#fff}
+.qj-v2 .qj-menu-clear{flex:none;margin-top:6px;height:32px;border:0;border-top:1px solid #3a3a46;border-radius:0 0 8px 8px;background:transparent;
+  color:#ff8a80;font-size:12.5px;font-weight:600}
+.qj-v2 .qj-menu-clear:hover{background:rgba(255,95,87,.15)}
+/* Curseurs : flèche partout, sauf ce qui se clique, se tape ou se déplace */
+.editor-container.qj-v2,.editor-container.qj-v2 *{cursor:default!important}
+.qj-v2 .qj-stage,.qj-v2 .qj-stage *,.qj-v2 .qj-menu,.qj-v2 .qj-bar-title{user-select:none;-webkit-user-select:none}
+.editor-container.qj-v2 .qj-bar,.editor-container.qj-v2 .qj-bar .qj-bar-title{cursor:grab!important;touch-action:none}
+.editor-container.qj-v2 .qj-bar.is-dragging,.editor-container.qj-v2 .qj-bar.is-dragging *{cursor:grabbing!important}
+.editor-container.qj-v2.wf-media-fullboard .qj-bar,.editor-container.qj-v2.wf-media-fullboard .qj-bar-title{cursor:default!important}
+.editor-container.qj-v2 button,.editor-container.qj-v2 button *,.editor-container.qj-v2 .qj-mi,.editor-container.qj-v2 .qj-mi *{cursor:pointer!important}
+.editor-container.qj-v2 .qj-input{cursor:text!important;user-select:text;-webkit-user-select:text}
 .qj-v2 .qj-note{font-size:11px;color:#9a9aa6;margin-top:12px}
 /* Message temporaire */
 .qj-v2 .qj-flash{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:9;max-width:calc(100% - 24px);box-sizing:border-box;

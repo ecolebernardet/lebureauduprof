@@ -1500,7 +1500,7 @@
 
 
 /* ── Panneau Widgets ──────────────────────────────────────────────────── */
-:root { --widgets-panel-w: 75vw; }
+:root { --widgets-panel-w: 85vw; }
 #widgets-panel {
     display: flex;
     position: fixed;

@@ -430,6 +430,14 @@
         padding: 6px 8px !important;
     }
 
+    /* Poignée de déplacement : le navigateur ne doit pas s'emparer du geste
+       (défilement / zoom), sinon la barre ne suit pas le doigt */
+    #draw-toolbar-drag-handle {
+        touch-action: none !important;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
     /* Boutons dans les toolbars dessin/forme */
     #draw-toolbar button,
     #shape-toolbar button {

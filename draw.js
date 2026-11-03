@@ -5827,3 +5827,82 @@ function _dtTextBtnClick() {
         document.querySelectorAll('.widget[data-anchored="true"]').forEach(w => w.style.setProperty('cursor', 'text', 'important'));
     }
 }
+
+
+// =========================================================================
+// POIGNÉE DE LA BARRE DE DESSIN — DÉPLACEMENT AU DOIGT / AU STYLET
+// Sur téléphone, le navigateur s'emparait du geste (défilement/zoom de la
+// page) dès que le doigt bougeait : il annulait le pointeur et la barre ne
+// suivait pas. Ici, le toucher et le stylet sur la poignée sont gérés à part
+// (touch-action:none + capture du pointeur). La souris garde son
+// fonctionnement habituel : ce code ne la traite pas.
+// =========================================================================
+(function () {
+    const HANDLE_SEL = '#draw-toolbar-drag-handle';
+    const MARGIN = 4;
+    let drag = null;
+
+    function prepHandle() {
+        const h = document.querySelector(HANDLE_SEL);
+        if (h) h.style.touchAction = 'none';
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', prepHandle);
+    else prepHandle();
+
+    function isTouchLike(e) { return e.pointerType === 'touch' || e.pointerType === 'pen'; }
+
+    // Phase de capture sur window : passe avant tout autre gestionnaire,
+    // pour éviter qu'un autre script ne déplace la barre en même temps.
+    window.addEventListener('pointerdown', function (e) {
+        if (!isTouchLike(e)) return;
+        const handle = e.target && e.target.closest && e.target.closest(HANDLE_SEL);
+        if (!handle) return;
+        const tb = document.getElementById('draw-toolbar');
+        if (!tb) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const r = tb.getBoundingClientRect();
+        drag = { id: e.pointerId, handle, tb, dx: e.clientX - r.left, dy: e.clientY - r.top };
+        try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+        handle.style.cursor = 'grabbing';
+        handle.style.opacity = '1';
+    }, true);
+
+    window.addEventListener('pointermove', function (e) {
+        if (!drag || e.pointerId !== drag.id) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const tb = drag.tb;
+        const w = tb.offsetWidth, h = tb.offsetHeight;
+        const left = Math.max(MARGIN, Math.min(e.clientX - drag.dx, window.innerWidth  - w - MARGIN));
+        const top  = Math.max(MARGIN, Math.min(e.clientY - drag.dy, window.innerHeight - h - MARGIN));
+        tb.style.left   = left + 'px';
+        tb.style.top    = top  + 'px';
+        tb.style.right  = 'auto';
+        tb.style.bottom = 'auto';
+    }, { capture: true, passive: false });
+
+    function end(e) {
+        if (!drag || e.pointerId !== drag.id) return;
+        e.stopImmediatePropagation();
+        try { drag.handle.releasePointerCapture(drag.id); } catch (err) {}
+        drag.handle.style.cursor = 'grab';
+        drag.handle.style.opacity = '0.6';
+        drag = null;
+        if (typeof autoOrientDrawToolbar === 'function') autoOrientDrawToolbar();
+    }
+    window.addEventListener('pointerup', end, true);
+    window.addEventListener('pointercancel', end, true);
+
+    // Les événements tactiles bruts de la poignée ne doivent pas atteindre
+    // d'autres gestionnaires (ni déclencher le défilement de la page).
+    window.addEventListener('touchstart', function (e) {
+        if (e.target && e.target.closest && e.target.closest(HANDLE_SEL)) {
+            e.stopImmediatePropagation();
+            if (e.cancelable) e.preventDefault();
+        }
+    }, { capture: true, passive: false });
+    window.addEventListener('touchmove', function (e) {
+        if (drag && e.cancelable) e.preventDefault();
+    }, { capture: true, passive: false });
+})();

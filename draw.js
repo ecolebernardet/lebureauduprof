@@ -3272,7 +3272,8 @@ function _stopPdfAnnotMode() {
     _showPdfExtraBtns(false);
     // Réafficher les boutons masqués
     const selBtnStop = document.getElementById('draw-select-btn');
-    if (selBtnStop) selBtnStop.style.display = '';
+    // Restaurer display:flex (défini en inline dans le HTML) pour garder la flèche centrée
+    if (selBtnStop) selBtnStop.style.display = 'flex';
     const geoBtnStop = document.getElementById('geo-draw-btn');
     if (geoBtnStop) { geoBtnStop.style.display = ''; geoBtnStop.title = 'Outils géométriques'; }
     _updateDrawModeIndicator(false);

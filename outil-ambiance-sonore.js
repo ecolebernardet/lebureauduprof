@@ -8,7 +8,7 @@
 //     à télécharger, fonctionne sans internet, la musique ne se répète jamais
 //   - on peut MÉLANGER plusieurs ambiances (ex. pluie + musique calme),
 //     chacune avec son propre volume, plus un volume général
-//   - ⏱ minuteur d'arrêt (5 à 60 min) avec fondu, et petit carillon
+//   - ⏱ minuteur d'arrêt (5 à 60 min, ou durée libre de 1 à 180 min) avec fondu, et petit carillon
 //     à la fin (facultatif) pour signaler la fin du travail
 //   - barre d'outils avec aide (?)
 //   - déplacement en tirant la barre de titre, redimensionnement libre
@@ -34,6 +34,7 @@ const AMB_SOUNDS = [
     { id: 'zen',      n: 'Musique zen',   i: '🎐', col: '#c0568f', d: 'Des arpèges de kalimba sur une note grave tenue' }
 ];
 const AMB_TIMERS = [0, 5, 10, 15, 20, 30, 45, 60];
+const AMB_TIMER_MAX = 180;                     // durée libre : de 1 à 180 minutes
 
 document.body.insertAdjacentHTML('beforeend', `
 <template id="template-ambiance-sonore">
@@ -79,6 +80,13 @@ document.body.insertAdjacentHTML('beforeend', `
                 </div>
                 <div class="amb-chips">${AMB_TIMERS.map(m =>
                     `<button type="button" class="amb-chip" data-amb-action="timer" data-m="${m}">${m ? m + ' min' : 'Sans fin'}</button>`).join('')}
+                    <span class="amb-custom" title="Taper une autre durée, puis Entrée">
+                        <span class="amb-custom-t">Autre :</span>
+                        <input type="number" class="amb-min" min="1" max="${AMB_TIMER_MAX}" step="1" inputmode="numeric" placeholder="—" aria-label="Autre durée en minutes"
+                               onkeydown="ambMinKey(event,this)" onkeyup="event.stopPropagation()" onkeypress="event.stopPropagation()" onpaste="event.stopPropagation()">
+                        <span class="amb-custom-u">min</span>
+                        <button type="button" class="amb-custom-ok" data-amb-action="timer-custom" title="Valider cette durée">OK</button>
+                    </span>
                 </div>
                 <div class="amb-prog"><span></span></div>
             </div>
@@ -94,7 +102,7 @@ document.body.insertAdjacentHTML('beforeend', `
                     <li><b>Choisir une ambiance :</b> clique sur une vignette (pluie, forêt, vagues…). Clique à nouveau pour l’arrêter.</li>
                     <li><b>Mélanger :</b> tu peux allumer plusieurs ambiances en même temps, par exemple <b>pluie + musique zen</b>. Chaque vignette allumée a son propre curseur de volume.</li>
                     <li><b>▶ / ❚❚ :</b> lance ou met en pause tous les sons. Le grand curseur règle le volume général.</li>
-                    <li><b>⏱ Arrêt automatique :</b> choisis une durée. Les sons baissent doucement à la fin, puis s’arrêtent. Le <b>🔔 carillon</b> signale à la classe que le temps de travail est terminé.</li>
+                    <li><b>⏱ Arrêt automatique :</b> choisis une durée, ou tape-la dans la case <b>Autre</b> (de 1 à ${AMB_TIMER_MAX} minutes) puis appuie sur Entrée ou <b>OK</b>. Les sons baissent doucement à la fin, puis s’arrêtent. Le <b>🔔 carillon</b> signale à la classe que le temps de travail est terminé.</li>
                     <li><b>Après une actualisation</b> du tableau, tes ambiances et réglages sont gardés : appuie simplement sur ▶ (les navigateurs interdisent de relancer un son tout seul).</li>
                     <li><b>Fenêtre :</b> tire la barre du haut pour déplacer l’outil, le coin pour l’agrandir. Bouton jaune : réduire (le son continue), vert : plein écran, rouge : fermer (le son s’arrête).</li>
                 </ul>
@@ -516,7 +524,10 @@ function _ambCtx() {
 
 /* ── Outils ─────────────────────────────────────────────────────── */
 function _ambSave() { if (typeof saveBoard === 'function') try { saveBoard(); } catch (e) {} }
-const _ambFmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+const _ambFmt = s => {
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = String(Math.floor(s % 60)).padStart(2, '0');
+    return h ? h + ':' + String(m).padStart(2, '0') + ':' + sec : m + ':' + sec;
+};
 const _ambCurve = v => Math.pow(Math.max(0, Math.min(100, v)) / 100, 2);   // volume « à l'oreille »
 function _ambFlash(c, text, ms) {
     const f = c && c.querySelector('.amb-flash');
@@ -678,9 +689,43 @@ function _ambRender(c) {
     c.querySelectorAll('.amb-tvol').forEach(r => { const v = st.vols[r.getAttribute('data-id')]; if (+r.value !== v) r.value = v; });
     const m = c.querySelector('.amb-master'); if (m && +m.value !== st.master) m.value = st.master;
     c.querySelectorAll('.amb-chip').forEach(b => b.classList.toggle('is-on', +b.getAttribute('data-m') === st.timer));
+    const custom = st.timer && AMB_TIMERS.indexOf(st.timer) === -1;
+    const cu = c.querySelector('.amb-custom'); if (cu) cu.classList.toggle('is-on', !!custom);
+    const mi = c.querySelector('.amb-min');
+    if (mi && document.activeElement !== mi) mi.value = custom ? st.timer : '';
     const cb = c.querySelector('.amb-chime-cb'); if (cb) cb.checked = !!st.chime;
     const ch = c.querySelector('.amb-chime'); if (ch) ch.classList.toggle('is-off', !st.timer);
     _ambRenderTimer(c);
+}
+
+/* ── Réglage du minuteur (boutons ou durée libre) ──────────────── */
+function _ambSetTimer(c, m) {
+    const st = _ambState(c);
+    st.timer = m;
+    st.left = st.timer * 60;
+    st.endAt = st.playing && st.timer ? Date.now() + st.left * 1000 : 0;
+    _ambRender(c); _ambSave();
+    if (st.timer) _ambFlash(c, '⏱ Arrêt automatique dans ' + st.timer + ' min' + (st.playing ? '' : ' (dès que tu lances les sons)'));
+    else _ambFlash(c, '⏱ Sans arrêt automatique');
+}
+function _ambApplyCustom(c) {
+    const inp = c.querySelector('.amb-min');
+    if (!inp) return;
+    const v = Math.round(parseFloat(String(inp.value).replace(',', '.')));
+    if (!(v >= 1)) {
+        inp.classList.remove('is-bad'); void inp.offsetWidth; inp.classList.add('is-bad');
+        _ambFlash(c, 'Tape un nombre de minutes entre 1 et ' + AMB_TIMER_MAX);
+        return;
+    }
+    const m = Math.min(AMB_TIMER_MAX, v);
+    inp.blur();
+    _ambSetTimer(c, m);
+    if (m !== v) _ambFlash(c, '⚠ Durée maximale : ' + AMB_TIMER_MAX + ' minutes (3 heures)', 3500);
+}
+function ambMinKey(e, inp) {
+    e.stopPropagation();                        // pas de raccourcis du tableau pendant la saisie
+    if (e.key === 'Enter') { e.preventDefault(); const c = inp.closest('.amb-w'); if (c) _ambApplyCustom(c); }
+    else if (e.key === 'Escape') inp.blur();
 }
 
 /* ── Clics et curseurs (délégués : survivent à la sauvegarde) ───── */
@@ -710,13 +755,8 @@ document.addEventListener('click', e => {
             _ambRender(c); _ambSave();
             break;
         }
-        case 'timer':
-            st.timer = +btn.getAttribute('data-m') || 0;
-            st.left = st.timer * 60;
-            st.endAt = st.playing && st.timer ? Date.now() + st.left * 1000 : 0;
-            _ambRender(c); _ambSave();
-            if (st.timer) _ambFlash(c, '⏱ Arrêt automatique dans ' + st.timer + ' min' + (st.playing ? '' : ' (dès que tu lances les sons)'));
-            break;
+        case 'timer':        _ambSetTimer(c, +btn.getAttribute('data-m') || 0); break;
+        case 'timer-custom': _ambApplyCustom(c); break;
         case 'help': { const h = c.querySelector('.amb-help'); if (h) h.hidden = !h.hidden; break; }
         case 'help-close': { const h = c.querySelector('.amb-help'); if (h) h.hidden = true; break; }
     }
@@ -905,7 +945,8 @@ window.ambSetData = function (widget, d) {
     if (Array.isArray(d.on)) st.on = d.on.filter(id => ids.indexOf(id) !== -1);
     if (d.vols) ids.forEach(id => { if (d.vols[id] != null) st.vols[id] = Math.max(0, Math.min(100, +d.vols[id] || 0)); });
     if (d.master != null) st.master = Math.max(0, Math.min(100, +d.master || 0));
-    st.timer = AMB_TIMERS.indexOf(+d.timer) !== -1 ? +d.timer : 0;
+    const tm = Math.round(+d.timer || 0);
+    st.timer = tm >= 1 && tm <= AMB_TIMER_MAX ? tm : 0;
     st.chime = d.chime !== false;
     st.left = st.timer && d.left > 0 ? Math.min(d.left, st.timer * 60) : st.timer * 60;
     st.playing = false;                                   // les navigateurs n'autorisent pas la relance automatique
@@ -999,6 +1040,18 @@ window.createAmbianceSonoreWidget = function () {
 .amb-w .amb-chip{height:30px;border:0;border-radius:99px;padding:0 12px;background:rgba(255,255,255,.1);color:#e6e6ea;font-size:12.5px;font-weight:800}
 .amb-w .amb-chip:hover{background:rgba(255,255,255,.18)}
 .amb-w .amb-chip.is-on{background:var(--amb-gold);color:#2a2000}
+.amb-w .amb-custom{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 4px 0 10px;border-radius:99px;background:rgba(255,255,255,.1)}
+.amb-w .amb-custom.is-on{background:var(--amb-gold)}
+.amb-w .amb-custom-t,.amb-w .amb-custom-u{color:#e6e6ea;font-size:12.5px;font-weight:800}
+.amb-w .amb-custom.is-on .amb-custom-t,.amb-w .amb-custom.is-on .amb-custom-u{color:#2a2000}
+.amb-w .amb-min{width:52px;height:22px;box-sizing:border-box;border:0;border-radius:6px;padding:0 6px;background:#fff;color:#222;
+  font:inherit;font-size:13px;font-weight:800;text-align:center;outline:0;-moz-appearance:textfield;user-select:text;-webkit-user-select:text}
+.amb-w .amb-min::-webkit-outer-spin-button,.amb-w .amb-min::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.amb-w .amb-min:focus{box-shadow:0 0 0 2px var(--amb-gold)}
+.amb-w .amb-min.is-bad{animation:amb-shake .3s;box-shadow:0 0 0 2px #ff5f57}
+@keyframes amb-shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.amb-w .amb-custom-ok{height:22px;border:0;border-radius:6px;padding:0 8px;background:rgba(0,0,0,.35);color:#fff;font-size:11.5px;font-weight:900}
+.amb-w .amb-custom-ok:hover{background:rgba(0,0,0,.55)}
 .amb-w .amb-prog{height:5px;margin-top:10px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}
 .amb-w .amb-prog span{display:block;height:100%;width:100%;background:var(--amb-gold);transform-origin:left;transform:scaleX(0);transition:transform .3s linear}
 /* Aide */
@@ -1020,6 +1073,7 @@ window.createAmbianceSonoreWidget = function () {
 .editor-container.amb-w.wf-media-fullboard .amb-bar,.editor-container.amb-w.wf-media-fullboard .amb-bar-title{cursor:default!important}
 .editor-container.amb-w button,.editor-container.amb-w button *,.editor-container.amb-w .amb-tile,.editor-container.amb-w .amb-tile *,
 .editor-container.amb-w label,.editor-container.amb-w input{cursor:pointer!important}
+.editor-container.amb-w input.amb-min{cursor:text!important}
 .amb-w input[type=range]{touch-action:none}
 /* Message temporaire */
 .amb-w .amb-flash{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:13;max-width:calc(100% - 24px);box-sizing:border-box;

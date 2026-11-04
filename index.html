@@ -1279,6 +1279,7 @@ function setVisuelsMode(mode) {
 <script src="jeu-francais-train-alphabet.js"></script>
 <script src="jeu-maths-caisse-marchand.js"></script>
 <script src="jeu-maths-mathmaster.js"></script>
+<script src="jeu-maths-repro-quadrillage.js"></script>
 <script src="jeu-maths-symetrie-axiale.js"></script>
 <script src="jeu-francais-chasse-homophones.js"></script>
 <script src="jeu-francais-pendu.js"></script>
@@ -1313,7 +1314,6 @@ function setVisuelsMode(mode) {
 <script src="jeu-francais-correcteur-fou.js"></script>
 <script src="jeu-divers-rush-hour.js"></script>
 <script src="jeu-divers-taquin.js"></script>
-<script src="jeu-divers-repro-quadrillage.js"></script>
 <script src="jeu-divers-pixel-art.js"></script>
 <script src="jeu-divers-labyrinthe.js"></script>
 <script src="jeu-divers-7-differences.js"></script>
@@ -1520,6 +1520,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-name">MathMaster</div>
                 <div class="act-card-desc">Calcul mental chronométré</div>
             </div>
+            <div class="act-card" onclick="createWidget('jeu-repro-quadrillage');toggleJeuxPanel()">
+                <div class="act-card-ico"><img src="pics/jeu-divers-repro-quadrillage.jpg" alt="Reproduction sur quadrillage" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🖍️'"></div>
+                <div class="act-card-name">Reproduction sur quadrillage</div>
+                <div class="act-card-desc">Reproduire un modèle en couleurs</div>
+            </div>
             <div class="act-card" onclick="createWidget('jeu-symetrie-axiale');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeu-maths-symetrie-axiale.jpg" alt="Symétrie axiale" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🪞'"></div>
                 <div class="act-card-name">Symétrie axiale</div>
@@ -1634,11 +1639,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/jeu-divers-taquin.jpg" alt="Taquin" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧩'"></div>
                 <div class="act-card-name">Taquin</div>
                 <div class="act-card-desc">Remettre les pièces dans l'ordre</div>
-            </div>
-            <div class="act-card" onclick="createWidget('jeu-repro-quadrillage');toggleJeuxPanel()">
-                <div class="act-card-ico"><img src="pics/jeu-divers-repro-quadrillage.jpg" alt="Reproduction sur quadrillage" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🖍️'"></div>
-                <div class="act-card-name">Reproduction sur quadrillage</div>
-                <div class="act-card-desc">Reproduire un modèle en couleurs</div>
             </div>
             <div class="act-card" onclick="createWidget('jeu-pixel-art');toggleJeuxPanel()">
                 <div class="act-card-ico"><img src="pics/jeu-divers-pixel-art.jpg" alt="Pixel art" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='👾'"></div>

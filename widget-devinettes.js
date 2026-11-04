@@ -42,11 +42,14 @@ if (!window._wfPhoneAutoMax) {
    - bouton « ⏱ Réfléchir » : temps de réflexion avec barre qui se
      vide, petit son à la fin, réponse dévoilée automatiquement (option)
 
-   Barre du haut :
+   Barre du haut (même présentation que « Le saviez-vous ? ») :
+   - ‹ 🎲 › pour passer d'une devinette à l'autre ou en tirer une au
+     hasard, 📅 pour revenir à la devinette du jour
+   - 📚 sommaire : toutes les devinettes par thème (recherche, filtres),
+     questions seules, pour choisir celle dont on veut parler
    - ⚙ réglages : mode (devinette du jour / au hasard), thèmes et
      niveaux proposés, temps de réflexion, devinettes de l'enseignant
-   - ‹ 🎲 › pour passer d'une devinette à l'autre ou en tirer une au
-     hasard, ⟲ pour revenir à la devinette du jour
+   - ? aide
    - boutons fenêtre jaune (réduire), vert (plein écran), rouge (fermer),
      identiques à ceux de l'éphéméride
 
@@ -276,6 +279,16 @@ if (!window._wfPhoneAutoMax) {
         return (dayNum(new Date()) * step + 7) % n;
     }
 
+    // « Mercredi 4 novembre »
+    function dateLabel() {
+        try {
+            const t = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            return t.charAt(0).toUpperCase() + t.slice(1);
+        } catch (e) { return ''; }
+    }
+    // Recherche sans tenir compte des accents ni des majuscules
+    const fold = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’']/g, ' ').toLowerCase();
+
     // « Devinette = Réponse = Indice » (l'indice est facultatif)
     function parsePerso(str) {
         return String(str || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
@@ -310,10 +323,14 @@ if (!window._wfPhoneAutoMax) {
 
     const dayRiddle = list => list[dayIndex(list.length)];
 
+    // Toutes les devinettes (y compris les thèmes et niveaux désactivés) :
+    // le sommaire permet d'en choisir une même si elle n'est pas proposée.
+    const allItems = cfg => DEVINETTES.concat(parsePerso(cfg.perso));
+
     // Devinette affichée (gardée dans l'attribut data-cur de .dv-root)
     function current(root, cfg, list) {
         const cur = root.getAttribute('data-cur');
-        let d = cur ? list.find(x => x.q === cur) : null;
+        let d = cur ? (list.find(x => x.q === cur) || allItems(cfg).find(x => x.q === cur)) : null;
         if (!d) {
             if (cfg.mode === 'hasard') {
                 d = list[Math.floor(Math.random() * list.length)];
@@ -413,14 +430,19 @@ if (!window._wfPhoneAutoMax) {
 
     function buildBar(root, cfg, list, d) {
         const full = root.classList.contains('dv-full');
-        const showToday = cfg.mode === 'jour' && d !== dayRiddle(list);
+        const isDay = d === dayRiddle(list) && (cfg.mode === 'jour' || root.getAttribute('data-cur') === d.q);
+        const on = c => root.classList.contains(c) ? ' is-on' : '';
         return '<div class="dv-bar">' +
-            '<button type="button" class="dv-gear" data-dv-action="toggle" title="Réglages" aria-label="Réglages"' + STOP + '>⚙</button>' +
-            '<div class="dv-navbox"' + STOP + '>' +
-                '<button type="button" class="dv-nav" data-dv-action="prev" title="Devinette précédente (←)" aria-label="Devinette précédente">‹</button>' +
-                '<button type="button" class="dv-nav dv-dice" data-dv-action="random" title="Une devinette au hasard" aria-label="Une devinette au hasard">🎲</button>' +
-                '<button type="button" class="dv-nav" data-dv-action="next" title="Devinette suivante (→)" aria-label="Devinette suivante">›</button>' +
-                '<button type="button" class="dv-nav dv-today' + (showToday ? '' : ' is-hidden') + '" data-dv-action="today" title="Revenir à la devinette du jour" aria-label="Revenir à la devinette du jour">⟲</button>' +
+            '<span class="dv-title">🧩 Devinettes</span>' +
+            '<div class="dv-tools"' + STOP + '>' +
+                '<button type="button" class="dv-ib" data-dv-action="prev" title="Devinette précédente (←)" aria-label="Devinette précédente">‹</button>' +
+                '<button type="button" class="dv-ib" data-dv-action="random" title="Une devinette au hasard" aria-label="Une devinette au hasard">🎲</button>' +
+                '<button type="button" class="dv-ib" data-dv-action="next" title="Devinette suivante (→)" aria-label="Devinette suivante">›</button>' +
+                '<button type="button" class="dv-ib' + (isDay ? ' is-on' : '') + '" data-dv-action="today" title="La devinette du jour" aria-label="La devinette du jour">📅</button>' +
+                '<button type="button" class="dv-ib' + on('dv-toc-open') + '" data-dv-action="toc" title="Sommaire : choisir une devinette" aria-label="Sommaire">📚</button>' +
+                '<span class="dv-sep"></span>' +
+                '<button type="button" class="dv-ib' + on('dv-open') + '" data-dv-action="toggle" title="Réglages" aria-label="Réglages">⚙</button>' +
+                '<button type="button" class="dv-ib dv-ib-help' + on('dv-help-open') + '" data-dv-action="help" title="Aide" aria-label="Aide">?</button>' +
             '</div>' +
             '<div class="wf-btns"' + STOP + '>' +
                 '<button type="button" class="wf-btn wf-btn-min" data-dv-action="wf-min" title="Réduire" aria-label="Réduire"></button>' +
@@ -432,15 +454,19 @@ if (!window._wfPhoneAutoMax) {
 
     function buildSheet(root, cfg, list, d) {
         const th = THEMES[d.th] || THEMES.perso;
-        const isDay = cfg.mode === 'jour' && d === dayRiddle(list);
-        const label = isDay ? 'Devinette du jour' : (list.indexOf(d) + 1) + ' / ' + list.length;
+        const idx = list.indexOf(d);
+        const isDay = d === dayRiddle(list) && (cfg.mode === 'jour' || root.getAttribute('data-cur') === d.q);
+        const label = isDay ? '📅 ' + esc(dateLabel())
+            : idx < 0 ? '📚 Choisie dans le sommaire'
+            : (cfg.mode === 'hasard' ? '🎲 ' : '') + (idx + 1) + ' / ' + list.length;
         const hintShown = root.hasAttribute('data-show-hint');
         const answerShown = root.hasAttribute('data-show-answer');
         const t = T(root);
         const running = timerRunning(root);
         const stars = d.n ? '<span class="dv-stars" title="' + NIVEAUX[d.n] + '">' + '★'.repeat(d.n) + '<span class="dv-off">' + '★'.repeat(3 - d.n) + '</span></span>' : '';
 
-        let html = '<div class="dv-sheet' + (running && timerLeft(root) <= 10 ? ' is-hurry' : '') + '" style="--dv-c:' + th.c + '">' +
+        let html = '<div class="dv-stage" style="--dv-c:' + th.c + '">' +
+            '<div class="dv-sheet' + (running && timerLeft(root) <= 10 ? ' is-hurry' : '') + '">' +
             '<div class="dv-top"><span class="dv-chip"><span aria-hidden="true">' + th.ico + '</span>' + esc(th.nom) + '</span>' +
             stars + '<span class="dv-label">' + label + '</span></div>';
 
@@ -451,6 +477,7 @@ if (!window._wfPhoneAutoMax) {
         }
 
         html += '<div class="dv-body"><div class="dv-inner">' +
+            '<div class="dv-kicker">Devinette</div>' +
             '<div class="dv-q">' + esc(d.q) + '</div>';
 
         if (d.i && hintShown && !answerShown) html += '<div class="dv-hint">💡 ' + esc(d.i) + '</div>';
@@ -458,6 +485,8 @@ if (!window._wfPhoneAutoMax) {
         if (answerShown) {
             html += '<div class="dv-answer"><div class="dv-r">' + esc(d.r) + '</div>' +
                 (d.e ? '<div class="dv-e">' + esc(d.e) + '</div>' : '') + '</div>';
+        } else if (!hintShown && !running && !t.done) {
+            html += '<div class="dv-think">🤔 Cherchez bien… Qui a une idée ?</div>';
         }
 
         let btns = '';
@@ -471,10 +500,10 @@ if (!window._wfPhoneAutoMax) {
             else btns += '<button type="button" class="dv-btn dv-tbtn" data-dv-action="timer"' + STOP + '>⏱ Réfléchir ' + fmtTime(cfg.timer) + '</button>';
         }
         btns += '<button type="button" class="dv-btn dv-main' + (answerShown ? ' is-on' : '') + '" data-dv-action="answer"' + STOP + '>' +
-            (answerShown ? '🙈 Cacher la réponse' : '👀 Voir la réponse') + '</button>';
+            (answerShown ? '🙈 Cacher la réponse' : '✨ Voir la réponse') + '</button>';
         html += '<div class="dv-actions">' + btns + '</div>';
 
-        html += '</div></div></div>';
+        html += '</div></div></div></div>';
         return html;
     }
 
@@ -492,8 +521,9 @@ if (!window._wfPhoneAutoMax) {
                 '★'.repeat(k) + ' ' + NIVEAUX[k] + ' <span class="dv-n">(' + n + ')</span></label>';
         });
         const tOpts = TIMERS.map(([v, l]) => '<option value="' + v + '"' + (cfg.timer === v ? ' selected' : '') + '>' + l + '</option>').join('');
-        return '<div class="dv-settings"' + STOP + '>' +
-            '<div class="dv-set-title">Réglages des devinettes</div>' +
+        return '<div class="dv-settings"' + STOP + '><div class="dv-set-card">' +
+            '<div class="dv-panel-head"><span>⚙ Réglages des devinettes</span>' +
+              '<button type="button" class="dv-ib" data-dv-action="close" title="Fermer les réglages" aria-label="Fermer">✕</button></div>' +
             '<label class="dv-lbl">Choix de la devinette' +
               '<select data-dv-mode>' +
                 '<option value="jour"' + (cfg.mode === 'jour' ? ' selected' : '') + '>Devinette du jour (change chaque jour de classe)</option>' +
@@ -507,17 +537,97 @@ if (!window._wfPhoneAutoMax) {
             '<label class="dv-lbl">Mes devinettes <span class="dv-n">— une par ligne : Devinette = Réponse = Indice (l’indice est facultatif)</span>' +
               '<textarea data-dv-perso rows="5" placeholder="Je suis le prénom de la maîtresse à l’envers : ENIRAM. = Marine = Lis de droite à gauche.">' + esc(cfg.perso || '') + '</textarea></label>' +
             '<label class="dv-chk"><input type="checkbox" data-dv-persoonly' + (cfg.persoOnly ? ' checked' : '') + '> N’afficher que mes devinettes</label>' +
-            '<div class="dv-note">Clavier (souris sur le widget) : I indice · R ou Entrée réponse · T minuteur · ← → devinette précédente / suivante · F plein écran · Échap pour en sortir.</div>' +
             '<button type="button" class="dv-done" data-dv-action="close">Terminé</button>' +
-        '</div>';
+        '</div></div>';
+    }
+
+    /* ── Aide ─────────────────────────────────────────────────────── */
+    function buildHelp() {
+        return '<div class="dv-help"' + STOP + '><div class="dv-set-card">' +
+            '<div class="dv-panel-head"><span>❓ Comment utiliser les devinettes</span>' +
+              '<button type="button" class="dv-ib" data-dv-action="help-close" title="Fermer l’aide" aria-label="Fermer">✕</button></div>' +
+            '<ul class="dv-help-list">' +
+              '<li><b>📅 La devinette du jour :</b> elle change chaque jour de classe (pas le week-end).</li>' +
+              '<li><b>‹ 🎲 › :</b> devinette précédente, au hasard ou suivante.</li>' +
+              '<li><b>📚 Sommaire :</b> toutes les devinettes classées par thème. Cherche un mot, filtre par thème, puis clique sur celle de ton choix. Seules les questions sont affichées : les réponses restent secrètes !</li>' +
+              '<li><b>💡 Indice</b> pour aider la classe, <b>⏱ Réfléchir</b> pour lancer un temps de réflexion, puis <b>✨ Voir la réponse</b>.</li>' +
+              '<li><b>⚙ Réglages :</b> mode du jour ou au hasard, thèmes, niveaux (★ facile à ★★★ difficile), temps de réflexion et tes propres devinettes.</li>' +
+              '<li><b>Fenêtre :</b> bouton jaune : réduire, vert : plein écran, rouge : fermer. Le coin en bas à droite permet d’agrandir la fenêtre.</li>' +
+            '</ul>' +
+            '<div class="dv-help-note">Clavier (souris sur le widget) : I indice · R ou Entrée réponse · T minuteur · ← → devinette précédente / suivante · F plein écran · Échap pour en sortir.</div>' +
+        '</div></div>';
+    }
+
+    /* ── Sommaire ─────────────────────────────────────────────────── */
+    function buildTocChips(root, cfg) {
+        const all = allItems(cfg);
+        const flt = root.getAttribute('data-toc-th') || '';
+        const keys = THEME_KEYS.concat(all.some(d => d.th === 'perso') ? ['perso'] : []);
+        let h = '<button type="button" class="dv-tchip' + (flt ? '' : ' is-on') + '" data-dv-action="toc-th" data-th="">📋 Toutes <span>' + all.length + '</span></button>';
+        keys.forEach(k => {
+            const n = all.filter(d => d.th === k).length;
+            h += '<button type="button" class="dv-tchip' + (flt === k ? ' is-on' : '') + '" data-dv-action="toc-th" data-th="' + k + '" style="--cc:' + THEMES[k].c + '">' +
+                THEMES[k].ico + ' ' + esc(THEMES[k].nom) + ' <span>' + n + '</span></button>';
+        });
+        return h;
+    }
+    function buildTocList(root, cfg) {
+        const list = pool(cfg);
+        const cur = current(root, cfg, list), today = dayRiddle(list);
+        const all = allItems(cfg);
+        const q = fold(root.getAttribute('data-toc-q') || '');
+        const flt = root.getAttribute('data-toc-th') || '';
+        // La recherche porte aussi sur la réponse et l'indice (utile au maître), mais seules les questions s'affichent
+        const match = d => (!flt || d.th === flt) && (!q || fold([d.q, d.r, d.i || '', d.e || ''].join(' ')).indexOf(q) !== -1);
+        let html = '', total = 0;
+        THEME_KEYS.concat(['perso']).forEach(k => {
+            const items = all.filter(d => d.th === k && match(d));
+            if (!items.length) return;
+            total += items.length;
+            const th = THEMES[k];
+            const off = k !== 'perso' && cfg.themes[k] === false;
+            html += '<div class="dv-toc-grp" style="--cc:' + th.c + '">' + th.ico + ' ' + esc(th.nom) + ' <span>(' + items.length + ')</span>' +
+                (off ? '<em>thème désactivé dans les réglages</em>' : '') + '</div>';
+            items.forEach(d => {
+                const stars = d.n ? '<span class="dv-toc-st" title="' + NIVEAUX[d.n] + '">' + '★'.repeat(d.n) + '</span>' : '';
+                const badges = (d.q === today.q ? '<span class="dv-badge dv-badge-day">Du jour</span>' : '') +
+                               (d.q === cur.q ? '<span class="dv-badge dv-badge-cur">Affichée</span>' : '');
+                html += '<div class="dv-toc-it' + (d.q === cur.q ? ' is-cur' : '') + '" role="button" tabindex="0" data-dv-action="toc-pick" data-k="' + all.indexOf(d) + '" style="--cc:' + th.c + '" title="Afficher cette devinette">' +
+                    '<span class="dv-toc-t">' + esc(d.q) + '</span>' +
+                    '<span class="dv-toc-b">' + stars + badges + '</span></div>';
+            });
+        });
+        return total ? html : '<div class="dv-toc-empty">Aucune devinette ne correspond à ta recherche.</div>';
+    }
+    function buildToc(root, cfg) {
+        return '<div class="dv-toc"' + STOP + '><div class="dv-toc-card">' +
+            '<div class="dv-panel-head"><span>📚 Sommaire des devinettes</span>' +
+              '<button type="button" class="dv-ib" data-dv-action="toc-close" title="Fermer le sommaire" aria-label="Fermer">✕</button></div>' +
+            '<div class="dv-toc-search"><span aria-hidden="true">🔍</span>' +
+              '<input type="text" class="dv-toc-input" spellcheck="false" autocomplete="off" placeholder="Chercher un mot : escargot, Lune, charade…" value="' + esc(root.getAttribute('data-toc-q') || '') + '"></div>' +
+            '<div class="dv-toc-chips">' + buildTocChips(root, cfg) + '</div>' +
+            '<div class="dv-toc-list">' + buildTocList(root, cfg) + '</div>' +
+        '</div></div>';
+    }
+    function refreshToc(root) {
+        const cfg = getCfg(root);
+        const chips = root.querySelector('.dv-toc-chips'), list = root.querySelector('.dv-toc-list');
+        if (chips) chips.innerHTML = buildTocChips(root, cfg);
+        if (list) list.innerHTML = buildTocList(root, cfg);
+    }
+    function closePanels(root) {
+        root.classList.remove('dv-open', 'dv-toc-open', 'dv-help-open');
     }
 
     function render(root) {
         const cfg = getCfg(root);
         const list = pool(cfg);
         const d = current(root, cfg, list);
-        const open = root.classList.contains('dv-open');
-        root.innerHTML = buildBar(root, cfg, list, d) + buildSheet(root, cfg, list, d) + (open ? buildSettings(cfg) : '');
+        const has = c => root.classList.contains(c);
+        root.innerHTML = buildBar(root, cfg, list, d) + buildSheet(root, cfg, list, d) +
+            (has('dv-open') ? buildSettings(cfg) : '') +
+            (has('dv-help-open') ? buildHelp() : '') +
+            (has('dv-toc-open') ? buildToc(root, cfg) : '');
         root.setAttribute('data-day', new Date().toDateString());
         watchSize(root);
         fitSheet(root);
@@ -525,7 +635,7 @@ if (!window._wfPhoneAutoMax) {
 
     // Met à jour la barre et la feuille sans toucher au panneau de réglages
     function renderLight(root) {
-        const bar = root.querySelector('.dv-bar'), sheet = root.querySelector('.dv-sheet');
+        const bar = root.querySelector('.dv-bar'), sheet = root.querySelector('.dv-stage');
         if (!bar || !sheet) { render(root); return; }
         const cfg = getCfg(root);
         const list = pool(cfg);
@@ -621,7 +731,7 @@ if (!window._wfPhoneAutoMax) {
     }
 
     /* ── Actions ──────────────────────────────────────────────────── */
-    function act(root, a) {
+    function act(root, a, btn) {
         const cfg = getCfg(root);
         const list = pool(cfg);
         const d = current(root, cfg, list);
@@ -632,7 +742,7 @@ if (!window._wfPhoneAutoMax) {
             case 'wf-close': closeWidget(root); return;
             case 'prev':     setCur(root, list[(i - 1 + list.length) % list.length]); return;
             case 'next':     setCur(root, list[(i + 1) % list.length]); return;
-            case 'today':    setCur(root, null); return;
+            case 'today':    setCur(root, cfg.mode === 'jour' ? null : dayRiddle(list)); return;
             case 'random': {
                 let r = d;
                 if (list.length > 1) while (r === d) r = list[Math.floor(Math.random() * list.length)];
@@ -651,8 +761,40 @@ if (!window._wfPhoneAutoMax) {
                 return;
             case 'timer':      startTimer(root); return;
             case 'timer-stop': stopTimer(root); renderLight(root); return;
-            case 'toggle': root.classList.toggle('dv-open'); break;
+            case 'toggle': { const o = root.classList.contains('dv-open'); closePanels(root); root.classList.toggle('dv-open', !o); break; }
             case 'close':  root.classList.remove('dv-open'); break;
+            case 'help': { const o = root.classList.contains('dv-help-open'); closePanels(root); root.classList.toggle('dv-help-open', !o); break; }
+            case 'help-close': root.classList.remove('dv-help-open'); break;
+            case 'toc': {
+                const o = root.classList.contains('dv-toc-open');
+                closePanels(root);
+                root.classList.toggle('dv-toc-open', !o);
+                render(root);
+                if (!o) {
+                    const it = root.querySelector('.dv-toc-it.is-cur');
+                    if (it) it.scrollIntoView({ block: 'center' });
+                    const inp = root.querySelector('.dv-toc-input');
+                    // Pas de clavier qui s'ouvre tout seul sur tablette / téléphone
+                    if (inp && !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) {
+                        try { inp.focus({ preventScroll: true }); } catch (e) {}
+                    }
+                }
+                return;
+            }
+            case 'toc-close': root.classList.remove('dv-toc-open'); break;
+            case 'toc-th':
+                root.setAttribute('data-toc-th', (btn && btn.getAttribute('data-th')) || '');
+                refreshToc(root);
+                return;
+            case 'toc-pick': {
+                const item = allItems(cfg)[+(btn && btn.getAttribute('data-k'))];
+                if (!item) return;
+                root.classList.remove('dv-toc-open');
+                const ov = root.querySelector('.dv-toc');
+                if (ov) ov.remove();
+                setCur(root, item);
+                return;
+            }
         }
         render(root);
     }
@@ -667,7 +809,7 @@ if (!window._wfPhoneAutoMax) {
         if (!root) return;
         e.stopPropagation();
         lastRoot = root;
-        act(root, btn.getAttribute('data-dv-action'));
+        act(root, btn.getAttribute('data-dv-action'), btn);
     }, true);
 
     document.addEventListener('pointerover', function (e) {
@@ -695,6 +837,16 @@ if (!window._wfPhoneAutoMax) {
         setCfg(root, cfg);
     });
 
+    document.addEventListener('input', function (e) {
+        const inp = e.target.closest && e.target.closest('.dv-toc-input');
+        if (!inp) return;
+        const root = inp.closest('.dv-root');
+        if (!root) return;
+        root.setAttribute('data-toc-q', inp.value);
+        const list = root.querySelector('.dv-toc-list');
+        if (list) list.innerHTML = buildTocList(root, getCfg(root));
+    });
+
     /* ── Clavier ──────────────────────────────────────────────────── */
     const isEditable = el => !!(el && el.closest && el.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]'));
     function activeRoot() {
@@ -711,11 +863,29 @@ if (!window._wfPhoneAutoMax) {
     }
 
     document.addEventListener('keydown', function (e) {
-        // Saisie dans les réglages : pas de raccourcis du board
-        if (e.target.closest && e.target.closest('.dv-settings')) { e.stopPropagation(); return; }
+        // Saisie dans les réglages ou le sommaire : pas de raccourcis du board
+        const panel = e.target.closest && e.target.closest('.dv-settings, .dv-toc, .dv-help');
+        if (panel) {
+            const r = panel.closest('.dv-root');
+            if (e.key === 'Escape' && r) { e.preventDefault(); closePanels(r); render(r); }
+            else if (e.key === 'Enter' && r && e.target.classList.contains('dv-toc-input')) {
+                e.preventDefault();
+                const first = r.querySelector('.dv-toc-it');
+                if (first) act(r, 'toc-pick', first);
+            }
+            else if ((e.key === 'Enter' || e.key === ' ') && r && e.target.classList.contains('dv-toc-it')) {
+                e.preventDefault(); act(r, 'toc-pick', e.target);
+            }
+            e.stopPropagation();
+            return;
+        }
         if (e.ctrlKey || e.metaKey || e.altKey) return;
         const root = activeRoot();
-        if (!root || root.classList.contains('dv-open')) return;
+        if (!root) return;
+        if (root.matches('.dv-open, .dv-toc-open, .dv-help-open')) {
+            if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePanels(root); render(root); }
+            return;
+        }
         const k = e.key;
         // Entrée ou Espace sur un bouton : c'est le bouton qui agit
         if ((k === 'Enter' || k === ' ') && e.target.closest && e.target.closest('button')) return;
@@ -841,83 +1011,119 @@ if (!window._wfPhoneAutoMax) {
         st.id = 'dv-styles';
         st.textContent = `
 .dv-root{
-  --dv-paper:#f6f4fb; --dv-ink:#22202b; --dv-soft:#686475; --dv-line:#e2deec; --dv-c:#2f6fb5;
+  --dv-ink:#1f2a44; --dv-soft:#6b6b78; --dv-c:#2f6fb5; --dv-gold:#f5b301;
   container-type:inline-size; position:relative; width:100%; height:100%;
-  box-sizing:border-box; background:var(--dv-paper);
+  box-sizing:border-box; background:#18181c;
   display:flex; flex-direction:column; overflow:hidden;
-  font-family:"Trebuchet MS","Segoe UI",system-ui,-apple-system,sans-serif;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
   color:var(--dv-ink); user-select:none;
 }
-.dv-bar{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5cqw;
-  padding:1.6cqw 2.2cqw 0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-.dv-bar .wf-btns{justify-self:end}
-.dv-gear{justify-self:start;border:0;background:none;color:#aaa4ba;font-size:max(14px,3.6cqw);line-height:1;
-  cursor:pointer;padding:.8cqw;border-radius:5px}
-.dv-gear:hover,.dv-gear:focus-visible{color:var(--dv-ink);outline:1px solid var(--dv-line)}
-.dv-navbox{display:flex;align-items:center;gap:.6cqw}
-.dv-nav{border:0;background:none;color:var(--dv-soft);cursor:pointer;padding:.3cqw 1.2cqw;
-  font-size:max(15px,3.8cqw);line-height:1;border-radius:5px}
-.dv-dice{font-size:max(13px,3cqw)}
-.dv-today{font-size:max(13px,3.2cqw)}
-.dv-nav.is-hidden{visibility:hidden}
-.dv-nav:hover{color:var(--dv-ink);background:#ebe7f3}
-.dv-bar :focus-visible{outline:2px solid var(--dv-c);outline-offset:1px}
-.dv-sheet{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;margin:1.4cqw 2.4cqw 2.4cqw;
-  background:#fff;border:1px solid var(--dv-line);border-top:max(4px,.9cqw) solid var(--dv-c);
-  border-radius:max(6px,1.4cqw);box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden}
+.dv-root button{font-family:inherit}
+/* Barre du haut (comme « Le saviez-vous ? ») */
+.dv-bar{flex:none;height:40px;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:0 10px;
+  background:#232329;border-bottom:1px solid #2f2f37}
+.dv-title{flex:1;min-width:0;font-weight:700;font-size:13px;color:#e6e6ea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-tools{flex:none;display:flex;align-items:center;gap:2px;margin-right:4px}
+.dv-sep{width:1px;height:18px;background:#3a3a46;margin:0 4px}
+.dv-ib{flex:none;min-width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:#9a9aa6;
+  font-size:14px;font-weight:800;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
+.dv-ib:hover{background:rgba(255,255,255,.1);color:#fff}
+.dv-ib.is-on{background:rgba(245,179,1,.28);color:#fff}
+.dv-ib-help{width:26px;min-width:26px;height:26px;border-radius:50%;background:rgba(245,179,1,.22);color:#ffd970;margin-left:2px;font-size:13px}
+.dv-ib-help:hover,.dv-ib-help.is-on{background:var(--dv-gold);color:#222}
+.dv-bar :focus-visible,.dv-root :focus-visible{outline:2px solid var(--dv-gold);outline-offset:2px}
+/* Zone de la devinette */
+.dv-stage{flex:1;min-height:0;display:flex;padding:max(8px,2.2cqw);box-sizing:border-box;
+  background:radial-gradient(circle at 10% 10%,color-mix(in srgb,var(--dv-c) 45%,transparent),transparent 50%),
+             radial-gradient(circle at 92% 95%,rgba(245,179,1,.30),transparent 50%),#1b1c26}
+.dv-sheet{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;background:#fffdf6;
+  border-radius:max(12px,2.6cqw);box-shadow:0 12px 30px rgba(0,0,0,.4);overflow:hidden}
 .dv-sheet.is-ring{animation:dv-ring .6s ease 2}
 @keyframes dv-ring{25%{transform:rotate(-1deg)}75%{transform:rotate(1deg)}}
-.dv-top{flex:none;display:flex;align-items:center;gap:2cqw;flex-wrap:wrap;
-  padding:1.6cqw 2.6cqw 0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-  font-size:max(10px,2.5cqw);color:var(--dv-soft)}
-.dv-chip{display:inline-flex;align-items:center;gap:.5em;padding:.25em .8em;border-radius:99px;font-weight:700;
-  color:var(--dv-c);background:#eef0f6;background:color-mix(in srgb,var(--dv-c) 12%,#fff)}
-.dv-stars{color:#f0a800;letter-spacing:.05em;font-size:1.1em}
-.dv-off{color:#ddd8e6}
-.dv-label{margin-left:auto;font-style:italic;white-space:nowrap}
-.dv-tbar{flex:none;height:max(4px,.8cqw);margin:1.2cqw 2.6cqw 0;border-radius:99px;background:#eceaf2;overflow:hidden}
-.dv-tbar span{display:block;height:100%;width:100%;background:var(--dv-c);transform-origin:left;transition:transform .2s linear}
+.dv-top{flex:none;display:flex;align-items:center;gap:.8em;flex-wrap:wrap;padding:.65em 1.1em;
+  background:var(--dv-c);color:#fff;font-size:max(11px,2.5cqw)}
+.dv-chip{display:inline-flex;align-items:center;gap:.4em;font-weight:900}
+.dv-stars{color:#ffe08a;letter-spacing:.05em;font-size:1.05em}
+.dv-off{color:rgba(255,255,255,.35)}
+.dv-label{margin-left:auto;font-weight:700;opacity:.92;white-space:nowrap}
+.dv-tbar{flex:none;height:max(5px,.9cqw);background:color-mix(in srgb,var(--dv-c) 18%,#fff);overflow:hidden}
+.dv-tbar span{display:block;height:100%;width:100%;background:var(--dv-gold);transform-origin:left;transition:transform .2s linear}
 .dv-sheet.is-hurry .dv-tbar span{background:#e0533d}
-.dv-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:1.2cqw 5cqw 2.4cqw}
-.dv-inner{margin:auto 0;width:100%}
-.dv-q{text-align:center;font-weight:700;line-height:1.3;text-wrap:balance;font-size:calc(5.6cqw * var(--dv-k,1))}
-.dv-hint{margin:.9em auto 0;max-width:92%;padding:.5em 1em;border-radius:10px;text-align:center;
-  background:#fff8dc;border:1px dashed #e8c14a;color:#5c4a00;font-size:calc(3.4cqw * var(--dv-ka,1))}
-.dv-answer{margin:.9em auto 0;max-width:95%;padding:.6em 1em;border-radius:12px;text-align:center;
-  background:#eef0f6;background:color-mix(in srgb,var(--dv-c) 10%,#fff);border:2px solid var(--dv-c);
-  animation:dv-pop .35s cubic-bezier(.2,1.4,.5,1)}
-@keyframes dv-pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
-.dv-r{font-weight:800;color:var(--dv-c);font-size:calc(5cqw * var(--dv-ka,1));line-height:1.25}
-.dv-e{margin-top:.4em;color:var(--dv-ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45;
-  font-size:calc(3cqw * var(--dv-ka,1))}
-.dv-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:.6em;margin-top:1.1em;
-  font-size:calc(2.9cqw * var(--dv-ka,1))}
-.dv-btn{font:inherit;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:1em;
-  border:1px solid var(--dv-line);background:#f7f5fb;color:var(--dv-ink);border-radius:99px;
-  padding:.45em 1.1em;cursor:pointer;line-height:1.2;white-space:nowrap}
-.dv-btn:hover{border-color:var(--dv-c);color:var(--dv-c)}
-.dv-btn.is-on{background:var(--dv-c);border-color:var(--dv-c);color:#fff}
-.dv-btn.dv-main:not(.is-on){background:var(--dv-c);border-color:var(--dv-c);color:#fff;font-weight:700}
-.dv-btn.dv-main:not(.is-on):hover{filter:brightness(1.1)}
-.dv-btn.dv-tbtn.is-on{background:#fff;color:var(--dv-c);border-color:var(--dv-c);font-variant-numeric:tabular-nums}
-.dv-sheet.is-hurry .dv-btn.dv-tbtn.is-on{color:#e0533d;border-color:#e0533d}
-.dv-btn.dv-tbtn.is-done{background:#fdecea;border-color:#e0533d;color:#b03520;font-weight:700}
-.dv-btn:focus-visible{outline:2px solid var(--dv-c);outline-offset:1px}
-.dv-settings{position:absolute;inset:0;z-index:4;background:#fff;padding:3cqw 4cqw;overflow-y:auto;
-  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:max(12px,2.8cqw);color:#222;user-select:auto}
-.dv-set-title{font-weight:700;font-size:1.15em;margin-bottom:2cqw}
-.dv-lbl{display:block;font-weight:600;margin:2.4cqw 0 1cqw}
+.dv-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:1.6cqw 4.5cqw 2.6cqw}
+.dv-inner{margin:auto 0;width:100%;text-align:center}
+.dv-kicker{display:inline-block;padding:.15em .8em;border-radius:99px;background:#fff3c4;color:#8a6400;font-weight:900;
+  letter-spacing:.3px;text-transform:uppercase;font-size:calc(2.2cqw * var(--dv-ka,1))}
+.dv-q{margin-top:.35em;text-align:center;font-weight:900;line-height:1.25;text-wrap:balance;color:var(--dv-ink);
+  font-size:calc(5.4cqw * var(--dv-k,1))}
+.dv-think{margin-top:.7em;color:#7a7a88;font-style:italic;font-size:calc(2.9cqw * var(--dv-ka,1))}
+.dv-hint{margin:.8em auto 0;max-width:92%;padding:.5em 1em;border-radius:12px;text-align:center;
+  background:#fff8dc;border:2px dashed #e8c14a;color:#5c4a00;font-size:calc(3.3cqw * var(--dv-ka,1))}
+.dv-answer{margin:.8em auto 0;max-width:95%;animation:dv-pop .35s cubic-bezier(.2,1.4,.5,1)}
+@keyframes dv-pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.dv-r{display:inline-block;padding:.3em .9em;border-radius:14px;font-weight:900;line-height:1.25;
+  background:color-mix(in srgb,var(--dv-c) 15%,#fff);color:color-mix(in srgb,var(--dv-c) 75%,#000);
+  border:2px solid color-mix(in srgb,var(--dv-c) 35%,#fff);font-size:calc(4.6cqw * var(--dv-ka,1))}
+.dv-e{margin-top:.6em;color:#3d3d48;line-height:1.5;font-size:calc(3cqw * var(--dv-ka,1))}
+.dv-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:.6em;margin-top:1em;font-size:calc(2.8cqw * var(--dv-ka,1))}
+.dv-btn{font:inherit;font-size:1em;font-weight:800;border:0;background:#eef0f4;color:#3d4a66;border-radius:99px;
+  padding:.55em 1.2em;cursor:pointer;line-height:1.2;white-space:nowrap}
+.dv-btn:hover{background:#e2e6ee}
+.dv-btn.is-on{background:color-mix(in srgb,var(--dv-c) 18%,#fff);color:color-mix(in srgb,var(--dv-c) 75%,#000)}
+.dv-btn.dv-main:not(.is-on){background:var(--dv-gold);color:#2a2000;box-shadow:0 4px 12px rgba(245,179,1,.35)}
+.dv-btn.dv-main:not(.is-on):hover{filter:brightness(1.05)}
+.dv-btn.dv-tbtn.is-on{background:#fff;color:var(--dv-c);box-shadow:inset 0 0 0 2px var(--dv-c);font-variant-numeric:tabular-nums}
+.dv-sheet.is-hurry .dv-btn.dv-tbtn.is-on{color:#e0533d;box-shadow:inset 0 0 0 2px #e0533d}
+.dv-btn.dv-tbtn.is-done{background:#fdecea;color:#b03520}
+/* Fenêtres Réglages, Aide et Sommaire */
+.dv-settings,.dv-help,.dv-toc{position:absolute;left:0;right:0;top:40px;bottom:0;z-index:4;display:flex;justify-content:center;
+  align-items:flex-start;padding:12px;box-sizing:border-box;overflow:auto;background:rgba(10,10,20,.6);user-select:auto}
+.dv-toc{align-items:stretch;overflow:hidden}
+.dv-set-card,.dv-toc-card{width:100%;max-width:560px;box-sizing:border-box;background:#fffdf7;color:#2a2a33;border-radius:16px;
+  padding:12px 16px 14px;box-shadow:0 10px 30px rgba(0,0,0,.45);font-size:13px}
+.dv-toc-card{max-width:640px;display:flex;flex-direction:column;min-height:0;padding:12px 14px 10px}
+.dv-panel-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:900;font-size:15px;color:var(--dv-ink);margin-bottom:6px}
+.dv-panel-head .dv-ib{color:#666}
+.dv-panel-head .dv-ib:hover{background:#eee;color:#222}
+.dv-lbl{display:block;font-weight:800;margin:12px 0 6px;color:var(--dv-ink)}
 .dv-n{font-weight:400;color:#888;font-size:.92em}
 .dv-row{display:flex;flex-wrap:wrap;gap:4px 14px}
-.dv-settings select,.dv-settings textarea{display:block;width:100%;box-sizing:border-box;margin-top:1cqw;
-  padding:5px 6px;font:inherit;font-weight:400;border:1px solid #bbb;border-radius:4px;background:#fff;color:#222}
-.dv-settings textarea{resize:vertical;min-height:5em}
-.dv-chk{display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer}
+.dv-settings select,.dv-settings textarea{display:block;width:100%;box-sizing:border-box;margin-top:6px;
+  padding:7px 10px;font:inherit;font-weight:400;border:2px solid #e3dfd2;border-radius:10px;background:#fff;color:#222;outline:0}
+.dv-settings select:focus,.dv-settings textarea:focus{border-color:#d49a00}
+.dv-settings textarea{resize:vertical;min-height:5em;user-select:text}
+.dv-chk{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;color:#3d3d48}
+.dv-chk input{width:16px;height:16px;accent-color:#d49a00}
 .dv-chk-inline{display:inline-flex}
-.dv-note{margin-top:2.4cqw;font-size:.92em;color:#666;line-height:1.4}
-.dv-done{margin-top:3cqw;width:100%;padding:7px;border:0;border-radius:4px;background:var(--dv-ink);color:#fff;
-  font:inherit;font-weight:600;cursor:pointer}
-.dv-settings :focus-visible{outline:2px solid var(--dv-c);outline-offset:1px}
+.dv-done{margin-top:14px;height:34px;padding:0 18px;border:0;border-radius:99px;background:var(--dv-gold);color:#2a2000;
+  font:inherit;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(245,179,1,.35)}
+.dv-help-list{margin:0;padding-left:18px;line-height:1.5}
+.dv-help-list li{margin:4px 0}
+.dv-help-note{margin-top:10px;padding:8px 10px;border-radius:10px;background:#fff3c4;color:#6b5000;font-size:12px}
+.dv-toc-search{flex:none;display:flex;align-items:center;gap:8px;height:38px;box-sizing:border-box;padding:0 12px;background:#fff;
+  border:2px solid #ebe3c9;border-radius:99px}
+.dv-toc-search:focus-within{border-color:#d49a00}
+.dv-toc-input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:#222;font:inherit;font-size:14px;padding:0;user-select:text}
+.dv-toc-chips{flex:none;display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 6px}
+.dv-tchip{height:28px;border:2px solid #e3dfd2;border-radius:99px;padding:0 10px;background:#fff;color:#5a5a66;font-size:12px;font-weight:800;cursor:pointer}
+.dv-tchip span{opacity:.6;font-weight:700}
+.dv-tchip.is-on{border-color:var(--cc,#d49a00);background:var(--cc,#d49a00);color:#fff}
+.dv-toc-list{flex:1;min-height:0;overflow:auto;margin:0 -6px;padding:0 6px 4px;-webkit-overflow-scrolling:touch}
+.dv-toc-grp{position:sticky;top:0;z-index:1;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;background:#fffdf7;padding:8px 2px 4px;
+  font-weight:900;font-size:13px;color:color-mix(in srgb,var(--cc) 80%,#000)}
+.dv-toc-grp span{opacity:.6}
+.dv-toc-grp em{font-weight:600;font-size:11px;color:#8a8a96}
+.dv-toc-it{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 10px;margin:2px 0;border-radius:10px;background:#fff;
+  border-left:4px solid var(--cc);box-shadow:0 1px 2px rgba(60,40,10,.06);cursor:pointer}
+.dv-toc-it:hover,.dv-toc-it:focus-visible{background:#fff7dc}
+.dv-toc-it.is-cur{box-shadow:inset 0 0 0 2px var(--cc)}
+.dv-toc-t{flex:1;min-width:0;font-weight:700;color:var(--dv-ink);font-size:13.5px;line-height:1.3}
+.dv-toc-b{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.dv-toc-st{color:#e0a800;font-size:11px;letter-spacing:.05em}
+.dv-badge{padding:1px 8px;border-radius:99px;font-size:10.5px;font-weight:800;white-space:nowrap}
+.dv-badge-day{background:#fff0c9;color:#8a5a00}
+.dv-badge-cur{background:#d49a00;color:#fff}
+.dv-toc-empty{padding:24px 8px;text-align:center;color:#8a8a96;font-style:italic}
+.dv-toc-input:focus-visible{outline:none}
 /* Plein écran : la carte occupe tout l'écran, la barre du haut reste affichée */
 .dv-root.dv-full{position:fixed;z-index:9999;inset:0;width:auto;height:auto}
 /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
@@ -929,7 +1135,17 @@ if (!window._wfPhoneAutoMax) {
 .widget.dv-is-full > .widget-action-bar,
 .widget.dv-is-full > .widget-ctx-menu,
 .widget.dv-is-full > .custom-resize-handle{display:none !important}
-@media print{.dv-bar,.dv-settings,.dv-actions,.dv-tbar{display:none}}
+/* Widget étroit */
+@container (max-width: 460px){
+  .dv-title{font-size:0}
+  .dv-title::before{content:"🧩";font-size:15px}
+  .dv-settings,.dv-help,.dv-toc{padding:6px}
+}
+@container (max-width: 380px){
+  .dv-sep{display:none}
+  .dv-ib{min-width:24px;padding:0 3px}
+}
+@media print{.dv-bar,.dv-settings,.dv-help,.dv-toc,.dv-actions,.dv-tbar{display:none}}
 `;
         document.head.appendChild(st);
     }
@@ -1052,19 +1268,22 @@ if (!window._wfPhoneAutoMax) {
     window.DEVINETTES_ELEVES = DEVINETTES;
 
     // Sauvegarde / chargement (utilisés par save-load.js)
-    // On sauvegarde les réglages, et la devinette affichée en mode « au hasard ».
-    // En mode « devinette du jour », le widget revient à la devinette du jour au rechargement.
+    // On sauvegarde les réglages et la devinette affichée (choisie dans le
+    // sommaire, avec ‹ › ou au hasard). En mode « devinette du jour », une
+    // devinette choisie n'est gardée que le jour même : le lendemain, le
+    // widget revient à la nouvelle devinette du jour.
     window.devGetData = function (widget) {
         const root = widget && widget.querySelector('.dv-root');
         if (!root) return null;
         const cfg = getCfg(root);
-        return { cfg, cur: cfg.mode === 'hasard' ? (root.getAttribute('data-cur') || null) : null };
+        return { cfg, cur: root.getAttribute('data-cur') || null, day: new Date().toDateString() };
     };
     window.devSetData = function (widget, data) {
         const root = widget && widget.querySelector('.dv-root');
         if (!root || !data || !data.cfg) return;
         root.setAttribute('data-cfg', JSON.stringify(data.cfg));
-        if (data.cur) root.setAttribute('data-cur', data.cur);
+        const stale = data.cfg.mode !== 'hasard' && (!data.day || data.day !== new Date().toDateString());
+        if (data.cur && !stale) root.setAttribute('data-cur', data.cur);
         else root.removeAttribute('data-cur');
         render(root);
     };

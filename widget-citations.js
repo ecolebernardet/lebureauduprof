@@ -40,11 +40,14 @@ if (!window._wfPhoneAutoMax) {
      explication simple, pour lancer la discussion avec la classe
    - option « devinette » : l'auteur est caché, on le révèle d'un clic
 
-   Barre du haut :
+   Barre du haut (même présentation que « Le saviez-vous ? ») :
+   - ‹ 🎲 › pour passer d'une citation à l'autre ou en tirer une au hasard,
+     📅 pour revenir à la citation du jour
+   - 📚 sommaire : toutes les citations par thème (recherche, filtres)
+     pour choisir celle dont on veut parler
    - ⚙ réglages : mode (citation du jour / au hasard), thèmes affichés,
      auteur visible ou caché, citations personnelles de l'enseignant
-   - ‹ 🎲 › pour passer d'une citation à l'autre ou en tirer une au hasard,
-     ⟲ pour revenir à la citation du jour
+   - ? aide
    - boutons fenêtre jaune (réduire), vert (plein écran), rouge (fermer),
      identiques à ceux de l'éphéméride
 
@@ -408,6 +411,16 @@ if (!window._wfPhoneAutoMax) {
         return (dayNum(new Date()) * step) % n;
     }
 
+    // « Mercredi 4 novembre »
+    function dateLabel() {
+        try {
+            const t = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            return t.charAt(0).toUpperCase() + t.slice(1);
+        } catch (e) { return ''; }
+    }
+    // Recherche sans tenir compte des accents ni des majuscules
+    const fold = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’']/g, ' ').toLowerCase();
+
     // « Texte — Auteur » (tiret long, demi-long ou court entouré d'espaces)
     function parsePerso(str) {
         return String(str || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
@@ -440,10 +453,14 @@ if (!window._wfPhoneAutoMax) {
 
     const dayQuote = list => list[dayIndex(list.length)];
 
+    // Toutes les citations (y compris les thèmes désactivés) : le sommaire
+    // permet d'en choisir une même si elle n'est pas proposée.
+    const allItems = cfg => CITATIONS.concat(parsePerso(cfg.perso));
+
     // Citation affichée (gardée dans l'attribut data-cur de .cit-root)
     function current(root, cfg, list) {
         const cur = root.getAttribute('data-cur');
-        let q = cur ? list.find(x => x.t === cur) : null;
+        let q = cur ? (list.find(x => x.t === cur) || allItems(cfg).find(x => x.t === cur)) : null;
         if (!q) {
             if (cfg.mode === 'hasard') {
                 q = list[Math.floor(Math.random() * list.length)];
@@ -474,14 +491,19 @@ if (!window._wfPhoneAutoMax) {
 
     function buildBar(root, cfg, list, q) {
         const full = root.classList.contains('cit-full');
-        const showToday = cfg.mode === 'jour' && q !== dayQuote(list);
+        const isDay = q === dayQuote(list) && (cfg.mode === 'jour' || root.getAttribute('data-cur') === q.t);
+        const on = c => root.classList.contains(c) ? ' is-on' : '';
         return '<div class="cit-bar">' +
-            '<button type="button" class="cit-gear" data-cit-action="toggle" title="Réglages" aria-label="Réglages"' + STOP + '>⚙</button>' +
-            '<div class="cit-navbox"' + STOP + '>' +
-                '<button type="button" class="cit-nav" data-cit-action="prev" title="Citation précédente" aria-label="Citation précédente">‹</button>' +
-                '<button type="button" class="cit-nav cit-dice" data-cit-action="random" title="Une citation au hasard" aria-label="Une citation au hasard">🎲</button>' +
-                '<button type="button" class="cit-nav" data-cit-action="next" title="Citation suivante" aria-label="Citation suivante">›</button>' +
-                '<button type="button" class="cit-nav cit-today' + (showToday ? '' : ' is-hidden') + '" data-cit-action="today" title="Revenir à la citation du jour" aria-label="Revenir à la citation du jour">⟲</button>' +
+            '<span class="cit-title">💬 Citations</span>' +
+            '<div class="cit-tools"' + STOP + '>' +
+                '<button type="button" class="cit-ib" data-cit-action="prev" title="Citation précédente" aria-label="Citation précédente">‹</button>' +
+                '<button type="button" class="cit-ib" data-cit-action="random" title="Une citation au hasard" aria-label="Une citation au hasard">🎲</button>' +
+                '<button type="button" class="cit-ib" data-cit-action="next" title="Citation suivante" aria-label="Citation suivante">›</button>' +
+                '<button type="button" class="cit-ib' + (isDay ? ' is-on' : '') + '" data-cit-action="today" title="La citation du jour" aria-label="La citation du jour">📅</button>' +
+                '<button type="button" class="cit-ib' + on('cit-toc-open') + '" data-cit-action="toc" title="Sommaire : choisir une citation" aria-label="Sommaire">📚</button>' +
+                '<span class="cit-sep"></span>' +
+                '<button type="button" class="cit-ib' + on('cit-open') + '" data-cit-action="toggle" title="Réglages" aria-label="Réglages">⚙</button>' +
+                '<button type="button" class="cit-ib cit-ib-help' + on('cit-help-open') + '" data-cit-action="help" title="Aide" aria-label="Aide">?</button>' +
             '</div>' +
             '<div class="wf-btns"' + STOP + '>' +
                 '<button type="button" class="wf-btn wf-btn-min" data-cit-action="wf-min" title="Réduire" aria-label="Réduire"></button>' +
@@ -493,30 +515,35 @@ if (!window._wfPhoneAutoMax) {
 
     function buildSheet(root, cfg, list, q) {
         const th = THEMES[q.th] || THEMES.perso;
-        const isDay = cfg.mode === 'jour' && q === dayQuote(list);
-        const label = isDay ? 'Citation du jour' : (list.indexOf(q) + 1) + ' / ' + list.length;
+        const idx = list.indexOf(q);
+        const isDay = q === dayQuote(list) && (cfg.mode === 'jour' || root.getAttribute('data-cur') === q.t);
+        const label = isDay ? '📅 ' + esc(dateLabel())
+            : idx < 0 ? '📚 Choisie dans le sommaire'
+            : (cfg.mode === 'hasard' ? '🎲 ' : '') + (idx + 1) + ' / ' + list.length;
         const authorShown = cfg.author || root.hasAttribute('data-show-author');
         const explainShown = root.hasAttribute('data-show-explain');
 
-        let html = '<div class="cit-sheet" style="--ct-c:' + th.c + '">' +
+        let html = '<div class="cit-stage" style="--ct-c:' + th.c + '"><div class="cit-sheet">' +
             '<div class="cit-top"><span class="cit-chip"><span aria-hidden="true">' + th.ico + '</span>' + esc(th.nom) + '</span>' +
             '<span class="cit-label">' + label + '</span></div>' +
             '<div class="cit-body"><div class="cit-inner">' +
+            '<div class="cit-kicker">Citation</div>' +
             '<blockquote class="cit-quote"><span class="cit-g">«&nbsp;</span>' + esc(q.t) + '<span class="cit-g">&nbsp;»</span></blockquote>';
 
         if (q.a && authorShown) {
             html += '<div class="cit-author">— ' + esc(q.a) + (q.s ? ', <i>' + esc(q.s) + '</i>' : '') + '</div>';
         }
 
+        if (q.e && explainShown) html += '<div class="cit-explain">' + esc(q.e) + '</div>';
+        else if (!explainShown && !(q.a && !authorShown)) html += '<div class="cit-think">🤔 Qu’en pensez-vous ? Êtes-vous d’accord ?</div>';
+
         let btns = '';
         if (q.a && !authorShown) btns += '<button type="button" class="cit-btn" data-cit-action="author"' + STOP + '>👤 Qui a dit ça&nbsp;?</button>';
-        if (q.e) btns += '<button type="button" class="cit-btn' + (explainShown ? ' is-on' : '') + '" data-cit-action="explain"' + STOP + '>💡 ' +
-            (explainShown ? 'Cacher l’explication' : 'Qu’est-ce que ça veut dire&nbsp;?') + '</button>';
+        if (q.e) btns += '<button type="button" class="cit-btn' + (explainShown ? ' is-on' : ' cit-main') + '" data-cit-action="explain"' + STOP + '>' +
+            (explainShown ? '🙈 Cacher l’explication' : '✨ Qu’est-ce que ça veut dire&nbsp;?') + '</button>';
         if (btns) html += '<div class="cit-actions">' + btns + '</div>';
 
-        if (q.e && explainShown) html += '<div class="cit-explain">' + esc(q.e) + '</div>';
-
-        html += '</div></div></div>';
+        html += '</div></div></div></div>';
         return html;
     }
 
@@ -527,8 +554,9 @@ if (!window._wfPhoneAutoMax) {
             checks += '<label class="cit-chk"><input type="checkbox" data-cit-theme="' + k + '"' + (cfg.themes[k] ? ' checked' : '') + '> ' +
                 THEMES[k].ico + ' ' + THEMES[k].nom + ' <span class="cit-n">(' + n + ')</span></label>';
         });
-        return '<div class="cit-settings"' + STOP + '>' +
-            '<div class="cit-set-title">Réglages des citations</div>' +
+        return '<div class="cit-settings"' + STOP + '><div class="cit-set-card">' +
+            '<div class="cit-panel-head"><span>⚙ Réglages des citations</span>' +
+              '<button type="button" class="cit-ib" data-cit-action="close" title="Fermer les réglages" aria-label="Fermer">✕</button></div>' +
             '<label class="cit-lbl">Choix de la citation' +
               '<select data-cit-mode>' +
                 '<option value="jour"' + (cfg.mode === 'jour' ? ' selected' : '') + '>Citation du jour (change chaque jour)</option>' +
@@ -541,15 +569,119 @@ if (!window._wfPhoneAutoMax) {
               '<textarea data-cit-perso rows="5" placeholder="Dans notre classe, on a le droit de se tromper. — La maîtresse">' + esc(cfg.perso || '') + '</textarea></label>' +
             '<label class="cit-chk"><input type="checkbox" data-cit-persoonly' + (cfg.persoOnly ? ' checked' : '') + '> N’afficher que mes citations</label>' +
             '<button type="button" class="cit-done" data-cit-action="close">Terminé</button>' +
-        '</div>';
+        '</div></div>';
+    }
+
+    /* ── Aide ─────────────────────────────────────────────────────── */
+    function buildHelp() {
+        return '<div class="cit-help"' + STOP + '><div class="cit-set-card">' +
+            '<div class="cit-panel-head"><span>❓ Comment utiliser les citations</span>' +
+              '<button type="button" class="cit-ib" data-cit-action="help-close" title="Fermer l’aide" aria-label="Fermer">✕</button></div>' +
+            '<ul class="cit-help-list">' +
+              '<li><b>📅 La citation du jour :</b> elle change chaque jour de classe (pas le week-end).</li>' +
+              '<li><b>‹ 🎲 › :</b> citation précédente, au hasard ou suivante.</li>' +
+              '<li><b>📚 Sommaire :</b> toutes les citations classées par thème. Cherche un mot ou un auteur, filtre par thème, puis clique sur celle de ton choix.</li>' +
+              '<li><b>✨ Qu’est-ce que ça veut dire ?</b> dévoile une explication simple pour lancer la discussion.</li>' +
+              '<li><b>👤 Qui a dit ça ?</b> Si l’auteur est caché (réglages), la classe peut chercher qui a écrit la citation avant de le révéler.</li>' +
+              '<li><b>⚙ Réglages :</b> mode du jour ou au hasard, thèmes, auteur visible ou caché, et tes propres citations.</li>' +
+              '<li><b>Fenêtre :</b> bouton jaune : réduire, vert : plein écran, rouge : fermer. Le coin en bas à droite permet d’agrandir la fenêtre.</li>' +
+            '</ul>' +
+            '<div class="cit-help-note">' + CITATIONS.length + ' citations sont proposées dans 7 thèmes. Échap ferme le plein écran ou une fenêtre ouverte.</div>' +
+        '</div></div>';
+    }
+
+    /* ── Sommaire ─────────────────────────────────────────────────── */
+    function buildTocChips(root, cfg) {
+        const all = allItems(cfg);
+        const flt = root.getAttribute('data-toc-th') || '';
+        const keys = THEME_KEYS.concat(all.some(q => q.th === 'perso') ? ['perso'] : []);
+        let h = '<button type="button" class="cit-tchip' + (flt ? '' : ' is-on') + '" data-cit-action="toc-th" data-th="">📋 Toutes <span>' + all.length + '</span></button>';
+        keys.forEach(k => {
+            const n = all.filter(q => q.th === k).length;
+            h += '<button type="button" class="cit-tchip' + (flt === k ? ' is-on' : '') + '" data-cit-action="toc-th" data-th="' + k + '" style="--cc:' + THEMES[k].c + '">' +
+                THEMES[k].ico + ' ' + esc(THEMES[k].nom) + ' <span>' + n + '</span></button>';
+        });
+        return h;
+    }
+    function buildTocList(root, cfg) {
+        const list = pool(cfg);
+        const cur = current(root, cfg, list), today = dayQuote(list);
+        const all = allItems(cfg);
+        const term = fold(root.getAttribute('data-toc-q') || '');
+        const flt = root.getAttribute('data-toc-th') || '';
+        const match = q => (!flt || q.th === flt) && (!term || fold([q.t, q.a, q.s || '', q.e || ''].join(' ')).indexOf(term) !== -1);
+        let html = '', total = 0;
+        THEME_KEYS.concat(['perso']).forEach(k => {
+            const items = all.filter(q => q.th === k && match(q));
+            if (!items.length) return;
+            total += items.length;
+            const th = THEMES[k];
+            const off = k !== 'perso' && cfg.themes[k] === false;
+            html += '<div class="cit-toc-grp" style="--cc:' + th.c + '">' + th.ico + ' ' + esc(th.nom) + ' <span>(' + items.length + ')</span>' +
+                (off ? '<em>thème désactivé dans les réglages</em>' : '') + '</div>';
+            items.forEach(q => {
+                const badges = (q.t === today.t ? '<span class="cit-badge cit-badge-day">Du jour</span>' : '') +
+                               (q.t === cur.t ? '<span class="cit-badge cit-badge-cur">Affichée</span>' : '');
+                // Auteur caché dans les réglages (devinette « Qui a dit ça ? ») : on ne le montre pas ici non plus
+                const who = cfg.author && q.a ? '<span class="cit-toc-a">— ' + esc(q.a) + '</span>' : '';
+                html += '<div class="cit-toc-it' + (q.t === cur.t ? ' is-cur' : '') + '" role="button" tabindex="0" data-cit-action="toc-pick" data-k="' + all.indexOf(q) + '" style="--cc:' + th.c + '" title="Afficher cette citation">' +
+                    '<span class="cit-toc-txt"><span class="cit-toc-t">« ' + esc(q.t) + ' »</span>' + who + '</span>' +
+                    '<span class="cit-toc-b">' + badges + '</span></div>';
+            });
+        });
+        return total ? html : '<div class="cit-toc-empty">Aucune citation ne correspond à ta recherche.</div>';
+    }
+    function buildToc(root, cfg) {
+        return '<div class="cit-toc"' + STOP + '><div class="cit-toc-card">' +
+            '<div class="cit-panel-head"><span>📚 Sommaire des citations</span>' +
+              '<button type="button" class="cit-ib" data-cit-action="toc-close" title="Fermer le sommaire" aria-label="Fermer">✕</button></div>' +
+            '<div class="cit-toc-search"><span aria-hidden="true">🔍</span>' +
+              '<input type="text" class="cit-toc-input" spellcheck="false" autocomplete="off" placeholder="Chercher un mot ou un auteur : erreur, Hugo, amitié…" value="' + esc(root.getAttribute('data-toc-q') || '') + '"></div>' +
+            '<div class="cit-toc-chips">' + buildTocChips(root, cfg) + '</div>' +
+            '<div class="cit-toc-list">' + buildTocList(root, cfg) + '</div>' +
+        '</div></div>';
+    }
+    function refreshToc(root) {
+        const cfg = getCfg(root);
+        const chips = root.querySelector('.cit-toc-chips'), list = root.querySelector('.cit-toc-list');
+        if (chips) chips.innerHTML = buildTocChips(root, cfg);
+        if (list) list.innerHTML = buildTocList(root, cfg);
+    }
+    function closePanels(root) {
+        root.classList.remove('cit-open', 'cit-toc-open', 'cit-help-open');
+    }
+    function openToc(root) {
+        const o = root.classList.contains('cit-toc-open');
+        closePanels(root);
+        root.classList.toggle('cit-toc-open', !o);
+        render(root);
+        if (o) return;
+        const it = root.querySelector('.cit-toc-it.is-cur');
+        if (it) it.scrollIntoView({ block: 'center' });
+        const inp = root.querySelector('.cit-toc-input');
+        // Pas de clavier qui s'ouvre tout seul sur tablette / téléphone
+        if (inp && !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) {
+            try { inp.focus({ preventScroll: true }); } catch (e) {}
+        }
+    }
+    function pickToc(root, k) {
+        const item = allItems(getCfg(root))[+k];
+        if (!item) return;
+        root.classList.remove('cit-toc-open');
+        const ov = root.querySelector('.cit-toc');
+        if (ov) ov.remove();
+        setCur(root, item);
     }
 
     function render(root) {
         const cfg = getCfg(root);
         const list = pool(cfg);
         const q = current(root, cfg, list);
-        const open = root.classList.contains('cit-open');
-        root.innerHTML = buildBar(root, cfg, list, q) + buildSheet(root, cfg, list, q) + (open ? buildSettings(cfg) : '');
+        const has = c => root.classList.contains(c);
+        root.innerHTML = buildBar(root, cfg, list, q) + buildSheet(root, cfg, list, q) +
+            (has('cit-open') ? buildSettings(cfg) : '') +
+            (has('cit-help-open') ? buildHelp() : '') +
+            (has('cit-toc-open') ? buildToc(root, cfg) : '');
         root.setAttribute('data-day', new Date().toDateString());
         watchSize(root);
         fitSheet(root);
@@ -557,7 +689,7 @@ if (!window._wfPhoneAutoMax) {
 
     // Met à jour la barre et la feuille sans toucher au panneau de réglages
     function renderLight(root) {
-        const bar = root.querySelector('.cit-bar'), sheet = root.querySelector('.cit-sheet');
+        const bar = root.querySelector('.cit-bar'), sheet = root.querySelector('.cit-stage');
         if (!bar || !sheet) { render(root); return; }
         const cfg = getCfg(root);
         const list = pool(cfg);
@@ -668,7 +800,7 @@ if (!window._wfPhoneAutoMax) {
         if (act === 'wf-close') { closeWidget(root); return; }
         if (act === 'prev')     { setCur(root, list[(i - 1 + list.length) % list.length]); return; }
         if (act === 'next')     { setCur(root, list[(i + 1) % list.length]); return; }
-        if (act === 'today')    { setCur(root, null); return; }
+        if (act === 'today')    { setCur(root, cfg.mode === 'jour' ? null : dayQuote(list)); return; }
         if (act === 'random') {
             let r = q;
             if (list.length > 1) while (r === q) r = list[Math.floor(Math.random() * list.length)];
@@ -677,8 +809,14 @@ if (!window._wfPhoneAutoMax) {
         }
         if (act === 'author')  { root.setAttribute('data-show-author', ''); renderLight(root); return; }
         if (act === 'explain') { root.toggleAttribute('data-show-explain'); renderLight(root); return; }
-        if (act === 'toggle') root.classList.toggle('cit-open');
+        if (act === 'toc')      { openToc(root); return; }
+        if (act === 'toc-th')   { root.setAttribute('data-toc-th', btn.getAttribute('data-th') || ''); refreshToc(root); return; }
+        if (act === 'toc-pick') { pickToc(root, btn.getAttribute('data-k')); return; }
+        if (act === 'toggle') { const o = root.classList.contains('cit-open'); closePanels(root); root.classList.toggle('cit-open', !o); }
         if (act === 'close') root.classList.remove('cit-open');
+        if (act === 'help') { const o = root.classList.contains('cit-help-open'); closePanels(root); root.classList.toggle('cit-help-open', !o); }
+        if (act === 'help-close') root.classList.remove('cit-help-open');
+        if (act === 'toc-close') root.classList.remove('cit-toc-open');
         render(root);
     }, true);
 
@@ -699,16 +837,44 @@ if (!window._wfPhoneAutoMax) {
         setCfg(root, cfg);
     });
 
-    // Échap : quitter le plein écran
+    // Échap : fermer la fenêtre ouverte (réglages, aide, sommaire), sinon quitter le plein écran
     document.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') return;
+        const opened = Array.from(document.querySelectorAll('.cit-root.cit-open, .cit-root.cit-toc-open, .cit-root.cit-help-open'));
+        if (opened.length) {
+            e.preventDefault(); e.stopPropagation();
+            opened.forEach(r => { closePanels(r); render(r); });
+            return;
+        }
         document.querySelectorAll('.cit-root.cit-full').forEach(r => toggleFull(r, false));
     }, true);
 
-    // Empêche les raccourcis clavier du board pendant la saisie dans les réglages
+    // Empêche les raccourcis clavier du board pendant la saisie dans les réglages et le sommaire
     document.addEventListener('keydown', function (e) {
-        if (e.target.closest && e.target.closest('.cit-settings, .cit-bar')) e.stopPropagation();
+        if (!(e.target.closest && e.target.closest('.cit-settings, .cit-bar, .cit-toc, .cit-help'))) return;
+        e.stopPropagation();
+        const root = e.target.closest('.cit-root');
+        if (!root) return;
+        if (e.key === 'Enter' && e.target.classList.contains('cit-toc-input')) {
+            e.preventDefault();
+            const first = root.querySelector('.cit-toc-it');
+            if (first) pickToc(root, first.getAttribute('data-k'));
+        } else if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('cit-toc-it')) {
+            e.preventDefault();
+            pickToc(root, e.target.getAttribute('data-k'));
+        }
     }, true);
+
+    // Recherche du sommaire (mise à jour de la liste seulement, sans perdre le curseur)
+    document.addEventListener('input', function (e) {
+        const inp = e.target.closest && e.target.closest('.cit-toc-input');
+        if (!inp) return;
+        const root = inp.closest('.cit-root');
+        if (!root) return;
+        root.setAttribute('data-toc-q', inp.value);
+        const list = root.querySelector('.cit-toc-list');
+        if (list) list.innerHTML = buildTocList(root, getCfg(root));
+    });
 
     /* ── Redimensionnement libre ──────────────────────────────────
        La poignée du board (.custom-resize-handle) est interceptée pour
@@ -815,69 +981,134 @@ if (!window._wfPhoneAutoMax) {
         st.id = 'cit-styles';
         st.textContent = `
 .cit-root{
-  --ct-paper:#fbf8f1; --ct-ink:#26221d; --ct-soft:#6f675c; --ct-line:#e6dfd0; --ct-c:#2f6fb5;
+  --ct-ink:#1f2a44; --ct-soft:#6b6b78; --ct-c:#2f6fb5; --ct-gold:#f5b301;
   container-type:inline-size; position:relative; width:100%; height:100%;
-  box-sizing:border-box; background:var(--ct-paper);
+  box-sizing:border-box; background:#18181c;
   display:flex; flex-direction:column; overflow:hidden;
-  font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
   color:var(--ct-ink); user-select:none;
 }
-.cit-bar{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.5cqw;
-  padding:1.6cqw 2.2cqw 0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-.cit-bar .wf-btns{justify-self:end}
-.cit-gear{justify-self:start;border:0;background:none;color:#b3aa9b;font-size:max(14px,3.6cqw);line-height:1;
-  cursor:pointer;padding:.8cqw;border-radius:5px}
-.cit-gear:hover,.cit-gear:focus-visible{color:var(--ct-ink);outline:1px solid var(--ct-line)}
-.cit-navbox{display:flex;align-items:center;gap:.6cqw}
-.cit-nav{border:0;background:none;color:var(--ct-soft);cursor:pointer;padding:.3cqw 1.2cqw;
-  font-size:max(15px,3.8cqw);line-height:1;border-radius:5px}
-.cit-dice{font-size:max(13px,3cqw)}
-.cit-today{font-size:max(13px,3.2cqw)}
-.cit-nav.is-hidden{visibility:hidden}
-.cit-nav:hover{color:var(--ct-ink);background:#f1ece1}
-.cit-bar :focus-visible{outline:2px solid var(--ct-c);outline-offset:1px}
-.cit-sheet{flex:1;min-height:0;display:flex;flex-direction:column;margin:1.4cqw 2.4cqw 2.4cqw;
-  background:#fff;border:1px solid var(--ct-line);border-top:max(4px,.9cqw) solid var(--ct-c);
-  border-radius:max(6px,1.4cqw);box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden}
-.cit-top{flex:none;display:flex;justify-content:space-between;align-items:center;gap:2cqw;flex-wrap:wrap;
-  padding:1.6cqw 2.6cqw 0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-  font-size:max(10px,2.5cqw);color:var(--ct-soft)}
-.cit-chip{display:inline-flex;align-items:center;gap:.5em;padding:.25em .8em;border-radius:99px;font-weight:700;
-  color:var(--ct-c);background:#f3f0e8;background:color-mix(in srgb,var(--ct-c) 12%,#fff)}
-.cit-label{font-style:italic;white-space:nowrap}
-.cit-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:1.2cqw 5cqw 2.4cqw}
-.cit-inner{margin:auto 0;width:100%}
-.cit-quote{margin:0;text-align:center;font-weight:500;line-height:1.28;text-wrap:balance;
-  font-size:calc(6.4cqw * var(--ct-k,1))}
-.cit-g{color:var(--ct-c);font-weight:700}
-.cit-author{margin-top:.7em;text-align:right;color:var(--ct-soft);font-size:calc(3.5cqw * var(--ct-ka,1))}
-.cit-author i{color:var(--ct-soft)}
-.cit-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:.6em;margin-top:1.2em;
-  font-size:calc(2.9cqw * var(--ct-ka,1))}
-.cit-btn{font:inherit;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:1em;
-  border:1px solid var(--ct-line);background:#faf7f0;color:var(--ct-ink);border-radius:99px;
-  padding:.4em 1em;cursor:pointer;line-height:1.2}
-.cit-btn:hover{border-color:var(--ct-c);color:var(--ct-c)}
-.cit-btn.is-on{background:var(--ct-c);border-color:var(--ct-c);color:#fff}
-.cit-btn:focus-visible{outline:2px solid var(--ct-c);outline-offset:1px}
-.cit-explain{margin-top:.9em;padding:.7em 1em;border-left:4px solid var(--ct-c);border-radius:0 8px 8px 0;
-  background:#f6f2e8;background:color-mix(in srgb,var(--ct-c) 8%,#fff);
-  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45;text-align:left;
-  font-size:calc(3.3cqw * var(--ct-ka,1))}
-.cit-settings{position:absolute;inset:0;z-index:4;background:#fff;padding:3cqw 4cqw;overflow-y:auto;
-  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:max(12px,2.8cqw);color:#222;user-select:auto}
-.cit-set-title{font-weight:700;font-size:1.15em;margin-bottom:2cqw}
-.cit-lbl{display:block;font-weight:600;margin:2.4cqw 0 1cqw}
+.cit-root button{font-family:inherit}
+/* Barre du haut (comme « Le saviez-vous ? ») */
+.cit-bar{flex:none;height:40px;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:0 10px;
+  background:#232329;border-bottom:1px solid #2f2f37}
+.cit-title{flex:1;min-width:0;font-weight:700;font-size:13px;color:#e6e6ea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cit-tools{flex:none;display:flex;align-items:center;gap:2px;margin-right:4px}
+.cit-sep{width:1px;height:18px;background:#3a3a46;margin:0 4px}
+.cit-ib{flex:none;min-width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:#9a9aa6;
+  font-size:14px;font-weight:800;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
+.cit-ib:hover{background:rgba(255,255,255,.1);color:#fff}
+.cit-ib.is-on{background:rgba(245,179,1,.28);color:#fff}
+.cit-ib-help{width:26px;min-width:26px;height:26px;border-radius:50%;background:rgba(245,179,1,.22);color:#ffd970;margin-left:2px;font-size:13px}
+.cit-ib-help:hover,.cit-ib-help.is-on{background:var(--ct-gold);color:#222}
+.cit-bar :focus-visible,.cit-root :focus-visible{outline:2px solid var(--ct-gold);outline-offset:2px}
+/* Zone de la devinette */
+.cit-stage{flex:1;min-height:0;display:flex;padding:max(8px,2.2cqw);box-sizing:border-box;
+  background:radial-gradient(circle at 10% 10%,color-mix(in srgb,var(--ct-c) 45%,transparent),transparent 50%),
+             radial-gradient(circle at 92% 95%,rgba(245,179,1,.30),transparent 50%),#1b1c26}
+.cit-sheet{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;background:#fffdf6;
+  border-radius:max(12px,2.6cqw);box-shadow:0 12px 30px rgba(0,0,0,.4);overflow:hidden}
+.cit-sheet.is-ring{animation:cit-ring .6s ease 2}
+@keyframes cit-ring{25%{transform:rotate(-1deg)}75%{transform:rotate(1deg)}}
+.cit-top{flex:none;display:flex;align-items:center;gap:.8em;flex-wrap:wrap;padding:.65em 1.1em;
+  background:var(--ct-c);color:#fff;font-size:max(11px,2.5cqw)}
+.cit-chip{display:inline-flex;align-items:center;gap:.4em;font-weight:900}
+.cit-stars{color:#ffe08a;letter-spacing:.05em;font-size:1.05em}
+.cit-off{color:rgba(255,255,255,.35)}
+.cit-label{margin-left:auto;font-weight:700;opacity:.92;white-space:nowrap}
+.cit-tbar{flex:none;height:max(5px,.9cqw);background:color-mix(in srgb,var(--ct-c) 18%,#fff);overflow:hidden}
+.cit-tbar span{display:block;height:100%;width:100%;background:var(--ct-gold);transform-origin:left;transition:transform .2s linear}
+.cit-sheet.is-hurry .cit-tbar span{background:#e0533d}
+.cit-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:1.6cqw 4.5cqw 2.6cqw}
+.cit-inner{margin:auto 0;width:100%;text-align:center}
+.cit-kicker{display:inline-block;padding:.15em .8em;border-radius:99px;background:#fff3c4;color:#8a6400;font-weight:900;
+  letter-spacing:.3px;text-transform:uppercase;font-size:calc(2.2cqw * var(--ct-ka,1))}
+.cit-q{margin-top:.35em;text-align:center;font-weight:900;line-height:1.25;text-wrap:balance;color:var(--ct-ink);
+  font-size:calc(5.4cqw * var(--ct-k,1))}
+.cit-think{margin-top:.7em;color:#7a7a88;font-style:italic;font-size:calc(2.9cqw * var(--ct-ka,1))}
+.cit-hint{margin:.8em auto 0;max-width:92%;padding:.5em 1em;border-radius:12px;text-align:center;
+  background:#fff8dc;border:2px dashed #e8c14a;color:#5c4a00;font-size:calc(3.3cqw * var(--ct-ka,1))}
+.cit-answer{margin:.8em auto 0;max-width:95%;animation:cit-pop .35s cubic-bezier(.2,1.4,.5,1)}
+@keyframes cit-pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.cit-r{display:inline-block;padding:.3em .9em;border-radius:14px;font-weight:900;line-height:1.25;
+  background:color-mix(in srgb,var(--ct-c) 15%,#fff);color:color-mix(in srgb,var(--ct-c) 75%,#000);
+  border:2px solid color-mix(in srgb,var(--ct-c) 35%,#fff);font-size:calc(4.6cqw * var(--ct-ka,1))}
+.cit-e{margin-top:.6em;color:#3d3d48;line-height:1.5;font-size:calc(3cqw * var(--ct-ka,1))}
+.cit-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:.6em;margin-top:1em;font-size:calc(2.8cqw * var(--ct-ka,1))}
+.cit-btn{font:inherit;font-size:1em;font-weight:800;border:0;background:#eef0f4;color:#3d4a66;border-radius:99px;
+  padding:.55em 1.2em;cursor:pointer;line-height:1.2;white-space:nowrap}
+.cit-btn:hover{background:#e2e6ee}
+.cit-btn.is-on{background:color-mix(in srgb,var(--ct-c) 18%,#fff);color:color-mix(in srgb,var(--ct-c) 75%,#000)}
+.cit-btn.cit-main:not(.is-on){background:var(--ct-gold);color:#2a2000;box-shadow:0 4px 12px rgba(245,179,1,.35)}
+.cit-btn.cit-main:not(.is-on):hover{filter:brightness(1.05)}
+.cit-btn.cit-tbtn.is-on{background:#fff;color:var(--ct-c);box-shadow:inset 0 0 0 2px var(--ct-c);font-variant-numeric:tabular-nums}
+.cit-sheet.is-hurry .cit-btn.cit-tbtn.is-on{color:#e0533d;box-shadow:inset 0 0 0 2px #e0533d}
+.cit-btn.cit-tbtn.is-done{background:#fdecea;color:#b03520}
+/* Citation */
+.cit-quote{margin:.35em 0 0;text-align:center;font-weight:600;line-height:1.28;text-wrap:balance;color:var(--ct-ink);
+  font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;font-size:calc(6cqw * var(--ct-k,1))}
+.cit-g{color:var(--ct-c);font-weight:800}
+.cit-author{margin-top:.6em;text-align:right;color:var(--ct-soft);font-weight:700;font-size:calc(3.3cqw * var(--ct-ka,1))}
+.cit-author i{font-weight:400}
+.cit-explain{margin:.8em auto 0;max-width:95%;padding:.6em 1em;border-radius:12px;text-align:left;line-height:1.5;color:#3d3d48;
+  background:color-mix(in srgb,var(--ct-c) 10%,#fff);border-left:4px solid var(--ct-c);
+  font-size:calc(3.1cqw * var(--ct-ka,1));animation:cit-pop .35s cubic-bezier(.2,1.4,.5,1)}
+.cit-btn.cit-main{background:var(--ct-gold);color:#2a2000;box-shadow:0 4px 12px rgba(245,179,1,.35)}
+.cit-btn.cit-main:hover{filter:brightness(1.05)}
+.cit-toc-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cit-toc-t{font-weight:700;color:var(--ct-ink);font-size:13.5px;line-height:1.3;
+  font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif}
+.cit-toc-a{color:#7a6d55;font-size:12px}
+/* Fenêtres Réglages, Aide et Sommaire */
+.cit-settings,.cit-help,.cit-toc{position:absolute;left:0;right:0;top:40px;bottom:0;z-index:4;display:flex;justify-content:center;
+  align-items:flex-start;padding:12px;box-sizing:border-box;overflow:auto;background:rgba(10,10,20,.6);user-select:auto}
+.cit-toc{align-items:stretch;overflow:hidden}
+.cit-set-card,.cit-toc-card{width:100%;max-width:560px;box-sizing:border-box;background:#fffdf7;color:#2a2a33;border-radius:16px;
+  padding:12px 16px 14px;box-shadow:0 10px 30px rgba(0,0,0,.45);font-size:13px}
+.cit-toc-card{max-width:640px;display:flex;flex-direction:column;min-height:0;padding:12px 14px 10px}
+.cit-panel-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:900;font-size:15px;color:var(--ct-ink);margin-bottom:6px}
+.cit-panel-head .cit-ib{color:#666}
+.cit-panel-head .cit-ib:hover{background:#eee;color:#222}
+.cit-lbl{display:block;font-weight:800;margin:12px 0 6px;color:var(--ct-ink)}
 .cit-n{font-weight:400;color:#888;font-size:.92em}
-.cit-settings select,.cit-settings textarea{display:block;width:100%;box-sizing:border-box;margin-top:1cqw;
-  padding:5px 6px;font:inherit;font-weight:400;border:1px solid #bbb;border-radius:4px;background:#fff;color:#222}
-.cit-settings textarea{resize:vertical;min-height:5em}
-.cit-chk{display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer}
-.cit-chk-main{margin-top:2cqw}
-.cit-done{margin-top:3cqw;width:100%;padding:7px;border:0;border-radius:4px;background:var(--ct-ink);color:#fff;
-  font:inherit;font-weight:600;cursor:pointer}
-.cit-settings :focus-visible{outline:2px solid var(--ct-c);outline-offset:1px}
-/* Plein écran : la carte occupe tout l'écran */
+.cit-row{display:flex;flex-wrap:wrap;gap:4px 14px}
+.cit-settings select,.cit-settings textarea{display:block;width:100%;box-sizing:border-box;margin-top:6px;
+  padding:7px 10px;font:inherit;font-weight:400;border:2px solid #e3dfd2;border-radius:10px;background:#fff;color:#222;outline:0}
+.cit-settings select:focus,.cit-settings textarea:focus{border-color:#d49a00}
+.cit-settings textarea{resize:vertical;min-height:5em;user-select:text}
+.cit-chk{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;color:#3d3d48}
+.cit-chk input{width:16px;height:16px;accent-color:#d49a00}
+.cit-chk-inline{display:inline-flex}
+.cit-done{margin-top:14px;height:34px;padding:0 18px;border:0;border-radius:99px;background:var(--ct-gold);color:#2a2000;
+  font:inherit;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(245,179,1,.35)}
+.cit-help-list{margin:0;padding-left:18px;line-height:1.5}
+.cit-help-list li{margin:4px 0}
+.cit-help-note{margin-top:10px;padding:8px 10px;border-radius:10px;background:#fff3c4;color:#6b5000;font-size:12px}
+.cit-toc-search{flex:none;display:flex;align-items:center;gap:8px;height:38px;box-sizing:border-box;padding:0 12px;background:#fff;
+  border:2px solid #ebe3c9;border-radius:99px}
+.cit-toc-search:focus-within{border-color:#d49a00}
+.cit-toc-input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:#222;font:inherit;font-size:14px;padding:0;user-select:text}
+.cit-toc-chips{flex:none;display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 6px}
+.cit-tchip{height:28px;border:2px solid #e3dfd2;border-radius:99px;padding:0 10px;background:#fff;color:#5a5a66;font-size:12px;font-weight:800;cursor:pointer}
+.cit-tchip span{opacity:.6;font-weight:700}
+.cit-tchip.is-on{border-color:var(--cc,#d49a00);background:var(--cc,#d49a00);color:#fff}
+.cit-toc-list{flex:1;min-height:0;overflow:auto;margin:0 -6px;padding:0 6px 4px;-webkit-overflow-scrolling:touch}
+.cit-toc-grp{position:sticky;top:0;z-index:1;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;background:#fffdf7;padding:8px 2px 4px;
+  font-weight:900;font-size:13px;color:color-mix(in srgb,var(--cc) 80%,#000)}
+.cit-toc-grp span{opacity:.6}
+.cit-toc-grp em{font-weight:600;font-size:11px;color:#8a8a96}
+.cit-toc-it{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 10px;margin:2px 0;border-radius:10px;background:#fff;
+  border-left:4px solid var(--cc);box-shadow:0 1px 2px rgba(60,40,10,.06);cursor:pointer}
+.cit-toc-it:hover,.cit-toc-it:focus-visible{background:#fff7dc}
+.cit-toc-it.is-cur{box-shadow:inset 0 0 0 2px var(--cc)}
+.cit-toc-b{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.cit-toc-st{color:#e0a800;font-size:11px;letter-spacing:.05em}
+.cit-badge{padding:1px 8px;border-radius:99px;font-size:10.5px;font-weight:800;white-space:nowrap}
+.cit-badge-day{background:#fff0c9;color:#8a5a00}
+.cit-badge-cur{background:#d49a00;color:#fff}
+.cit-toc-empty{padding:24px 8px;text-align:center;color:#8a8a96;font-style:italic}
+.cit-toc-input:focus-visible{outline:none}
+/* Plein écran : la carte occupe tout l'écran, la barre du haut reste affichée */
 .cit-root.cit-full{position:fixed;z-index:9999;inset:0;width:auto;height:auto}
 /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
 @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
@@ -888,7 +1119,17 @@ if (!window._wfPhoneAutoMax) {
 .widget.cit-is-full > .widget-action-bar,
 .widget.cit-is-full > .widget-ctx-menu,
 .widget.cit-is-full > .custom-resize-handle{display:none !important}
-@media print{.cit-bar,.cit-settings,.cit-actions{display:none}}
+/* Widget étroit */
+@container (max-width: 460px){
+  .cit-title{font-size:0}
+  .cit-title::before{content:"💬";font-size:15px}
+  .cit-settings,.cit-help,.cit-toc{padding:6px}
+}
+@container (max-width: 380px){
+  .cit-sep{display:none}
+  .cit-ib{min-width:24px;padding:0 3px}
+}
+@media print{.cit-bar,.cit-settings,.cit-help,.cit-toc,.cit-actions,.cit-tbar{display:none}}
 `;
         document.head.appendChild(st);
     }
@@ -1011,19 +1252,22 @@ if (!window._wfPhoneAutoMax) {
     window.CITATIONS_ELEVES = CITATIONS;
 
     // Sauvegarde / chargement (utilisés par save-load.js)
-    // On sauvegarde les réglages, et la citation affichée en mode « au hasard ».
-    // En mode « citation du jour », le widget revient à la citation du jour au rechargement.
+    // On sauvegarde les réglages et la citation affichée (choisie dans le
+    // sommaire, avec ‹ › ou au hasard). En mode « citation du jour », une
+    // citation choisie n'est gardée que le jour même : le lendemain, le
+    // widget revient à la nouvelle citation du jour.
     window.citGetData = function (widget) {
         const root = widget && widget.querySelector('.cit-root');
         if (!root) return null;
         const cfg = getCfg(root);
-        return { cfg, cur: cfg.mode === 'hasard' ? (root.getAttribute('data-cur') || null) : null };
+        return { cfg, cur: root.getAttribute('data-cur') || null, day: new Date().toDateString() };
     };
     window.citSetData = function (widget, data) {
         const root = widget && widget.querySelector('.cit-root');
         if (!root || !data || !data.cfg) return;
         root.setAttribute('data-cfg', JSON.stringify(data.cfg));
-        if (data.cur) root.setAttribute('data-cur', data.cur);
+        const stale = data.cfg.mode !== 'hasard' && (!data.day || data.day !== new Date().toDateString());
+        if (data.cur && !stale) root.setAttribute('data-cur', data.cur);
         else root.removeAttribute('data-cur');
         render(root);
     };

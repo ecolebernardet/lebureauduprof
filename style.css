@@ -4472,7 +4472,7 @@ html body:not(.menu-light) #widgets-panel .widgets-section .widgets-section-labe
 /* Grille (ordinateur seulement) */
 @media (min-width: 769px) {
     html body #widgets-panel #widgets-panel-content .widgets-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
         gap: 8px 10px;
         margin-bottom: 0;
     }

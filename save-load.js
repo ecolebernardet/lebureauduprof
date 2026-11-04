@@ -402,6 +402,11 @@ function buildBoardState() {
         if (w.dataset.type === 'le-saviez-vous' && typeof window.lsvGetData === 'function') {
             lsvData = window.lsvGetData(w);
         }
+        // Données propres à l'outil Ambiance sonore (ambiances choisies, volumes, minuteur, carillon)
+        let ambData = null;
+        if (w.dataset.type === 'ambiance-sonore' && typeof window.ambGetData === 'function') {
+            ambData = window.ambGetData(w);
+        }
         // Données propres au widget couleurs
         let clrData = null;
         if (w.dataset.type === 'couleurs' && typeof w._clrGetData === 'function') {
@@ -851,7 +856,8 @@ function buildBoardState() {
 			dicData,
 			qrcData,
 			oadData,
-			lsvData
+			lsvData,
+			ambData
 		});
     });
     const shapes = [];
@@ -1781,6 +1787,10 @@ function restoreBoardFromJSON(json) {
         // Le saviez-vous ? : réafficher l'anecdote (ou celle du nouveau jour), les thèmes et les anecdotes perso
         if (w.type === 'le-saviez-vous' && w.lsvData && typeof window.lsvSetData === 'function') {
             window.lsvSetData(widget, w.lsvData);
+        }
+        // Ambiance sonore : réafficher les ambiances choisies, les volumes et le minuteur (le son se relance avec ▶)
+        if (w.type === 'ambiance-sonore' && w.ambData && typeof window.ambSetData === 'function') {
+            window.ambSetData(widget, w.ambData);
         }
         // Tableau : réappliquer lignes, colonnes, textes, couleurs et dessins
         if (w.type === 'tableau' && w.tabData && typeof window.tabSetData === 'function') {

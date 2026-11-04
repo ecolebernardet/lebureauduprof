@@ -1326,6 +1326,7 @@ function setVisuelsMode(mode) {
 <script src="outil-sonometre.js"></script>
 <script src="outil-radar.js"></script>
 <script src="outil-couleurs-bruit.js"></script>
+<script src="outil-ambiance-sonore.js"></script>
 <script src="outil-calculatrice.js"></script>
 <script src="outil-visualiseur.js"></script>
 <script src="activite-maths-geometrie.js"></script>
@@ -2669,6 +2670,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="tools-card-ico"><img src="pics/outil-pausecalme.jpg" alt="Pause calme" style="width:100%;height:100%;object-fit:contain;"></div>
                 <div class="tools-card-name">Pause Calme</div>
                 <div class="tools-card-desc">Exercice de respiration guidée pour calmer la classe</div>
+            </div>
+			<div class="tools-card" onclick="createWidget('ambiance-sonore');toggleToolsPanel()">
+                <div class="tools-card-ico"><img src="pics/outil-ambiance-sonore.jpg" alt="Ambiance sonore" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🎧'"></div>
+                <div class="tools-card-name">Ambiance sonore</div>
+                <div class="tools-card-desc">Pluie, forêt, vagues ou musique calme pour le travail autonome</div>
             </div>
 		</div>
 		</div>

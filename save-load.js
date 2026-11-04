@@ -397,6 +397,11 @@ function buildBoardState() {
         if (w.dataset.type === 'devinettes' && typeof window.devGetData === 'function') {
             devData = window.devGetData(w);
         }
+        // Données propres au widget Le saviez-vous ? (mode du jour / au hasard, anecdote affichée, thèmes, anecdotes perso, taille du texte)
+        let lsvData = null;
+        if (w.dataset.type === 'le-saviez-vous' && typeof window.lsvGetData === 'function') {
+            lsvData = window.lsvGetData(w);
+        }
         // Données propres au widget couleurs
         let clrData = null;
         if (w.dataset.type === 'couleurs' && typeof w._clrGetData === 'function') {
@@ -845,7 +850,8 @@ function buildBoardState() {
 			tnrData,
 			dicData,
 			qrcData,
-			oadData
+			oadData,
+			lsvData
 		});
     });
     const shapes = [];
@@ -1771,6 +1777,10 @@ function restoreBoardFromJSON(json) {
         // Devinettes : réappliquer les réglages et la devinette affichée
         if (w.type === 'devinettes' && w.devData && typeof window.devSetData === 'function') {
             window.devSetData(widget, w.devData);
+        }
+        // Le saviez-vous ? : réafficher l'anecdote (ou celle du nouveau jour), les thèmes et les anecdotes perso
+        if (w.type === 'le-saviez-vous' && w.lsvData && typeof window.lsvSetData === 'function') {
+            window.lsvSetData(widget, w.lsvData);
         }
         // Tableau : réappliquer lignes, colonnes, textes, couleurs et dessins
         if (w.type === 'tableau' && w.tabData && typeof window.tabSetData === 'function') {

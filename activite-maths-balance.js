@@ -51,6 +51,7 @@
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            cursor: default;
         }
         .bal-container {
             background: #ffffff;
@@ -65,12 +66,15 @@
             box-shadow: 0 4px 18px rgba(0,0,0,0.12);
             position: relative;
             user-select: none;
+            cursor: default;
             overflow: hidden;
         }
         .bal-container input { user-select: text; -webkit-user-select: text; font-family: inherit; }
 
         /* En-tête */
-        .bal-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: move; }
+        .bal-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: grab; }
+        .bal-header:active { cursor: grabbing; }
+        .bal-container.wf-fullboard .bal-header { cursor: default; }
         .bal-title { font-size: 13px; font-weight: 800; color: #374151; letter-spacing: .3px; pointer-events: none; }
         .bal-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #dbeafe; color: #1e40af; }
 
@@ -140,7 +144,7 @@
         .bal-chip {
             min-width: 34px; height: 34px; padding: 0 8px; border-radius: 8px;
             display: inline-flex; align-items: center; justify-content: center;
-            font-weight: 900; font-size: 15px; cursor: grab; touch-action: none;
+            font-weight: 900; font-size: 15px; cursor: pointer; touch-action: none;
             border: 2px solid rgba(0,0,0,.15); box-shadow: 0 2px 3px rgba(0,0,0,.12);
             font-family: 'Nunito', 'Segoe UI', sans-serif; color: #1f2937;
         }

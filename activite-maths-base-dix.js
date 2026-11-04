@@ -59,6 +59,7 @@
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            cursor: default;
         }
         .b10-container {
             background: #ffffff;
@@ -73,11 +74,14 @@
             box-shadow: 0 4px 18px rgba(0,0,0,0.12);
             position: relative;
             user-select: none;
+            cursor: default;
             overflow: hidden;
         }
 
         /* En-tête */
-        .b10-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: move; }
+        .b10-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: grab; }
+        .b10-header:active { cursor: grabbing; }
+        .b10-container.wf-fullboard .b10-header { cursor: default; }
         .b10-title { font-size: 13px; font-weight: 800; color: #374151; letter-spacing: .3px; pointer-events: none; }
         .b10-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #fdecd8; color: #9a4a00; }
 
@@ -156,7 +160,7 @@
         .b10-pal-item {
             display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 6px;
             border-radius: 10px; border: 2px solid var(--pc); background: #fff;
-            cursor: grab; touch-action: none; font-size: 12px; font-weight: 800; color: var(--pc);
+            cursor: pointer; touch-action: none; font-size: 12px; font-weight: 800; color: var(--pc);
             transition: transform .1s, box-shadow .15s;
         }
         .b10-pal-item:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,.12); }
@@ -231,7 +235,7 @@
         .b10-p1 { width: 1em;  height: 10em; }
         .b10-p2 { width: 10em; height: 10em; }
         .b10-p3 { width: 12em; height: 12em; }
-        .b10-pile .b10-p { cursor: grab; transition: transform .12s, filter .12s; }
+        .b10-pile .b10-p { cursor: pointer; transition: transform .12s, filter .12s; }
         .b10-tool-break .b10-pile .b10-p:not(.b10-p0) { cursor: pointer; }
         .b10-tool-break .b10-pile .b10-p:not(.b10-p0):hover { filter: drop-shadow(0 0 .25em #f59e0b); transform: scale(1.04); }
         .b10-tool-del .b10-pile .b10-p { cursor: pointer; }

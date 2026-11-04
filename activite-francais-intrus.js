@@ -50,6 +50,7 @@
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            cursor: default;
         }
         .itr-container {
             --itr-fs: 34px;
@@ -65,12 +66,15 @@
             box-shadow: 0 4px 18px rgba(0,0,0,0.12);
             position: relative;
             user-select: none;
+            cursor: default;
             overflow: hidden;
         }
         .itr-container input, .itr-container select { user-select: text; -webkit-user-select: text; font-family: inherit; }
 
         /* En-tête */
-        .itr-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: move; }
+        .itr-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: grab; }
+        .itr-header:active { cursor: grabbing; }
+        .itr-container.wf-fullboard .itr-header { cursor: default; }
         .itr-title { font-size: 13px; font-weight: 800; color: #374151; letter-spacing: .3px; pointer-events: none; }
         .itr-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #fce7f3; color: #9d174d; }
 

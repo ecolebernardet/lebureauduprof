@@ -46,7 +46,7 @@
 
             const miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
 
             const labelEl = document.createElement('span');
             labelEl.textContent = label;
@@ -146,6 +146,7 @@
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            cursor: default;
         }
         .ml-container {
             background: #ffffff;
@@ -160,6 +161,7 @@
             box-shadow: 0 4px 18px rgba(0,0,0,0.12);
             position: relative;
             user-select: none;
+            cursor: default;
             overflow: hidden;
         }
         .ml-container input {
@@ -174,9 +176,13 @@
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            cursor: move;
+            cursor: grab;
             user-select: none;
         }
+        .ml-header:active { cursor: grabbing; }
+        .wf-mini-bar:active { cursor: grabbing !important; }
+        .ml-tile.used { cursor: default; }
+        .ml-container.wf-fullboard .ml-header { cursor: default; }
         .ml-title {
             font-size: 13px;
             font-weight: 800;

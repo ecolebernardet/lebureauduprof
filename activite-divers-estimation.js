@@ -53,6 +53,7 @@
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            cursor: default;
         }
         .est-container {
             background: #ffffff;
@@ -67,12 +68,15 @@
             box-shadow: 0 4px 18px rgba(0,0,0,0.12);
             position: relative;
             user-select: none;
+            cursor: default;
             overflow: hidden;
         }
         .est-container input, .est-container select { user-select: text; -webkit-user-select: text; font-family: inherit; }
 
         /* En-tête */
-        .est-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: move; }
+        .est-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: grab; }
+        .est-header:active { cursor: grabbing; }
+        .est-container.wf-fullboard .est-header { cursor: default; }
         .est-title { font-size: 13px; font-weight: 800; color: #374151; letter-spacing: .3px; pointer-events: none; }
         .est-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #e0f2fe; color: #075985; }
 

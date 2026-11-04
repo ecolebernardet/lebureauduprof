@@ -51,6 +51,7 @@
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            cursor: default;
         }
         .cjf-container {
             --zu: 9px;
@@ -66,11 +67,14 @@
             box-shadow: 0 4px 18px rgba(0,0,0,0.12);
             position: relative;
             user-select: none;
+            cursor: default;
             overflow: hidden;
         }
 
         /* En-tête */
-        .cjf-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: move; user-select: none; }
+        .cjf-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: grab; user-select: none; }
+        .cjf-header:active { cursor: grabbing; }
+        .cjf-container.wf-fullboard .cjf-header { cursor: default; }
         .cjf-title { font-size: 13px; font-weight: 800; color: #374151; letter-spacing: 0.3px; pointer-events: none; }
         .cjf-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; letter-spacing: 0.3px; background: #e0f2fe; color: #075985; }
 

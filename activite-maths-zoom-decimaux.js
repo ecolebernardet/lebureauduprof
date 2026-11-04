@@ -54,6 +54,7 @@
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            cursor: default;
         }
         .zd-container {
             background: #ffffff;
@@ -68,12 +69,15 @@
             box-shadow: 0 4px 18px rgba(0,0,0,0.12);
             position: relative;
             user-select: none;
+            cursor: default;
             overflow: hidden;
         }
         .zd-container input { user-select: text; -webkit-user-select: text; font-family: inherit; }
 
         /* En-tête */
-        .zd-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: move; user-select: none; }
+        .zd-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: grab; user-select: none; }
+        .zd-header:active { cursor: grabbing; }
+        .zd-container.wf-fullboard .zd-header { cursor: default; }
         .zd-title { font-size: 13px; font-weight: 800; color: #374151; letter-spacing: 0.3px; pointer-events: none; }
         .zd-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; letter-spacing: 0.3px; background: #fef3c7; color: #92400e; }
 
@@ -195,7 +199,7 @@
             overflow: hidden;
         }
         .zd-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; font-family: 'Nunito', 'Segoe UI', sans-serif; }
-        .zd-seg { fill: transparent; cursor: zoom-in; transition: fill .15s; }
+        .zd-seg { fill: transparent; cursor: pointer; transition: fill .15s; }
         .zd-seg:hover { fill: rgba(250, 204, 21, 0.22); }
         .zd-seg.nozoom { cursor: default; }
         .zd-seg.nozoom:hover { fill: transparent; }

@@ -616,6 +616,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-repro-quadrillage' && typeof w._jrqGetData === 'function') {
             jrqData = w._jrqGetData();
         }
+        // Données propres au jeu Symétrie axiale (axe, figure donnée, grille de l'élève, options, temps, taille)
+        let jsaData = null;
+        if (w.dataset.type === 'jeu-symetrie-axiale' && typeof w._jsaGetData === 'function') {
+            jsaData = w._jsaGetData();
+        }
         // Données propres au jeu Labyrinthe (niveau, chemin parcouru, temps, options, taille)
         let jlabData = null;
         if (w.dataset.type === 'jeu-labyrinthe' && typeof w._jlabGetData === 'function') {
@@ -834,6 +839,7 @@ function buildBoardState() {
 			jrhData,
 			jtqData,
 			jrqData,
+			jsaData,
 			jpxData,
 			jlabData,
 			j7dData,
@@ -1642,6 +1648,13 @@ function restoreBoardFromJSON(json) {
             // Niveau, type, modèle (et modèle perso), grille de l'élève, options, temps, taille et plein écran
             if (typeof createJeuReproQuadrillageWidget === 'function') {
                 widget = createJeuReproQuadrillageWidget(w.jrqData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-symetrie-axiale') {
+            // Niveau, axe(s), figure donnée (et figure perso), grille de l'élève, options, temps, taille et plein écran
+            if (typeof createJeuSymetrieAxialeWidget === 'function') {
+                widget = createJeuSymetrieAxialeWidget(w.jsaData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

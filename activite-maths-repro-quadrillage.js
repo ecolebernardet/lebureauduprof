@@ -1088,7 +1088,9 @@ function createReproQuadrillageWidget(savedData) {
         if (helpLayer.hoverDot && currentTool !== 'fill' && !isGommeActive) helpLayer.hoverDot.setAttribute('visibility', 'visible');
 
         const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgSize = 70, marginL = 20, gap = 15, startY = 20, rowGap = 15;
+        // Écart réduit entre le modèle et la grille à reproduire, l'ensemble centré sur la page A4
+        const imgSize = 70, gap = 4, startY = 20, rowGap = 15;
+        const marginL = (210 - (2 * imgSize + gap)) / 2;
         for (let i = 0; i < 3; i++) {
             const y = startY + i * (imgSize + rowGap);
             pdf.setFontSize(8); pdf.setTextColor(150);

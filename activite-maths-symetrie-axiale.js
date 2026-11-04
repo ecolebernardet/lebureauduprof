@@ -3,7 +3,7 @@
 // Dessiner une figure sur quadrillage et afficher son symétrique
 // par rapport à un axe vertical, horizontal ou diagonal.
 //
-// Outils : ligne, cercle, remplissage (polygone), gomme
+// Outils : ligne, cercle, pot de peinture (zone fermée, gris clair/foncé), gomme
 // Axe : vertical | horizontal | diagonal ↘ | diagonal ↗
 // Export PDF A4
 // =========================================================================
@@ -211,6 +211,7 @@
             color: #fff;
             box-shadow: 0 0 0 2px rgba(124,58,237,0.25);
         }
+        .sa-axis-btn.active:hover { background: #6d28d9; }
 
         /* ── Barre d'outils ── */
         .sa-toolbar {
@@ -329,6 +330,32 @@
         }
         .sa-svg.cursor-gomme {
             cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' style='font-size:24px'><text y='24'>🧽</text></svg>") 16 16, pointer !important;
+        }
+        /* Curseur pot de peinture (même dessin que l'outil de draw.js) */
+        .sa-svg.cursor-bucket {
+            cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M6 12 L14 4 L23 13 L15 21 Z' fill='%23fff' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cpath d='M6 12 L15 21' stroke='%23000' stroke-width='1.6'/%3E%3Cpath d='M23 13 C26 17 26 20 24 21 C22 22 21 19 23 13 Z' fill='%23888' stroke='%23000' stroke-width='1.2'/%3E%3Ccircle cx='3' cy='25' r='2.2' fill='%23000'/%3E%3C/svg%3E") 3 25, crosshair !important;
+        }
+        /* Choix du gris du pot de peinture */
+        .sa-fillcolor-wrap {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .sa-fillcolor-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1.5px solid #d1d5db;
+            cursor: pointer;
+            padding: 0;
+            flex-shrink: 0;
+            transition: border-color .12s, transform .1s, box-shadow .12s;
+        }
+        .sa-fillcolor-btn:hover { transform: scale(1.1); }
+        .sa-fillcolor-btn.active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.3);
         }
         .sa-grid-line { stroke: #e5e7eb; stroke-width: 1; }
         .sa-grid-main { stroke: #9ca3af; stroke-width: 2; }
@@ -531,13 +558,43 @@ function saReflectPoint(x, y, axisType, size) {
 }
 
 // ── Calcul du symétrique d'un groupe SVG ─────────────────────────────────
+// axisType : nom d'axe ('vertical'…) ou fonction (x, y) → {x, y}
+// (composition de plusieurs symétries quand plusieurs axes sont actifs)
 function saReflectGroup(group, axisType, size) {
+    const map = typeof axisType === 'function'
+        ? axisType
+        : (x, y) => saReflectPoint(x, y, axisType, size);
     const sym = group.cloneNode(true);
     sym.classList.add('sa-sym-shape');
     sym.classList.remove('rq-line-group'); // sécurité
 
     // Supprimer les zones gomme transparentes du symétrique (inutiles + perturbantes)
     sym.querySelectorAll('.rq-eraser-zone, .sa-eraser-zone').forEach(z => z.remove());
+
+    // Remplissage au pot de peinture : chemin fait de rectangles
+    // "M x y h w v h h -w z" → on réfléchit chaque rectangle.
+    if (sym.classList.contains('sa-fill-group')) {
+        sym.classList.remove('sa-fill-group');
+        sym.classList.add('sa-sym-fill');
+        sym.querySelectorAll('path').forEach(el => {
+            const d = el.getAttribute('d') || '';
+            let newD = '';
+            d.replace(/M\s*(-?[\d.]+)\s+(-?[\d.]+)\s*h\s*(-?[\d.]+)\s*v\s*(-?[\d.]+)\s*h\s*-?[\d.]+\s*z/gi, (_, px, py, pw, ph) => {
+                const x = +px, y = +py, w = +pw, h = +ph;
+                // Image des deux coins opposés → rectangle image
+                const a = map(x, y), b = map(x + w, y + h);
+                const nx = Math.min(a.x, b.x), ny = Math.min(a.y, b.y);
+                const nw = Math.abs(b.x - a.x), nh = Math.abs(b.y - a.y);
+                newD += `M${nx} ${ny}h${nw}v${nh}h${-nw}z`;
+                return '';
+            });
+            el.setAttribute('d', newD);
+            const dark = (el.getAttribute('fill') || '').replace(/\s/g, '') === 'rgba(0,0,0,0.5)';
+            el.setAttribute('fill', dark ? 'rgba(124,58,237,0.45)' : 'rgba(124,58,237,0.18)');
+            el.style.pointerEvents = 'none';
+        });
+        return sym;
+    }
 
     // Transformer chaque élément SVG
     sym.querySelectorAll('line, circle, path, polygon').forEach(el => {
@@ -547,20 +604,20 @@ function saReflectGroup(group, axisType, size) {
             const y1 = parseFloat(el.getAttribute('y1'));
             const x2 = parseFloat(el.getAttribute('x2'));
             const y2 = parseFloat(el.getAttribute('y2'));
-            const p1 = saReflectPoint(x1, y1, axisType, size);
-            const p2 = saReflectPoint(x2, y2, axisType, size);
+            const p1 = map(x1, y1);
+            const p2 = map(x2, y2);
             el.setAttribute('x1', p1.x); el.setAttribute('y1', p1.y);
             el.setAttribute('x2', p2.x); el.setAttribute('y2', p2.y);
         } else if (tag === 'circle') {
             const cx = parseFloat(el.getAttribute('cx'));
             const cy = parseFloat(el.getAttribute('cy'));
-            const p  = saReflectPoint(cx, cy, axisType, size);
+            const p  = map(cx, cy);
             el.setAttribute('cx', p.x); el.setAttribute('cy', p.y);
         } else if (tag === 'path') {
             const d = el.getAttribute('d') || '';
             // Parse commandes M/L/Z
             const newD = d.replace(/([ML])\s*([\d.]+)\s*,?\s*([\d.]+)/g, (_, cmd, px, py) => {
-                const p = saReflectPoint(parseFloat(px), parseFloat(py), axisType, size);
+                const p = map(parseFloat(px), parseFloat(py));
                 return `${cmd} ${p.x} ${p.y}`;
             });
             el.setAttribute('d', newD);
@@ -634,11 +691,15 @@ function createSymetrieAxialeWidget(savedData) {
         <h4>💡 Mode d'emploi</h4>
         <div class="sa-help-section">
             <strong>🪞 Axe de symétrie</strong><br>
-            Choisissez l'axe (vertical, horizontal, diagonal ↘ ou ↗) avant de dessiner. L'axe apparaît en rouge.
+            Cliquez sur un ou plusieurs axes (vertical, horizontal, diagonale ↘, diagonale ↗) : chaque clic active ou désactive l'axe. Les axes actifs apparaissent en rouge. Avec plusieurs axes, le symétrique affiché rend la figure symétrique par rapport à chacun d'eux.
         </div>
         <div class="sa-help-section">
-            <strong>📏 Ligne / ⭕ Cercle / 🎨 Polygone</strong><br>
+            <strong>📏 Ligne / ⭕ Cercle</strong><br>
             Dessinez votre figure sur la grille. Le symétrique ne s'affiche pas pendant le dessin.
+        </div>
+        <div class="sa-help-section">
+            <strong>🪣 Pot de peinture</strong><br>
+            Choisissez gris clair ou gris foncé, puis cliquez à l'intérieur d'une zone fermée par des traits pour la remplir. Recliquez avec l'autre gris pour changer la couleur.
         </div>
         <div class="sa-help-section">
             <strong>🧽 Gomme</strong><br>
@@ -673,7 +734,11 @@ function createSymetrieAxialeWidget(savedData) {
     toolbar.innerHTML = `
         <button class="sa-tool-btn active" data-tool="line"   title="Tracer une ligne">📏</button>
         <button class="sa-tool-btn"        data-tool="circle" title="Tracer un cercle">⭕</button>
-        <button class="sa-tool-btn"        data-tool="fill"   title="Remplir un polygone">🎨</button>
+        <button class="sa-tool-btn"        data-tool="fill"   title="Pot de peinture : remplir une zone fermée">🪣</button>
+        <div class="sa-fillcolor-wrap">
+            <button type="button" class="sa-fillcolor-btn active" data-fillcolor="light" title="Gris clair" style="background:#d9d9d9;"></button>
+            <button type="button" class="sa-fillcolor-btn" data-fillcolor="dark" title="Gris foncé" style="background:#8a8f98;"></button>
+        </div>
         <div class="sa-toolbar-sep"></div>
         <button class="sa-tool-btn" id="sa-undo-btn" title="Annuler">↩</button>
         <button class="sa-tool-btn" id="sa-redo-btn" title="Refaire">↪</button>
@@ -761,9 +826,13 @@ function createSymetrieAxialeWidget(savedData) {
     let undoStack     = [];
     let redoStack     = [];
     let helpLayer     = {};
-    let currentAxis   = 'vertical';
+    // Axes actifs (plusieurs possibles) : chaque bouton s'active/se désactive au clic
+    const SA_AXIS_ORDER = ['vertical', 'horizontal', 'diag-down', 'diag-up'];
+    let currentAxes   = new Set(['vertical']);
     let symVisible    = false;
     let currentColor  = '#000000';
+    let currentFillColor = 'light';
+    const SA_FILL_COLORS = { light: 'rgba(0,0,0,0.15)', dark: 'rgba(0,0,0,0.5)' };
     const gridSizeInput = toolbar.querySelector('.sa-gridsize-input');
 
     // ── Brancher le color-picker sur currentColor ─────────────────────────
@@ -841,38 +910,63 @@ function createSymetrieAxialeWidget(savedData) {
         };
         Object.values(helpLayer).forEach(el => helpGroup.appendChild(el));
         svg.appendChild(helpGroup);
+        if (currentTool === 'fill' || isGommeActive) helpLayer.hoverDot.setAttribute('visibility', 'hidden');
 
         // Redessiner les symétriques si déjà visibles
         if (symVisible) refreshSymmetry();
     }
 
     // ── Tracer l'axe de symétrie ──────────────────────────────────────────
+    // Plusieurs axes possibles : chaque axe actif est tracé en rouge
     function drawAxisLine(group) {
         group.innerHTML = '';
         const mid = SA_SIZE / 2;
-        let line, label, lx, ly;
-        switch (currentAxis) {
-            case 'vertical':
-                line = createSVGEl('line', { x1: mid, y1: 0, x2: mid, y2: SA_SIZE, class: 'sa-axis-line' });
-                lx = mid + 6; ly = 18;
-                break;
-            case 'horizontal':
-                line = createSVGEl('line', { x1: 0, y1: mid, x2: SA_SIZE, y2: mid, class: 'sa-axis-line' });
-                lx = 6; ly = mid - 6;
-                break;
-            case 'diag-down':
-                line = createSVGEl('line', { x1: 0, y1: 0, x2: SA_SIZE, y2: SA_SIZE, class: 'sa-axis-line' });
-                lx = 8; ly = 22;
-                break;
-            case 'diag-up':
-                line = createSVGEl('line', { x1: SA_SIZE, y1: 0, x2: 0, y2: SA_SIZE, class: 'sa-axis-line' });
-                lx = SA_SIZE - 60; ly = 22;
-                break;
-        }
-        label = createSVGEl('text', { x: lx, y: ly, class: 'sa-sym-label' });
+        SA_AXIS_ORDER.filter(a => currentAxes.has(a)).forEach(axis => {
+            let line;
+            switch (axis) {
+                case 'vertical':
+                    line = createSVGEl('line', { x1: mid, y1: 0, x2: mid, y2: SA_SIZE, class: 'sa-axis-line' });
+                    break;
+                case 'horizontal':
+                    line = createSVGEl('line', { x1: 0, y1: mid, x2: SA_SIZE, y2: mid, class: 'sa-axis-line' });
+                    break;
+                case 'diag-down':
+                    line = createSVGEl('line', { x1: 0, y1: 0, x2: SA_SIZE, y2: SA_SIZE, class: 'sa-axis-line' });
+                    break;
+                case 'diag-up':
+                    line = createSVGEl('line', { x1: SA_SIZE, y1: 0, x2: 0, y2: SA_SIZE, class: 'sa-axis-line' });
+                    break;
+            }
+            if (line) group.appendChild(line);
+        });
+    }
 
-        group.appendChild(line);
-        group.appendChild(label);
+    // Toutes les transformations engendrées par les axes actifs (hors identité).
+    // 1 axe → 1 symétrie ; 2 axes perpendiculaires → 2 symétries + demi-tour ;
+    // axes droits + diagonales → les 7 images du carré. La figure obtenue est
+    // ainsi symétrique par rapport à CHACUN des axes sélectionnés.
+    function getSymTransforms() {
+        const gens = SA_AXIS_ORDER.filter(a => currentAxes.has(a))
+            .map(a => (x, y) => saReflectPoint(x, y, a, SA_SIZE));
+        if (!gens.length) return [];
+        const keyOf = f => { const p = f(1, 2), q = f(5, 11); return `${p.x},${p.y},${q.x},${q.y}`; };
+        const identity = (x, y) => ({ x, y });
+        const seen = new Map([[keyOf(identity), identity]]);
+        const queue = [identity];
+        while (queue.length) {
+            const f = queue.shift();
+            gens.forEach(g => {
+                const h = (x, y) => { const p = f(x, y); return g(p.x, p.y); };
+                const k = keyOf(h);
+                if (!seen.has(k)) { seen.set(k, h); queue.push(h); }
+            });
+        }
+        seen.delete(keyOf(identity));
+        return Array.from(seen.values());
+    }
+
+    function updateAxisButtons() {
+        axisBar.querySelectorAll('.sa-axis-btn').forEach(b => b.classList.toggle('active', currentAxes.has(b.dataset.axis)));
     }
 
     // ── Afficher/masquer le symétrique ────────────────────────────────────
@@ -907,13 +1001,20 @@ function createSymetrieAxialeWidget(savedData) {
         const helpLayerEl = svg.querySelector('#sa-help-layer');
         const axisLayerEl = svg.querySelector('#sa-axis-layer');
 
-        svg.querySelectorAll('.sa-line-group').forEach(group => {
-            const sym = saReflectGroup(group, currentAxis, SA_SIZE);
+        const transforms = getSymTransforms();
+        svg.querySelectorAll('.sa-line-group').forEach(group => transforms.forEach(tf => {
+            const sym = saReflectGroup(group, tf, SA_SIZE);
+            // Remplissages symétriques : sous les traits (comme les remplissages d'origine)
+            if (sym.classList.contains('sa-sym-fill')) {
+                const firstStroke = svg.querySelector('.sa-line-group:not(.sa-fill-group)');
+                svg.insertBefore(sym, firstStroke || axisLayerEl || helpLayerEl);
+                return;
+            }
             // Insérer avant l'axe
             if (axisLayerEl) svg.insertBefore(sym, axisLayerEl);
             else if (helpLayerEl) svg.insertBefore(sym, helpLayerEl);
             else svg.appendChild(sym);
-        });
+        }));
     }
 
     // ── Coordonnées snappées à la grille ─────────────────────────────────
@@ -945,6 +1046,7 @@ function createSymetrieAxialeWidget(savedData) {
         svg.classList.remove('cursor-gomme');
         svg.style.cursor = 'crosshair';
         resetAide();
+        updateBucketCursor();
         updateToolButtons();
     }
 
@@ -953,7 +1055,185 @@ function createSymetrieAxialeWidget(savedData) {
         resetAide();
         if (isGommeActive) svg.classList.add('cursor-gomme');
         else { svg.classList.remove('cursor-gomme'); svg.style.cursor = 'crosshair'; }
+        updateBucketCursor();
         updateToolButtons();
+    }
+
+    // Curseur 🪣 + point de survol masqué quand le pot de peinture est actif
+    function updateBucketCursor() {
+        const on = currentTool === 'fill' && !isGommeActive;
+        svg.classList.toggle('cursor-bucket', on);
+        if (helpLayer.hoverDot) helpLayer.hoverDot.setAttribute('visibility', on || isGommeActive ? 'hidden' : 'visible');
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // POT DE PEINTURE
+    // Les traits de la figure sont rasterisés sur un canvas 600×600
+    // (1 px = 1 unité SVG), on fait un remplissage par diffusion depuis le
+    // point cliqué, puis la zone obtenue est convertie en un <path> SVG fait
+    // de rectangles. → vrai élément SVG : sauvegarde, PDF, gomme, annuler,
+    // et symétrique OK. L'axe rouge et le symétrique ne sont pas des bords.
+    // Le remplissage est placé SOUS les traits, qui restent nets par-dessus.
+    // ══════════════════════════════════════════════════════════════════════
+    const SA_FILL_DILATE = 1; // débord sous les traits (évite un liseré blanc)
+
+    function getRawCoords(e) {
+        const rect = svg.getBoundingClientRect();
+        const clientX = e.clientX ?? (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY ?? (e.touches && e.touches[0].clientY);
+        return {
+            x: ((clientX - rect.left) / rect.width)  * SA_SIZE,
+            y: ((clientY - rect.top)  / rect.height) * SA_SIZE
+        };
+    }
+
+    function rasterizeBoundaries() {
+        const N = SA_SIZE;
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = N;
+        const ctx = cv.getContext('2d');
+        ctx.strokeStyle = '#000';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        svg.querySelectorAll('.sa-line-group:not(.sa-fill-group)').forEach(g => {
+            g.querySelectorAll('line, circle, path').forEach(el => {
+                if (el.classList.contains('sa-eraser-zone') || el.classList.contains('rq-eraser-zone')) return;
+                const stroke = el.getAttribute('stroke');
+                if (!stroke || stroke === 'none' || stroke === 'transparent') return;
+                ctx.lineWidth = parseFloat(el.getAttribute('stroke-width')) || 4;
+                const tag = el.tagName.toLowerCase();
+                ctx.beginPath();
+                if (tag === 'line') {
+                    ctx.moveTo(+el.getAttribute('x1'), +el.getAttribute('y1'));
+                    ctx.lineTo(+el.getAttribute('x2'), +el.getAttribute('y2'));
+                    ctx.stroke();
+                } else if (tag === 'circle') {
+                    ctx.arc(+el.getAttribute('cx'), +el.getAttribute('cy'), +el.getAttribute('r'), 0, Math.PI * 2);
+                    ctx.stroke();
+                } else if (tag === 'path') {
+                    // Anciens polygones remplis : seul le contour compte
+                    try { ctx.stroke(new Path2D(el.getAttribute('d') || '')); } catch (_) {}
+                }
+            });
+        });
+        return ctx.getImageData(0, 0, N, N).data;
+    }
+
+    function floodRegion(data, N, sx, sy) {
+        const free = (p) => data[p * 4 + 3] < 128;
+        if (!free(sy * N + sx)) return null;          // clic sur un trait
+        const mask = new Uint8Array(N * N);
+        let minX = sx, maxX = sx, minY = sy, maxY = sy;
+        const stack = [sx, sy];
+        while (stack.length) {
+            const y = stack.pop(), x = stack.pop();
+            let xl = x;
+            while (xl >= 0 && !mask[y * N + xl] && free(y * N + xl)) xl--;
+            xl++;
+            let xr = x;
+            while (xr < N && !mask[y * N + xr] && free(y * N + xr)) xr++;
+            xr--;
+            if (xl > xr) continue;
+            for (let xx = xl; xx <= xr; xx++) mask[y * N + xx] = 1;
+            if (xl < minX) minX = xl;
+            if (xr > maxX) maxX = xr;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            for (const ny of [y - 1, y + 1]) {
+                if (ny < 0 || ny >= N) continue;
+                let inRun = false;
+                for (let xx = xl; xx <= xr; xx++) {
+                    const p = ny * N + xx;
+                    const ok = !mask[p] && free(p);
+                    if (ok && !inRun) { stack.push(xx, ny); inRun = true; }
+                    else if (!ok) inRun = false;
+                }
+            }
+        }
+        return { mask, minX, maxX, minY, maxY };
+    }
+
+    function maskToPath(region, N) {
+        const { mask, minX, maxX, minY, maxY } = region;
+        const D = SA_FILL_DILATE;
+        const x0 = Math.max(0, minX - D), x1 = Math.min(N - 1, maxX + D);
+        const y0 = Math.max(0, minY - D), y1 = Math.min(N - 1, maxY + D);
+        const at = (x, y) => {
+            for (let dy = -D; dy <= D; dy++) {
+                const yy = y + dy; if (yy < 0 || yy >= N) continue;
+                for (let dx = -D; dx <= D; dx++) {
+                    const xx = x + dx; if (xx < 0 || xx >= N) continue;
+                    if (mask[yy * N + xx]) return true;
+                }
+            }
+            return false;
+        };
+        let d = '';
+        let open = new Map();                          // "xa,xb" → y de départ
+        const close = (key, yStart, yEnd) => {
+            const [xa, xb] = key.split(',').map(Number);
+            d += `M${xa} ${yStart}h${xb - xa + 1}v${yEnd - yStart}h${-(xb - xa + 1)}z`;
+        };
+        for (let y = y0; y <= y1 + 1; y++) {
+            const runs = new Map();
+            if (y <= y1) {
+                let x = x0;
+                while (x <= x1) {
+                    if (!at(x, y)) { x++; continue; }
+                    const xs = x;
+                    while (x <= x1 && at(x, y)) x++;
+                    const key = xs + ',' + (x - 1);
+                    runs.set(key, open.has(key) ? open.get(key) : y);
+                }
+            }
+            open.forEach((yStart, key) => { if (!runs.has(key)) close(key, yStart, y); });
+            open = runs;
+        }
+        return d;
+    }
+
+    // Les remplissages sont rangés juste sous le premier trait ; le reste avant l'axe
+    function insertShapeGroup(group) {
+        const anchor = svg.querySelector('#sa-axis-layer') || svg.querySelector('#sa-help-layer');
+        if (group.classList.contains('sa-fill-group')) {
+            const firstStroke = svg.querySelector('.sa-line-group:not(.sa-fill-group), .sa-sym-shape:not(.sa-sym-fill)');
+            svg.insertBefore(group, firstStroke || anchor);
+        } else {
+            svg.insertBefore(group, anchor);
+        }
+    }
+
+    function bucketFill(e) {
+        const N = SA_SIZE;
+        const raw = getRawCoords(e);
+        const sx = Math.floor(raw.x), sy = Math.floor(raw.y);
+        if (sx < 0 || sy < 0 || sx >= N || sy >= N) return;
+
+        const region = floodRegion(rasterizeBoundaries(), N, sx, sy);
+        if (!region) return;
+        const d = maskToPath(region, N);
+        if (!d) return;
+        const color = SA_FILL_COLORS[currentFillColor] || SA_FILL_COLORS.light;
+
+        // Même zone déjà remplie : on remplace (changement de gris) ou on ne fait rien
+        const same = Array.from(svg.querySelectorAll('.sa-fill-group'))
+            .find(g => g.firstChild && g.firstChild.getAttribute('d') === d);
+        if (same && same.firstChild.getAttribute('fill') === color) return;
+
+        const group = createSVGEl('g', { class: 'sa-line-group sa-fill-group' });
+        group.appendChild(createSVGEl('path', {
+            d, fill: color, stroke: 'none', 'shape-rendering': 'crispEdges', style: 'pointer-events:all;'
+        }));
+        if (same) {
+            same.replaceWith(group);
+            undoStack.push({ type: 'replace', element: group, previous: same });
+        } else {
+            insertShapeGroup(group);
+            undoStack.push({ type: 'draw', element: group });
+        }
+        redoStack = [];
+        if (symVisible) refreshSymmetry();
+        autoSave();
     }
 
     function updateToolButtons() {
@@ -986,26 +1266,7 @@ function createSymetrieAxialeWidget(savedData) {
         const axisLayerEl = svg.querySelector('#sa-axis-layer');
 
         if (currentTool === 'fill') {
-            if (fillPoints.length > 0 && c.x === fillPoints[0].x && c.y === fillPoints[0].y) {
-                if (fillPoints.length >= 3) {
-                    const d = fillPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
-                    const group = createSVGEl('g', { class: 'sa-line-group' });
-                    group.appendChild(createSVGEl('path', { d, fill: 'transparent', class: 'sa-eraser-zone', style: 'pointer-events:all;' }));
-                    group.appendChild(createSVGEl('path', { d, fill: hexToRgba(currentColor, 0.15), stroke: currentColor, 'stroke-width': '4', 'stroke-linejoin': 'round', style: 'pointer-events:all;' }));
-                    svg.insertBefore(group, axisLayerEl || helpLayerEl);
-                    undoStack.push({ type: 'draw', element: group });
-                    fillPoints = [];
-                    helpLayer.ghostPath.setAttribute('visibility', 'hidden');
-                    helpLayer.anchorDot.setAttribute('visibility', 'hidden');
-                    if (symVisible) refreshSymmetry();
-                    autoSave();
-                }
-            } else {
-                fillPoints.push(c);
-                helpLayer.anchorDot.setAttribute('cx', c.x);
-                helpLayer.anchorDot.setAttribute('cy', c.y);
-                helpLayer.anchorDot.setAttribute('visibility', 'visible');
-            }
+            bucketFill(e);
             return;
         }
 
@@ -1036,14 +1297,11 @@ function createSymetrieAxialeWidget(savedData) {
     }
 
     function handlePointerMove(e) {
-        if (isGommeActive) return;
+        if (isGommeActive || currentTool === 'fill') return;
         const c = getCoords(e);
         helpLayer.hoverDot.setAttribute('cx', c.x);
         helpLayer.hoverDot.setAttribute('cy', c.y);
-        if (currentTool === 'fill' && fillPoints.length > 0) {
-            helpLayer.ghostPath.setAttribute('d', fillPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ` L ${c.x} ${c.y} Z`);
-            helpLayer.ghostPath.setAttribute('visibility', 'visible');
-        } else if (lastPoint) {
+        if (lastPoint) {
             if (currentTool === 'line') {
                 helpLayer.ghostLine.setAttribute('x1', lastPoint.x); helpLayer.ghostLine.setAttribute('y1', lastPoint.y);
                 helpLayer.ghostLine.setAttribute('x2', c.x); helpLayer.ghostLine.setAttribute('y2', c.y);
@@ -1062,8 +1320,9 @@ function createSymetrieAxialeWidget(savedData) {
         if (!undoStack.length) return;
         const a = undoStack.pop();
         redoStack.push(a);
-        if (a.type === 'draw') svg.removeChild(a.element);
-        else svg.insertBefore(a.element, svg.querySelector('#sa-axis-layer') || svg.querySelector('#sa-help-layer'));
+        if (a.type === 'draw') a.element.remove();
+        else if (a.type === 'replace') a.element.replaceWith(a.previous);
+        else insertShapeGroup(a.element);
         if (symVisible) refreshSymmetry();
         autoSave();
     }
@@ -1071,8 +1330,9 @@ function createSymetrieAxialeWidget(savedData) {
         if (!redoStack.length) return;
         const a = redoStack.pop();
         undoStack.push(a);
-        if (a.type === 'draw') svg.insertBefore(a.element, svg.querySelector('#sa-axis-layer') || svg.querySelector('#sa-help-layer'));
-        else svg.removeChild(a.element);
+        if (a.type === 'draw') insertShapeGroup(a.element);
+        else if (a.type === 'replace') a.previous.replaceWith(a.element);
+        else a.element.remove();
         if (symVisible) refreshSymmetry();
         autoSave();
     }
@@ -1101,7 +1361,8 @@ function createSymetrieAxialeWidget(savedData) {
             gridSize:     parseInt(gridSizeInput.value) || 10,
             svgW:         parseInt(svg.style.width)  || 500,
             svgH:         parseInt(svg.style.height) || 500,
-            axis:         currentAxis,
+            axes:         SA_AXIS_ORDER.filter(a => currentAxes.has(a)),
+            axis:         SA_AXIS_ORDER.find(a => currentAxes.has(a)) || '', // compatibilité anciennes versions
             symVisible:   symVisible,
             currentColor: savedColor,
             shapes:       Array.from(svg.querySelectorAll('.sa-line-group')).map(g => g.outerHTML)
@@ -1117,9 +1378,12 @@ function createSymetrieAxialeWidget(savedData) {
         if (data.svgW) svg.style.width  = data.svgW + 'px';
         if (data.svgH) svg.style.height = data.svgH + 'px';
         else if (data.svgW) svg.style.height = data.svgW + 'px';
-        if (data.axis) {
-            currentAxis = data.axis;
-            axisBar.querySelectorAll('.sa-axis-btn').forEach(b => b.classList.toggle('active', b.dataset.axis === currentAxis));
+        if (Array.isArray(data.axes)) {
+            currentAxes = new Set(data.axes.filter(a => SA_AXIS_ORDER.includes(a)));
+            updateAxisButtons();
+        } else if (data.axis) {
+            currentAxes = new Set([data.axis]);
+            updateAxisButtons();
         }
         if (data.currentColor) {
             currentColor = data.currentColor;
@@ -1231,7 +1495,7 @@ function createSymetrieAxialeWidget(savedData) {
             img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(xml)));
         });
 
-        if (helpLayer.hoverDot) helpLayer.hoverDot.setAttribute('visibility', 'visible');
+        if (helpLayer.hoverDot && currentTool !== 'fill' && !isGommeActive) helpLayer.hoverDot.setAttribute('visibility', 'visible');
 
         // ── Mise en page PDF ───────────────────────────────────────────────
         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -1302,12 +1566,27 @@ function createSymetrieAxialeWidget(savedData) {
     toolbar.querySelector('#sa-redo-btn').addEventListener('click', (e) => { e.stopPropagation(); redo(); });
     toolbar.querySelector('#sa-clear-btn').addEventListener('click', (e) => { e.stopPropagation(); clearGrid(); });
 
+    // Couleur de remplissage (gris clair / gris foncé)
+    toolbar.querySelectorAll('.sa-fillcolor-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); e.preventDefault();
+            currentFillColor = btn.dataset.fillcolor;
+            toolbar.querySelectorAll('.sa-fillcolor-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+        btn.addEventListener('pointerdown', e => e.stopPropagation());
+        btn.addEventListener('mousedown',   e => e.stopPropagation());
+    });
+
     // Axe
     axisBar.querySelectorAll('.sa-axis-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            currentAxis = btn.dataset.axis;
-            axisBar.querySelectorAll('.sa-axis-btn').forEach(b => b.classList.toggle('active', b === btn));
+            // Bascule : un clic active l'axe, un nouveau clic le désactive
+            const axis = btn.dataset.axis;
+            if (currentAxes.has(axis)) currentAxes.delete(axis);
+            else currentAxes.add(axis);
+            updateAxisButtons();
             // Mettre à jour l'axe dessiné
             const axisLayerEl = svg.querySelector('#sa-axis-layer');
             if (axisLayerEl) drawAxisLine(axisLayerEl);

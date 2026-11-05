@@ -224,6 +224,11 @@ function buildBoardState() {
         if (w.dataset.type === 'chasse-son' && typeof w._csGetData === 'function') {
             csData = w._csGetData();
         }
+        // Données propres au widget « La fabrique à syllabes » (ordre, écriture, cartes en place, mot, défi, taille, plein écran)
+        let fsData = null;
+        if (w.dataset.type === 'fabrique-syllabes' && typeof w._fsGetData === 'function') {
+            fsData = w._fsGetData();
+        }
         // Données propres au widget « Le mot du jour » (niveau, mot, volets ouverts, mot caché, historique affiché, taille, plein écran)
         let mdjData = null;
         if (w.dataset.type === 'mot-du-jour' && typeof w._mdjGetData === 'function') {
@@ -780,6 +785,7 @@ function buildBoardState() {
 			atpData,
 			lcData,
 			csData,
+			fsData,
 			tfpData,
 			itrData,
 			estData,
@@ -1211,6 +1217,15 @@ function restoreBoardFromJSON(json) {
                 widget = createChasseSonWidget();
                 if (typeof widget._csSetData === 'function') {
                     widget._csSetData(w.csData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'fabrique-syllabes') {
+            if (typeof createFabriqueSyllabesWidget === 'function') {
+                widget = createFabriqueSyllabesWidget();
+                if (typeof widget._fsSetData === 'function') {
+                    widget._fsSetData(w.fsData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

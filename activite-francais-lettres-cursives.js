@@ -329,7 +329,7 @@ const LC_NS = 'http://www.w3.org/2000/svg';
 
         /* Scène */
         .lc-stage {
-            position: relative; flex-shrink: 0;
+            position: relative; flex-shrink: 0; box-sizing: border-box;
             background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;
         }
         .lc-stage svg { display: block; width: 100%; height: 100%; touch-action: none; }

@@ -219,6 +219,11 @@ function buildBoardState() {
         if (w.dataset.type === 'lettres-cursives' && typeof w._lcGetData === 'function') {
             lcData = w._lcGetData();
         }
+        // Données propres au widget « Chasse au son » (son, place, série, réponses, correction, réglages, taille, plein écran)
+        let csData = null;
+        if (w.dataset.type === 'chasse-son' && typeof w._csGetData === 'function') {
+            csData = w._csGetData();
+        }
         // Données propres au widget « Le mot du jour » (niveau, mot, volets ouverts, mot caché, historique affiché, taille, plein écran)
         let mdjData = null;
         if (w.dataset.type === 'mot-du-jour' && typeof w._mdjGetData === 'function') {
@@ -774,6 +779,7 @@ function buildBoardState() {
 			mdjData,
 			atpData,
 			lcData,
+			csData,
 			tfpData,
 			itrData,
 			estData,
@@ -1196,6 +1202,15 @@ function restoreBoardFromJSON(json) {
                 widget = createLettresCursivesWidget();
                 if (typeof widget._lcSetData === 'function') {
                     widget._lcSetData(w.lcData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'chasse-son') {
+            if (typeof createChasseSonWidget === 'function') {
+                widget = createChasseSonWidget();
+                if (typeof widget._csSetData === 'function') {
+                    widget._csSetData(w.csData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

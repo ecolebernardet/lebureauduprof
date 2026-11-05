@@ -344,6 +344,11 @@ function buildBoardState() {
         if (w.dataset.type === 'reproduction-plantes' && typeof w._rpGetData === 'function') {
             reproPlantesData = w._rpGetData();
         }
+        // Données propres au widget « Les chaînes alimentaires »
+        let chainesAlimData = null;
+        if (w.dataset.type === 'chaines-alimentaires' && typeof w._caGetData === 'function') {
+            chainesAlimData = w._caGetData();
+        }
         // Données propres au widget « Le corps humain »
         let corpsHumainData = null;
         if (w.dataset.type === 'corps-humain' && typeof w._chuGetData === 'function') {
@@ -824,6 +829,7 @@ function buildBoardState() {
 			terreMvtData,
 			cycleEauData,
 			reproPlantesData,
+			chainesAlimData,
 			corpsHumainData,
 			cinqSensData,
 			paysRPData,
@@ -1370,6 +1376,11 @@ function restoreBoardFromJSON(json) {
             widget = createReproductionPlantesWidget();
             if (w.reproPlantesData && typeof widget._rpSetData === 'function') {
                 widget._rpSetData(w.reproPlantesData);
+            }
+        } else if (w.type === 'chaines-alimentaires') {
+            widget = createChainesAlimentairesWidget();
+            if (w.chainesAlimData && typeof widget._caSetData === 'function') {
+                widget._caSetData(w.chainesAlimData);
             }
         } else if (w.type === 'pays-riches-pauvres') {
             widget = createPaysRichesPauvresWidget();

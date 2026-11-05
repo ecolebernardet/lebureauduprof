@@ -339,6 +339,11 @@ function buildBoardState() {
         if (w.dataset.type === 'cycle-eau' && typeof w._ceGetData === 'function') {
             cycleEauData = w._ceGetData();
         }
+        // Données propres au widget « La reproduction des plantes »
+        let reproPlantesData = null;
+        if (w.dataset.type === 'reproduction-plantes' && typeof w._rpGetData === 'function') {
+            reproPlantesData = w._rpGetData();
+        }
         // Données propres au widget « Le corps humain »
         let corpsHumainData = null;
         if (w.dataset.type === 'corps-humain' && typeof w._chuGetData === 'function') {
@@ -818,6 +823,7 @@ function buildBoardState() {
 			geoGlobeData,
 			terreMvtData,
 			cycleEauData,
+			reproPlantesData,
 			corpsHumainData,
 			cinqSensData,
 			paysRPData,
@@ -1359,6 +1365,11 @@ function restoreBoardFromJSON(json) {
             widget = createCycleEauWidget();
             if (w.cycleEauData && typeof widget._ceSetData === 'function') {
                 widget._ceSetData(w.cycleEauData);
+            }
+        } else if (w.type === 'reproduction-plantes') {
+            widget = createReproductionPlantesWidget();
+            if (w.reproPlantesData && typeof widget._rpSetData === 'function') {
+                widget._rpSetData(w.reproPlantesData);
             }
         } else if (w.type === 'pays-riches-pauvres') {
             widget = createPaysRichesPauvresWidget();

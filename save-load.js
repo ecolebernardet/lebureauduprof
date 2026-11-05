@@ -224,6 +224,11 @@ function buildBoardState() {
         if (w.dataset.type === 'chasse-son' && typeof w._csGetData === 'function') {
             csData = w._csGetData();
         }
+        // Données propres au widget « Robot à programmer » (mode, niveau, flèches, grille, programme, prévision, bug, réglages, taille, plein écran)
+        let robData = null;
+        if (w.dataset.type === 'robot' && typeof w._robGetData === 'function') {
+            robData = w._robGetData();
+        }
         // Données propres au widget « La fabrique à syllabes » (ordre, écriture, cartes en place, mot, défi, taille, plein écran)
         let fsData = null;
         if (w.dataset.type === 'fabrique-syllabes' && typeof w._fsGetData === 'function') {
@@ -800,6 +805,7 @@ function buildBoardState() {
 			atpData,
 			lcData,
 			csData,
+			robData,
 			fsData,
 			cdData,
 			tfpData,
@@ -1235,6 +1241,15 @@ function restoreBoardFromJSON(json) {
                 widget = createChasseSonWidget();
                 if (typeof widget._csSetData === 'function') {
                     widget._csSetData(w.csData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'robot') {
+            if (typeof createRobotWidget === 'function') {
+                widget = createRobotWidget();
+                if (typeof widget._robSetData === 'function') {
+                    widget._robSetData(w.robData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

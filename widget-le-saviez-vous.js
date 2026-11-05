@@ -607,6 +607,43 @@ function _lsvInit(c) {
     _lsvRender(c);
     new MutationObserver(() => _lsvFitFullboard(c)).observe(c, { attributes: true, attributeFilter: ['class'] });
     _lsvFitFullboard(c);
+    _lsvPhoneAutoFullboard(c);
+}
+
+/* ── Sur téléphone : le widget s'ouvre directement en plein écran board
+      (comme un appui sur le bouton vert), à la place du plein écran
+      téléphone générique (.phone-fs) posé par index.html ─────────── */
+function _lsvDropPhoneFs(c) {
+    const w = c.closest('.widget');
+    if (!w || !w.classList.contains('phone-fs')) return;
+    w.classList.remove('phone-fs');
+    // Plus aucun autre widget en plein écran téléphone : on retire le bouton ⤡ et l'état du body
+    if (!document.querySelector('.widget.phone-fs')) {
+        document.querySelectorAll('.phone-fs-exit').forEach(b => b.remove());
+        document.body.classList.remove('has-phone-fs');
+    }
+}
+function _lsvPhoneAutoFullboard(c) {
+    if (c._lsvAutoFs) return;
+    c._lsvAutoFs = true;
+    // On attend que createWidget / la restauration aient fini de placer le widget
+    setTimeout(() => {
+        if (!c.isConnected || !_lsvIsPhone()) return;
+        if (!c.classList.contains('wf-media-fullboard')) {
+            if (typeof toggleMediaBoardFullscreen === 'function') toggleMediaBoardFullscreen(c);
+            else c.classList.add('wf-media-fullboard');
+        }
+        _lsvDropPhoneFs(c);
+        _lsvFitFullboard(c);
+        // Si le script téléphone repose .phone-fs plus tard, le plein écran board reste prioritaire
+        const w = c.closest('.widget');
+        if (w && !w._lsvPfsObs) {
+            w._lsvPfsObs = true;
+            new MutationObserver(() => {
+                if (c.classList.contains('wf-media-fullboard') && _lsvIsPhone()) _lsvDropPhoneFs(c);
+            }).observe(w, { attributes: true, attributeFilter: ['class'] });
+        }
+    }, 60);
 }
 // Passage à minuit : nouvelle anecdote du jour
 setInterval(() => {

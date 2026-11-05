@@ -229,6 +229,11 @@ function buildBoardState() {
         if (w.dataset.type === 'fabrique-syllabes' && typeof w._fsGetData === 'function') {
             fsData = w._fsGetData();
         }
+        // Données propres au widget « Constellations et doigts » (représentation, nombres, durée, quantité, phase, pavé, score, taille, plein écran)
+        let cdData = null;
+        if (w.dataset.type === 'constellations-doigts' && typeof w._cdGetData === 'function') {
+            cdData = w._cdGetData();
+        }
         // Données propres au widget « Le mot du jour » (niveau, mot, volets ouverts, mot caché, historique affiché, taille, plein écran)
         let mdjData = null;
         if (w.dataset.type === 'mot-du-jour' && typeof w._mdjGetData === 'function') {
@@ -786,6 +791,7 @@ function buildBoardState() {
 			lcData,
 			csData,
 			fsData,
+			cdData,
 			tfpData,
 			itrData,
 			estData,
@@ -1226,6 +1232,15 @@ function restoreBoardFromJSON(json) {
                 widget = createFabriqueSyllabesWidget();
                 if (typeof widget._fsSetData === 'function') {
                     widget._fsSetData(w.fsData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'constellations-doigts') {
+            if (typeof createConstellationsDoigtsWidget === 'function') {
+                widget = createConstellationsDoigtsWidget();
+                if (typeof widget._cdSetData === 'function') {
+                    widget._cdSetData(w.cdData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

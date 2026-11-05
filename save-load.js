@@ -214,6 +214,11 @@ function buildBoardState() {
         if (w.dataset.type === 'atelier-phrases' && typeof w._atpGetData === 'function') {
             atpData = w._atpGetData();
         }
+        // Données propres au widget « Lettres cursives » (lettre, onglet, réglages, tracés de l'élève, étoiles, taille, plein écran)
+        let lcData = null;
+        if (w.dataset.type === 'lettres-cursives' && typeof w._lcGetData === 'function') {
+            lcData = w._lcGetData();
+        }
         // Données propres au widget « Le mot du jour » (niveau, mot, volets ouverts, mot caché, historique affiché, taille, plein écran)
         let mdjData = null;
         if (w.dataset.type === 'mot-du-jour' && typeof w._mdjGetData === 'function') {
@@ -768,6 +773,7 @@ function buildBoardState() {
 			pdjData,
 			mdjData,
 			atpData,
+			lcData,
 			tfpData,
 			itrData,
 			estData,
@@ -1181,6 +1187,15 @@ function restoreBoardFromJSON(json) {
                 widget = createAtelierPhrasesWidget();
                 if (typeof widget._atpSetData === 'function') {
                     widget._atpSetData(w.atpData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'lettres-cursives') {
+            if (typeof createLettresCursivesWidget === 'function') {
+                widget = createLettresCursivesWidget();
+                if (typeof widget._lcSetData === 'function') {
+                    widget._lcSetData(w.lcData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

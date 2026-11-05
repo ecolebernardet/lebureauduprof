@@ -54,16 +54,101 @@ function _fsIsPhone() {
 function _fsEsc(t) {
     return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-function _fsSpeak(text) {
+// ── Les sons (phonèmes), pas les noms des lettres ─────────────────────────
+// La synthèse vocale reçoit une écriture « prononçable » qui l'oblige à dire
+// le son : c + a → « ka », c + e → « seu », g + i → « ji », qu + i → « ki »…
+// Une consonne seule se dit avec un petit « eu » : [m] → « meu » (et non « èm »).
+const FS_DOUCE = ['e', 'i', 'y', 'é', 'è', 'ê', 'ei', 'eu', 'en', 'in'];   // c → [s], g → [ʒ] (mais « gai », « cai » restent durs)
+const FS_API_V = { a: 'a', e: 'ə', i: 'i', y: 'i', o: 'o', u: 'y', 'é': 'e', 'è': 'ɛ', 'ê': 'ɛ',
+    ou: 'u', on: 'ɔ̃', an: 'ɑ̃', en: 'ɑ̃', in: 'ɛ̃', oi: 'wa', au: 'o', eau: 'o', eu: 'ø', ai: 'ɛ', ei: 'ɛ', un: 'œ̃' };
+const FS_DIT_V = { a: 'a', e: 'eu', i: 'i', y: 'i', o: 'o', u: 'u', 'é': 'é', 'è': 'è', 'ê': 'è',
+    ou: 'ou', on: 'on', an: 'an', en: 'an', in: 'in', oi: 'oua', au: 'o', eau: 'o', eu: 'eu', ai: 'è', ei: 'è', un: 'un' };
+// Un son de voyelle dit seul : quelques écritures que la voix lirait mal (« eu » se lit [y])
+const FS_DIT_SEUL = { eu: 'euh', in: 'hein', oua: 'oua' };
+const FS_API_C = { b: 'b', d: 'd', f: 'f', h: '', j: 'ʒ', k: 'k', l: 'l', m: 'm', n: 'n', p: 'p', r: 'r',
+    s: 's', t: 't', v: 'v', w: 'w', x: 'ks', z: 'z', ch: 'ʃ', ph: 'f', gn: 'ɲ', qu: 'k' };
+// écriture de la consonne au début d'une syllabe (avant une voyelle)
+const FS_DIT_C = { b: 'b', d: 'd', f: 'f', h: '', j: 'j', k: 'k', l: 'l', m: 'm', n: 'n', p: 'p', r: 'r',
+    s: 's', t: 't', v: 'v', w: 'ou', x: 'ks', z: 'z', ch: 'ch', ph: 'f', gn: 'gn', qu: 'k' };
+// écriture de la consonne en fin de syllabe (après la voyelle) : a + l → « ale »
+const FS_DIT_FIN = { b: 'be', c: 'que', d: 'de', f: 'fe', g: 'gue', h: '', j: 'je', k: 'que', l: 'le', m: 'me',
+    n: 'ne', p: 'pe', r: 're', s: 'sse', t: 'te', v: 've', w: '', x: 'xe', z: 'ze', ch: 'che', ph: 'fe', gn: 'gne', qu: 'que' };
+
+function _fsApiC(c, next) {
+    if (c === 'c') return next && FS_DOUCE.includes(next) ? 's' : 'k';
+    if (c === 'g') return next && FS_DOUCE.includes(next) ? 'ʒ' : 'g';
+    return FS_API_C[c] != null ? FS_API_C[c] : c;
+}
+function _fsDitC(c, next) {
+    if (c === 'c') return next && FS_DOUCE.includes(next) ? 's' : 'k';
+    if (c === 'g') {
+        if (next && FS_DOUCE.includes(next)) return 'j';
+        return next && /^[ie]/.test(FS_DIT_V[next] || '') ? 'gu' : 'g';
+    }
+    return FS_DIT_C[c] != null ? FS_DIT_C[c] : c;
+}
+// Ce que l'on fait dire pour une carte seule (son de la lettre)
+function _fsDitSeul(t, next) {
+    if (_fsIsVowelish(t)) { const d = FS_DIT_V[t] || t; return FS_DIT_SEUL[d] || d; }
+    if (t === 'h') return '';
+    const c = _fsDitC(t, next);
+    if (c === 'gu' || c === 'g') return 'gueu';
+    return c + 'eu';
+}
+// Notation du son sous la carte : [m], [a], [k], [s]…
+function _fsApi(t, next) {
+    if (_fsIsVowelish(t)) return FS_API_V[t] || t;
+    return _fsApiC(t, next);
+}
+// Écriture prononçable de la syllabe fabriquée
+function _fsDitSyllabe(types, parts) {
+    let out = '';
+    parts.forEach((t, i) => {
+        if (!t) return;
+        const next = parts[i + 1] || '';
+        if (types[i] === 'V') { out += FS_DIT_V[t] || t; return; }
+        const vowelAfter = types.slice(i + 1).some((k, j) => k === 'V' && parts[i + 1 + j]);
+        if (!vowelAfter) { out += FS_DIT_FIN[t] != null ? FS_DIT_FIN[t] : t; return; }
+        out += _fsDitC(t, next);
+    });
+    return FS_DIT_SEUL[out] || out;
+}
+
+// Découpe une syllabe écrite en cartes : « chou » → ch + ou, « bra » → b + r + a
+function _fsParse(syl) {
+    const V = FS_SONS.concat(FS_VOYELLES).sort((a, b) => b.length - a.length);
+    const C = FS_CONSONNES.slice().sort((a, b) => b.length - a.length);
+    const types = [], parts = [];
+    let i = 0, guard = 0;
+    while (i < syl.length && guard++ < 20) {
+        const rest = syl.slice(i);
+        const v = V.find(x => rest.startsWith(x));
+        const c = C.find(x => rest.startsWith(x));
+        // « qu », « gn »… avant une voyelle ; sinon la voyelle la plus longue
+        if (c && (!v || c.length >= v.length)) { types.push('C'); parts.push(c); i += c.length; }
+        else if (v) { types.push('V'); parts.push(v); i += v.length; }
+        else { types.push('C'); parts.push(rest[0]); i += 1; }
+    }
+    return { types, parts };
+}
+
+// Parole : une file de textes dits l'un après l'autre (sans se couper)
+let _fsSpeakToken = 0;
+function _fsSpeak(texts, opts) {
+    opts = opts || {};
     try {
-        if (!window.speechSynthesis || !window.SpeechSynthesisUtterance || !text) return;
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'fr-FR';
-        u.rate = 0.8;
+        if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+        const list = (Array.isArray(texts) ? texts : [texts]).filter(Boolean);
+        if (!list.length) return;
+        if (!opts.queue) window.speechSynthesis.cancel();
         const v = (window.speechSynthesis.getVoices() || []).find(x => /^fr/i.test(x.lang));
-        if (v) u.voice = v;
-        window.speechSynthesis.speak(u);
+        list.forEach(t => {
+            const u = new SpeechSynthesisUtterance(t);
+            u.lang = 'fr-FR';
+            u.rate = opts.rate || 0.8;
+            if (v) u.voice = v;
+            window.speechSynthesis.speak(u);
+        });
     } catch (e) {}
 }
 
@@ -235,6 +320,11 @@ function _fsSpeak(text) {
         .fs-slot.full { border-style: solid; box-shadow: 0 .04em .1em rgba(0,0,0,.12); }
         .fs-slot.full.C { color: var(--fs-c); background: var(--fs-cl); border-color: var(--fs-c); }
         .fs-slot.full.V { color: var(--fs-v); background: var(--fs-vl); border-color: var(--fs-v); }
+        .fs-slot .fs-api {
+            position: absolute; bottom: -.32em; left: 50%; transform: translateX(-50%);
+            font-family: 'Segoe UI', 'Arial', sans-serif; font-size: .22em; font-weight: 700; color: #6b7280;
+            background: #fff; border: 1px solid #e5e7eb; border-radius: 1em; padding: 0 .4em; white-space: nowrap;
+        }
         .fs-slot .fs-hint { font-size: .28em; color: #94a3b8; font-family: 'Segoe UI', sans-serif; font-weight: 700; }
         .fs-op { font-size: .5em; color: #a78bfa; font-weight: 900; font-family: 'Segoe UI', sans-serif; }
         .fs-result {
@@ -369,7 +459,8 @@ function createFabriqueSyllabesWidget() {
         </div>
         <span class="fs-sep"></span>
         <button class="fs-btn fs-btn-grey" data-act="toggle-sons" title="Ajouter les sons complexes : ou, on, an, oi, eau…">+ ou, on, an…</button>
-        <button class="fs-btn fs-btn-grey" data-act="toggle-auto" title="Lire la syllabe dès qu'elle est fabriquée">🔊 Auto</button>
+        <button class="fs-btn fs-btn-grey" data-act="toggle-auto" title="Dire le son de chaque carte touchée, puis la syllabe">🔊 Auto</button>
+        <button class="fs-btn fs-btn-grey" data-act="toggle-api" title="Afficher le son de chaque lettre : [m], [a], [k]…">[m] Sons</button>
         <span class="fs-sep"></span>
         <button class="fs-btn fs-btn-blue" data-act="random" title="Une syllabe au hasard : on la lit, puis on l'écoute">🎲 Au hasard</button>
         <button class="fs-btn fs-btn-violet" data-act="defi" title="Une image : fabriquer le mot syllabe par syllabe">🎯 Défi mot</button>
@@ -400,7 +491,7 @@ function createFabriqueSyllabesWidget() {
     const actions = document.createElement('div');
     actions.className = 'fs-actions';
     actions.innerHTML = `
-        <button class="fs-btn fs-btn-green" data-act="say" title="Écouter la syllabe">🔊 Écouter</button>
+        <button class="fs-btn fs-btn-green" data-act="say" title="Dire chaque son puis la syllabe : [m]… [a]… ma">🔊 Écouter</button>
         <button class="fs-btn fs-btn-violet" data-act="add" title="Ajouter la syllabe au mot">➕ Au mot</button>
         <button class="fs-btn fs-btn-grey" data-act="clear-slots" title="Vider la fabrique">🧹 Vider</button>
     `;
@@ -430,7 +521,9 @@ function createFabriqueSyllabesWidget() {
     helpPopup.innerHTML = `
         <h4>💡 La fabrique à syllabes</h4>
         <p>Touchez une <b style="color:#1d4ed8">consonne</b> puis une <b style="color:#dc2626">voyelle</b> : elles entrent dans la
-        fabrique et forment la syllabe (m + a → ma), lue à voix haute si <b>🔊 Auto</b> est activé.
+        fabrique et forment la syllabe (m + a → ma). Avec <b>🔊 Auto</b>, on entend le <b>son</b> de chaque lettre
+        (jamais son nom : [m] et non « èm »), puis la syllabe. <b>🔊 Écouter</b> fait la fusion : [m]… [a]… ma.
+        <b>[m] Sons</b> affiche le son de chaque carte (c → [k] ou [s], g → [g] ou [ʒ] selon la voyelle).
         Touchez une autre voyelle pour la remplacer : ma → mo → mi… Touchez une case pour la vider.</p>
         <p><b>ma / am / bra</b> : consonne + voyelle, voyelle + consonne, ou deux consonnes + voyelle.
         <b>+ ou, on, an…</b> ajoute les sons complexes. L'écriture peut être en script, en cursive ou en capitales.</p>
@@ -452,6 +545,7 @@ function createFabriqueSyllabesWidget() {
     let ecr = 'script';
     let showSons = false;
     let auto = true;
+    let showApi = true;       // afficher le son [m] sous chaque carte de la fabrique
     let slots = ['', ''];
     let word = [];            // syllabes du mot
     let defi = null;          // mot du défi (clé w)
@@ -463,6 +557,14 @@ function createFabriqueSyllabesWidget() {
     function syllable() { return slots.join(''); }
     function complete() { return slots.every(Boolean); }
     function hasVowel() { return types().some((t, i) => t === 'V' && slots[i]); }
+    function nextOf(i) { return slots[i + 1] || ''; }
+    function sylDit() { return _fsDitSyllabe(types(), slots); }
+    // Fusion : on dit chaque son, puis la syllabe : « meu… a… ma »
+    function sayFusion() {
+        if (!hasVowel()) return;
+        const sons = slots.map((t, i) => t ? _fsDitSeul(t, nextOf(i)) : '').filter(Boolean);
+        _fsSpeak(sons.concat([sylDit()]));
+    }
     function defiMot() { return defi ? FS_MOTS.find(m => m.w === defi) : null; }
 
     // Syllabe colorée (consonnes en bleu, voyelles en rouge)
@@ -478,11 +580,12 @@ function createFabriqueSyllabesWidget() {
         ts.forEach((t, i) => {
             if (i > 0) h += '<span class="fs-op">+</span>';
             h += `<div class="fs-slot ${t}${slots[i] ? ' full' : ''}" data-slot="${i}" title="${slots[i] ? 'Toucher pour vider' : (t === 'C' ? 'Une consonne' : 'Une voyelle')}">` +
-                (slots[i] ? `<span class="fs-t">${_fsEsc(slots[i])}</span>` : `<span class="fs-hint">${t === 'C' ? 'consonne' : 'voyelle'}</span>`) + '</div>';
+                (slots[i] ? `<span class="fs-t">${_fsEsc(slots[i])}</span>` + (showApi ? `<span class="fs-api">[${_fsEsc(_fsApi(slots[i], nextOf(i)) || 'muet')}]</span>` : '')
+                          : `<span class="fs-hint">${t === 'C' ? 'consonne' : 'voyelle'}</span>`) + '</div>';
         });
         const empty = !hasVowel();
         h += '<span class="fs-op">→</span>';
-        h += `<div class="fs-result${empty ? ' empty' : ''}${popNext && !empty ? ' fs-pop' : ''}" data-act="say" title="Écouter"><span class="fs-t">${sylHTML(true)}</span><span class="fs-arc"></span></div>`;
+        h += `<div class="fs-result${empty ? ' empty' : ''}${popNext && !empty ? ' fs-pop' : ''}" data-act="say-syl" title="Écouter la syllabe"><span class="fs-t">${sylHTML(true)}</span><span class="fs-arc"></span></div>`;
         popNext = false;
         machine.innerHTML = h;
         actions.querySelector('[data-act="say"]').disabled = empty;
@@ -535,6 +638,7 @@ function createFabriqueSyllabesWidget() {
         tools.querySelectorAll('[data-ecr]').forEach(b => b.classList.toggle('active', b.dataset.ecr === ecr));
         tools.querySelector('[data-act="toggle-sons"]').classList.toggle('on', showSons);
         tools.querySelector('[data-act="toggle-auto"]').classList.toggle('on', auto);
+        tools.querySelector('[data-act="toggle-api"]').classList.toggle('on', showApi);
         rowSons.style.display = showSons ? '' : 'none';
         badge.textContent = defi ? 'Défi' : FS_MODES[mode].titre;
     }
@@ -581,7 +685,10 @@ function createFabriqueSyllabesWidget() {
         if (hasVowel()) popNext = true;
         renderMachine();
         renderInfo();
-        if (auto && complete()) _fsSpeak(syllable());
+        if (auto) {
+            if (complete()) _fsSpeak([_fsDitSeul(t, nextOf(idx)), sylDit()]);
+            else _fsSpeak(_fsDitSeul(t, nextOf(idx)));
+        }
         save();
     }
     function clearSlot(i) {
@@ -612,9 +719,10 @@ function createFabriqueSyllabesWidget() {
         sayTimers.forEach(clearTimeout);
         sayTimers = [];
         const syls = wordBox.querySelectorAll('.fs-syl');
+        const wordDit = word.map(w => { const p = _fsParse(w); return _fsDitSyllabe(p.types, p.parts); });
         word.forEach((s, i) => sayTimers.push(setTimeout(() => {
             syls.forEach((el, j) => el.style.transform = j === i ? 'translateY(-6px)' : '');
-            _fsSpeak(s);
+            _fsSpeak(wordDit[i]);
         }, i * 900)));
         sayTimers.push(setTimeout(() => {
             syls.forEach(el => el.style.transform = '');
@@ -692,7 +800,9 @@ function createFabriqueSyllabesWidget() {
         if (b.dataset.mode) { mode = b.dataset.mode; slots = types().map(() => ''); lastMsg = null; renderAll(); save(); return; }
         if (b.dataset.ecr) { ecr = b.dataset.ecr; renderBars(); requestAnimationFrame(fit); save(); return; }
         switch (b.dataset.act) {
-            case 'say': if (hasVowel()) _fsSpeak(syllable()); break;
+            case 'say': sayFusion(); break;
+            case 'say-syl': if (hasVowel()) _fsSpeak(sylDit()); break;
+            case 'toggle-api': showApi = !showApi; renderBars(); renderMachine(); save(); break;
             case 'add': addToWord(); break;
             case 'clear-slots': clearSlots(); break;
             case 'say-word': sayWord(); break;
@@ -832,7 +942,7 @@ function createFabriqueSyllabesWidget() {
     widget._fsGetData = () => ({
         containerW: _isMax ? (parseFloat(_savedW) || container.offsetWidth) : container.offsetWidth,
         stageH:     _isMax ? (parseFloat(_savedH) || stage.offsetHeight)    : stage.offsetHeight,
-        mode, ecr, showSons, auto,
+        mode, ecr, showSons, auto, showApi,
         slots: slots.slice(),
         word: word.slice(),
         defi,
@@ -859,6 +969,7 @@ function createFabriqueSyllabesWidget() {
         if (FS_ECRITURES[d.ecr]) ecr = d.ecr;
         if (typeof d.showSons === 'boolean') showSons = d.showSons;
         if (typeof d.auto === 'boolean') auto = d.auto;
+        if (typeof d.showApi === 'boolean') showApi = d.showApi;
         const ok = t => typeof t === 'string' && (FS_CONSONNES.includes(t) || _fsIsVowelish(t));
         slots = types().map((k, i) => {
             const t = Array.isArray(d.slots) ? d.slots[i] : '';

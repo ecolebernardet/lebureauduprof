@@ -299,6 +299,11 @@ function buildBoardState() {
         if (w.dataset.type === 'symboles-republique' && typeof w._srpGetData === 'function') {
             symRepData = w._srpGetData();
         }
+        // Données propres au widget « Les institutions de la France » (onglet, institution / étape choisie, quiz en cours, taille)
+        let institutionsData = null;
+        if (w.dataset.type === 'institutions-france' && typeof w._ifrGetData === 'function') {
+            institutionsData = w._ifrGetData();
+        }
         // Données propres au widget géographie de la France
         let geoFranceData = null;
         if (w.dataset.type === 'geo-france' && typeof w._gfGetData === 'function') {
@@ -825,6 +830,7 @@ function buildBoardState() {
 			industrielData,
 			renaissanceData,
 			symRepData,
+			institutionsData,
 			geoFranceData,
 			geoSavoieData,
 			geoReliefData,
@@ -1309,6 +1315,16 @@ function restoreBoardFromJSON(json) {
             widget = createSymbolesRepubliqueWidget();
             if (w.symRepData && typeof widget._srpSetData === 'function') {
                 widget._srpSetData(w.symRepData);
+            }
+        } else if (w.type === 'institutions-france') {
+            // Onglet, institution ou étape choisie, options, quiz en cours, taille
+            if (typeof createInstitutionsFranceWidget === 'function') {
+                widget = createInstitutionsFranceWidget();
+                if (w.institutionsData && typeof widget._ifrSetData === 'function') {
+                    widget._ifrSetData(w.institutionsData);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
             }
         } else if (w.type === 'histoire-industriel') {
             widget = createAgeIndustrielWidget();

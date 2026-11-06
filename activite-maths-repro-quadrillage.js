@@ -418,7 +418,64 @@
         }
         .rq-container.wf-fullboard .rq-svg-zone {
             flex: 1;
+            min-height: 0;
         }
+        /* Plein écran (tous écrans, y compris tablette) : grille carrée qui tient dans l'écran */
+        .rq-container.wf-fullboard .rq-svg {
+            width: min(100%, calc(100vh - 230px)) !important;
+            width: min(100%, calc(100dvh - 230px)) !important;
+            height: auto !important;
+            aspect-ratio: 1 / 1;
+        }
+
+        /* ── Tablette / écran tactile : cibles plus grandes ── */
+        @media (pointer: coarse) {
+            .rq-container .wf-btns { gap: 10px; }
+            .rq-container .wf-btn { width: 22px; height: 22px; }
+            .rq-container .wf-btn::after { font-size: 12px !important; font-weight: 900; color: rgba(0,0,0,0.55); line-height: 1; }
+            .rq-container .wf-btn-min::after   { content: '−'; }
+            .rq-container .wf-btn-max::after   { content: '⤢'; }
+            .rq-container .wf-btn-close::after { content: '×'; }
+            .rq-container .rq-help-btn { width: 26px; height: 26px; }
+            .rq-container .rq-tool-btn { width: 36px; height: 36px; }
+            .rq-container .rq-fillcolor-btn { width: 26px; height: 26px; }
+            .rq-container .rq-resize-handle { opacity: 1; width: 26px; height: 26px; }
+        }
+        .rq-header button, .rq-toolbar button, .rq-actions button, .rq-actions label,
+        .rq-confirm button { touch-action: manipulation; }
+
+        /* ── Boîte de confirmation interne (confirm() est bloqué dans certaines WebView) ── */
+        .rq-confirm {
+            position: absolute;
+            inset: 0;
+            background: rgba(17,24,39,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+        .rq-confirm-box {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+            padding: 16px 18px;
+            max-width: 280px;
+            text-align: center;
+            font-size: 14px;
+            color: #374151;
+            font-weight: 600;
+        }
+        .rq-confirm-btns { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+        .rq-confirm-btns button {
+            padding: 9px 16px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            background: #f3f4f6;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .rq-confirm-btns .rq-confirm-ok { background: #ef4444; border-color: #dc2626; color: #fff; }
 
         /* ── Resize handle ── */
         .rq-resize-handle {
@@ -595,6 +652,56 @@ function createReproQuadrillageWidget(savedData) {
     let redoStack     = [];
     let helpLayer     = {};
     const gridSizeInput = toolbar.querySelector('.rq-gridsize-input');
+
+    // ── Tap fiable souris / doigt / stylet ────────────────────────────────
+    // Sur tablette, le « click » synthétique est souvent annulé par la
+    // gestion du déplacement du widget (preventDefault sur touchstart /
+    // pointerdown, capture du pointeur). On déclenche donc l'action au
+    // pointerup sur le bouton, et on ignore le click qui suit éventuellement.
+    function onTap(el, fn) {
+        if (!el) return;
+        let downInside = false, lastTap = 0;
+        const stop = (e) => e.stopPropagation();
+        el.addEventListener('pointerdown', (e) => { e.stopPropagation(); downInside = true; });
+        el.addEventListener('mousedown',  stop);
+        el.addEventListener('touchstart', stop, { passive: true });
+        el.addEventListener('pointercancel', () => { downInside = false; });
+        el.addEventListener('pointerup', (e) => {
+            e.stopPropagation();
+            if (!downInside) return;
+            downInside = false;
+            if (e.pointerType === 'mouse') return;      // la souris passe par « click »
+            lastTap = Date.now();
+            e.preventDefault();
+            fn(e);
+        });
+        el.addEventListener('click', (e) => {
+            e.stopPropagation(); e.preventDefault();
+            if (Date.now() - lastTap < 700) return;     // déjà traité au pointerup
+            fn(e);
+        });
+    }
+
+    // ── Confirmation interne (remplace confirm(), bloqué dans les WebView) ─
+    function rqConfirm(message, onOk) {
+        const old = container.querySelector('.rq-confirm');
+        if (old) old.remove();
+        const ov = document.createElement('div');
+        ov.className = 'rq-confirm';
+        ov.innerHTML = `
+            <div class="rq-confirm-box">
+                <div>${message}</div>
+                <div class="rq-confirm-btns">
+                    <button type="button" class="rq-confirm-cancel">Annuler</button>
+                    <button type="button" class="rq-confirm-ok">Effacer</button>
+                </div>
+            </div>`;
+        ['pointerdown', 'mousedown', 'click'].forEach(t => ov.addEventListener(t, e => e.stopPropagation()));
+        ov.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+        onTap(ov.querySelector('.rq-confirm-cancel'), () => ov.remove());
+        onTap(ov.querySelector('.rq-confirm-ok'), () => { ov.remove(); onOk(); });
+        container.appendChild(ov);
+    }
 
     // ── Création d'éléments SVG ───────────────────────────────────────────
     function createSVGEl(tag, attrs) {
@@ -881,10 +988,58 @@ function createReproQuadrillageWidget(savedData) {
         });
     }
 
+    // ── Gomme : trouver le tracé visé (tolérant au doigt / stylet) ────────
+    function findShapeAt(e) {
+        // 1) cible directe (souris, ou doigt pile sur le trait)
+        let g = e.target && e.target.closest ? e.target.closest('.rq-line-group') : null;
+        if (g && svg.contains(g)) return g;
+        // 2) élément sous le point (la cible peut être faussée par une capture)
+        try {
+            const hit = document.elementFromPoint(e.clientX, e.clientY);
+            g = hit && hit.closest ? hit.closest('.rq-line-group') : null;
+            if (g && svg.contains(g)) return g;
+        } catch (_) {}
+        // 3) trait le plus proche dans un rayon de tolérance
+        const p = getRawCoords(e);
+        const rect = svg.getBoundingClientRect();
+        const unitsPerPx = rect.width ? RQ_VIEW_SIZE / rect.width : 1;
+        const tol = Math.max(15, (e.pointerType === 'mouse' ? 8 : 22) * unitsPerPx);
+        let best = null, bestD = tol;
+        svg.querySelectorAll('.rq-line-group:not(.rq-fill-group)').forEach(grp => {
+            grp.querySelectorAll('line, circle').forEach(el => {
+                if (el.classList.contains('rq-eraser-zone')) return;
+                let d;
+                if (el.tagName.toLowerCase() === 'line') {
+                    const x1 = +el.getAttribute('x1'), y1 = +el.getAttribute('y1');
+                    const x2 = +el.getAttribute('x2'), y2 = +el.getAttribute('y2');
+                    const dx = x2 - x1, dy = y2 - y1, L2 = dx * dx + dy * dy;
+                    const t = L2 ? Math.max(0, Math.min(1, ((p.x - x1) * dx + (p.y - y1) * dy) / L2)) : 0;
+                    d = Math.hypot(p.x - (x1 + t * dx), p.y - (y1 + t * dy));
+                } else {
+                    const cx = +el.getAttribute('cx'), cy = +el.getAttribute('cy'), r = +el.getAttribute('r');
+                    d = Math.abs(Math.hypot(p.x - cx, p.y - cy) - r);
+                }
+                if (d < bestD) { bestD = d; best = grp; }
+            });
+        });
+        if (best) return best;
+        // 4) zone remplie contenant le point
+        const fills = Array.from(svg.querySelectorAll('.rq-fill-group')).reverse();
+        for (const fg of fills) {
+            const path = fg.querySelector('path');
+            if (!path) continue;
+            try {
+                const pt = svg.createSVGPoint(); pt.x = p.x; pt.y = p.y;
+                if (path.isPointInFill(pt)) return fg;
+            } catch (_) {}
+        }
+        return null;
+    }
+
     // ── Gestion pointer down ──────────────────────────────────────────────
     function handlePointerDown(e) {
         if (isGommeActive) {
-            const group = e.target.closest('.rq-line-group');
+            const group = findShapeAt(e);
             if (group) {
                 undoStack.push({ type: 'erase', element: group });
                 group.remove();
@@ -968,12 +1123,14 @@ function createReproQuadrillageWidget(savedData) {
 
     // ── Vider ─────────────────────────────────────────────────────────────
     function clearGrid() {
-        if (!confirm('Effacer tout le dessin ?')) return;
-        svg.querySelectorAll('.rq-line-group').forEach(g => svg.removeChild(g));
-        undoStack = []; redoStack = [];
-        lastPoint = null; fillPoints = [];
-        resetAide();
-        autoSave();
+        if (!svg.querySelector('.rq-line-group')) return;   // rien à effacer
+        rqConfirm('Effacer tout le dessin ?', () => {
+            svg.querySelectorAll('.rq-line-group').forEach(g => g.remove());
+            undoStack = []; redoStack = [];
+            lastPoint = null; fillPoints = [];
+            resetAide();
+            autoSave();
+        });
     }
 
     // ── Sauvegarde auto (dans le board) ───────────────────────────────────
@@ -1116,15 +1273,14 @@ function createReproQuadrillageWidget(savedData) {
 
     // Outils
     toolbar.querySelectorAll('.rq-tool-btn[data-tool]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
+        onTap(btn, () => {
             if (btn.dataset.tool === 'gomme') toggleGomme();
             else setTool(btn.dataset.tool);
         });
     });
-    toolbar.querySelector('#rq-undo-btn').addEventListener('click', (e) => { e.stopPropagation(); undo(); });
-    toolbar.querySelector('#rq-redo-btn').addEventListener('click', (e) => { e.stopPropagation(); redo(); });
-    toolbar.querySelector('#rq-clear-btn').addEventListener('click', (e) => { e.stopPropagation(); clearGrid(); });
+    onTap(toolbar.querySelector('#rq-undo-btn'),  () => undo());
+    onTap(toolbar.querySelector('#rq-redo-btn'),  () => redo());
+    onTap(toolbar.querySelector('#rq-clear-btn'), () => clearGrid());
 
     // Taille grille
     const gridSizeVal = toolbar.querySelector('.rq-gridsize-val');
@@ -1148,9 +1304,7 @@ function createReproQuadrillageWidget(savedData) {
     });
     // Boutons +/− (stylet-friendly)
     toolbar.querySelectorAll('.rq-gridsize-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation(); e.preventDefault();
-            if (btn._rqStepDone) { btn._rqStepDone = false; return; }
+        onTap(btn, () => {
             const step = parseInt(btn.dataset.step) || 0;
             const min  = parseInt(gridSizeInput.min) || 5;
             const max  = parseInt(gridSizeInput.max) || 20;
@@ -1158,78 +1312,72 @@ function createReproQuadrillageWidget(savedData) {
             const next = Math.min(max, Math.max(min, cur + step));
             if (next !== cur) { gridSizeInput.value = next; applyGridSize(); }
         });
-        btn.addEventListener('pointerup', (e) => {
-            e.stopPropagation();
-            const step = parseInt(btn.dataset.step) || 0;
-            const min  = parseInt(gridSizeInput.min) || 5;
-            const max  = parseInt(gridSizeInput.max) || 20;
-            const cur  = parseInt(gridSizeInput.value) || 10;
-            const next = Math.min(max, Math.max(min, cur + step));
-            if (next !== cur) { gridSizeInput.value = next; applyGridSize(); btn._rqStepDone = true; }
-        });
-        btn.addEventListener('pointerdown', e => e.stopPropagation());
-        btn.addEventListener('mousedown',   e => e.stopPropagation());
     });
 
     // Couleur de remplissage (gris clair / gris foncé)
     toolbar.querySelectorAll('.rq-fillcolor-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation(); e.preventDefault();
+        onTap(btn, () => {
             currentFillColor = btn.dataset.fillcolor;
             toolbar.querySelectorAll('.rq-fillcolor-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
         });
-        btn.addEventListener('pointerdown', e => e.stopPropagation());
-        btn.addEventListener('mousedown',   e => e.stopPropagation());
     });
 
     // SVG interactions
-    svg.addEventListener('pointerdown', (e) => { e.preventDefault(); handlePointerDown(e); });
+    // stopPropagation : sinon, au doigt, le widget se met à glisser pendant qu'on dessine
+    svg.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if (!_isMax) bringToFront(widget);
+        handlePointerDown(e);
+    });
     svg.addEventListener('pointermove', (e) => { handlePointerMove(e); });
+    svg.addEventListener('mousedown',  (e) => e.stopPropagation());
+    svg.addEventListener('touchstart', (e) => { e.stopPropagation(); e.preventDefault(); }, { passive: false });
 
     // Actions admin
-    actions.querySelector('.rq-btn-save').addEventListener('click', (e) => { e.stopPropagation(); exportFile(); });
-    actions.querySelector('.rq-btn-pdf').addEventListener('click',  (e) => { e.stopPropagation(); exportPDF(); });
+    onTap(actions.querySelector('.rq-btn-save'), () => exportFile());
+    onTap(actions.querySelector('.rq-btn-pdf'),  () => exportPDF());
+    // « Charger » : on laisse le clic natif ouvrir le sélecteur de fichier,
+    // mais on empêche le widget de capter le geste
+    const loadLabel = actions.querySelector('.rq-btn-load');
+    loadLabel.addEventListener('pointerdown', e => e.stopPropagation());
+    loadLabel.addEventListener('mousedown',   e => e.stopPropagation());
+    loadLabel.addEventListener('touchstart',  e => e.stopPropagation(), { passive: true });
+    loadLabel.addEventListener('click',       e => e.stopPropagation());
     actions.querySelector('input[type="file"]').addEventListener('change', importFile);
 
     // Aide
-    helpBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        helpPopup.classList.toggle('show');
-    });
-    document.addEventListener('click', () => helpPopup.classList.remove('show'));
+    onTap(helpBtn, () => helpPopup.classList.toggle('show'));
+    helpPopup.addEventListener('click', e => e.stopPropagation());
+    document.addEventListener('pointerdown', (e) => {
+        if (!helpPopup.contains(e.target) && e.target !== helpBtn) helpPopup.classList.remove('show');
+    }, true);
 
-    // Resize (poignée coin bas-droit)
-    resizeHandle.addEventListener('mousedown', (e) => {
+    // Resize (poignée coin bas-droit) — pointer events : souris, doigt et stylet
+    resizeHandle.style.touchAction = 'none';
+    resizeHandle.addEventListener('pointerdown', (e) => {
         e.preventDefault(); e.stopPropagation();
-        const startX = e.clientX, startY = e.clientY;
-        const startW = parseInt(svg.style.width)  || 470;
-        document.onmousemove = (ev) => {
+        try { resizeHandle.setPointerCapture(e.pointerId); } catch (_) {}
+        const startX = e.clientX;
+        const startW = parseInt(svg.style.width) || 470;
+        const onMove = (ev) => {
+            ev.preventDefault();
             const newW = Math.max(200, startW + ev.clientX - startX);
             svg.style.width  = newW + 'px';
             svg.style.height = newW + 'px';
         };
-        document.onmouseup = () => { document.onmousemove = null; autoSave(); };
-    });
-    resizeHandle.addEventListener('touchstart', (e) => {
-        e.preventDefault(); e.stopPropagation();
-        const t0 = e.touches[0];
-        const startX = t0.clientX, startY = t0.clientY;
-        const startW = parseInt(svg.style.width) || 470;
-        function onMove(ev) {
-            const t = ev.touches[0];
-            const newW = Math.max(200, startW + t.clientX - startX);
-            svg.style.width  = newW + 'px';
-            svg.style.height = newW + 'px';
-        }
-        function onEnd() {
-            document.removeEventListener('touchmove', onMove);
-            document.removeEventListener('touchend', onEnd);
+        const onUp = () => {
+            resizeHandle.removeEventListener('pointermove', onMove);
+            resizeHandle.removeEventListener('pointerup', onUp);
+            resizeHandle.removeEventListener('pointercancel', onUp);
             autoSave();
-        }
-        document.addEventListener('touchmove', onMove, { passive: false });
-        document.addEventListener('touchend', onEnd);
-    }, { passive: false });
+        };
+        resizeHandle.addEventListener('pointermove', onMove);
+        resizeHandle.addEventListener('pointerup', onUp);
+        resizeHandle.addEventListener('pointercancel', onUp);
+    });
+    resizeHandle.addEventListener('mousedown',  e => { e.stopPropagation(); e.preventDefault(); });
+    resizeHandle.addEventListener('touchstart', e => { e.stopPropagation(); e.preventDefault(); }, { passive: false });
 
     // ── Boutons fenêtre (min/max/close) ───────────────────────────────────
     const wfMin   = header.querySelector('[data-role="wf-min"]');
@@ -1238,35 +1386,57 @@ function createReproQuadrillageWidget(savedData) {
 
     let _isMax = false;
     let _savedContainerW = null;
+    let _maxPlaceholder = null;
+    let _maxObserver = null;
 
-    if (wfMin) {
-        wfMin.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (_isMax) wfMax.click();
-            window._wfMiniBarCollapse(widget, '📐 Repro. Quadrillage', {});
-        });
-    }
-    if (wfMax) {
-        wfMax.addEventListener('click', (e) => {
-            e.stopPropagation();
-            _isMax = !_isMax;
-            if (_isMax) {
-                _savedContainerW = container.style.width;
-                container.classList.add('wf-fullboard');
-            } else {
-                container.classList.remove('wf-fullboard');
-                if (_savedContainerW) container.style.width = _savedContainerW;
+    // Plein écran : le conteneur est déplacé directement dans <body>.
+    // Sinon, sur tablette, un ancêtre transformé (zoom du tableau, rotation
+    // du widget) ou en overflow:hidden empêche position:fixed de couvrir
+    // l'écran : le plein écran semblait « ne rien faire ».
+    function setMax(on) {
+        if (on === _isMax) return;
+        _isMax = on;
+        if (_isMax) {
+            _savedContainerW = container.style.width;
+            _maxPlaceholder = document.createComment('rq-fullboard');
+            container.parentNode.insertBefore(_maxPlaceholder, container);
+            document.body.appendChild(container);
+            container.classList.add('wf-fullboard');
+            // Si le widget est supprimé pendant le plein écran, on nettoie
+            if (window.MutationObserver) {
+                _maxObserver = new MutationObserver(() => {
+                    if (!widget.isConnected) {
+                        container.remove();
+                        if (_maxObserver) { _maxObserver.disconnect(); _maxObserver = null; }
+                    }
+                });
+                _maxObserver.observe(document.body, { childList: true, subtree: true });
             }
-        });
+        } else {
+            if (_maxObserver) { _maxObserver.disconnect(); _maxObserver = null; }
+            container.classList.remove('wf-fullboard');
+            if (_maxPlaceholder && _maxPlaceholder.parentNode) {
+                _maxPlaceholder.parentNode.insertBefore(container, _maxPlaceholder);
+                _maxPlaceholder.remove();
+            } else {
+                widget.appendChild(container);
+            }
+            _maxPlaceholder = null;
+            if (_savedContainerW) container.style.width = _savedContainerW;
+        }
     }
-    if (wfClose) {
-        wfClose.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (typeof snapshotNow === 'function') snapshotNow();
-            widget.remove();
-            if (typeof saveBoard === 'function') saveBoard();
-        });
-    }
+
+    onTap(wfMin, () => {
+        if (_isMax) setMax(false);
+        window._wfMiniBarCollapse(widget, '📐 Repro. Quadrillage', {});
+    });
+    onTap(wfMax, () => setMax(!_isMax));
+    onTap(wfClose, () => {
+        if (_isMax) setMax(false);
+        if (typeof snapshotNow === 'function') snapshotNow();
+        widget.remove();
+        if (typeof saveBoard === 'function') saveBoard();
+    });
 
     // Focus / bringToFront
     widget.addEventListener('mousedown', (e) => {
@@ -1294,12 +1464,12 @@ function createReproQuadrillageWidget(savedData) {
     // (si le widget est restauré ensuite via setData, on n'ouvre pas — ou on referme — ce plein écran automatique)
     let _restored = false, _autoMax = false;
     if (!savedData && wfMax && _wfIsPhone()) requestAnimationFrame(() => {
-        if (!_restored && !_isMax) { _autoMax = true; wfMax.click(); }
+        if (!_restored && !_isMax) { _autoMax = true; setMax(true); }
     });
     const _setDataBase = setData;
     const setDataPublic = function (data) {
         _restored = true;
-        if (_autoMax && _isMax) wfMax.click();
+        if (_autoMax && _isMax) setMax(false);
         _autoMax = false;
         return _setDataBase(data);
     };

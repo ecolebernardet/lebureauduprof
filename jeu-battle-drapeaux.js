@@ -46,7 +46,7 @@
             widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = 'none');
             const miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
             const labelEl = document.createElement('span');
             labelEl.textContent = label;
             labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -76,11 +76,11 @@
             miniBar.appendChild(labelEl); miniBar.appendChild(expandBtn); widget.appendChild(miniBar);
             miniBar.addEventListener('pointerdown', (e) => {
                 if (e.target === expandBtn || expandBtn.contains(e.target)) return;
-                e.stopPropagation(); e.preventDefault(); miniBar.setPointerCapture(e.pointerId);
+                e.stopPropagation(); e.preventDefault(); miniBar.setPointerCapture(e.pointerId); miniBar.style.cursor = 'grabbing';
                 const startX = e.clientX - widget.offsetLeft, startY = e.clientY - widget.offsetTop;
                 const onMove = (ev) => { widget.style.left = Math.max(0, ev.clientX - startX) + 'px'; widget.style.top = Math.max(0, ev.clientY - startY) + 'px'; };
                 const onUp = () => {
-                    miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp);
+                    miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp); miniBar.style.cursor = 'grab';
                     const curW = window.innerWidth, curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
                     widget.dataset.leftPercent = (widget.offsetLeft / curW) * 100;
                     widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
@@ -117,6 +117,60 @@
         document.head.appendChild(ws);
     }
 
+
+    // ── Plein écran automatique (bouton vert) sur téléphone ET tablette ────
+    // Partagé par tous les jeux « Battle ». Mêmes conditions que board.js et
+    // style-phone.css (window.PHONE_MEDIA_QUERY / window.TABLET_MEDIA_QUERY) :
+    //   • téléphone (portrait ou paysage) ;
+    //   • tablette tactile (iPad, iPad mini, tablette Android).
+    // Ordinateur et TBI à la souris/au stylet : ouverture normale en fenêtre.
+    if (!window._battleWantsFullboard) {
+        window._battleWantsFullboard = function () {
+            try {
+                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) return true;
+                if (typeof isTabletBoardMode === 'function' && isTabletBoardMode()) return true;
+                if (typeof isPhoneScreen === 'function' && isPhoneScreen()) return true;
+                if (!window.matchMedia) return false;
+                const phoneQ  = window.PHONE_MEDIA_QUERY  || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+                const tabletQ = window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)';
+                if (window.matchMedia(phoneQ).matches || window.matchMedia(tabletQ).matches) return true;
+            } catch (e) {}
+            return false;
+        };
+    }
+
+    // ── Curseurs (flèche par défaut, main sur la barre du haut, doigt sur ce qui se clique)
+    if (!document.getElementById('jbd-cursors-style')) {
+        const cs = document.createElement('style');
+        cs.id = 'jbd-cursors-style';
+        cs.textContent = `
+        /* Tout ce qui n'est pas cliquable : flèche */
+        .widget[data-type="battle-drapeaux"],
+        .jbd-container { cursor: default; }
+        /* Barre du haut : sert à déplacer le widget → main qui attrape */
+        .jbd-header { cursor: grab; }
+        .jbd-header:active { cursor: grabbing; }
+        .widget[data-type="battle-drapeaux"] .drag-handle,
+        .widget[data-type="battle-drapeaux"] .widget-rotate-handle { cursor: grab; }
+        .widget[data-type="battle-drapeaux"] .drag-handle:active,
+        .widget[data-type="battle-drapeaux"] .widget-rotate-handle:active { cursor: grabbing; }
+        /* En plein écran, le widget ne se déplace plus : flèche sur la barre */
+        .jbd-container.wf-fullboard .jbd-header,
+        .jbd-container.wf-fullboard .jbd-header:active { cursor: default; }
+        /* Parties cliquables : doigt qui pointe */
+        .widget[data-type="battle-drapeaux"] button:not(:disabled),
+        .widget[data-type="battle-drapeaux"] select,
+        .widget[data-type="battle-drapeaux"] .widget-menu-handle,
+        .widget[data-type="battle-drapeaux"] .widget-pin-handle,
+        .widget[data-type="battle-drapeaux"] .widget-back-handle,
+        .widget[data-type="battle-drapeaux"] .widget-close-handle,
+        .widget[data-type="battle-drapeaux"] .widget-ctx-menu button { cursor: pointer; }
+        .widget[data-type="battle-drapeaux"] button:disabled { cursor: default; }
+        /* En plein écran, le widget ne doit pas pivoter (position fixe faussée) */
+        .widget[data-type="battle-drapeaux"]:has(.jbd-container.wf-fullboard) { transform: none !important; }
+        `;
+        document.head.appendChild(cs);
+    }
 
     // ── CSS du jeu (préfixe jbd-) ──────────────────────────────────────────
     if (!document.getElementById('widget-battle-drapeaux-style')) {
@@ -170,7 +224,7 @@
         }
 
         /* ── En-tête ── */
-        .jbd-header { display: flex; align-items: center; gap: calc(10px * var(--jbd-s)); cursor: move; flex-wrap: wrap; }
+        .jbd-header { display: flex; align-items: center; gap: calc(10px * var(--jbd-s)); cursor: grab; flex-wrap: wrap; }
         .jbd-title {
             font-family: 'Lilita One', 'Arial Rounded MT Bold', 'Segoe UI', sans-serif;
             font-size: calc(26px * var(--jbd-s));
@@ -2442,7 +2496,7 @@
             showSetup();
             applyScale();
             container.focus({ preventScroll: true });
-            if ((typeof isPhoneScreen === 'function' && isPhoneScreen()) || (window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches) || (typeof isMobileBoardMode === 'function' && isMobileBoardMode())) {
+            if (window._battleWantsFullboard()) {
                 wfMax.click();
             } else if (!(typeof isRestoringState !== 'undefined' && isRestoringState)) {
                 const curW = window.innerWidth;

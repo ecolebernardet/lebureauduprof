@@ -17,12 +17,57 @@
 
 (function () {
 
+    // ── Plein écran automatique (bouton vert) sur téléphone ET tablette ────
+    // Partagé par les jeux. Mêmes conditions que board.js et style-phone.css
+    // (window.PHONE_MEDIA_QUERY / window.TABLET_MEDIA_QUERY) :
+    //   • téléphone (portrait ou paysage) ;
+    //   • tablette tactile (iPad, iPad mini, tablette Android).
+    // Ordinateur et TBI à la souris/au stylet : ouverture normale en fenêtre.
+    if (!window._jeuWantsFullboard) {
+        window._jeuWantsFullboard = function () {
+            try {
+                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) return true;
+                if (typeof isTabletBoardMode === 'function' && isTabletBoardMode()) return true;
+                if (typeof isPhoneScreen === 'function' && isPhoneScreen()) return true;
+                if (!window.matchMedia) return false;
+                var phoneQ  = window.PHONE_MEDIA_QUERY  || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+                var tabletQ = window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)';
+                if (window.matchMedia(phoneQ).matches || window.matchMedia(tabletQ).matches) return true;
+            } catch (e) {}
+            return false;
+        };
+    }
+
+    // ── Curseurs : flèche par défaut, main sur la barre du haut (elle déplace
+    //    le widget), doigt sur tout ce qui se clique
+    if (!document.getElementById('jeu-phrase-desordre-cursors-style')) {
+        var _cs = document.createElement('style');
+        _cs.id = 'jeu-phrase-desordre-cursors-style';
+        _cs.textContent = [
+            '.widget[data-type="jeu-phrase-desordre"], .widget[data-type="jeu-phrase-desordre"] .jph-container { cursor: default; }',
+            '.widget[data-type="jeu-phrase-desordre"] .jph-header { cursor: grab; }',
+            '.widget[data-type="jeu-phrase-desordre"] .jph-header:active { cursor: grabbing; }',
+            '.widget[data-type="jeu-phrase-desordre"] .drag-handle, .widget[data-type="jeu-phrase-desordre"] .widget-rotate-handle { cursor: grab; }',
+            '.widget[data-type="jeu-phrase-desordre"] .drag-handle:active, .widget[data-type="jeu-phrase-desordre"] .widget-rotate-handle:active { cursor: grabbing; }',
+            /* En plein écran le widget ne se déplace plus : flèche sur la barre */
+            '.widget[data-type="jeu-phrase-desordre"] .jph-container.wf-fullboard .jph-header, .widget[data-type="jeu-phrase-desordre"] .jph-container.wf-fullboard .jph-header:active,',
+            '.widget.phone-fs[data-type="jeu-phrase-desordre"] .jph-header, .widget.phone-fs[data-type="jeu-phrase-desordre"] .jph-header:active { cursor: default; }',
+            '.widget[data-type="jeu-phrase-desordre"] button:not(:disabled), .widget[data-type="jeu-phrase-desordre"] select,',
+            '.widget[data-type="jeu-phrase-desordre"] .widget-menu-handle, .widget[data-type="jeu-phrase-desordre"] .widget-pin-handle,',
+            '.widget[data-type="jeu-phrase-desordre"] .widget-back-handle, .widget[data-type="jeu-phrase-desordre"] .widget-close-handle { cursor: pointer; }',
+            '.widget[data-type="jeu-phrase-desordre"] button:disabled { cursor: default; }',
+            /* En plein écran, un widget pivoté fausserait la position fixe */
+            '.widget[data-type="jeu-phrase-desordre"]:has(.jph-container.wf-fullboard) { transform: none !important; }'
+        ].join('\n');
+        document.head.appendChild(_cs);
+    }
+
     // ── Détection téléphone (même règle que le Taquin et style-phone.css) ──
     // isMobileBoardMode() n'existe pas toujours ou peut répondre « non » sur
     // un téléphone en paysage : on complète avec la même media query.
     function _isPhone() {
         if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        return !!(window.matchMedia && window.matchMedia((window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)')).matches);
     }
 
     // ── Mini-barre collapse (partagée avec les autres widgets) ─────────────
@@ -46,7 +91,7 @@
             widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = 'none');
             const miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
             const labelEl = document.createElement('span');
             labelEl.textContent = label;
             labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -76,11 +121,11 @@
             miniBar.appendChild(labelEl); miniBar.appendChild(expandBtn); widget.appendChild(miniBar);
             miniBar.addEventListener('pointerdown', (e) => {
                 if (e.target === expandBtn || expandBtn.contains(e.target)) return;
-                e.stopPropagation(); e.preventDefault(); miniBar.setPointerCapture(e.pointerId);
+                e.stopPropagation(); e.preventDefault(); miniBar.setPointerCapture(e.pointerId); miniBar.style.cursor = 'grabbing';
                 const startX = e.clientX - widget.offsetLeft, startY = e.clientY - widget.offsetTop;
                 const onMove = (ev) => { widget.style.left = Math.max(0, ev.clientX - startX) + 'px'; widget.style.top = Math.max(0, ev.clientY - startY) + 'px'; };
                 const onUp = () => {
-                    miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp);
+                    miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp); miniBar.style.cursor = 'grab';
                     const curW = window.innerWidth, curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
                     widget.dataset.leftPercent = (widget.offsetLeft / curW) * 100;
                     widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
@@ -419,7 +464,7 @@
         /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
            pour laisser les onglets latéraux visibles, comme le Taquin.
            Le widget passe aussi au premier plan pendant le plein écran. ── */
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .jph-container.wf-fullboard,
             .jph-container.wf-fullboard.jti-mobile {
                 left: 40px !important; right: 0 !important;
@@ -1137,7 +1182,7 @@
             applyScale();
             setLevel(1);
             container.focus({ preventScroll: true });
-            if (_isPhone()) {
+            if (window._jeuWantsFullboard()) {
                 wfMax.click();
             } else {
                 const curW = window.innerWidth;

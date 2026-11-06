@@ -23,6 +23,51 @@
 
 (function () {
 
+    // ── Plein écran automatique (bouton vert) sur téléphone ET tablette ────
+    // Partagé par les jeux. Mêmes conditions que board.js et style-phone.css
+    // (window.PHONE_MEDIA_QUERY / window.TABLET_MEDIA_QUERY) :
+    //   • téléphone (portrait ou paysage) ;
+    //   • tablette tactile (iPad, iPad mini, tablette Android).
+    // Ordinateur et TBI à la souris/au stylet : ouverture normale en fenêtre.
+    if (!window._jeuWantsFullboard) {
+        window._jeuWantsFullboard = function () {
+            try {
+                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) return true;
+                if (typeof isTabletBoardMode === 'function' && isTabletBoardMode()) return true;
+                if (typeof isPhoneScreen === 'function' && isPhoneScreen()) return true;
+                if (!window.matchMedia) return false;
+                var phoneQ  = window.PHONE_MEDIA_QUERY  || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+                var tabletQ = window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)';
+                if (window.matchMedia(phoneQ).matches || window.matchMedia(tabletQ).matches) return true;
+            } catch (e) {}
+            return false;
+        };
+    }
+
+    // ── Curseurs : flèche par défaut, main sur la barre du haut (elle déplace
+    //    le widget), doigt sur tout ce qui se clique
+    if (!document.getElementById('jeu-conju-cursors-style')) {
+        var _cs = document.createElement('style');
+        _cs.id = 'jeu-conju-cursors-style';
+        _cs.textContent = [
+            '.widget[data-type="jeu-conju"], .widget[data-type="jeu-conju"] .jcj-container { cursor: default; }',
+            '.widget[data-type="jeu-conju"] .jcj-header { cursor: grab; }',
+            '.widget[data-type="jeu-conju"] .jcj-header:active { cursor: grabbing; }',
+            '.widget[data-type="jeu-conju"] .drag-handle, .widget[data-type="jeu-conju"] .widget-rotate-handle { cursor: grab; }',
+            '.widget[data-type="jeu-conju"] .drag-handle:active, .widget[data-type="jeu-conju"] .widget-rotate-handle:active { cursor: grabbing; }',
+            /* En plein écran le widget ne se déplace plus : flèche sur la barre */
+            '.widget[data-type="jeu-conju"] .jcj-container.wf-fullboard .jcj-header, .widget[data-type="jeu-conju"] .jcj-container.wf-fullboard .jcj-header:active,',
+            '.widget.phone-fs[data-type="jeu-conju"] .jcj-header, .widget.phone-fs[data-type="jeu-conju"] .jcj-header:active { cursor: default; }',
+            '.widget[data-type="jeu-conju"] button:not(:disabled), .widget[data-type="jeu-conju"] select,',
+            '.widget[data-type="jeu-conju"] .widget-menu-handle, .widget[data-type="jeu-conju"] .widget-pin-handle,',
+            '.widget[data-type="jeu-conju"] .widget-back-handle, .widget[data-type="jeu-conju"] .widget-close-handle { cursor: pointer; }',
+            '.widget[data-type="jeu-conju"] button:disabled { cursor: default; }',
+            /* En plein écran, un widget pivoté fausserait la position fixe */
+            '.widget[data-type="jeu-conju"]:has(.jcj-container.wf-fullboard) { transform: none !important; }'
+        ].join('\n');
+        document.head.appendChild(_cs);
+    }
+
     // ── Fonction utilitaire mini-barre collapse (injectée une seule fois, partagée) ──
     if (!window._wfMiniBarCollapse) {
         window._wfMiniBarCollapse = function(widget, label, opts) {
@@ -44,7 +89,7 @@
             widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = 'none');
             const miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
             const labelEl = document.createElement('span');
             labelEl.textContent = label;
             labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -73,11 +118,11 @@
             miniBar.appendChild(labelEl); miniBar.appendChild(expandBtn); widget.appendChild(miniBar);
             miniBar.addEventListener('pointerdown', (e) => {
                 if (e.target === expandBtn || expandBtn.contains(e.target)) return;
-                e.stopPropagation(); e.preventDefault(); miniBar.setPointerCapture(e.pointerId);
+                e.stopPropagation(); e.preventDefault(); miniBar.setPointerCapture(e.pointerId); miniBar.style.cursor = 'grabbing';
                 const startX = e.clientX - widget.offsetLeft, startY = e.clientY - widget.offsetTop;
                 const onMove = (ev) => { widget.style.left = Math.max(0, ev.clientX - startX) + 'px'; widget.style.top = Math.max(0, ev.clientY - startY) + 'px'; };
                 const onUp = () => {
-                    miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp);
+                    miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp); miniBar.style.cursor = 'grab';
                     const curW = window.innerWidth, curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
                     widget.dataset.leftPercent = (widget.offsetLeft / curW) * 100;
                     widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
@@ -1440,8 +1485,8 @@
             // besoin de toute la place). Sur PC, ouvre en taille normale.
             _savedW = container.style.width;
             _savedH = container.style.height;
-            if (isMobile) {
-                container.classList.add('jti-mobile');
+            if (isMobile || window._jeuWantsFullboard()) {
+                if (isMobile) container.classList.add('jti-mobile');
                 _isMax = true;
                 container.classList.add('wf-fullboard');
             } else {

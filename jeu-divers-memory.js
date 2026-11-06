@@ -126,7 +126,10 @@
         document.head.appendChild(ws);
     }
 
-    // ── CSS spécifique au widget ──────────────────────────────────────────
+    // ── CSS spécifique au widget
+    // Préfixe « jmemo- » (et non « jmm- ») : le jeu des Mots mêlés utilise déjà
+    // « jmm- », et ses règles s'appliquaient au Memory (bouton Démarrer inactif,
+    // grille écrasée, couleurs fausses). Ne pas revenir à « jmm- ». ──────────────────────────────────────────
     if (!document.getElementById('widget-jeu-memory-style')) {
         const s = document.createElement('style');
         s.id = 'widget-jeu-memory-style';
@@ -142,7 +145,7 @@
         }
 
         /* Palette « table de jeu » : feutre, bois, or, ivoire, bleu nuit */
-        .jmm-container {
+        .jmemo-container {
             --feutre: #137A64;
             --feutre-fonce: #0B4F41;
             --bois: #7A4A25;
@@ -175,7 +178,7 @@
         }
 
         /* ── État plein écran ── */
-        .jmm-container.wf-fullboard {
+        .jmemo-container.wf-fullboard {
             position: fixed !important;
             inset: 0 !important;
             width: 100% !important;
@@ -185,7 +188,7 @@
             padding-left: 52px !important;
         }
         /* Plein écran sur téléphone (voir la version d'origine pour le détail) */
-        .jmm-container.wf-fullboard.jti-mobile {
+        .jmemo-container.wf-fullboard.jti-mobile {
             min-width: unset !important;
             width: 100% !important;
             padding-left: calc(40px + env(safe-area-inset-left)) !important;
@@ -195,7 +198,7 @@
         }
 
         /* ── En-tête ── */
-        .jmm-header {
+        .jmemo-header {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -203,7 +206,7 @@
             user-select: none;
             flex-shrink: 0;
         }
-        .jmm-title {
+        .jmemo-title {
             display: flex; align-items: center; gap: 8px;
             font-family: 'Baloo 2', 'Nunito', sans-serif;
             font-size: 26px;
@@ -214,18 +217,18 @@
             pointer-events: none;
             white-space: nowrap;
         }
-        .jmm-title-cards { display: inline-flex; pointer-events: none; }
-        .jmm-title-cards i {
+        .jmemo-title-cards { display: inline-flex; pointer-events: none; }
+        .jmemo-title-cards i {
             display: inline-block; width: 18px; height: 25px; border-radius: 4px;
             border: 2px solid var(--or);
             background: var(--nuit);
             background-image: repeating-linear-gradient(45deg, rgba(245,197,66,0.35) 0 1px, transparent 1px 5px);
         }
-        .jmm-title-cards i:first-child { transform: rotate(-10deg); }
-        .jmm-title-cards i:last-child  { transform: rotate(8deg) translateX(-7px); background: var(--ivoire); }
+        .jmemo-title-cards i:first-child { transform: rotate(-10deg); }
+        .jmemo-title-cards i:last-child  { transform: rotate(8deg) translateX(-7px); background: var(--ivoire); }
 
         /* ── Boutons paramètres / aide ── */
-        .jmm-params-btn, .jmm-help-btn {
+        .jmemo-params-btn, .jmemo-help-btn {
             width: 26px; height: 26px; border-radius: 50%;
             border: none; background: rgba(255,255,255,0.12);
             color: var(--ivoire); font-size: 13px; font-weight: 900; font-family: inherit;
@@ -233,11 +236,11 @@
             justify-content: center; flex-shrink: 0;
             transition: background .15s;
         }
-        .jmm-params-btn:hover, .jmm-help-btn:hover { background: rgba(255,255,255,0.25); }
-        .jmm-params-btn.active { background: var(--or); color: var(--encre); }
+        .jmemo-params-btn:hover, .jmemo-help-btn:hover { background: rgba(255,255,255,0.25); }
+        .jmemo-params-btn.active { background: var(--or); color: var(--encre); }
 
         /* ── Popup aide ── */
-        .jmm-help-popup {
+        .jmemo-help-popup {
             display: none; position: absolute;
             top: 50px; right: 12px;
             background: var(--ivoire); color: var(--encre);
@@ -246,12 +249,12 @@
             padding: 12px 14px; width: 340px;
             font-size: 12px; z-index: 30; line-height: 1.55;
         }
-        .jmm-help-popup.show { display: block; }
-        .jmm-help-popup h4 { margin: 0 0 8px; font-family: 'Baloo 2', sans-serif; font-size: 17px; color: var(--encre); }
-        .jmm-help-popup p { color: #3A4556 !important; }
+        .jmemo-help-popup.show { display: block; }
+        .jmemo-help-popup h4 { margin: 0 0 8px; font-family: 'Baloo 2', sans-serif; font-size: 17px; color: var(--encre); }
+        .jmemo-help-popup p { color: #3A4556 !important; }
 
         /* ── Panneau paramètres ── */
-        .jmm-params-panel {
+        .jmemo-params-panel {
             background: rgba(255,255,255,0.06);
             border: 1.5px solid rgba(255,255,255,0.12);
             border-radius: 14px;
@@ -261,28 +264,28 @@
             gap: 8px;
             flex-shrink: 0;
         }
-        .jmm-params-panel.show { display: flex; }
-        .jmm-params-row {
+        .jmemo-params-panel.show { display: flex; }
+        .jmemo-params-row {
             display: flex;
             align-items: center;
             gap: 8px 10px;
             flex-wrap: wrap;
         }
-        .jmm-params-row label {
+        .jmemo-params-row label {
             font-size: 12px; font-weight: 800; color: rgba(255,251,240,0.8); white-space: nowrap;
         }
-        .jmm-content-select, .jmm-pairs-select, .jmm-color-select {
+        .jmemo-content-select, .jmemo-pairs-select, .jmemo-color-select {
             padding: 6px 12px; border-radius: 999px;
             border: 2px solid transparent; font-size: 13px; font-weight: 800;
             font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
             outline: none; cursor: pointer;
             background: var(--ivoire); color: var(--encre);
         }
-        .jmm-content-select:focus, .jmm-pairs-select:focus, .jmm-color-select:focus,
-        .jmm-content-select:focus-visible, .jmm-pairs-select:focus-visible, .jmm-color-select:focus-visible { border-color: var(--or); }
-        .jmm-custom-row { display: none; flex-direction: column; align-items: stretch; gap: 4px; }
-        .jmm-custom-row.show { display: flex; }
-        .jmm-custom-textarea {
+        .jmemo-content-select:focus, .jmemo-pairs-select:focus, .jmemo-color-select:focus,
+        .jmemo-content-select:focus-visible, .jmemo-pairs-select:focus-visible, .jmemo-color-select:focus-visible { border-color: var(--or); }
+        .jmemo-custom-row { display: none; flex-direction: column; align-items: stretch; gap: 4px; }
+        .jmemo-custom-row.show { display: flex; }
+        .jmemo-custom-textarea {
             width: 100%; box-sizing: border-box;
             min-height: 74px; resize: vertical;
             border: 2px solid transparent; border-radius: 10px;
@@ -291,19 +294,19 @@
             background: var(--ivoire); color: var(--encre);
             outline: none;
         }
-        .jmm-custom-textarea:focus { border-color: var(--or); }
-        .jmm-custom-hint { font-size: 11px; font-weight: 800; color: rgba(255,251,240,0.6); }
-        .jmm-custom-hint.ok { color: #7EE2B0; }
-        .jmm-custom-hint.bad { color: #FF9A9A; }
+        .jmemo-custom-textarea:focus { border-color: var(--or); }
+        .jmemo-custom-hint { font-size: 11px; font-weight: 800; color: rgba(255,251,240,0.6); }
+        .jmemo-custom-hint.ok { color: #7EE2B0; }
+        .jmemo-custom-hint.bad { color: #FF9A9A; }
 
         /* ── HUD ── */
-        .jmm-hud {
+        .jmemo-hud {
             display: flex;
             align-items: center;
             gap: 10px;
             flex-shrink: 0;
         }
-        .jmm-chip {
+        .jmemo-chip {
             display: inline-flex; align-items: center; gap: 8px;
             background: rgba(255,255,255,0.08);
             border-radius: 999px;
@@ -311,32 +314,32 @@
             font-weight: 900; font-size: 15px; color: var(--ivoire);
             white-space: nowrap;
         }
-        .jmm-chip-ico {
+        .jmemo-chip-ico {
             width: 26px; height: 26px; border-radius: 50%;
             display: inline-flex; align-items: center; justify-content: center;
             font-size: 14px; background: rgba(255,255,255,0.12);
         }
-        .jmm-chip small { font-weight: 800; font-size: 12px; color: rgba(255,251,240,0.6); }
-        .jmm-chip b { font-family: 'Baloo 2', sans-serif; font-size: 19px; line-height: 1; font-variant-numeric: tabular-nums; }
-        .jmm-timer b { min-width: 48px; display: inline-block; }
-        .jmm-matches { flex: 1; padding-right: 14px; }
-        .jmm-progress {
+        .jmemo-chip small { font-weight: 800; font-size: 12px; color: rgba(255,251,240,0.6); }
+        .jmemo-chip b { font-family: 'Baloo 2', sans-serif; font-size: 19px; line-height: 1; font-variant-numeric: tabular-nums; }
+        .jmemo-timer b { min-width: 48px; display: inline-block; }
+        .jmemo-matches { flex: 1; padding-right: 14px; }
+        .jmemo-progress {
             display: block;
             flex: 1; min-width: 60px; height: 12px; border-radius: 999px;
             background: rgba(0,0,0,0.35); overflow: hidden;
         }
-        .jmm-progress-fill {
+        .jmemo-progress-fill {
             display: block;
             height: 100%; width: 0%;
             background: linear-gradient(90deg, var(--or), #FFE08A);
             border-radius: 999px;
             transition: width .4s cubic-bezier(.3,1.3,.5,1);
         }
-        @keyframes jmm-chip-bump { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
-        .jmm-chip.bump { animation: jmm-chip-bump .35s ease; }
+        @keyframes jmemo-chip-bump { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+        .jmemo-chip.bump { animation: jmemo-chip-bump .35s ease; }
 
         /* ── Zone de jeu : tapis de feutre dans un cadre en bois ── */
-        .jmm-board-zone {
+        .jmemo-board-zone {
             flex: 1;
             min-height: 140px;
             position: relative;
@@ -355,18 +358,18 @@
             padding: 10px;
             box-sizing: border-box;
         }
-        .jmm-grid {
+        .jmemo-grid {
             display: grid;
-            gap: var(--jmm-gap, 8px);
-            grid-template-columns: repeat(var(--jmm-cols, 4), var(--jmm-cell, 1fr));
-            grid-auto-rows: var(--jmm-cell, 90px);
+            gap: var(--jmemo-gap, 8px);
+            grid-template-columns: repeat(var(--jmemo-cols, 4), var(--jmemo-cell, 1fr));
+            grid-auto-rows: var(--jmemo-cell, 90px);
             justify-content: center;
             align-content: center;
             height: 100%;
         }
 
         /* ── Carte ── */
-        .jmm-card {
+        .jmemo-card {
             width: 100%;
             height: 100%;
             perspective: 800px;
@@ -381,21 +384,21 @@
             -webkit-tap-highlight-color: transparent;
             transition: transform .15s ease;
         }
-        .jmm-card:not(.flipped):not(.matched):hover { transform: translateY(-4px) rotate(-1deg); }
-        .jmm-card:focus-visible .jmm-card-inner { outline: 3px solid var(--or); outline-offset: 3px; border-radius: 12px; }
-        .jmm-card.matched { cursor: default; }
-        .jmm-card-inner {
+        .jmemo-card:not(.flipped):not(.matched):hover { transform: translateY(-4px) rotate(-1deg); }
+        .jmemo-card:focus-visible .jmemo-card-inner { outline: 3px solid var(--or); outline-offset: 3px; border-radius: 12px; }
+        .jmemo-card.matched { cursor: default; }
+        .jmemo-card-inner {
             position: relative;
             width: 100%; height: 100%;
             transition: transform .45s cubic-bezier(.3,1.25,.5,1);
             transform-style: preserve-3d;
             pointer-events: none;
         }
-        .jmm-card.flipped .jmm-card-inner,
-        .jmm-card.matched .jmm-card-inner {
+        .jmemo-card.flipped .jmemo-card-inner,
+        .jmemo-card.matched .jmemo-card-inner {
             transform: rotateY(180deg);
         }
-        .jmm-card-face {
+        .jmemo-card-face {
             position: absolute; inset: 0;
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
@@ -408,7 +411,7 @@
             box-shadow: 0 4px 0 rgba(0,0,0,0.25), 0 6px 12px rgba(0,0,0,0.25);
         }
         /* Dos : bleu nuit, motif doré en losanges, médaillon central */
-        .jmm-card-back {
+        .jmemo-card-back {
             background:
                 radial-gradient(circle at 50% 50%, var(--nuit-clair) 0 27%, transparent 28%),
                 repeating-linear-gradient(45deg,  rgba(245,197,66,0.22) 0 1.5px, transparent 1.5px 9px),
@@ -420,9 +423,9 @@
                 0 4px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.25);
             color: var(--or);
         }
-        .jmm-back-emblem {
+        .jmemo-back-emblem {
             font-family: 'Baloo 2', 'Nunito', sans-serif; font-weight: 800;
-            font-size: calc(var(--jmm-cell, 90px) * 0.3);
+            font-size: calc(var(--jmemo-cell, 90px) * 0.3);
             line-height: 1;
             width: 46%; aspect-ratio: 1; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
@@ -430,68 +433,68 @@
             text-shadow: 0 2px 0 rgba(0,0,0,0.35);
         }
         /* Face : ivoire avec la bande de couleur de la paire */
-        .jmm-card-front {
-            background: var(--jmm-card-bg, var(--ivoire));
-            border: 3px solid var(--jmm-card-border, #D8CFB8);
+        .jmemo-card-front {
+            background: var(--jmemo-card-bg, var(--ivoire));
+            border: 3px solid var(--jmemo-card-border, #D8CFB8);
             border-top-width: 9px;
-            color: var(--jmm-card-text, var(--encre));
+            color: var(--jmemo-card-text, var(--encre));
             transform: rotateY(180deg);
-            font-size: var(--jmm-fs, 15px);
+            font-size: var(--jmemo-fs, 15px);
             line-height: 1.15;
             word-break: break-word;
             overflow: hidden;
         }
-        .jmm-card-front-flag {
-            font-size: calc(var(--jmm-fs, 15px) * 2.4);
+        .jmemo-card-front-flag {
+            font-size: calc(var(--jmemo-fs, 15px) * 2.4);
         }
-        .jmm-frac {
+        .jmemo-frac {
             display: inline-flex;
             flex-direction: column;
             align-items: center;
             line-height: 1.15;
         }
-        .jmm-frac-num {
+        .jmemo-frac-num {
             border-bottom: 2px solid currentColor;
             padding: 0 4px 2px;
         }
-        .jmm-frac-den {
+        .jmemo-frac-den {
             padding: 2px 4px 0;
         }
         /* Paire trouvée : liseré doré, halo et pastille ✓ */
-        .jmm-card.matched .jmm-card-front {
+        .jmemo-card.matched .jmemo-card-front {
             box-shadow: 0 0 0 3px var(--or), 0 0 18px rgba(245,197,66,0.75), 0 4px 0 rgba(0,0,0,0.25);
-            animation: jmm-pop .5s ease;
+            animation: jmemo-pop .5s ease;
         }
-        .jmm-card.matched .jmm-card-front::after {
+        .jmemo-card.matched .jmemo-card-front::after {
             content: '✓';
             position: absolute; top: 3px; right: 4px;
             width: 18px; height: 18px; border-radius: 50%;
             background: var(--or); color: var(--encre);
             font-size: 12px; line-height: 18px; font-weight: 900;
         }
-        .jmm-card.matched .jmm-card-inner::after {
+        .jmemo-card.matched .jmemo-card-inner::after {
             content: ''; position: absolute; inset: -6px; border-radius: 16px;
             border: 3px solid var(--or);
             transform: rotateY(180deg);
-            animation: jmm-ring .6s ease-out forwards;
+            animation: jmemo-ring .6s ease-out forwards;
             pointer-events: none;
         }
-        .jmm-card.mismatch .jmm-card-front {
+        .jmemo-card.mismatch .jmemo-card-front {
             box-shadow: 0 0 0 3px #FF5D6C, 0 4px 0 rgba(0,0,0,0.25);
         }
-        .jmm-card.mismatch .jmm-card-inner {
-            animation: jmm-shake .4s ease;
+        .jmemo-card.mismatch .jmemo-card-inner {
+            animation: jmemo-shake .4s ease;
         }
-        @keyframes jmm-pop {
+        @keyframes jmemo-pop {
             0%   { filter: brightness(1); }
             40%  { filter: brightness(1.25); }
             100% { filter: brightness(1); }
         }
-        @keyframes jmm-ring {
+        @keyframes jmemo-ring {
             0%   { opacity: 1; transform: rotateY(180deg) scale(0.9); }
             100% { opacity: 0; transform: rotateY(180deg) scale(1.25); }
         }
-        @keyframes jmm-shake {
+        @keyframes jmemo-shake {
             0%,100% { transform: rotateY(180deg) translateX(0); }
             20%     { transform: rotateY(180deg) translateX(-7px) rotate(-2deg); }
             40%     { transform: rotateY(180deg) translateX(7px) rotate(2deg); }
@@ -500,7 +503,7 @@
         }
 
         /* ── Overlay démarrage / pause / fin de partie ── */
-        .jmm-overlay {
+        .jmemo-overlay {
             position: absolute; inset: 0;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
@@ -510,9 +513,9 @@
             text-align: center;
             padding: 14px;
         }
-        .jmm-overlay.hidden { display: none; }
-        .jmm-overlay-deco { display: flex; gap: 6px; margin-bottom: 2px; }
-        .jmm-overlay-deco i {
+        .jmemo-overlay.hidden { display: none; }
+        .jmemo-overlay-deco { display: flex; gap: 6px; margin-bottom: 2px; }
+        .jmemo-overlay-deco i {
             width: 34px; height: 48px; border-radius: 6px; display: block;
             background:
                 repeating-linear-gradient(45deg,  rgba(245,197,66,0.3) 0 1.5px, transparent 1.5px 7px),
@@ -520,23 +523,23 @@
                 var(--nuit);
             box-shadow: inset 0 0 0 2px var(--nuit), inset 0 0 0 4px var(--or), 0 4px 0 rgba(0,0,0,0.3);
         }
-        .jmm-overlay-deco i:nth-child(1) { transform: rotate(-14deg) translateY(4px); }
-        .jmm-overlay-deco i:nth-child(2) { background: var(--ivoire); box-shadow: inset 0 0 0 3px var(--or), 0 4px 0 rgba(0,0,0,0.3); }
-        .jmm-overlay-deco i:nth-child(3) { transform: rotate(14deg) translateY(4px); }
-        .jmm-overlay-title {
+        .jmemo-overlay-deco i:nth-child(1) { transform: rotate(-14deg) translateY(4px); }
+        .jmemo-overlay-deco i:nth-child(2) { background: var(--ivoire); box-shadow: inset 0 0 0 3px var(--or), 0 4px 0 rgba(0,0,0,0.3); }
+        .jmemo-overlay-deco i:nth-child(3) { transform: rotate(14deg) translateY(4px); }
+        .jmemo-overlay-title {
             font-family: 'Baloo 2', 'Nunito', sans-serif;
             font-size: 34px; font-weight: 800; line-height: 1.1;
             color: var(--or); text-shadow: 0 3px 0 #6E4F05;
         }
-        .jmm-overlay-sub { font-size: 15px; font-weight: 800; color: var(--ivoire); max-width: 380px; line-height: 1.4; }
-        .jmm-stars { display: none; gap: 8px; }
-        .jmm-stars.show { display: flex; }
-        .jmm-stars span { font-size: 40px; line-height: 1; opacity: 0.2; filter: grayscale(1); }
-        .jmm-stars span.on { opacity: 1; filter: none; animation: jmm-star .45s cubic-bezier(.3,1.6,.5,1) both; }
-        .jmm-stars span.on:nth-child(2) { animation-delay: .2s; }
-        .jmm-stars span.on:nth-child(3) { animation-delay: .4s; }
-        @keyframes jmm-star { 0% { transform: scale(0) rotate(-40deg); } 100% { transform: scale(1) rotate(0); } }
-        .jmm-start-btn {
+        .jmemo-overlay-sub { font-size: 15px; font-weight: 800; color: var(--ivoire); max-width: 380px; line-height: 1.4; }
+        .jmemo-stars { display: none; gap: 8px; }
+        .jmemo-stars.show { display: flex; }
+        .jmemo-stars span { font-size: 40px; line-height: 1; opacity: 0.2; filter: grayscale(1); }
+        .jmemo-stars span.on { opacity: 1; filter: none; animation: jmemo-star .45s cubic-bezier(.3,1.6,.5,1) both; }
+        .jmemo-stars span.on:nth-child(2) { animation-delay: .2s; }
+        .jmemo-stars span.on:nth-child(3) { animation-delay: .4s; }
+        @keyframes jmemo-star { 0% { transform: scale(0) rotate(-40deg); } 100% { transform: scale(1) rotate(0); } }
+        .jmemo-start-btn {
             padding: 11px 28px; border-radius: 16px; border: none;
             background: var(--or); color: var(--encre);
             font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 20px; font-weight: 800;
@@ -544,51 +547,51 @@
             box-shadow: 0 5px 0 var(--or-fonce);
             transition: transform .08s, box-shadow .08s, filter .15s;
         }
-        .jmm-start-btn:hover { filter: brightness(1.06); }
-        .jmm-start-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--or-fonce); }
-        .jmm-start-btn:disabled { background: #7C8A86; color: #D5DBD9; box-shadow: 0 5px 0 #56615E; cursor: not-allowed; }
+        .jmemo-start-btn:hover { filter: brightness(1.06); }
+        .jmemo-start-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--or-fonce); }
+        .jmemo-start-btn:disabled { background: #7C8A86; color: #D5DBD9; box-shadow: 0 5px 0 #56615E; cursor: not-allowed; }
 
         /* ── Confettis ── */
-        .jmm-confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 12; }
-        .jmm-confetti i { position: absolute; top: -14px; width: 9px; height: 14px; border-radius: 2px; animation: jmm-fall 2s ease-in forwards; }
-        @keyframes jmm-fall { to { transform: translateY(900px) rotate(620deg); opacity: 0; } }
+        .jmemo-confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 12; }
+        .jmemo-confetti i { position: absolute; top: -14px; width: 9px; height: 14px; border-radius: 2px; animation: jmemo-fall 2s ease-in forwards; }
+        @keyframes jmemo-fall { to { transform: translateY(900px) rotate(620deg); opacity: 0; } }
 
         /* ── Barre contrôles bas ── */
-        .jmm-controls {
+        .jmemo-controls {
             display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
             flex-shrink: 0;
         }
-        .jmm-btn {
+        .jmemo-btn {
             padding: 8px 18px; border-radius: 14px; border: none;
             font-family: inherit; font-size: 14px; font-weight: 900; cursor: pointer;
             transition: transform .08s, box-shadow .08s, filter .15s;
         }
-        .jmm-btn:hover { filter: brightness(1.08); }
-        .jmm-btn-reset { background: var(--ivoire); color: var(--encre); box-shadow: 0 4px 0 #C9BC98; }
-        .jmm-btn-reset:active { transform: translateY(3px); box-shadow: 0 1px 0 #C9BC98; }
-        .jmm-btn-pause { background: var(--nuit-clair); color: #fff; box-shadow: 0 4px 0 var(--nuit); }
-        .jmm-btn-pause:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--nuit); }
-        .jmm-btn:focus-visible, .jmm-start-btn:focus-visible { outline: 3px solid var(--or); outline-offset: 2px; }
+        .jmemo-btn:hover { filter: brightness(1.08); }
+        .jmemo-btn-reset { background: var(--ivoire); color: var(--encre); box-shadow: 0 4px 0 #C9BC98; }
+        .jmemo-btn-reset:active { transform: translateY(3px); box-shadow: 0 1px 0 #C9BC98; }
+        .jmemo-btn-pause { background: var(--nuit-clair); color: #fff; box-shadow: 0 4px 0 var(--nuit); }
+        .jmemo-btn-pause:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--nuit); }
+        .jmemo-btn:focus-visible, .jmemo-start-btn:focus-visible { outline: 3px solid var(--or); outline-offset: 2px; }
 
         /* ── Poignée resize ── */
-        .jmm-resize-handle {
+        .jmemo-resize-handle {
             position: absolute; right: 0; bottom: 0;
             width: 20px; height: 20px; cursor: se-resize;
             background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.45) 50%);
             border-radius: 0 0 20px 0; opacity: 0; transition: opacity .2s; z-index: 15;
         }
-        .jmm-container:hover .jmm-resize-handle { opacity: 1; }
+        .jmemo-container:hover .jmemo-resize-handle { opacity: 1; }
 
         @media (prefers-reduced-motion: reduce) {
-            .jmm-container *, .jmm-container *::before, .jmm-container *::after {
+            .jmemo-container *, .jmemo-container *::before, .jmemo-container *::after {
                 animation-duration: 0.01ms !important; transition-duration: 0.01ms !important;
             }
         }
         /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
            pour laisser les onglets latéraux visibles, comme le Taquin ── */
         @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
-            .jmm-container.wf-fullboard,
-            .jmm-container.wf-fullboard.jti-mobile {
+            .jmemo-container.wf-fullboard,
+            .jmemo-container.wf-fullboard.jti-mobile {
                 left: 40px !important; right: 0 !important;
                 width: calc(100vw - 40px) !important; max-width: calc(100vw - 40px) !important;
                 min-width: 0 !important;
@@ -596,91 +599,91 @@
             }
 
             /* ── Mise en page resserrée pour tenir dans l'écran du téléphone ── */
-            .jmm-container.jti-mobile,
-            .jmm-container.wf-fullboard.jti-mobile {
+            .jmemo-container.jti-mobile,
+            .jmemo-container.wf-fullboard.jti-mobile {
                 gap: 7px;
                 /* Les boutons du bas sont centrés : inutile de garder 64 px
                    en bas pour le bouton ☰ du coin inférieur gauche */
                 padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
             }
-            .jmm-container.jti-mobile > * { min-width: 0; }
-            .jmm-container.jti-mobile .jmm-params-panel { padding: 8px 10px; gap: 6px; }
-            .jmm-container.jti-mobile .jmm-params-row { gap: 4px 8px; min-width: 0; }
-            .jmm-container.jti-mobile .jmm-params-row label { font-size: 11px; white-space: normal; }
+            .jmemo-container.jti-mobile > * { min-width: 0; }
+            .jmemo-container.jti-mobile .jmemo-params-panel { padding: 8px 10px; gap: 6px; }
+            .jmemo-container.jti-mobile .jmemo-params-row { gap: 4px 8px; min-width: 0; }
+            .jmemo-container.jti-mobile .jmemo-params-row label { font-size: 11px; white-space: normal; }
             /* Listes déroulantes : jamais plus larges que l'écran
                (style-phone.css les passe en 16 px pour éviter le zoom iOS) */
-            .jmm-container.jti-mobile .jmm-content-select,
-            .jmm-container.jti-mobile .jmm-pairs-select,
-            .jmm-container.jti-mobile .jmm-color-select {
+            .jmemo-container.jti-mobile .jmemo-content-select,
+            .jmemo-container.jti-mobile .jmemo-pairs-select,
+            .jmemo-container.jti-mobile .jmemo-color-select {
                 max-width: 100%;
                 min-width: 0;
                 padding: 5px 10px;
                 text-overflow: ellipsis;
             }
-            .jmm-container.jti-mobile .jmm-content-select { flex: 1 1 100%; }
-            .jmm-container.jti-mobile .jmm-pairs-select   { flex: 0 0 auto; min-width: 58px; text-overflow: clip; }
-            .jmm-container.jti-mobile .jmm-color-select   { flex: 1 1 auto; }
+            .jmemo-container.jti-mobile .jmemo-content-select { flex: 1 1 100%; }
+            .jmemo-container.jti-mobile .jmemo-pairs-select   { flex: 0 0 auto; min-width: 58px; text-overflow: clip; }
+            .jmemo-container.jti-mobile .jmemo-color-select   { flex: 1 1 auto; }
             /* Compteurs : icônes + valeurs, sans les petits libellés */
-            .jmm-container.jti-mobile .jmm-hud { gap: 6px; }
-            .jmm-container.jti-mobile .jmm-chip { gap: 5px; padding: 3px 9px 3px 3px; flex-shrink: 0; }
-            .jmm-container.jti-mobile .jmm-chip small { display: none; }
-            .jmm-container.jti-mobile .jmm-chip-ico { width: 22px; height: 22px; font-size: 12px; }
-            .jmm-container.jti-mobile .jmm-chip b { font-size: 16px; }
-            .jmm-container.jti-mobile .jmm-matches { flex: 1 1 auto; min-width: 0; flex-shrink: 1; }
-            .jmm-container.jti-mobile .jmm-progress { min-width: 20px; }
-            .jmm-container.jti-mobile .jmm-board-zone { border-width: 6px; border-radius: 14px; }
-            .jmm-container.jti-mobile .jmm-controls { justify-content: center; }
+            .jmemo-container.jti-mobile .jmemo-hud { gap: 6px; }
+            .jmemo-container.jti-mobile .jmemo-chip { gap: 5px; padding: 3px 9px 3px 3px; flex-shrink: 0; }
+            .jmemo-container.jti-mobile .jmemo-chip small { display: none; }
+            .jmemo-container.jti-mobile .jmemo-chip-ico { width: 22px; height: 22px; font-size: 12px; }
+            .jmemo-container.jti-mobile .jmemo-chip b { font-size: 16px; }
+            .jmemo-container.jti-mobile .jmemo-matches { flex: 1 1 auto; min-width: 0; flex-shrink: 1; }
+            .jmemo-container.jti-mobile .jmemo-progress { min-width: 20px; }
+            .jmemo-container.jti-mobile .jmemo-board-zone { border-width: 6px; border-radius: 14px; }
+            .jmemo-container.jti-mobile .jmemo-controls { justify-content: center; }
             /* Mode Personnalisé : la saisie des paires ne doit pas pousser la
                zone de jeu (et le bouton Démarrer) hors de l'écran → le panneau
                de paramètres est limité en hauteur et défile si besoin */
-            .jmm-container.jti-mobile .jmm-params-panel {
+            .jmemo-container.jti-mobile .jmemo-params-panel {
                 max-height: 38vh; max-height: 38dvh;
                 box-sizing: border-box;
                 overflow-y: auto; overscroll-behavior: contain;
                 touch-action: pan-y;
             }
-            .jmm-container.jti-mobile .jmm-custom-textarea { min-height: 56px; resize: none; }
-            .jmm-container.jti-mobile .jmm-board-zone { min-height: 120px; }
+            .jmemo-container.jti-mobile .jmemo-custom-textarea { min-height: 56px; resize: none; }
+            .jmemo-container.jti-mobile .jmemo-board-zone { min-height: 120px; }
             /* Écran de démarrage compact, défilant en dernier recours */
-            .jmm-container.jti-mobile .jmm-overlay { gap: 6px; padding: 8px; overflow-y: auto; justify-content: safe center; }
-            .jmm-container.jti-mobile .jmm-overlay-sub { font-size: 13px; }
+            .jmemo-container.jti-mobile .jmemo-overlay { gap: 6px; padding: 8px; overflow-y: auto; justify-content: safe center; }
+            .jmemo-container.jti-mobile .jmemo-overlay-sub { font-size: 13px; }
         }
         /* Téléphone peu haut : on retire la déco de l'écran de démarrage */
         @media (max-width: 600px) and (max-height: 700px), (max-height: 500px) and (pointer: coarse) {
-            .jmm-container.jti-mobile .jmm-overlay-deco { display: none; }
-            .jmm-container.jti-mobile .jmm-overlay-title { font-size: 22px; }
+            .jmemo-container.jti-mobile .jmemo-overlay-deco { display: none; }
+            .jmemo-container.jti-mobile .jmemo-overlay-title { font-size: 22px; }
         }
 
         /* ── Téléphone en paysage : peu de hauteur, tout passe sur une ligne ── */
         @media (max-height: 500px) and (pointer: coarse) {
-            .jmm-container.jti-mobile,
-            .jmm-container.wf-fullboard.jti-mobile {
+            .jmemo-container.jti-mobile,
+            .jmemo-container.wf-fullboard.jti-mobile {
                 gap: 5px;
                 padding-top: calc(5px + env(safe-area-inset-top)) !important;
                 padding-bottom: calc(6px + env(safe-area-inset-bottom)) !important;
             }
-            .jmm-container.jti-mobile .jmm-header { min-height: 0; }
-            .jmm-container.jti-mobile .jmm-title { font-size: 18px; }
+            .jmemo-container.jti-mobile .jmemo-header { min-height: 0; }
+            .jmemo-container.jti-mobile .jmemo-title { font-size: 18px; }
             /* Paramètres sur une seule ligne (le libellé « Contenu des paires » est masqué) */
-            .jmm-container.jti-mobile .jmm-params-panel { padding: 5px 8px; flex-direction: row; flex-wrap: wrap; align-items: center; }
-            .jmm-container.jti-mobile .jmm-params-panel > .jmm-params-row:first-child { flex-wrap: nowrap; flex: 1 1 auto; }
-            .jmm-container.jti-mobile .jmm-params-panel > .jmm-params-row:first-child label:first-of-type { display: none; }
-            .jmm-container.jti-mobile .jmm-params-panel > .jmm-params-row:first-child label { white-space: nowrap; }
-            .jmm-container.jti-mobile .jmm-content-select { flex: 1 1 auto; }
-            .jmm-container.jti-mobile .jmm-content-select,
-            .jmm-container.jti-mobile .jmm-pairs-select,
-            .jmm-container.jti-mobile .jmm-color-select { padding: 3px 8px; }
-            .jmm-container.jti-mobile .jmm-custom-row { flex: 1 1 100%; }
-            .jmm-container.jti-mobile .jmm-custom-textarea { min-height: 40px; }
-            .jmm-container.jti-mobile .jmm-params-panel { max-height: 32vh; max-height: 32dvh; }
-            .jmm-container.jti-mobile .jmm-board-zone { min-height: 110px; }
-            .jmm-container.jti-mobile .jmm-chip { padding: 2px 8px 2px 2px; }
-            .jmm-container.jti-mobile .jmm-chip-ico { width: 20px; height: 20px; }
-            .jmm-container.jti-mobile .jmm-btn { padding-top: 4px; padding-bottom: 4px; }
-            .jmm-container.jti-mobile .jmm-overlay { gap: 4px; padding: 6px; }
-            .jmm-container.jti-mobile .jmm-overlay-title { font-size: 18px; }
-            .jmm-container.jti-mobile .jmm-overlay-sub { font-size: 12px; }
-            .jmm-container.jti-mobile .jmm-start-btn { padding-top: 6px; padding-bottom: 6px; font-size: 16px; }
+            .jmemo-container.jti-mobile .jmemo-params-panel { padding: 5px 8px; flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .jmemo-container.jti-mobile .jmemo-params-panel > .jmemo-params-row:first-child { flex-wrap: nowrap; flex: 1 1 auto; }
+            .jmemo-container.jti-mobile .jmemo-params-panel > .jmemo-params-row:first-child label:first-of-type { display: none; }
+            .jmemo-container.jti-mobile .jmemo-params-panel > .jmemo-params-row:first-child label { white-space: nowrap; }
+            .jmemo-container.jti-mobile .jmemo-content-select { flex: 1 1 auto; }
+            .jmemo-container.jti-mobile .jmemo-content-select,
+            .jmemo-container.jti-mobile .jmemo-pairs-select,
+            .jmemo-container.jti-mobile .jmemo-color-select { padding: 3px 8px; }
+            .jmemo-container.jti-mobile .jmemo-custom-row { flex: 1 1 100%; }
+            .jmemo-container.jti-mobile .jmemo-custom-textarea { min-height: 40px; }
+            .jmemo-container.jti-mobile .jmemo-params-panel { max-height: 32vh; max-height: 32dvh; }
+            .jmemo-container.jti-mobile .jmemo-board-zone { min-height: 110px; }
+            .jmemo-container.jti-mobile .jmemo-chip { padding: 2px 8px 2px 2px; }
+            .jmemo-container.jti-mobile .jmemo-chip-ico { width: 20px; height: 20px; }
+            .jmemo-container.jti-mobile .jmemo-btn { padding-top: 4px; padding-bottom: 4px; }
+            .jmemo-container.jti-mobile .jmemo-overlay { gap: 4px; padding: 6px; }
+            .jmemo-container.jti-mobile .jmemo-overlay-title { font-size: 18px; }
+            .jmemo-container.jti-mobile .jmemo-overlay-sub { font-size: 12px; }
+            .jmemo-container.jti-mobile .jmemo-start-btn { padding-top: 6px; padding-bottom: 6px; font-size: 16px; }
         }
         `;
         document.head.appendChild(s);
@@ -692,14 +695,14 @@
         const tpl = document.createElement('template');
         tpl.id = TEMPLATE_ID;
         tpl.innerHTML = `
-<div class="jmm-container">
+<div class="jmemo-container">
 
   <!-- En-tête -->
-  <div class="jmm-header">
-    <span class="jmm-title"><span class="jmm-title-cards"><i></i><i></i></span>Memory</span>
+  <div class="jmemo-header">
+    <span class="jmemo-title"><span class="jmemo-title-cards"><i></i><i></i></span>Memory</span>
     <div class="wf-btns" style="margin-left:auto">
-      <button class="jmm-params-btn" title="Paramètres">⚙</button>
-      <button class="jmm-help-btn"   title="Aide">?</button>
+      <button class="jmemo-params-btn" title="Paramètres">⚙</button>
+      <button class="jmemo-help-btn"   title="Aide">?</button>
       <button class="wf-btn wf-btn-min"   data-role="wf-min"   title="Réduire"></button>
       <button class="wf-btn wf-btn-max"   data-role="wf-max"   title="Plein écran"></button>
       <button class="wf-btn wf-btn-close" data-role="wf-close" title="Fermer"></button>
@@ -707,10 +710,10 @@
   </div>
 
   <!-- Panneau paramètres -->
-  <div class="jmm-params-panel">
-    <div class="jmm-params-row">
+  <div class="jmemo-params-panel">
+    <div class="jmemo-params-row">
       <label>Contenu des paires :</label>
-      <select class="jmm-content-select">
+      <select class="jmemo-content-select">
         <option value="tables">✖️ Tables de multiplication</option>
         <option value="division">➗ Divisions</option>
         <option value="doubles">✳️ Doubles</option>
@@ -725,54 +728,54 @@
         <option value="custom">✏️ Personnalisé</option>
       </select>
       <label>Nombre de paires :</label>
-      <select class="jmm-pairs-select">
+      <select class="jmemo-pairs-select">
         <option value="6">6</option>
         <option value="8" selected>8</option>
         <option value="10">10</option>
         <option value="12">12</option>
       </select>
       <label>Cartes :</label>
-      <select class="jmm-color-select">
+      <select class="jmemo-color-select">
         <option value="colored" selected>🎨 Colorées</option>
         <option value="plain">⬜ Sans couleur</option>
       </select>
     </div>
-    <div class="jmm-params-row jmm-custom-row">
+    <div class="jmemo-params-row jmemo-custom-row">
       <label>Mes paires (une par ligne, format « recto ; verso ») :</label>
-      <textarea class="jmm-custom-textarea" placeholder="Paris ; France&#10;Rome ; Italie&#10;Berlin ; Allemagne"></textarea>
-      <div class="jmm-custom-hint">Saisis au moins 3 paires.</div>
+      <textarea class="jmemo-custom-textarea" placeholder="Paris ; France&#10;Rome ; Italie&#10;Berlin ; Allemagne"></textarea>
+      <div class="jmemo-custom-hint">Saisis au moins 3 paires.</div>
     </div>
   </div>
 
   <!-- HUD -->
-  <div class="jmm-hud">
-    <span class="jmm-chip jmm-moves"><span class="jmm-chip-ico">🔄</span><small>Essais</small><b class="jmm-moves-val">0</b></span>
-    <span class="jmm-chip jmm-timer"><span class="jmm-chip-ico">⏱️</span><b class="jmm-timer-val">00:00</b></span>
-    <span class="jmm-chip jmm-matches"><span class="jmm-chip-ico">✨</span><small>Paires</small><b class="jmm-matches-val">0/8</b>
-      <span class="jmm-progress"><span class="jmm-progress-fill"></span></span></span>
+  <div class="jmemo-hud">
+    <span class="jmemo-chip jmemo-moves"><span class="jmemo-chip-ico">🔄</span><small>Essais</small><b class="jmemo-moves-val">0</b></span>
+    <span class="jmemo-chip jmemo-timer"><span class="jmemo-chip-ico">⏱️</span><b class="jmemo-timer-val">00:00</b></span>
+    <span class="jmemo-chip jmemo-matches"><span class="jmemo-chip-ico">✨</span><small>Paires</small><b class="jmemo-matches-val">0/8</b>
+      <span class="jmemo-progress"><span class="jmemo-progress-fill"></span></span></span>
   </div>
 
   <!-- Zone de jeu -->
-  <div class="jmm-board-zone">
-    <div class="jmm-grid"></div>
-    <div class="jmm-overlay">
-      <div class="jmm-overlay-deco"><i></i><i></i><i></i></div>
-      <div class="jmm-overlay-title">Jeu de memory</div>
-      <div class="jmm-stars"><span>⭐</span><span>⭐</span><span>⭐</span></div>
-      <div class="jmm-overlay-sub">Retrouve les paires en retournant deux cartes à la fois !</div>
-      <button class="jmm-start-btn">▶ Démarrer</button>
+  <div class="jmemo-board-zone">
+    <div class="jmemo-grid"></div>
+    <div class="jmemo-overlay">
+      <div class="jmemo-overlay-deco"><i></i><i></i><i></i></div>
+      <div class="jmemo-overlay-title">Jeu de memory</div>
+      <div class="jmemo-stars"><span>⭐</span><span>⭐</span><span>⭐</span></div>
+      <div class="jmemo-overlay-sub">Retrouve les paires en retournant deux cartes à la fois !</div>
+      <button class="jmemo-start-btn">▶ Démarrer</button>
     </div>
-    <div class="jmm-confetti"></div>
+    <div class="jmemo-confetti"></div>
   </div>
 
   <!-- Contrôles -->
-  <div class="jmm-controls">
-    <button class="jmm-btn jmm-btn-reset">🔄 Réinitialiser</button>
-    <button class="jmm-btn jmm-btn-pause">⏸ Pause</button>
+  <div class="jmemo-controls">
+    <button class="jmemo-btn jmemo-btn-reset">🔄 Réinitialiser</button>
+    <button class="jmemo-btn jmemo-btn-pause">⏸ Pause</button>
   </div>
 
   <!-- Popup aide -->
-  <div class="jmm-help-popup">
+  <div class="jmemo-help-popup">
     <h4>💡 Comment utiliser ce widget ?</h4>
     <p style="margin:0 0 8px;font-weight:700;color:#374151">⚙ Le bouton Paramètres</p>
     <p style="margin:0 0 6px"><b>Contenu des paires</b> — Tables de multiplication (opération / résultat), Divisions (opération / résultat, inverse des tables), Doubles (nombre / son double), Fractions décimales et nombres décimaux (ex. 7/10 / 0,7), Nombres romains (ex. XIV / 14), Nature des mots (mot / classe grammaticale), Conjugaison (infinitif + pronom / forme conjuguée au présent), Pays et capitales, Drapeaux et pays, Synonymes, Antonymes, ou Personnalisé (tape tes propres paires, une par ligne, au format « recto ; verso »).</p>
@@ -785,7 +788,7 @@
   </div>
 
   <!-- Poignée resize -->
-  <div class="jmm-resize-handle"></div>
+  <div class="jmemo-resize-handle"></div>
 
 </div>`;
         document.body.appendChild(tpl);
@@ -796,35 +799,35 @@
     // =========================================================================
     window.initJeuMemoryWidget = function (widget) {
 
-        const container      = widget.querySelector('.jmm-container');
-        const paramsBtn       = widget.querySelector('.jmm-params-btn');
-        const paramsPanel     = widget.querySelector('.jmm-params-panel');
-        const contentSelect   = widget.querySelector('.jmm-content-select');
-        const pairsSelect     = widget.querySelector('.jmm-pairs-select');
-        const colorSelect     = widget.querySelector('.jmm-color-select');
-        const customRow       = widget.querySelector('.jmm-custom-row');
-        const customTextarea  = widget.querySelector('.jmm-custom-textarea');
-        const customHint      = widget.querySelector('.jmm-custom-hint');
-        const helpBtn         = widget.querySelector('.jmm-help-btn');
-        const helpPopup       = widget.querySelector('.jmm-help-popup');
-        const resizeHandle    = widget.querySelector('.jmm-resize-handle');
-        const movesEl         = widget.querySelector('.jmm-moves');
-        const timerEl         = widget.querySelector('.jmm-timer');
-        const matchesEl       = widget.querySelector('.jmm-matches');
-        const boardZone       = widget.querySelector('.jmm-board-zone');
-        const grid             = widget.querySelector('.jmm-grid');
-        const overlay          = widget.querySelector('.jmm-overlay');
-        const overlayTitle     = widget.querySelector('.jmm-overlay-title');
-        const overlaySub       = widget.querySelector('.jmm-overlay-sub');
-        const startBtn         = widget.querySelector('.jmm-start-btn');
-        const resetBtn         = widget.querySelector('.jmm-btn-reset');
-        const pauseBtn         = widget.querySelector('.jmm-btn-pause');
-        const movesVal         = widget.querySelector('.jmm-moves-val');
-        const timerVal         = widget.querySelector('.jmm-timer-val');
-        const matchesVal       = widget.querySelector('.jmm-matches-val');
-        const progressFill     = widget.querySelector('.jmm-progress-fill');
-        const starsEl          = widget.querySelector('.jmm-stars');
-        const confettiEl       = widget.querySelector('.jmm-confetti');
+        const container      = widget.querySelector('.jmemo-container');
+        const paramsBtn       = widget.querySelector('.jmemo-params-btn');
+        const paramsPanel     = widget.querySelector('.jmemo-params-panel');
+        const contentSelect   = widget.querySelector('.jmemo-content-select');
+        const pairsSelect     = widget.querySelector('.jmemo-pairs-select');
+        const colorSelect     = widget.querySelector('.jmemo-color-select');
+        const customRow       = widget.querySelector('.jmemo-custom-row');
+        const customTextarea  = widget.querySelector('.jmemo-custom-textarea');
+        const customHint      = widget.querySelector('.jmemo-custom-hint');
+        const helpBtn         = widget.querySelector('.jmemo-help-btn');
+        const helpPopup       = widget.querySelector('.jmemo-help-popup');
+        const resizeHandle    = widget.querySelector('.jmemo-resize-handle');
+        const movesEl         = widget.querySelector('.jmemo-moves');
+        const timerEl         = widget.querySelector('.jmemo-timer');
+        const matchesEl       = widget.querySelector('.jmemo-matches');
+        const boardZone       = widget.querySelector('.jmemo-board-zone');
+        const grid             = widget.querySelector('.jmemo-grid');
+        const overlay          = widget.querySelector('.jmemo-overlay');
+        const overlayTitle     = widget.querySelector('.jmemo-overlay-title');
+        const overlaySub       = widget.querySelector('.jmemo-overlay-sub');
+        const startBtn         = widget.querySelector('.jmemo-start-btn');
+        const resetBtn         = widget.querySelector('.jmemo-btn-reset');
+        const pauseBtn         = widget.querySelector('.jmemo-btn-pause');
+        const movesVal         = widget.querySelector('.jmemo-moves-val');
+        const timerVal         = widget.querySelector('.jmemo-timer-val');
+        const matchesVal       = widget.querySelector('.jmemo-matches-val');
+        const progressFill     = widget.querySelector('.jmemo-progress-fill');
+        const starsEl          = widget.querySelector('.jmemo-stars');
+        const confettiEl       = widget.querySelector('.jmemo-confetti');
 
         // ── Palette de couleurs par paire (cohérente avec le jeu des tables) ──
         const PAIR_COLORS = [
@@ -976,12 +979,12 @@
             }
 
             const cellPx = Math.max(36, Math.floor(bestSize));
-            container.style.setProperty('--jmm-cols', bestCols);
-            container.style.setProperty('--jmm-cell', cellPx + 'px');
-            container.style.setProperty('--jmm-gap', gap + 'px');
+            container.style.setProperty('--jmemo-cols', bestCols);
+            container.style.setProperty('--jmemo-cell', cellPx + 'px');
+            container.style.setProperty('--jmemo-gap', gap + 'px');
 
             const fs = Math.max(9, Math.min(30, Math.round(cellPx * 0.2)));
-            container.style.setProperty('--jmm-fs', fs + 'px');
+            container.style.setProperty('--jmemo-fs', fs + 'px');
         }
 
         // ── Boutons fenêtre ───────────────────────────────────────────────
@@ -1383,33 +1386,33 @@
             cards.forEach(card => {
                 const el = document.createElement('button');
                 el.type = 'button';
-                el.className = 'jmm-card';
+                el.className = 'jmemo-card';
                 const inner = document.createElement('div');
-                inner.className = 'jmm-card-inner';
+                inner.className = 'jmemo-card-inner';
                 const back = document.createElement('div');
-                back.className = 'jmm-card-face jmm-card-back';
+                back.className = 'jmemo-card-face jmemo-card-back';
                 const emblem = document.createElement('span');
-                emblem.className = 'jmm-back-emblem';
+                emblem.className = 'jmemo-back-emblem';
                 emblem.textContent = '?';
                 back.appendChild(emblem);
                 const front = document.createElement('div');
-                front.className = 'jmm-card-face jmm-card-front';
+                front.className = 'jmemo-card-face jmemo-card-front';
                 const fracMatch = /^(\d+)\/(\d+)$/.exec(card.text);
                 if (fracMatch) {
-                    front.innerHTML = '<span class="jmm-frac"><span class="jmm-frac-num"></span><span class="jmm-frac-den"></span></span>';
-                    front.querySelector('.jmm-frac-num').textContent = fracMatch[1];
-                    front.querySelector('.jmm-frac-den').textContent = fracMatch[2];
+                    front.innerHTML = '<span class="jmemo-frac"><span class="jmemo-frac-num"></span><span class="jmemo-frac-den"></span></span>';
+                    front.querySelector('.jmemo-frac-num').textContent = fracMatch[1];
+                    front.querySelector('.jmemo-frac-den').textContent = fracMatch[2];
                 } else {
                     front.textContent = card.text;
                 }
                 if (colorSelect.value === 'colored') {
-                    front.style.setProperty('--jmm-card-bg', card.color.bg);
-                    front.style.setProperty('--jmm-card-border', card.color.border);
-                    front.style.setProperty('--jmm-card-text', card.color.text);
+                    front.style.setProperty('--jmemo-card-bg', card.color.bg);
+                    front.style.setProperty('--jmemo-card-border', card.color.border);
+                    front.style.setProperty('--jmemo-card-text', card.color.text);
                 }
                 // Les drapeaux (emoji) sont peu lisibles à la taille de police normale
                 if (/^[\u{1F1E6}-\u{1F1FF}]{2}$/u.test(card.text)) {
-                    front.classList.add('jmm-card-front-flag');
+                    front.classList.add('jmemo-card-front-flag');
                 }
                 inner.appendChild(back);
                 inner.appendChild(front);

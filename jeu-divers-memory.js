@@ -872,6 +872,10 @@
             el.addEventListener('pointerdown', (e) => {
                 e.stopPropagation();
                 const sx = e.clientX, sy = e.clientY, pid = e.pointerId;
+                // Position du bouton au moment de l'appui : si le jeu bouge entre
+                // l'appui et le relâchement (sélection du widget, plein écran,
+                // changement de mise en page…), le relâchement reste reconnu.
+                const r0 = el.getBoundingClientRect();
                 // Écoute sur window (phase de capture) : reçoit le relâchement
                 // même si le widget a capturé le pointeur pour se déplacer.
                 function onUp(eu) {
@@ -880,9 +884,9 @@
                     window.removeEventListener('pointercancel', onUp, true);
                     if (eu.type === 'pointercancel') return;
                     const dx = eu.clientX - sx, dy = eu.clientY - sy;
-                    const r = el.getBoundingClientRect();
-                    const inside = eu.clientX >= r.left - 6 && eu.clientX <= r.right + 6 &&
-                                   eu.clientY >= r.top  - 6 && eu.clientY <= r.bottom + 6;
+                    const isIn = (r) => eu.clientX >= r.left - 6 && eu.clientX <= r.right + 6 &&
+                                        eu.clientY >= r.top  - 6 && eu.clientY <= r.bottom + 6;
+                    const inside = isIn(r0) || isIn(el.getBoundingClientRect());
                     if (inside && Math.sqrt(dx*dx + dy*dy) < 12) {
                         _lastPointerFire = Date.now();
                         fire(eu);

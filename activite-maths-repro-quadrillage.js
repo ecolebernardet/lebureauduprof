@@ -1482,8 +1482,10 @@ function createReproQuadrillageWidget(savedData) {
     return widget;
 }
 
-// Téléphone (même détection que les jeux)
+// Téléphone (même détection que les jeux : isMobileBoardMode() peut répondre
+// « non » sur un téléphone en paysage, on complète donc avec la media query
+// de style-phone.css)
 function _wfIsPhone() {
-    if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
     return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
 }

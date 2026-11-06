@@ -22,6 +22,51 @@
 //   (même mécanisme que le Taquin, cf. save-load.js).
 // =========================================================================
 (function () {
+
+    // ── Plein écran automatique (bouton vert) sur téléphone ET tablette ────
+    // Partagé par les jeux. Mêmes conditions que board.js et style-phone.css
+    // (window.PHONE_MEDIA_QUERY / window.TABLET_MEDIA_QUERY) :
+    //   • téléphone (portrait ou paysage) ;
+    //   • tablette tactile (iPad, iPad mini, tablette Android).
+    // Ordinateur et TBI à la souris/au stylet : ouverture normale en fenêtre.
+    if (!window._jeuWantsFullboard) {
+        window._jeuWantsFullboard = function () {
+            try {
+                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) return true;
+                if (typeof isTabletBoardMode === 'function' && isTabletBoardMode()) return true;
+                if (typeof isPhoneScreen === 'function' && isPhoneScreen()) return true;
+                if (!window.matchMedia) return false;
+                var phoneQ  = window.PHONE_MEDIA_QUERY  || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+                var tabletQ = window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)';
+                if (window.matchMedia(phoneQ).matches || window.matchMedia(tabletQ).matches) return true;
+            } catch (e) {}
+            return false;
+        };
+    }
+
+    // ── Curseurs : flèche par défaut, main sur la barre du haut (elle déplace
+    //    le widget), doigt sur tout ce qui se clique
+    if (!document.getElementById('jeu-repro-quadrillage-cursors-style')) {
+        var _cs = document.createElement('style');
+        _cs.id = 'jeu-repro-quadrillage-cursors-style';
+        _cs.textContent = [
+            '.widget[data-type="jeu-repro-quadrillage"], .widget[data-type="jeu-repro-quadrillage"] .jrq-root { cursor: default; }',
+            '.widget[data-type="jeu-repro-quadrillage"] .jrq-head { cursor: grab; }',
+            '.widget[data-type="jeu-repro-quadrillage"] .jrq-head:active { cursor: grabbing; }',
+            '.widget[data-type="jeu-repro-quadrillage"] .drag-handle, .widget[data-type="jeu-repro-quadrillage"] .widget-rotate-handle { cursor: grab; }',
+            '.widget[data-type="jeu-repro-quadrillage"] .drag-handle:active, .widget[data-type="jeu-repro-quadrillage"] .widget-rotate-handle:active { cursor: grabbing; }',
+            /* En plein écran le widget ne se déplace plus : flèche sur la barre */
+            '.widget[data-type="jeu-repro-quadrillage"] .jrq-root.jrq-fullboard .jrq-head, .widget[data-type="jeu-repro-quadrillage"] .jrq-root.jrq-fullboard .jrq-head:active,',
+            '.widget.phone-fs[data-type="jeu-repro-quadrillage"] .jrq-head, .widget.phone-fs[data-type="jeu-repro-quadrillage"] .jrq-head:active { cursor: default; }',
+            '.widget[data-type="jeu-repro-quadrillage"] button:not(:disabled), .widget[data-type="jeu-repro-quadrillage"] select,',
+            '.widget[data-type="jeu-repro-quadrillage"] .widget-menu-handle, .widget[data-type="jeu-repro-quadrillage"] .widget-pin-handle,',
+            '.widget[data-type="jeu-repro-quadrillage"] .widget-back-handle, .widget[data-type="jeu-repro-quadrillage"] .widget-close-handle { cursor: pointer; }',
+            '.widget[data-type="jeu-repro-quadrillage"] button:disabled { cursor: default; }',
+            /* En plein écran, un widget pivoté fausserait la position fixe */
+            '.widget[data-type="jeu-repro-quadrillage"]:has(.jrq-root.jrq-fullboard) { transform: none !important; }'
+        ].join('\n');
+        document.head.appendChild(_cs);
+    }
     'use strict';
 
     var TYPE      = 'jeu-repro-quadrillage';
@@ -327,7 +372,7 @@
             widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(function (el) { el.style.display = 'none'; });
             var miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
             var labelEl = document.createElement('span');
             labelEl.textContent = label;
             labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -356,11 +401,11 @@
             miniBar.addEventListener('pointerdown', function (e) {
                 if (e.target === expandBtn || expandBtn.contains(e.target)) return;
                 e.stopPropagation(); e.preventDefault();
-                miniBar.setPointerCapture(e.pointerId);
+                miniBar.setPointerCapture(e.pointerId); miniBar.style.cursor = 'grabbing';
                 var startX = e.clientX - widget.offsetLeft, startY = e.clientY - widget.offsetTop;
                 var onMove = function (ev) { widget.style.left = Math.max(0, ev.clientX - startX) + 'px'; widget.style.top = Math.max(0, ev.clientY - startY) + 'px'; };
                 var onUp = function () {
-                    miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp);
+                    miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp); miniBar.style.cursor = 'grab';
                     var curW = window.innerWidth, curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
                     widget.dataset.leftPercent = (widget.offsetLeft / curW) * 100;
                     widget.dataset.topPercent = (widget.offsetTop / curVH) * 100;
@@ -516,7 +561,7 @@
 '.jrq-root.jrq-tall .jrq-tool span{display:none}',
 '.jrq-root.jrq-tall .jrq-tool{flex:0 0 auto;padding:4px 8px}',
 // Téléphone : plein écran (bouton vert) en laissant 40 px à gauche pour les onglets latéraux
-'@media (max-width: 768px), (max-height: 500px) and (pointer: coarse){',
+'@media (max-width: 600px), (max-height: 500px) and (pointer: coarse){',
 '  .jrq-root.jrq-fullboard{left:40px!important;width:calc(100vw - 40px)!important;height:100vh!important;height:100dvh!important;',
 '    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) 0}',
 '}',
@@ -1420,12 +1465,12 @@
 
         // Sur téléphone, une partie lancée depuis le panneau s'ouvre directement
         // en plein écran (bouton vert), comme le Taquin
-        if (!data.lvl && isPhone() && !S.fullboard) {
+        if (!data.lvl && window._jeuWantsFullboard() && !S.fullboard) {
             requestAnimationFrame(function () { $('.wf-btn-max').click(); });
         }
         function isPhone() {
             if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
-            return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+            return !!(window.matchMedia && window.matchMedia((window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)')).matches);
         }
     }
 

@@ -585,6 +585,93 @@
                 min-width: 0 !important;
                 padding-left: calc(10px + env(safe-area-inset-left)) !important;
             }
+
+            /* ── Mise en page resserrée pour tenir dans l'écran du téléphone ── */
+            .jmm-container.jti-mobile,
+            .jmm-container.wf-fullboard.jti-mobile {
+                gap: 7px;
+                /* Les boutons du bas sont centrés : inutile de garder 64 px
+                   en bas pour le bouton ☰ du coin inférieur gauche */
+                padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+            }
+            .jmm-container.jti-mobile > * { min-width: 0; }
+            .jmm-container.jti-mobile .jmm-params-panel { padding: 8px 10px; gap: 6px; }
+            .jmm-container.jti-mobile .jmm-params-row { gap: 4px 8px; min-width: 0; }
+            .jmm-container.jti-mobile .jmm-params-row label { font-size: 11px; white-space: normal; }
+            /* Listes déroulantes : jamais plus larges que l'écran
+               (style-phone.css les passe en 16 px pour éviter le zoom iOS) */
+            .jmm-container.jti-mobile .jmm-content-select,
+            .jmm-container.jti-mobile .jmm-pairs-select,
+            .jmm-container.jti-mobile .jmm-color-select {
+                max-width: 100%;
+                min-width: 0;
+                padding: 5px 10px;
+                text-overflow: ellipsis;
+            }
+            .jmm-container.jti-mobile .jmm-content-select { flex: 1 1 100%; }
+            .jmm-container.jti-mobile .jmm-pairs-select   { flex: 0 0 auto; min-width: 58px; text-overflow: clip; }
+            .jmm-container.jti-mobile .jmm-color-select   { flex: 1 1 auto; }
+            /* Compteurs : icônes + valeurs, sans les petits libellés */
+            .jmm-container.jti-mobile .jmm-hud { gap: 6px; }
+            .jmm-container.jti-mobile .jmm-chip { gap: 5px; padding: 3px 9px 3px 3px; flex-shrink: 0; }
+            .jmm-container.jti-mobile .jmm-chip small { display: none; }
+            .jmm-container.jti-mobile .jmm-chip-ico { width: 22px; height: 22px; font-size: 12px; }
+            .jmm-container.jti-mobile .jmm-chip b { font-size: 16px; }
+            .jmm-container.jti-mobile .jmm-matches { flex: 1 1 auto; min-width: 0; flex-shrink: 1; }
+            .jmm-container.jti-mobile .jmm-progress { min-width: 20px; }
+            .jmm-container.jti-mobile .jmm-board-zone { border-width: 6px; border-radius: 14px; }
+            .jmm-container.jti-mobile .jmm-controls { justify-content: center; }
+            /* Mode Personnalisé : la saisie des paires ne doit pas pousser la
+               zone de jeu (et le bouton Démarrer) hors de l'écran → le panneau
+               de paramètres est limité en hauteur et défile si besoin */
+            .jmm-container.jti-mobile .jmm-params-panel {
+                max-height: 38vh; max-height: 38dvh;
+                box-sizing: border-box;
+                overflow-y: auto; overscroll-behavior: contain;
+                touch-action: pan-y;
+            }
+            .jmm-container.jti-mobile .jmm-custom-textarea { min-height: 56px; resize: none; }
+            .jmm-container.jti-mobile .jmm-board-zone { min-height: 120px; }
+            /* Écran de démarrage compact, défilant en dernier recours */
+            .jmm-container.jti-mobile .jmm-overlay { gap: 6px; padding: 8px; overflow-y: auto; justify-content: safe center; }
+            .jmm-container.jti-mobile .jmm-overlay-sub { font-size: 13px; }
+        }
+        /* Téléphone peu haut : on retire la déco de l'écran de démarrage */
+        @media (max-width: 768px) and (max-height: 700px), (max-height: 500px) and (pointer: coarse) {
+            .jmm-container.jti-mobile .jmm-overlay-deco { display: none; }
+            .jmm-container.jti-mobile .jmm-overlay-title { font-size: 22px; }
+        }
+
+        /* ── Téléphone en paysage : peu de hauteur, tout passe sur une ligne ── */
+        @media (max-height: 500px) and (pointer: coarse) {
+            .jmm-container.jti-mobile,
+            .jmm-container.wf-fullboard.jti-mobile {
+                gap: 5px;
+                padding-top: calc(5px + env(safe-area-inset-top)) !important;
+                padding-bottom: calc(6px + env(safe-area-inset-bottom)) !important;
+            }
+            .jmm-container.jti-mobile .jmm-header { min-height: 0; }
+            .jmm-container.jti-mobile .jmm-title { font-size: 18px; }
+            /* Paramètres sur une seule ligne (le libellé « Contenu des paires » est masqué) */
+            .jmm-container.jti-mobile .jmm-params-panel { padding: 5px 8px; flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .jmm-container.jti-mobile .jmm-params-panel > .jmm-params-row:first-child { flex-wrap: nowrap; flex: 1 1 auto; }
+            .jmm-container.jti-mobile .jmm-params-panel > .jmm-params-row:first-child label:first-of-type { display: none; }
+            .jmm-container.jti-mobile .jmm-params-panel > .jmm-params-row:first-child label { white-space: nowrap; }
+            .jmm-container.jti-mobile .jmm-content-select { flex: 1 1 auto; }
+            .jmm-container.jti-mobile .jmm-content-select,
+            .jmm-container.jti-mobile .jmm-pairs-select,
+            .jmm-container.jti-mobile .jmm-color-select { padding: 3px 8px; }
+            .jmm-container.jti-mobile .jmm-custom-row { flex: 1 1 100%; }
+            .jmm-container.jti-mobile .jmm-custom-textarea { min-height: 40px; }
+            .jmm-container.jti-mobile .jmm-params-panel { max-height: 32vh; max-height: 32dvh; }
+            .jmm-container.jti-mobile .jmm-board-zone { min-height: 110px; }
+            .jmm-container.jti-mobile .jmm-chip { padding: 2px 8px 2px 2px; }
+            .jmm-container.jti-mobile .jmm-chip-ico { width: 20px; height: 20px; }
+            .jmm-container.jti-mobile .jmm-btn { padding-top: 4px; padding-bottom: 4px; }
+            .jmm-container.jti-mobile .jmm-overlay { gap: 4px; padding: 6px; }
+            .jmm-container.jti-mobile .jmm-overlay-title { font-size: 18px; }
+            .jmm-container.jti-mobile .jmm-overlay-sub { font-size: 12px; }
+            .jmm-container.jti-mobile .jmm-start-btn { padding-top: 6px; padding-bottom: 6px; font-size: 16px; }
         }
         `;
         document.head.appendChild(s);
@@ -762,9 +849,13 @@
         // capturé le pointeur (déplacement du widget), ce pointerup n'arrive
         // jamais au bouton : on garde alors « click » en secours (il sert
         // aussi au clavier : Entrée / Espace). Un seul déclenchement par geste.
+        // Dernier tap traité au doigt / stylet / souris, pour tout le jeu : le
+        // « click » que le navigateur envoie juste après peut tomber sur un
+        // AUTRE élément (ex. la carte située sous « Démarrer », révélée dès que
+        // l'écran d'accueil disparaît) — il doit être ignoré partout.
+        let _lastPointerFire = 0;
         function makeTap(el, handler) {
             if (!el) return;
-            let skipClick = false, skipTimer = null;
             const fire = (ev) => {
                 if (el.disabled) return;
                 handler(ev);
@@ -784,20 +875,18 @@
                     const inside = eu.clientX >= r.left - 6 && eu.clientX <= r.right + 6 &&
                                    eu.clientY >= r.top  - 6 && eu.clientY <= r.bottom + 6;
                     if (inside && Math.sqrt(dx*dx + dy*dy) < 12) {
-                        // Le « click » qui suit ce même geste ne doit pas relancer l'action
-                        skipClick = true;
-                        clearTimeout(skipTimer);
-                        skipTimer = setTimeout(() => { skipClick = false; }, 800);
+                        _lastPointerFire = Date.now();
                         fire(eu);
                     }
                 }
                 window.addEventListener('pointerup',     onUp, true);
                 window.addEventListener('pointercancel', onUp, true);
             });
-            // Secours : clavier (Entrée / Espace) et navigateurs sans pointer events
+            // Secours : clavier (Entrée / Espace). Le click qui suit un tap est ignoré.
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (skipClick) { skipClick = false; return; }
+                const fromKeyboard = e.detail === 0;   // Entrée / Espace
+                if (!fromKeyboard && Date.now() - _lastPointerFire < 700) return;
                 fire(e);
             });
         }

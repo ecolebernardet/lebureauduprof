@@ -180,10 +180,15 @@ let currentActiveWidget = null;
 const RATIO = 16 / 9;
 let _lastW = window.innerWidth;
 
-// Même seuil que style-phone.css : écran étroit (portrait téléphone) ou
-// bas + tactile (téléphone en paysage), pour rester cohérent avec le CSS.
+// Condition « téléphone », identique à celle de style-phone.css :
+// écran étroit (téléphone en portrait) ou bas + tactile (téléphone en paysage).
+// Les tablettes, iPad mini compris, n'y entrent pas : elles gardent le mode PC.
+// Partagée avec index.html (plein écran des widgets) via window.PHONE_MEDIA_QUERY.
+// ⚠ Si on la change, changer aussi la ligne @media en haut de style-phone.css.
+var PHONE_MEDIA_QUERY = '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+window.PHONE_MEDIA_QUERY = PHONE_MEDIA_QUERY;
 function isMobileBoardMode() {
-    return window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+    return window.matchMedia(PHONE_MEDIA_QUERY).matches;
 }
 let _wasMobileBoardMode = isMobileBoardMode();
 

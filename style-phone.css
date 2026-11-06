@@ -5,10 +5,14 @@
        <link rel="stylesheet" href="style-phone.css">
    ══════════════════════════════════════════════════════════════════════ */
 
-/* Déclenche les adaptations mobiles pour :
-   - tout écran étroit (portrait téléphone/petite tablette) : max-width 768px
-   - tout écran bas + tactile (téléphone en mode paysage, même > 768px de large) */
-@media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+/* Déclenche les adaptations TÉLÉPHONE pour :
+   - tout écran étroit (téléphone en portrait) : max-width 600px
+   - tout écran bas + tactile (téléphone en mode paysage, même > 600px de large)
+   Les tablettes (iPad mini compris) ne sont PAS concernées : elles gardent la
+   mise en page PC avec des adaptations au doigt (bloc « TABLETTES » plus bas).
+   ⚠ Cette condition est recopiée dans board.js (PHONE_MEDIA_QUERY) :
+   modifier les deux ensemble. */
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
 
     /* ════════════════════════════════════════════════════════
        1. BOARD & BODY
@@ -863,7 +867,123 @@
     html body #display-panel .disp-inline-row { gap: 5px !important; }
     html body #display-panel .bg-thumb { border-radius: 8px !important; }
 
-} /* fin @media (max-width: 768px) */
+} /* fin @media téléphone (max-width: 600px) */
+
+
+/* ════════════════════════════════════════════════════════
+   TABLETTES TACTILES (iPad, iPad mini, tablettes Android)
+   Tout écran tactile qui n'est pas un téléphone : on garde la
+   mise en page PC (onglets avec libellés, widgets à leur taille,
+   descriptions des vignettes…) et on l'adapte seulement au doigt.
+   Condition = l'inverse exact du bloc téléphone, pour un écran tactile.
+════════════════════════════════════════════════════════ */
+
+@media (pointer: coarse) and (min-width: 601px) and (min-height: 501px) {
+
+    html {
+        /* Pas de grossissement automatique des textes quand on tourne la tablette */
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    body {
+        /* Empêche le zoom involontaire au double-tap, garde le pincer-zoomer */
+        touch-action: manipulation;
+    }
+
+    /* Safari (iPad) zoome tout seul sur un champ dont le texte fait
+       moins de 16 px, et la mise en page reste décalée ensuite */
+    input, select, textarea {
+        font-size: max(16px, 1em) !important;
+    }
+
+    /* Poignées des widgets agrandies pour le doigt */
+    .drag-handle,
+    .widget-close-handle,
+    .widget-pin-handle,
+    .widget-rotate-handle,
+    .widget-menu-handle,
+    .widget-back-handle,
+    .widget-anchor-handle {
+        width: 32px !important;
+        height: 32px !important;
+    }
+    .widget-action-bar {
+        bottom: -46px !important;
+        gap: 6px !important;
+    }
+    .widget-action-bar.above {
+        top: -46px !important;
+        bottom: auto !important;
+    }
+    .custom-resize-handle {
+        width: 24px !important;
+        height: 24px !important;
+    }
+
+    /* Barre de sélection agrandie */
+    #selection-controls .sc-btn {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 16px !important;
+    }
+    #sc-action-bar {
+        bottom: -52px !important;
+        gap: 6px !important;
+    }
+    #sc-action-bar.above {
+        top: -52px !important;
+        bottom: auto !important;
+    }
+
+    /* Poignée de la barre Dessin : le navigateur ne doit pas s'emparer
+       du geste (défilement / zoom), sinon la barre ne suit pas le doigt */
+    #draw-toolbar-drag-handle {
+        touch-action: none !important;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    /* Au doigt : pas de vignette « soulevée » qui reste coincée après
+       un toucher, mais un léger enfoncement coloré au moment du toucher */
+    html body #jeux-panel .act-card:hover,
+    html body #activities-panel .act-card:hover,
+    html body #tools-panel .tools-card:hover,
+    html body #widgets-panel .widgets-card:hover,
+    html body #sticker-panel .sp-anim-btn:hover,
+    html body #display-panel .hist-btn:hover,
+    html body #display-panel .disp-inline-btn:hover,
+    html body #display-panel .bg-thumb:hover,
+    html body #projects-panel .proj-panel-action-btn:hover,
+    html body #projects-panel #proj-panel-new-btn:hover,
+    html body #lessons-panel .act-card:hover {
+        transform: none !important;
+        box-shadow: 0 1px 3px rgba(40,30,70,0.07) !important;
+    }
+    html body #jeux-panel .act-card:hover .act-card-ico img,
+    html body #activities-panel .act-card:hover .act-card-ico img,
+    html body #tools-panel .tools-card:hover .tools-card-ico img,
+    html body #widgets-panel .widgets-card:hover .widgets-card-ico img,
+    html body #lessons-panel .act-card:hover .act-card-ico img {
+        transform: none !important;
+    }
+    html body #jeux-panel .act-card:active,
+    html body #activities-panel .act-card:active,
+    html body #tools-panel .tools-card:active,
+    html body #widgets-panel .widgets-card:active,
+    html body #sticker-panel .sp-anim-btn:active,
+    html body #display-panel .hist-btn:active,
+    html body #display-panel .disp-inline-btn:active,
+    html body #display-panel .bg-thumb:active,
+    html body #projects-panel .proj-panel-action-btn:active,
+    html body #lessons-panel .act-card:active {
+        transform: scale(0.95) !important;
+        border-color: var(--sec-c, #4a90e2) !important;
+    }
+
+    /* Pas de survol au doigt : les boutons d'un tableau restent visibles */
+    html body #projects-panel .proj-panel-item-actions { opacity: 1 !important; }
+}
 
 
 /* ════════════════════════════════════════════════════════

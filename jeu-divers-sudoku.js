@@ -28,9 +28,18 @@
     // ── Détection téléphone (même règle que le Taquin et style-phone.css) ──
     // isMobileBoardMode() n'existe pas toujours ou peut répondre « non » sur
     // un téléphone en paysage : on complète avec la même media query.
+    // Les conditions sont définies une seule fois dans board.js
+    // (PHONE_MEDIA_QUERY / TABLET_MEDIA_QUERY) ; valeurs de secours sinon.
     function _isPhone() {
-        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia(window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+    // Tablette tactile (iPad, iPad mini, Android) : mise en page PC,
+    // mais le jeu s'ouvre directement en plein écran (bouton vert).
+    function _isTablet() {
+        if (_isPhone()) return false;
+        if (typeof isTabletBoardMode === 'function') { try { return !!isTabletBoardMode(); } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia(window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
     }
 
     // ── Fonction utilitaire mini-barre collapse (injectée une seule fois, partagée) ──
@@ -613,7 +622,7 @@
         }
         /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
            pour laisser les onglets latéraux visibles, comme le Taquin ── */
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .jsk-container.wf-fullboard,
             .jsk-container.wf-fullboard.jti-mobile {
                 left: 40px !important; right: 0 !important;
@@ -1268,14 +1277,26 @@
                 if (!container.style.height) container.style.height = '560px';
             } else {
                 // Sur PC, taille de départ cohérente avec les autres jeux du board.
-                container.style.width  = '760px';
-                container.style.height = '700px';
+                // Sur tablette, cette taille (utilisée en sortant du plein écran)
+                // est réduite pour tenir dans le tableau.
+                let w0 = 760, h0 = 700;
+                if (_isTablet()) {
+                    w0 = Math.max(340, Math.min(w0, curW - 120));
+                    h0 = Math.max(420, Math.min(h0, curVH - 20));
+                }
+                container.style.width  = w0 + 'px';
+                container.style.height = h0 + 'px';
             }
 
             _savedW = container.style.width;
             _savedH = container.style.height;
             if (isMobile) {
                 container.classList.add('jti-mobile');
+                _isMax = true;
+                widget.dataset.wfSavedZ = widget.style.zIndex || ''; widget.style.zIndex = '9999';
+                container.classList.add('wf-fullboard');
+            } else if (_isTablet()) {
+                // Tablette : plein écran board direct, mise en page normale (pas jti-mobile)
                 _isMax = true;
                 widget.dataset.wfSavedZ = widget.style.zIndex || ''; widget.style.zIndex = '9999';
                 container.classList.add('wf-fullboard');

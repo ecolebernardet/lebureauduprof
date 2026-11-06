@@ -190,6 +190,15 @@ window.PHONE_MEDIA_QUERY = PHONE_MEDIA_QUERY;
 function isMobileBoardMode() {
     return window.matchMedia(PHONE_MEDIA_QUERY).matches;
 }
+
+// Condition « tablette tactile » : écran tactile qui n'est pas un téléphone
+// (inverse exact de PHONE_MEDIA_QUERY), identique au bloc TABLETTES de
+// style-phone.css. Utilisée par les jeux pour s'ouvrir en plein écran.
+var TABLET_MEDIA_QUERY = '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)';
+window.TABLET_MEDIA_QUERY = TABLET_MEDIA_QUERY;
+function isTabletBoardMode() {
+    return window.matchMedia(TABLET_MEDIA_QUERY).matches;
+}
 let _wasMobileBoardMode = isMobileBoardMode();
 
 // =========================================================================

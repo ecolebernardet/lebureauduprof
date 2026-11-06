@@ -7,7 +7,7 @@ if (!window._wfPhoneAutoMax) {
     window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
         var phone = false;
         if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
-        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone && window.matchMedia) phone = window.matchMedia((window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)')).matches;
         if (!phone) return;
         if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
         var restored = false, auto = false;
@@ -32,7 +32,7 @@ if (!window._wfPhoneAutoMax) {
 if (!window._wfIsPhone) {
     window._wfIsPhone = function () {
         if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        return !!(window.matchMedia && window.matchMedia((window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)')).matches);
     };
 }
 
@@ -50,6 +50,75 @@ if (!window._wfIsPhone) {
 
 // ── CSS ───────────────────────────────────────────────────────────────────
 (function () {
+
+    // ── Plein écran automatique (bouton vert) sur téléphone ET tablette ────
+    // Partagé par les jeux. Mêmes conditions que board.js et style-phone.css
+    // (window.PHONE_MEDIA_QUERY / window.TABLET_MEDIA_QUERY) :
+    //   • téléphone (portrait ou paysage) ;
+    //   • tablette tactile (iPad, iPad mini, tablette Android).
+    // Ordinateur et TBI à la souris/au stylet : ouverture normale en fenêtre.
+    if (!window._jeuWantsFullboard) {
+        window._jeuWantsFullboard = function () {
+            try {
+                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) return true;
+                if (typeof isTabletBoardMode === 'function' && isTabletBoardMode()) return true;
+                if (typeof isPhoneScreen === 'function' && isPhoneScreen()) return true;
+                if (!window.matchMedia) return false;
+                var phoneQ  = window.PHONE_MEDIA_QUERY  || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+                var tabletQ = window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)';
+                if (window.matchMedia(phoneQ).matches || window.matchMedia(tabletQ).matches) return true;
+            } catch (e) {}
+            return false;
+        };
+    }
+
+    // Variante de window._wfPhoneAutoMax (téléphone seul, partagée avec d'autres
+    // fichiers) qui ouvre aussi le plein écran sur tablette.
+    if (!window._wfAutoMaxPhoneTablet) {
+        window._wfAutoMaxPhoneTablet = function (widget, open, isOpen, setKey, launchOnly) {
+            if (!window._jeuWantsFullboard()) return;
+            if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
+            var restored = false, auto = false;
+            if (setKey && typeof widget[setKey] === 'function') {
+                var orig = widget[setKey];
+                widget[setKey] = function () {
+                    restored = true;
+                    if (auto && isOpen()) open();
+                    auto = false;
+                    return orig.apply(this, arguments);
+                };
+            }
+            requestAnimationFrame(function () {
+                if (restored || isOpen() || !widget.isConnected) return;
+                auto = true;
+                open();
+            });
+        };
+    }
+
+    // ── Curseurs : flèche par défaut, main sur la barre du haut (elle déplace
+    //    le widget), doigt sur tout ce qui se clique
+    if (!document.getElementById('geo-monde-cursors-style')) {
+        var _cs = document.createElement('style');
+        _cs.id = 'geo-monde-cursors-style';
+        _cs.textContent = [
+            /* Ces leçons ont déjà leurs règles de curseur : on les complète */
+            '.widget[data-type="geo-monde"] { cursor: default; }',
+            '.widget[data-type="geo-monde"] .drag-handle, .widget[data-type="geo-monde"] .widget-rotate-handle { cursor: grab !important; }',
+            '.widget[data-type="geo-monde"] .drag-handle:active, .widget[data-type="geo-monde"] .widget-rotate-handle:active { cursor: grabbing !important; }',
+            /* En plein écran le widget ne se déplace plus : flèche sur la barre */
+            '.widget[data-type="geo-monde"] .gw-container.wf-fullboard .gw-header, .widget[data-type="geo-monde"] .gw-container.wf-fullboard .gw-header:active, .widget[data-type="geo-monde"] .gw-container.wf-fullboard .gw-header *:not(button):not(button *),',
+            '.widget.phone-fs[data-type="geo-monde"] .gw-header, .widget.phone-fs[data-type="geo-monde"] .gw-header *:not(button):not(button *) { cursor: default !important; }',
+            /* Tout ce qui se clique : doigt qui pointe */
+            '.widget[data-type="geo-monde"] button:not(:disabled), .widget[data-type="geo-monde"] button:not(:disabled) *, .widget[data-type="geo-monde"] select,',
+            '.widget[data-type="geo-monde"] .widget-menu-handle, .widget[data-type="geo-monde"] .widget-pin-handle,',
+            '.widget[data-type="geo-monde"] .widget-back-handle, .widget[data-type="geo-monde"] .widget-close-handle { cursor: pointer !important; }',
+            '.widget[data-type="geo-monde"] button:disabled, .widget[data-type="geo-monde"] button:disabled * { cursor: default !important; }',
+            /* En plein écran, un widget pivoté fausserait la position fixe */
+            '.widget[data-type="geo-monde"]:has(.gw-container.wf-fullboard) { transform: none !important; }'
+        ].join('\n');
+        document.head.appendChild(_cs);
+    }
     // Fonction utilitaire mini-barre collapse (injectée une seule fois)
     if (!window._wfMiniBarCollapse) {
         window._wfMiniBarCollapse = function(widget, label, opts) {
@@ -85,7 +154,7 @@ if (!window._wfIsPhone) {
 
             const miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
 
             const labelEl = document.createElement('span');
             labelEl.textContent = label;
@@ -131,7 +200,7 @@ if (!window._wfIsPhone) {
                 if (e.target === expandBtn || expandBtn.contains(e.target)) return;
                 e.stopPropagation();
                 e.preventDefault();
-                miniBar.setPointerCapture(e.pointerId);
+                miniBar.setPointerCapture(e.pointerId); miniBar.style.cursor = 'grabbing';
                 const startX = e.clientX - widget.offsetLeft;
                 const startY = e.clientY - widget.offsetTop;
                 const onMove = (ev) => { widget.style.left = Math.max(0, ev.clientX - startX) + 'px'; widget.style.top = Math.max(0, ev.clientY - startY) + 'px'; };
@@ -260,7 +329,7 @@ if (!window._wfIsPhone) {
         }
 
         /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .gw-container.wf-fullboard {
                 left: 40px !important;
                 width: calc(100vw - 40px) !important;
@@ -455,7 +524,7 @@ if (!window._wfIsPhone) {
         .gw-container.wf-fullboard .gw-resize-handle { display: none; }
         .gw-tx-s { display: none; }
         @media (pointer: coarse) { .gw-resize-handle { opacity: .6; width: 24px; height: 24px; } }
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .gw-container { padding: 10px 10px 8px; gap: 7px; }
             .gw-container.wf-fullboard { overflow: hidden; }
             .gw-title { font-size: 12px; }
@@ -477,14 +546,14 @@ if (!window._wfIsPhone) {
             .gw-container.wf-fullboard .gw-side { max-height: 100%; }
         }
         /* Téléphone tenu en portrait : la fiche passe sous la carte */
-        @media (max-width: 768px) and (orientation: portrait) {
+        @media (max-width: 600px) and (orientation: portrait) {
             .gw-body { flex-direction: column; }
             .gw-side { flex: 0 1 auto; width: auto; min-width: 0; max-width: none; max-height: 45vh; }
             .gw-container.wf-fullboard .gw-map-wrap { flex: 1 1 0; min-height: 180px; }
             .gw-container.wf-fullboard .gw-side { flex: 0 1 auto; max-height: 42%; }
         }
         /* Téléphone tenu en paysage : fiche plus étroite à droite */
-        @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
+        @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 600px) and (orientation: landscape) {
             .gw-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
     
@@ -523,14 +592,14 @@ if (!window._wfIsPhone) {
         .gw-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
         .gw-help-popup { top: 56px; }
         .gw-container.wf-fullboard .gw-header { margin-left: -50px; padding-left: 64px; }
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .gw-container.wf-fullboard .gw-header {
                 margin-left: calc(-10px - env(safe-area-inset-left));
                 padding-left: calc(14px + env(safe-area-inset-left));
             }
             .gw-title { font-size: 17px; }
         }
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .gw-header { margin: -10px -10px 0; padding: 8px 10px 7px; }
         }
     `;
@@ -1495,8 +1564,8 @@ function createGeoMondeWidget() {
         requestAnimationFrame(() => { setView(targetView()); renderSide(); });
     };
 
-    // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin
-    window._wfPhoneAutoMax(widget, () => wfMax.click(), () => _isMax, '_gwSetData');
+    // Sur téléphone et tablette, ouverture directe en plein écran (bouton vert), comme le Taquin
+    window._wfAutoMaxPhoneTablet(widget, () => wfMax.click(), () => _isMax, '_gwSetData');
 
     saveBoard();
     return widget;

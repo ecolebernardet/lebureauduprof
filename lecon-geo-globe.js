@@ -7,7 +7,7 @@ if (!window._wfPhoneAutoMax) {
     window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
         var phone = false;
         if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
-        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone && window.matchMedia) phone = window.matchMedia((window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)')).matches;
         if (!phone) return;
         if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
         var restored = false, auto = false;
@@ -32,7 +32,7 @@ if (!window._wfPhoneAutoMax) {
 if (!window._wfIsPhone) {
     window._wfIsPhone = function () {
         if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        return !!(window.matchMedia && window.matchMedia((window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)')).matches);
     };
 }
 
@@ -60,6 +60,75 @@ if (!window._wfIsPhone) {
 
 // ── CSS ───────────────────────────────────────────────────────────────────
 (function () {
+
+    // ── Plein écran automatique (bouton vert) sur téléphone ET tablette ────
+    // Partagé par les jeux. Mêmes conditions que board.js et style-phone.css
+    // (window.PHONE_MEDIA_QUERY / window.TABLET_MEDIA_QUERY) :
+    //   • téléphone (portrait ou paysage) ;
+    //   • tablette tactile (iPad, iPad mini, tablette Android).
+    // Ordinateur et TBI à la souris/au stylet : ouverture normale en fenêtre.
+    if (!window._jeuWantsFullboard) {
+        window._jeuWantsFullboard = function () {
+            try {
+                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) return true;
+                if (typeof isTabletBoardMode === 'function' && isTabletBoardMode()) return true;
+                if (typeof isPhoneScreen === 'function' && isPhoneScreen()) return true;
+                if (!window.matchMedia) return false;
+                var phoneQ  = window.PHONE_MEDIA_QUERY  || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+                var tabletQ = window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)';
+                if (window.matchMedia(phoneQ).matches || window.matchMedia(tabletQ).matches) return true;
+            } catch (e) {}
+            return false;
+        };
+    }
+
+    // Variante de window._wfPhoneAutoMax (téléphone seul, partagée avec d'autres
+    // fichiers) qui ouvre aussi le plein écran sur tablette.
+    if (!window._wfAutoMaxPhoneTablet) {
+        window._wfAutoMaxPhoneTablet = function (widget, open, isOpen, setKey, launchOnly) {
+            if (!window._jeuWantsFullboard()) return;
+            if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
+            var restored = false, auto = false;
+            if (setKey && typeof widget[setKey] === 'function') {
+                var orig = widget[setKey];
+                widget[setKey] = function () {
+                    restored = true;
+                    if (auto && isOpen()) open();
+                    auto = false;
+                    return orig.apply(this, arguments);
+                };
+            }
+            requestAnimationFrame(function () {
+                if (restored || isOpen() || !widget.isConnected) return;
+                auto = true;
+                open();
+            });
+        };
+    }
+
+    // ── Curseurs : flèche par défaut, main sur la barre du haut (elle déplace
+    //    le widget), doigt sur tout ce qui se clique
+    if (!document.getElementById('geo-globe-cursors-style')) {
+        var _cs = document.createElement('style');
+        _cs.id = 'geo-globe-cursors-style';
+        _cs.textContent = [
+            /* Ces leçons ont déjà leurs règles de curseur : on les complète */
+            '.widget[data-type="geo-globe"] { cursor: default; }',
+            '.widget[data-type="geo-globe"] .drag-handle, .widget[data-type="geo-globe"] .widget-rotate-handle { cursor: grab !important; }',
+            '.widget[data-type="geo-globe"] .drag-handle:active, .widget[data-type="geo-globe"] .widget-rotate-handle:active { cursor: grabbing !important; }',
+            /* En plein écran le widget ne se déplace plus : flèche sur la barre */
+            '.widget[data-type="geo-globe"] .gg-container.wf-fullboard .gg-header, .widget[data-type="geo-globe"] .gg-container.wf-fullboard .gg-header:active, .widget[data-type="geo-globe"] .gg-container.wf-fullboard .gg-header *:not(button):not(button *),',
+            '.widget.phone-fs[data-type="geo-globe"] .gg-header, .widget.phone-fs[data-type="geo-globe"] .gg-header *:not(button):not(button *) { cursor: default !important; }',
+            /* Tout ce qui se clique : doigt qui pointe */
+            '.widget[data-type="geo-globe"] button:not(:disabled), .widget[data-type="geo-globe"] button:not(:disabled) *, .widget[data-type="geo-globe"] select,',
+            '.widget[data-type="geo-globe"] .widget-menu-handle, .widget[data-type="geo-globe"] .widget-pin-handle,',
+            '.widget[data-type="geo-globe"] .widget-back-handle, .widget[data-type="geo-globe"] .widget-close-handle { cursor: pointer !important; }',
+            '.widget[data-type="geo-globe"] button:disabled, .widget[data-type="geo-globe"] button:disabled * { cursor: default !important; }',
+            /* En plein écran, un widget pivoté fausserait la position fixe */
+            '.widget[data-type="geo-globe"]:has(.gg-container.wf-fullboard) { transform: none !important; }'
+        ].join('\n');
+        document.head.appendChild(_cs);
+    }
     // Taille des pastilles réduire / plein écran / fermer.
     // Injecté à part, avec !important : s'applique même si un autre script
     // a déjà défini « wf-btns-style » avec l'ancienne taille.
@@ -143,7 +212,7 @@ if (!window._wfIsPhone) {
         }
 
         /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .gg-container.wf-fullboard {
                 left: 40px !important;
                 width: calc(100vw - 40px) !important;
@@ -296,7 +365,7 @@ if (!window._wfIsPhone) {
         /* ── Petits écrans (téléphone, petite tablette) ── */
         .gg-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
         .gg-container.wf-fullboard .gg-resize-handle { display: none; }
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .gg-container { padding: 10px 10px 8px; gap: 7px; }
             .gg-title { font-size: 13px; }
             .gg-controls { gap: 4px; }
@@ -309,13 +378,13 @@ if (!window._wfIsPhone) {
             .gg-side { padding: 8px 10px; }
         }
         /* Téléphone tenu en portrait : la fiche passe sous le globe */
-        @media (max-width: 768px) and (orientation: portrait) {
+        @media (max-width: 600px) and (orientation: portrait) {
             .gg-body { flex-direction: column; }
             .gg-globe-wrap { flex: 1 1 0; min-height: 200px; }
             .gg-side { flex: 0 1 auto; width: auto; min-width: 0; max-width: none; max-height: 42%; }
         }
         /* Téléphone tenu en paysage : fiche plus étroite à droite */
-        @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
+        @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 600px) and (orientation: landscape) {
             .gg-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
     
@@ -354,14 +423,14 @@ if (!window._wfIsPhone) {
         .gg-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
         .gg-help-popup { top: 56px; }
         .gg-container.wf-fullboard .gg-header { margin-left: -50px; padding-left: 64px; }
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .gg-container.wf-fullboard .gg-header {
                 margin-left: calc(-10px - env(safe-area-inset-left));
                 padding-left: calc(14px + env(safe-area-inset-left));
             }
             .gg-title { font-size: 17px; }
         }
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .gg-header { margin: -10px -10px 0; padding: 8px 10px 7px; }
         }
     `;
@@ -1421,8 +1490,8 @@ function createGeoGlobeWidget() {
         requestDraw();
     };
 
-    // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Taquin
-    window._wfPhoneAutoMax(widget, () => wfMax.click(), () => _isMax, '_ggSetData');
+    // Sur téléphone et tablette, ouverture directe en plein écran (bouton vert), comme le Taquin
+    window._wfAutoMaxPhoneTablet(widget, () => wfMax.click(), () => _isMax, '_ggSetData');
 
     if (typeof saveBoard === 'function') saveBoard();
     return widget;

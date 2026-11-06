@@ -758,22 +758,47 @@
         let destroyed      = false;
 
         // ── Helper tap stylet (pointer-safe) ────────────────────────────
+        // Le tap est déclenché au pointerup sur le bouton. Si le widget a
+        // capturé le pointeur (déplacement du widget), ce pointerup n'arrive
+        // jamais au bouton : on garde alors « click » en secours (il sert
+        // aussi au clavier : Entrée / Espace). Un seul déclenchement par geste.
         function makeTap(el, handler) {
+            if (!el) return;
+            let skipClick = false, skipTimer = null;
+            const fire = (ev) => {
+                if (el.disabled) return;
+                handler(ev);
+            };
             el.addEventListener('pointerdown', (e) => {
                 e.stopPropagation();
                 const sx = e.clientX, sy = e.clientY, pid = e.pointerId;
+                // Écoute sur window (phase de capture) : reçoit le relâchement
+                // même si le widget a capturé le pointeur pour se déplacer.
                 function onUp(eu) {
                     if (eu.pointerId !== pid) return;
-                    el.removeEventListener('pointerup',     onUp);
-                    el.removeEventListener('pointercancel', onUp);
+                    window.removeEventListener('pointerup',     onUp, true);
+                    window.removeEventListener('pointercancel', onUp, true);
+                    if (eu.type === 'pointercancel') return;
                     const dx = eu.clientX - sx, dy = eu.clientY - sy;
-                    if (Math.sqrt(dx*dx + dy*dy) < 12) {
-                        eu.stopPropagation();
-                        handler(eu);
+                    const r = el.getBoundingClientRect();
+                    const inside = eu.clientX >= r.left - 6 && eu.clientX <= r.right + 6 &&
+                                   eu.clientY >= r.top  - 6 && eu.clientY <= r.bottom + 6;
+                    if (inside && Math.sqrt(dx*dx + dy*dy) < 12) {
+                        // Le « click » qui suit ce même geste ne doit pas relancer l'action
+                        skipClick = true;
+                        clearTimeout(skipTimer);
+                        skipTimer = setTimeout(() => { skipClick = false; }, 800);
+                        fire(eu);
                     }
                 }
-                el.addEventListener('pointerup',     onUp);
-                el.addEventListener('pointercancel', onUp);
+                window.addEventListener('pointerup',     onUp, true);
+                window.addEventListener('pointercancel', onUp, true);
+            });
+            // Secours : clavier (Entrée / Espace) et navigateurs sans pointer events
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (skipClick) { skipClick = false; return; }
+                fire(e);
             });
         }
 
@@ -816,8 +841,8 @@
             customHint.classList.toggle('ok', n >= 3);
             customHint.classList.toggle('bad', n < 3);
         }
-        contentSelect.addEventListener('change', refreshCustomVisibility);
-        customTextarea.addEventListener('input', updateCustomHint);
+        contentSelect.addEventListener('change', () => { refreshCustomVisibility(); refreshStartBtn(); });
+        customTextarea.addEventListener('input', () => { updateCustomHint(); refreshStartBtn(); });
         refreshCustomVisibility();
 
         // ── Aide ─────────────────────────────────────────────────────────
@@ -1344,6 +1369,21 @@
         }
         function hideOverlay() { overlay.classList.add('hidden'); }
 
+        // Active / désactive « Démarrer » selon le contenu choisi : avant, une
+        // fois désactivé (mode Personnalisé avec moins de 3 paires), le bouton
+        // ne se réactivait plus, même après avoir saisi les paires ou changé
+        // de contenu — seul « Réinitialiser » le débloquait.
+        const NEED_PAIRS_MSG = 'Ajoute au moins 3 paires personnalisées dans les paramètres ⚙ avant de démarrer.';
+        const WELCOME_MSG    = 'Retrouve les paires en retournant deux cartes à la fois !';
+        function refreshStartBtn() {
+            if (running) return;                       // partie en cours ou en pause : rien à changer
+            if (overlay.classList.contains('hidden')) return;
+            const ok = canStart();
+            startBtn.disabled = !ok;
+            if (!ok) overlaySub.textContent = NEED_PAIRS_MSG;
+            else if (overlaySub.textContent === NEED_PAIRS_MSG) overlaySub.textContent = WELCOME_MSG;
+        }
+
         function canStart() {
             if (contentSelect.value === 'custom') return parseCustomPairs().length >= 3;
             return true;
@@ -1352,7 +1392,7 @@
         function startGame() {
             if (running && !paused) return;
             if (!canStart()) {
-                showOverlay('Jeu de memory', 'Ajoute au moins 3 paires personnalisées dans les paramètres ⚙ avant de démarrer.', '▶ Démarrer', true);
+                showOverlay('Jeu de memory', NEED_PAIRS_MSG, '▶ Démarrer', true);
                 return;
             }
             if (!running) {
@@ -1421,7 +1461,8 @@
             elapsedMs = 0; lastShownSeconds = -1;
             updateHUD();
             updateTimerDisplay(true);
-            showOverlay('Jeu de memory', 'Retrouve les paires en retournant deux cartes à la fois !', '▶ Démarrer');
+            showOverlay('Jeu de memory', WELCOME_MSG, '▶ Démarrer');
+            refreshStartBtn();
         }
 
         function gameLoop(now) {

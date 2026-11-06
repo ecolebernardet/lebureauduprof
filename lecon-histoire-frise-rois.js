@@ -4,7 +4,7 @@ if (!window._wfPhoneAutoMax) {
     window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
         var phone = false;
         if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
-        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone && window.matchMedia) phone = window.matchMedia((window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)')).matches;
         if (!phone) return;
         if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
         var restored = false, auto = false;
@@ -27,7 +27,7 @@ if (!window._wfPhoneAutoMax) {
 if (!window._wfIsPhone) {
     window._wfIsPhone = function () {
         if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        return !!(window.matchMedia && window.matchMedia((window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)')).matches);
     };
 }
 
@@ -58,6 +58,75 @@ if (!window._wfIsPhone) {
 
 // ── CSS ───────────────────────────────────────────────────────────────────
 (function () {
+
+    // ── Plein écran automatique (bouton vert) sur téléphone ET tablette ────
+    // Partagé par les jeux. Mêmes conditions que board.js et style-phone.css
+    // (window.PHONE_MEDIA_QUERY / window.TABLET_MEDIA_QUERY) :
+    //   • téléphone (portrait ou paysage) ;
+    //   • tablette tactile (iPad, iPad mini, tablette Android).
+    // Ordinateur et TBI à la souris/au stylet : ouverture normale en fenêtre.
+    if (!window._jeuWantsFullboard) {
+        window._jeuWantsFullboard = function () {
+            try {
+                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) return true;
+                if (typeof isTabletBoardMode === 'function' && isTabletBoardMode()) return true;
+                if (typeof isPhoneScreen === 'function' && isPhoneScreen()) return true;
+                if (!window.matchMedia) return false;
+                var phoneQ  = window.PHONE_MEDIA_QUERY  || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+                var tabletQ = window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)';
+                if (window.matchMedia(phoneQ).matches || window.matchMedia(tabletQ).matches) return true;
+            } catch (e) {}
+            return false;
+        };
+    }
+
+    // Variante de window._wfPhoneAutoMax (téléphone seul, partagée avec d'autres
+    // fichiers) qui ouvre aussi le plein écran sur tablette.
+    if (!window._wfAutoMaxPhoneTablet) {
+        window._wfAutoMaxPhoneTablet = function (widget, open, isOpen, setKey, launchOnly) {
+            if (!window._jeuWantsFullboard()) return;
+            if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
+            var restored = false, auto = false;
+            if (setKey && typeof widget[setKey] === 'function') {
+                var orig = widget[setKey];
+                widget[setKey] = function () {
+                    restored = true;
+                    if (auto && isOpen()) open();
+                    auto = false;
+                    return orig.apply(this, arguments);
+                };
+            }
+            requestAnimationFrame(function () {
+                if (restored || isOpen() || !widget.isConnected) return;
+                auto = true;
+                open();
+            });
+        };
+    }
+
+    // ── Curseurs : flèche par défaut, main sur la barre du haut (elle déplace
+    //    le widget), doigt sur tout ce qui se clique
+    if (!document.getElementById('frise-rois-cursors-style')) {
+        var _cs = document.createElement('style');
+        _cs.id = 'frise-rois-cursors-style';
+        _cs.textContent = [
+            /* Ces leçons ont déjà leurs règles de curseur : on les complète */
+            '.widget[data-type="frise-rois"] { cursor: default; }',
+            '.widget[data-type="frise-rois"] .drag-handle, .widget[data-type="frise-rois"] .widget-rotate-handle { cursor: grab !important; }',
+            '.widget[data-type="frise-rois"] .drag-handle:active, .widget[data-type="frise-rois"] .widget-rotate-handle:active { cursor: grabbing !important; }',
+            /* En plein écran le widget ne se déplace plus : flèche sur la barre */
+            '.widget[data-type="frise-rois"] .frr-container.wf-fullboard .frr-header, .widget[data-type="frise-rois"] .frr-container.wf-fullboard .frr-header:active, .widget[data-type="frise-rois"] .frr-container.wf-fullboard .frr-header *:not(button):not(button *),',
+            '.widget.phone-fs[data-type="frise-rois"] .frr-header, .widget.phone-fs[data-type="frise-rois"] .frr-header *:not(button):not(button *) { cursor: default !important; }',
+            /* Tout ce qui se clique : doigt qui pointe */
+            '.widget[data-type="frise-rois"] button:not(:disabled), .widget[data-type="frise-rois"] button:not(:disabled) *, .widget[data-type="frise-rois"] select,',
+            '.widget[data-type="frise-rois"] .widget-menu-handle, .widget[data-type="frise-rois"] .widget-pin-handle,',
+            '.widget[data-type="frise-rois"] .widget-back-handle, .widget[data-type="frise-rois"] .widget-close-handle { cursor: pointer !important; }',
+            '.widget[data-type="frise-rois"] button:disabled, .widget[data-type="frise-rois"] button:disabled * { cursor: default !important; }',
+            /* En plein écran, un widget pivoté fausserait la position fixe */
+            '.widget[data-type="frise-rois"]:has(.frr-container.wf-fullboard) { transform: none !important; }'
+        ].join('\n');
+        document.head.appendChild(_cs);
+    }
     if (document.getElementById('frr-style')) return;
     const s = document.createElement('style');
     s.id = 'frr-style';
@@ -94,7 +163,7 @@ if (!window._wfIsPhone) {
             z-index: 9999 !important; border-radius: 0 !important;
             padding-left: 50px !important;
         }
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .frr-container.wf-fullboard {
                 left: 40px !important;
                 width: calc(100vw - 40px) !important;
@@ -212,7 +281,7 @@ if (!window._wfIsPhone) {
         .frr-tab { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .frr-header .wf-btns { flex-shrink: 0; }
         .frr-container.wf-fullboard .frr-resize-handle { display: none; }
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .frr-container { padding: 10px 10px 8px; gap: 6px; }
             .frr-header { gap: 6px; }
             .frr-title { font-size: 13px; }
@@ -235,12 +304,12 @@ if (!window._wfIsPhone) {
             .frr-hint { display: none; }
             .frr-header .wf-btns { gap: 6px; }
         }
-        @media (max-width: 768px) and (orientation: portrait) {
+        @media (max-width: 600px) and (orientation: portrait) {
             .frr-body { flex-direction: column; }
             .frr-scene-wrap { flex: 1 1 0; min-height: 240px; }
             .frr-side { flex: 0 1 auto; width: auto; min-width: 0; max-width: none; max-height: 40%; }
         }
-        @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 768px) and (orientation: landscape) {
+        @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape), (max-width: 600px) and (orientation: landscape) {
             .frr-side { flex: 0 0 34%; min-width: 150px; max-width: 300px; }
         }
     
@@ -267,7 +336,7 @@ if (!window._wfIsPhone) {
         .frr-help-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
         .frr-help-popup { top: 56px; }
         .frr-container.wf-fullboard .frr-header { margin-left: -50px; padding-left: 64px; }
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .frr-container.wf-fullboard .frr-header {
                 margin-left: calc(-10px - env(safe-area-inset-left));
                 padding-left: calc(14px + env(safe-area-inset-left));
@@ -283,7 +352,7 @@ if (!window._wfIsPhone) {
         .frr-tab:hover { background: rgba(255,255,255,.1); }
         .frr-tab.on { background: #FFC933; border-color: #FFC933; color: #2A1F4A; box-shadow: none; }
         .frr-header { flex-wrap: nowrap; }
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .frr-header { margin: -10px -10px 0; padding: 8px 10px 7px; gap: 6px; }
             .frr-container.wf-fullboard .frr-header {
                 margin-right: calc(-10px - env(safe-area-inset-right));
@@ -1697,8 +1766,8 @@ function createFriseRoisWidget() {
         if (mode === 'arbre' && sel && sel.k === 'p' && FRR_LAYOUT[treeDyn].pos[sel.id]) pendingScroll = sel.id;
     };
 
-    // Sur téléphone, ouverture directe en plein écran (bouton vert), comme le Cycle de l'eau
-    window._wfPhoneAutoMax(widget, () => wfMax.click(), () => _isMax, '_frrSetData');
+    // Sur téléphone et tablette, ouverture directe en plein écran (bouton vert), comme le Cycle de l'eau
+    window._wfAutoMaxPhoneTablet(widget, () => wfMax.click(), () => _isMax, '_frrSetData');
 
     if (typeof saveBoard === 'function') saveBoard();
     return widget;

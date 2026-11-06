@@ -21,6 +21,75 @@
 //   - save-load.js : renaissanceData via widget._drnGetData / _drnSetData
 // =========================================================================
 (function () {
+
+    // ── Plein écran automatique (bouton vert) sur téléphone ET tablette ────
+    // Partagé par les jeux. Mêmes conditions que board.js et style-phone.css
+    // (window.PHONE_MEDIA_QUERY / window.TABLET_MEDIA_QUERY) :
+    //   • téléphone (portrait ou paysage) ;
+    //   • tablette tactile (iPad, iPad mini, tablette Android).
+    // Ordinateur et TBI à la souris/au stylet : ouverture normale en fenêtre.
+    if (!window._jeuWantsFullboard) {
+        window._jeuWantsFullboard = function () {
+            try {
+                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) return true;
+                if (typeof isTabletBoardMode === 'function' && isTabletBoardMode()) return true;
+                if (typeof isPhoneScreen === 'function' && isPhoneScreen()) return true;
+                if (!window.matchMedia) return false;
+                var phoneQ  = window.PHONE_MEDIA_QUERY  || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+                var tabletQ = window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)';
+                if (window.matchMedia(phoneQ).matches || window.matchMedia(tabletQ).matches) return true;
+            } catch (e) {}
+            return false;
+        };
+    }
+
+    // Variante de window._wfPhoneAutoMax (téléphone seul, partagée avec d'autres
+    // fichiers) qui ouvre aussi le plein écran sur tablette.
+    if (!window._wfAutoMaxPhoneTablet) {
+        window._wfAutoMaxPhoneTablet = function (widget, open, isOpen, setKey, launchOnly) {
+            if (!window._jeuWantsFullboard()) return;
+            if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
+            var restored = false, auto = false;
+            if (setKey && typeof widget[setKey] === 'function') {
+                var orig = widget[setKey];
+                widget[setKey] = function () {
+                    restored = true;
+                    if (auto && isOpen()) open();
+                    auto = false;
+                    return orig.apply(this, arguments);
+                };
+            }
+            requestAnimationFrame(function () {
+                if (restored || isOpen() || !widget.isConnected) return;
+                auto = true;
+                open();
+            });
+        };
+    }
+
+    // ── Curseurs : flèche par défaut, main sur la barre du haut (elle déplace
+    //    le widget), doigt sur tout ce qui se clique
+    if (!document.getElementById('histoire-renaissance-cursors-style')) {
+        var _cs = document.createElement('style');
+        _cs.id = 'histoire-renaissance-cursors-style';
+        _cs.textContent = [
+            /* Ces leçons ont déjà leurs règles de curseur : on les complète */
+            '.widget[data-type="histoire-renaissance"] { cursor: default; }',
+            '.widget[data-type="histoire-renaissance"] .drag-handle, .widget[data-type="histoire-renaissance"] .widget-rotate-handle { cursor: grab !important; }',
+            '.widget[data-type="histoire-renaissance"] .drag-handle:active, .widget[data-type="histoire-renaissance"] .widget-rotate-handle:active { cursor: grabbing !important; }',
+            /* En plein écran le widget ne se déplace plus : flèche sur la barre */
+            '.widget[data-type="histoire-renaissance"] .drn-container.drn-fullboard .drn-headrow, .widget[data-type="histoire-renaissance"] .drn-container.drn-fullboard .drn-headrow:active, .widget[data-type="histoire-renaissance"] .drn-container.drn-fullboard .drn-headrow *:not(button):not(button *),',
+            '.widget.phone-fs[data-type="histoire-renaissance"] .drn-headrow, .widget.phone-fs[data-type="histoire-renaissance"] .drn-headrow *:not(button):not(button *) { cursor: default !important; }',
+            /* Tout ce qui se clique : doigt qui pointe */
+            '.widget[data-type="histoire-renaissance"] button:not(:disabled), .widget[data-type="histoire-renaissance"] button:not(:disabled) *, .widget[data-type="histoire-renaissance"] select,',
+            '.widget[data-type="histoire-renaissance"] .widget-menu-handle, .widget[data-type="histoire-renaissance"] .widget-pin-handle,',
+            '.widget[data-type="histoire-renaissance"] .widget-back-handle, .widget[data-type="histoire-renaissance"] .widget-close-handle { cursor: pointer !important; }',
+            '.widget[data-type="histoire-renaissance"] button:disabled, .widget[data-type="histoire-renaissance"] button:disabled * { cursor: default !important; }',
+            /* En plein écran, un widget pivoté fausserait la position fixe */
+            '.widget[data-type="histoire-renaissance"]:has(.drn-container.drn-fullboard) { transform: none !important; }'
+        ].join('\n');
+        document.head.appendChild(_cs);
+    }
     'use strict';
 
     var TYPE   = 'histoire-renaissance';
@@ -451,7 +520,7 @@
     z-index: 9999 !important; border-radius: 0 !important; padding-left: 60px;
     box-shadow: none !important;
 }
-@media (max-width: 768px) { .drn-container.drn-fullboard { padding-left: 0; } }
+@media (max-width: 600px) { .drn-container.drn-fullboard { padding-left: 0; } }
 .drn-container.drn-collapsed { height: auto !important; }
 .drn-container.drn-collapsed .drn-body, .drn-container.drn-collapsed .drn-tabs,
 .drn-container.drn-collapsed .drn-resize { display: none !important; }
@@ -1676,8 +1745,8 @@
         storePercents();
 
         if (!restoring) {
-            // Sur téléphone, ouverture directe en plein écran
-            var phone = typeof window.isPhoneScreen === 'function' && window.isPhoneScreen();
+            // Sur téléphone et tablette, ouverture directe en plein écran
+            var phone = window._jeuWantsFullboard();   // téléphone ou tablette
             if (phone && Date.now() - (window._wfLastLaunch || 0) < 2500) setFullboard(true);
             try { widget.focus({ preventScroll: true }); } catch (e) {}
             save();

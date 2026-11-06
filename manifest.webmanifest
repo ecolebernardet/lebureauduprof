@@ -1,0 +1,17 @@
+{
+  "name": "Le Bureau du Prof",
+  "short_name": "Bureau du Prof",
+  "description": "Tableau blanc numérique et outils pédagogiques pour les enseignants.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#478bdc",
+  "theme_color": "#478bdc",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -61,6 +61,14 @@
     </script>
 
     <link rel="icon" type="image/x-icon" href="icon.ico">
+
+    <!-- Application installable (PWA) : Chrome Android, Edge, Chrome PC -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#478bdc">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Bureau du Prof">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="style-phone.css">
     <style>
@@ -4624,5 +4632,16 @@ body.menu-light #contact-status.err { color: #d33a3f; }
 <!-- Statistiques de fréquentation (GoatCounter : sans cookies, tableau de bord sur lebureauduprof.goatcounter.com) -->
 <script data-goatcounter="https://lebureauduprof.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
+<!-- Service worker : rend le site installable et garde une copie pour le hors-ligne.
+     Ignoré dans l'application Electron (fichiers locaux). -->
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').catch(function(err) {
+            console.warn('[PWA] Service worker non enregistré :', err);
+        });
+    });
+}
+</script>
 </body>
 </html>

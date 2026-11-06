@@ -18,13 +18,59 @@
 // =========================================================================
 
 (function () {
+
+    // ── Plein écran automatique (bouton vert) sur téléphone ET tablette ────
+    // Partagé par les jeux. Mêmes conditions que board.js et style-phone.css
+    // (window.PHONE_MEDIA_QUERY / window.TABLET_MEDIA_QUERY) :
+    //   • téléphone (portrait ou paysage) ;
+    //   • tablette tactile (iPad, iPad mini, tablette Android).
+    // Ordinateur et TBI à la souris/au stylet : ouverture normale en fenêtre.
+    if (!window._jeuWantsFullboard) {
+        window._jeuWantsFullboard = function () {
+            try {
+                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) return true;
+                if (typeof isTabletBoardMode === 'function' && isTabletBoardMode()) return true;
+                if (typeof isPhoneScreen === 'function' && isPhoneScreen()) return true;
+                if (!window.matchMedia) return false;
+                var phoneQ  = window.PHONE_MEDIA_QUERY  || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+                var tabletQ = window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)';
+                if (window.matchMedia(phoneQ).matches || window.matchMedia(tabletQ).matches) return true;
+            } catch (e) {}
+            return false;
+        };
+    }
+
+    // ── Curseurs : flèche par défaut, main sur la barre du haut (elle déplace
+    //    le widget), doigt sur tout ce qui se clique
+    if (!document.getElementById('nature-gramm-cursors-style')) {
+        var _cs = document.createElement('style');
+        _cs.id = 'nature-gramm-cursors-style';
+        _cs.textContent = [
+            /* Ces leçons ont déjà leurs règles de curseur (en !important) : on les complète */
+            /* Le titre et les pastilles de la barre du haut prennent le curseur de la barre (main) */
+            '.widget[data-type="nature-gramm"] .n2-header :not(button):not(button *):not(select):not(input) { cursor: inherit !important; }',
+            '.widget[data-type="nature-gramm"] .drag-handle, .widget[data-type="nature-gramm"] .widget-rotate-handle { cursor: grab !important; }',
+            '.widget[data-type="nature-gramm"] .drag-handle:active, .widget[data-type="nature-gramm"] .widget-rotate-handle:active { cursor: grabbing !important; }',
+            /* En plein écran le widget ne se déplace plus : flèche sur la barre */
+            '.widget[data-type="nature-gramm"] .n2-container.wf-fullboard .n2-header, .widget[data-type="nature-gramm"] .n2-container.wf-fullboard .n2-header:active,',
+            '.widget.phone-fs[data-type="nature-gramm"] .n2-header, .widget.phone-fs[data-type="nature-gramm"] .n2-header:active { cursor: default !important; }',
+            /* Tout ce qui se clique : doigt qui pointe */
+            '.widget[data-type="nature-gramm"] button:not(:disabled), .widget[data-type="nature-gramm"] button:not(:disabled) *, .widget[data-type="nature-gramm"] select,',
+            '.widget[data-type="nature-gramm"] .widget-menu-handle, .widget[data-type="nature-gramm"] .widget-pin-handle,',
+            '.widget[data-type="nature-gramm"] .widget-back-handle, .widget[data-type="nature-gramm"] .widget-close-handle { cursor: pointer !important; }',
+            '.widget[data-type="nature-gramm"] button:disabled, .widget[data-type="nature-gramm"] button:disabled * { cursor: default !important; }',
+            /* En plein écran, un widget pivoté fausserait la position fixe */
+            '.widget[data-type="nature-gramm"]:has(.n2-container.wf-fullboard) { transform: none !important; }'
+        ].join('\n');
+        document.head.appendChild(_cs);
+    }
     'use strict';
 
     const TYPE = 'nature-gramm';
 
     function _isPhone() {
         if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        return !!(window.matchMedia && window.matchMedia((window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)')).matches);
     }
 
     // ── Barre réduite (bouton jaune), si aucun autre fichier ne l'a définie ──
@@ -46,7 +92,7 @@
             widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = 'none');
             const miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
             const labelEl = document.createElement('span');
             labelEl.textContent = label;
             labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -74,11 +120,11 @@
             miniBar.appendChild(labelEl); miniBar.appendChild(expandBtn); widget.appendChild(miniBar);
             miniBar.addEventListener('pointerdown', e => {
                 if (e.target === expandBtn || expandBtn.contains(e.target)) return;
-                e.stopPropagation(); e.preventDefault(); miniBar.setPointerCapture(e.pointerId);
+                e.stopPropagation(); e.preventDefault(); miniBar.setPointerCapture(e.pointerId); miniBar.style.cursor = 'grabbing';
                 const startX = e.clientX - widget.offsetLeft, startY = e.clientY - widget.offsetTop;
                 const onMove = ev => { widget.style.left = Math.max(0, ev.clientX - startX) + 'px'; widget.style.top = Math.max(0, ev.clientY - startY) + 'px'; };
                 const onUp = () => {
-                    miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp);
+                    miniBar.removeEventListener('pointermove', onMove); miniBar.removeEventListener('pointerup', onUp); miniBar.style.cursor = 'grab';
                     const curW = window.innerWidth, curVH = typeof virtualH === 'function' ? virtualH(curW) : window.innerHeight;
                     widget.dataset.leftPercent = (widget.offsetLeft / curW) * 100;
                     widget.dataset.topPercent  = (widget.offsetTop  / curVH) * 100;
@@ -131,7 +177,7 @@
 .n2-container input, .n2-container textarea { user-select:text; -webkit-user-select:text; }
 .n2-container.wf-fullboard { position:fixed !important; inset:0 !important; width:100% !important; height:100% !important;
     z-index:9999 !important; border-radius:0 !important; border:none !important; padding-left:60px !important; }
-@media (max-width:768px), (max-height:500px) and (pointer:coarse) {
+@media (max-width:600px), (max-height:500px) and (pointer:coarse) {
     .n2-container.wf-fullboard { left:40px !important; width:calc(100vw - 40px) !important; height:100dvh !important; min-width:0 !important; padding-left:0 !important; }
     .n2-tab-lbl { display:none; }
     .n2-title { font-size:17px !important; }
@@ -1060,8 +1106,8 @@
             memoSize();
             if (restored) {
                 if (saved.fullboard) container.classList.add('wf-fullboard');
-            } else if (_isPhone()) {
-                // Sur téléphone : ouverture directe en plein écran (bouton vert)
+            } else if (window._jeuWantsFullboard()) {
+                // Sur téléphone et tablette : ouverture directe en plein écran (bouton vert)
                 container.classList.add('wf-fullboard');
             } else {
                 widget.style.left = '100px';

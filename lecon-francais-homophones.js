@@ -12,13 +12,59 @@
 // =========================================================================
 
 (function () {
+
+    // ── Plein écran automatique (bouton vert) sur téléphone ET tablette ────
+    // Partagé par les jeux. Mêmes conditions que board.js et style-phone.css
+    // (window.PHONE_MEDIA_QUERY / window.TABLET_MEDIA_QUERY) :
+    //   • téléphone (portrait ou paysage) ;
+    //   • tablette tactile (iPad, iPad mini, tablette Android).
+    // Ordinateur et TBI à la souris/au stylet : ouverture normale en fenêtre.
+    if (!window._jeuWantsFullboard) {
+        window._jeuWantsFullboard = function () {
+            try {
+                if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()) return true;
+                if (typeof isTabletBoardMode === 'function' && isTabletBoardMode()) return true;
+                if (typeof isPhoneScreen === 'function' && isPhoneScreen()) return true;
+                if (!window.matchMedia) return false;
+                var phoneQ  = window.PHONE_MEDIA_QUERY  || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+                var tabletQ = window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)';
+                if (window.matchMedia(phoneQ).matches || window.matchMedia(tabletQ).matches) return true;
+            } catch (e) {}
+            return false;
+        };
+    }
+
+    // ── Curseurs : flèche par défaut, main sur la barre du haut (elle déplace
+    //    le widget), doigt sur tout ce qui se clique
+    if (!document.getElementById('homophones-cursors-style')) {
+        var _cs = document.createElement('style');
+        _cs.id = 'homophones-cursors-style';
+        _cs.textContent = [
+            /* Ces leçons ont déjà leurs règles de curseur (en !important) : on les complète */
+            /* Le titre et les pastilles de la barre du haut prennent le curseur de la barre (main) */
+            '.widget[data-type="homophones"] .hm-header :not(button):not(button *):not(select):not(input) { cursor: inherit !important; }',
+            '.widget[data-type="homophones"] .drag-handle, .widget[data-type="homophones"] .widget-rotate-handle { cursor: grab !important; }',
+            '.widget[data-type="homophones"] .drag-handle:active, .widget[data-type="homophones"] .widget-rotate-handle:active { cursor: grabbing !important; }',
+            /* En plein écran le widget ne se déplace plus : flèche sur la barre */
+            '.widget[data-type="homophones"] .hm-container.wf-fullboard .hm-header, .widget[data-type="homophones"] .hm-container.wf-fullboard .hm-header:active,',
+            '.widget.phone-fs[data-type="homophones"] .hm-header, .widget.phone-fs[data-type="homophones"] .hm-header:active { cursor: default !important; }',
+            /* Tout ce qui se clique : doigt qui pointe */
+            '.widget[data-type="homophones"] button:not(:disabled), .widget[data-type="homophones"] button:not(:disabled) *, .widget[data-type="homophones"] select,',
+            '.widget[data-type="homophones"] .widget-menu-handle, .widget[data-type="homophones"] .widget-pin-handle,',
+            '.widget[data-type="homophones"] .widget-back-handle, .widget[data-type="homophones"] .widget-close-handle { cursor: pointer !important; }',
+            '.widget[data-type="homophones"] button:disabled, .widget[data-type="homophones"] button:disabled * { cursor: default !important; }',
+            /* En plein écran, un widget pivoté fausserait la position fixe */
+            '.widget[data-type="homophones"]:has(.hm-container.wf-fullboard) { transform: none !important; }'
+        ].join('\n');
+        document.head.appendChild(_cs);
+    }
     'use strict';
 
     const TYPE = 'homophones';
 
     function _isPhone() {
         if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        return !!(window.matchMedia && window.matchMedia((window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)')).matches);
     }
 
     // ── Boutons fenêtre (CSS partagé) ─────────────────────────────────────
@@ -58,7 +104,7 @@
 }
 .hm-container.wf-fullboard { position:fixed !important; inset:0 !important; width:100% !important; height:100% !important;
     z-index:9999 !important; border-radius:0 !important; border:none !important; padding-left:60px !important; }
-@media (max-width:768px), (max-height:500px) and (pointer:coarse) {
+@media (max-width:600px), (max-height:500px) and (pointer:coarse) {
     .hm-container.wf-fullboard { left:40px !important; width:calc(100vw - 40px) !important; height:100dvh !important; min-width:0 !important; padding-left:0 !important; }
     .hm-tab-lbl { display:none; }
     .hm-lesson { flex-direction:column; }
@@ -816,7 +862,7 @@
             memoSize();
             if (restored) {
                 if (saved.fullboard) container.classList.add('wf-fullboard');
-            } else if (_isPhone()) {
+            } else if (window._jeuWantsFullboard()) {
                 container.classList.add('wf-fullboard');
             } else {
                 widget.style.left = '100px';

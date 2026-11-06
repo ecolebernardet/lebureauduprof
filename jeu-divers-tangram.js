@@ -21,9 +21,18 @@
     // ── Détection téléphone (même règle que le Taquin et style-phone.css) ──
     // isMobileBoardMode() n'existe pas toujours ou peut répondre « non » sur
     // un téléphone en paysage : on complète avec la même media query.
+    // Les conditions sont définies une seule fois dans board.js
+    // (PHONE_MEDIA_QUERY / TABLET_MEDIA_QUERY) ; valeurs de secours sinon.
     function _isPhone() {
-        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia(window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)').matches);
+    }
+    // Tablette tactile (iPad, iPad mini, Android) : mise en page PC,
+    // mais le jeu s'ouvre directement en plein écran (bouton vert).
+    function _isTablet() {
+        if (_isPhone()) return false;
+        if (typeof isTabletBoardMode === 'function') { try { return !!isTabletBoardMode(); } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia(window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
     }
 
     // ── Mini-barre collapse (partagée avec les autres widgets) ─────────────
@@ -381,7 +390,7 @@
         }
         /* ── Téléphone : plein écran (bouton vert) décalé de 40 px à gauche
            pour laisser les onglets latéraux visibles, comme le Taquin ── */
-        @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
             .jtg-container.wf-fullboard,
             .jtg-container.wf-fullboard.jti-mobile {
                 left: 40px !important; right: 0 !important;
@@ -1174,6 +1183,14 @@
             applyScale();
             setLevel(1);
             if (_isPhone()) {
+                wfMax.click();
+            } else if (_isTablet()) {
+                // Tablette : position de repli qui tient dans l'écran (utilisée en
+                // sortant du plein écran), puis plein écran board direct
+                const curW = window.innerWidth;
+                const left = Math.max(10, Math.min(100, curW - container.offsetWidth - 10));
+                widget.style.left = left + 'px';
+                widget.dataset.leftPercent = (left / curW) * 100;
                 wfMax.click();
             } else {
                 const curW = window.innerWidth;

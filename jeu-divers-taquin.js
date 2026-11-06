@@ -428,7 +428,7 @@
 '.jtq-root.jtq-narrow .jtq-help{display:none}',
 '.jtq-root.jtq-narrow .jtq-pics{grid-template-columns:repeat(3,1fr)}',
 // Téléphone : plein écran (bouton vert) en laissant 40 px à gauche pour les onglets latéraux
-'@media (max-width: 768px), (max-height: 500px) and (pointer: coarse){',
+'@media (max-width: 600px), (max-height: 500px) and (pointer: coarse){',
 '  .jtq-root.jtq-fullboard{left:40px!important;width:calc(100vw - 40px)!important;height:100vh!important;height:100dvh!important;',
 '    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) 0}',
 '}',
@@ -1118,12 +1118,25 @@
 
         // Sur téléphone, une partie lancée depuis le panneau s'ouvre directement
         // en plein écran (bouton vert), comme Simon et Rush Hour
-        if (!data.lvl && isPhone() && !S.fullboard) {
+        // Tablette : taille de repli (en sortant du plein écran) qui tient dans le tableau
+        if (!data.lvl && isTablet() && !S.fullboard) {
+            var _tabVH = typeof virtualH === 'function' ? virtualH(window.innerWidth) : window.innerHeight;
+            S.w = Math.max(MIN_W, Math.min(S.w, window.innerWidth - 120));
+            S.h = Math.max(MIN_H, Math.min(S.h, _tabVH - 20));
+            applySize();
+        }
+        if (!data.lvl && (isPhone() || isTablet()) && !S.fullboard) {
             requestAnimationFrame(function () { $('.wf-btn-max').click(); });
         }
         function isPhone() {
             if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
-            return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+            return !!(window.matchMedia && window.matchMedia(window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)').matches);
+        }
+        // Tablette tactile : mise en page PC, mais ouverture en plein écran (bouton vert)
+        function isTablet() {
+            if (isPhone()) return false;
+            if (typeof isTabletBoardMode === 'function') { try { return !!isTabletBoardMode(); } catch (e) {} }
+            return !!(window.matchMedia && window.matchMedia(window.TABLET_MEDIA_QUERY || '(pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
         }
     }
 

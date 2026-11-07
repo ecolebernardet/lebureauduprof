@@ -3,11 +3,13 @@
 // setKey   : nom de la fonction de restauration (widget._xxSetData) : si le widget est
 //            restauré depuis une sauvegarde, le plein écran automatique est annulé.
 // launchOnly : n'ouvrir que si le widget vient d'être lancé depuis un panneau.
-if (!window._wfPhoneAutoMax) {
+// (version téléphone + tablette : elle remplace une ancienne version téléphone seul)
+if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
     window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
         var phone = false;
         if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
-        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone && typeof isTabletBoardMode === 'function') { try { phone = !!isTabletBoardMode(); } catch (e) {} }
+        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches;
         if (!phone) return;
         if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
         var restored = false, auto = false;
@@ -26,6 +28,7 @@ if (!window._wfPhoneAutoMax) {
             open();
         });
     };
+    window._wfPhoneAutoMax._tablet = true;
 }
 
 // =========================================================================
@@ -1603,3 +1606,24 @@ function _calRestoreData(widget, json) {
         _calRender(widget);
     });
 }
+
+// ── Curseurs : flèche par défaut, main sur la barre du haut (déplacement), doigt sur le cliquable ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-calendrier')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-calendrier';
+    st.textContent = `
+.cal-container { cursor: default; }
+.cal-container .cal-header { cursor: grab; }
+.cal-container .cal-header:active { cursor: grabbing; }
+.cal-container.cal-fullboard .cal-header, .cal-container.cal-fullboard .cal-header:active { cursor: default; }
+.cal-container :where(button, select, label, .wf-btn, .cal-day, .cal-ym-card, input[type=checkbox], input[type=file]) { cursor: pointer; }
+.cal-container .cal-header :is(button, label, .wf-btn) { cursor: pointer; }
+.cal-container input[type=text] { cursor: text; }
+.cal-container :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget:has(.cal-container) .wf-mini-bar { cursor: grab !important; }
+.widget:has(.cal-container) .wf-mini-bar:active { cursor: grabbing !important; }
+.widget:has(.cal-container) .wf-mini-bar button { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

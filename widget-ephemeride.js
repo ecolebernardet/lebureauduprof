@@ -3,11 +3,13 @@
 // setKey   : nom de la fonction de restauration (widget._xxSetData) : si le widget est
 //            restauré depuis une sauvegarde, le plein écran automatique est annulé.
 // launchOnly : n'ouvrir que si le widget vient d'être lancé depuis un panneau.
-if (!window._wfPhoneAutoMax) {
+// (version téléphone + tablette : elle remplace une ancienne version téléphone seul)
+if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
     window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
         var phone = false;
         if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
-        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone && typeof isTabletBoardMode === 'function') { try { phone = !!isTabletBoardMode(); } catch (e) {} }
+        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches;
         if (!phone) return;
         if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
         var restored = false, auto = false;
@@ -26,6 +28,7 @@ if (!window._wfPhoneAutoMax) {
             open();
         });
     };
+    window._wfPhoneAutoMax._tablet = true;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -838,7 +841,7 @@ if (!window._wfPhoneAutoMax) {
                 widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = 'none');
                 const miniBar = document.createElement('div');
                 miniBar.className = 'wf-mini-bar';
-                miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+                miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
                 const labelEl = document.createElement('span');
                 labelEl.textContent = label;
                 labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -944,4 +947,26 @@ if (!window._wfPhoneAutoMax) {
         root.setAttribute('data-cfg', JSON.stringify(data.cfg));
         render(root);
     };
+})();
+
+// ── Curseurs : flèche par défaut, main sur la barre du haut (déplacement), doigt sur le cliquable ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-ephemeride')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-ephemeride';
+    st.textContent = `
+.ephem-root { cursor: default; }
+.ephem-root .ephem-bar { cursor: grab; }
+.ephem-root .ephem-bar:active { cursor: grabbing; }
+.ephem-root.ephem-full .ephem-bar, .ephem-root.ephem-full .ephem-bar:active { cursor: default; }
+.ephem-root .ephem-bar :is(button, input, .wf-btn) { cursor: pointer; }
+.ephem-root .ephem-datebox { cursor: default; }
+.ephem-root :where(button, select, label, input[type=checkbox]) { cursor: pointer; }
+.ephem-root .ephem-settings :is(input[type=text], input[type=number]) { cursor: text; }
+.ephem-root :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget:has(.ephem-root) .wf-mini-bar { cursor: grab !important; }
+.widget:has(.ephem-root) .wf-mini-bar:active { cursor: grabbing !important; }
+.widget:has(.ephem-root) .wf-mini-bar button { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
 })();

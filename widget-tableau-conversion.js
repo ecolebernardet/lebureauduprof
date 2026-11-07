@@ -1,10 +1,12 @@
 // ── Téléphone : ouverture directe en plein écran (bouton vert), comme le Taquin ──
 // (même fonction partagée que widget-citations.js / widget-tableau.js ; installée une seule fois)
-if (!window._wfPhoneAutoMax) {
+// (version téléphone + tablette : elle remplace une ancienne version téléphone seul)
+if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
     window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
         var phone = false;
         if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
-        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone && typeof isTabletBoardMode === 'function') { try { phone = !!isTabletBoardMode(); } catch (e) {} }
+        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches;
         if (!phone) return;
         if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
         var restored = false, auto = false;
@@ -23,6 +25,7 @@ if (!window._wfPhoneAutoMax) {
             open();
         });
     };
+    window._wfPhoneAutoMax._tablet = true;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1179,4 +1182,22 @@ if (!window._wfPhoneAutoMax) {
         root._tc = normalize(data);
         render(root);
     };
+})();
+
+// ── Curseurs : flèche par défaut, main sur la barre du haut (déplacement), doigt sur le cliquable ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-tableau-conversion')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-tableau-conversion';
+    st.textContent = `
+.tc-root { cursor: default; }
+.tc-root .tc-bar:active { cursor: grabbing; }
+.tc-root.tc-full .tc-bar:active { cursor: default; }
+.tc-root :where(button, select, label, input[type=checkbox], input[type=range]) { cursor: pointer; }
+.tc-root :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget:has(.tc-root) .wf-mini-bar { cursor: grab !important; }
+.widget:has(.tc-root) .wf-mini-bar:active { cursor: grabbing !important; }
+.widget:has(.tc-root) .wf-mini-bar button { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
 })();

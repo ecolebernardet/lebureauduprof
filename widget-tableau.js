@@ -1,10 +1,12 @@
 // ── Téléphone : ouverture directe en plein écran (bouton vert), comme le Taquin ──
 // (même fonction partagée que widget-citations.js ; installée une seule fois)
-if (!window._wfPhoneAutoMax) {
+// (version téléphone + tablette : elle remplace une ancienne version téléphone seul)
+if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
     window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
         var phone = false;
         if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
-        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone && typeof isTabletBoardMode === 'function') { try { phone = !!isTabletBoardMode(); } catch (e) {} }
+        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches;
         if (!phone) return;
         if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
         var restored = false, auto = false;
@@ -23,6 +25,7 @@ if (!window._wfPhoneAutoMax) {
             open();
         });
     };
+    window._wfPhoneAutoMax._tablet = true;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -593,8 +596,8 @@ if (!window._wfPhoneAutoMax) {
         if (mode === 'eraser') cur = 'none';
         else if (mode === 'draw') {
             const b = document.getElementById('board');
-            cur = (b && b.style.getPropertyValue('cursor')) || 'crosshair';
-            if (cur === 'none') cur = 'crosshair';
+            cur = (b && b.style.getPropertyValue('cursor')) || 'pointer';
+            if (cur === 'none' || cur === 'crosshair') cur = 'pointer';
         }
         if (cv.style.cursor !== cur) cv.style.cursor = cur;
         if (mode !== 'eraser' && root._eraserPos) { root._eraserPos = null; scheduleRedraw(root); }
@@ -1024,4 +1027,26 @@ if (!window._wfPhoneAutoMax) {
         root._tab = normalize(data);
         render(root);
     };
+})();
+
+// ── Curseurs : flèche par défaut, main sur la barre du haut (déplacement), doigt sur le cliquable ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-tableau')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-tableau';
+    st.textContent = `
+.tab-root { cursor: default; }
+.tab-root .tab-bar { cursor: grab; }
+.tab-root .tab-bar:active { cursor: grabbing; }
+.tab-root.tab-full .tab-bar, .tab-root.tab-full .tab-bar:active { cursor: default; }
+.tab-root .tab-bar :is(button, .wf-btn) { cursor: pointer; }
+.tab-root .tab-steps, .tab-root .tab-step, .tab-root .tab-num { cursor: default; }
+.tab-root :where(button, select, label, input[type=checkbox], input[type=range]) { cursor: pointer; }
+.tab-root .tab-settings input[type=number] { cursor: text; }
+.tab-root :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget:has(.tab-root) .wf-mini-bar { cursor: grab !important; }
+.widget:has(.tab-root) .wf-mini-bar:active { cursor: grabbing !important; }
+.widget:has(.tab-root) .wf-mini-bar button { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
 })();

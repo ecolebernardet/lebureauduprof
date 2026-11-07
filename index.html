@@ -201,6 +201,8 @@
         body.mode-pagegarde #display-panel-tab,
         body.mode-pagegarde #draw-fab-btn,
         body.mode-pagegarde #sticker-mode-bar,
+        body.mode-pagegarde #side-help-btn,
+        body.mode-pagegarde #side-help-menu,
         body.mode-pagegarde #sp-animated-section {
             display: none !important;
         }
@@ -2881,6 +2883,10 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
     <button id="proj-panel-new-btn" onclick="_projNewProject()">
         <span style="font-size:15px;">＋</span> Nouveau tableau
     </button>
+    <!-- Effacer le contenu du tableau affiché (déplacé depuis le panneau Écran) -->
+    <button id="proj-panel-clear-btn" onclick="toggleProjectsPanel();clearBoard()" title="Vider le tableau affiché (une confirmation est demandée)">
+        <span style="font-size:14px;">🗑️</span> Effacer le tableau affiché
+    </button>
     <!-- Actions export/import -->
     <div id="proj-panel-actions">
         <button class="proj-panel-action-btn green" onclick="exportConfig();toggleProjectsPanel()" title="Sauvegarder ce tableau (JSON)">💾 Sauvegarder<br>un tableau</button>
@@ -2943,32 +2949,16 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
     </div>
     <div id="display-panel-content">
 
-		<div class="disp-block disp-block-actions">
-		<div class="disp-section-label" id="disp-section-actions">↩️ Actions</div>
-        <div class="hist-btn-row" id="disp-row-actions" style="flex-direction:row;flex-wrap:nowrap;gap:4px;">
-            <button class="hist-btn" id="hist-undo-btn" onclick="undoAction()" style="flex:1;min-width:0;flex-direction:column;align-items:center;gap:4px;padding:4px 4px;text-align:center;">
-                <span class="hist-btn-ico">↩</span>
-                <span style="font-size:11px;line-height:1.2;">Annuler</span>
-            </button>
-            <button class="hist-btn" id="hist-redo-btn" onclick="redoAction()" style="flex:1;min-width:0;flex-direction:column;align-items:center;gap:4px;padding:4px 4px;text-align:center;">
-                <span class="hist-btn-ico">↪</span>
-                <span style="font-size:11px;line-height:1.2;">Refaire</span>
-            </button>
-            <button class="hist-btn hist-btn-danger" onclick="clearBoard();toggleDisplayPanel()" style="flex:1;min-width:0;flex-direction:column;align-items:center;gap:4px;padding:4px 4px;text-align:center;">
-                <span class="hist-btn-ico">🗑️</span>
-                <span style="font-size:11px;line-height:1.2;">Effacer</span>
-            </button>
-            <button class="hist-btn" onclick="toggleDisplayPanel();openContactForm()" title="Envoyer une remarque à l'auteur du site" style="flex:1;min-width:0;flex-direction:column;align-items:center;gap:4px;padding:4px 4px;text-align:center;">
-                <span class="hist-btn-ico">💬</span>
-                <span style="font-size:11px;line-height:1.2;">Remarques</span>
-            </button>
-            <button class="hist-btn" onclick="openHelpModal();toggleDisplayPanel()" style="flex:1;min-width:0;flex-direction:column;align-items:center;gap:4px;padding:4px 4px;text-align:center;">
-                <span class="hist-btn-ico">❓</span>
-                <span style="font-size:11px;line-height:1.2;">Aide</span>
-            </button>
-        </div>
+		<!-- Rubrique « Actions » déplacée :
+		     Annuler / Refaire → menu du clic droit (appui long) sur le tableau
+		     Effacer           → panneau « Mes tableaux »
+		     Aide / Remarques / À propos → bouton « ? » sous les onglets
+		     Boutons cachés conservés : board.js peut encore y faire référence. -->
+		<div style="display:none;" aria-hidden="true">
+			<button id="hist-undo-btn" onclick="undoAction()" tabindex="-1"></button>
+			<button id="hist-redo-btn" onclick="redoAction()" tabindex="-1"></button>
 		</div>
-		
+
 		<div class="disp-block disp-block-theme">
 		<div class="disp-section-label" id="disp-section-theme">🎨 Thème, pointeur & affichage</div>
         <div class="disp-inline-row" id="disp-row-theme">
@@ -3116,7 +3106,17 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
             <span class="side-tab-lbl">Dessin</span>
         </button>
     </div>
+    <!-- Pastille « ? » : Aide, Remarques, À propos (ce n'est pas un onglet) -->
+    <div class="side-help-wrap">
+        <button id="side-help-btn" type="button" onclick="toggleSideHelpMenu()" title="Aide, remarques et informations" aria-haspopup="menu" aria-expanded="false" aria-controls="side-help-menu">?</button>
+    </div>
 </nav>
+
+<div id="side-help-menu" role="menu" aria-label="Aide et informations">
+    <button role="menuitem" type="button" data-help="aide"><span class="shm-ico">❓</span>Aide</button>
+    <button role="menuitem" type="button" data-help="remarques"><span class="shm-ico">💬</span>Remarques</button>
+    <button role="menuitem" type="button" data-help="apropos"><span class="shm-ico">ℹ️</span>À propos</button>
+</div>
 
 
 
@@ -3588,15 +3588,18 @@ function lancerTracesGeometriques() {
        et chargé automatiquement, sans passer par aucun panneau/onglet.
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="board-quick-menu" style="display:none;">
-    <button data-action="paste" title="Coller (Ctrl+V)"><span class="bqm-ico">📋</span><span class="bqm-lbl">Coller</span></button>
+    <div class="bqm-row">
+        <button data-action="undo" title="Annuler (Ctrl+Z)"><span class="bqm-ico">↩️</span><span class="bqm-lbl">Annuler</span></button>
+        <button data-action="redo" title="Refaire (Ctrl+Y)"><span class="bqm-ico">↪️</span><span class="bqm-lbl">Refaire</span></button>
+        <button data-action="paste" title="Coller (Ctrl+V)"><span class="bqm-ico">📋</span><span class="bqm-lbl">Coller</span></button>
+    </div>
+    <div class="bqm-sep" aria-hidden="true"></div>
     <button data-action="pdf" title="Ouvrir un PDF"><span class="bqm-ico">📄</span><span class="bqm-lbl">PDF</span></button>
     <button data-action="seyes" title="Écriture Seyes"><span class="bqm-ico">✏️</span><span class="bqm-lbl">Écriture Seyes</span></button>
     <button data-action="text" title="Ajouter un texte"><span class="bqm-ico">🔤</span><span class="bqm-lbl">Texte</span></button>
     <button data-action="homework" title="Devoirs à noter"><span class="bqm-ico">📝</span><span class="bqm-lbl">Devoirs à noter</span></button>
     <button data-action="agenda" title="Planning de la journée"><span class="bqm-ico">🗓️</span><span class="bqm-lbl">Planning du jour</span></button>
     <button data-action="minuteur" title="Minuteur et chrono"><span class="bqm-ico">⏱️</span><span class="bqm-lbl">Minuteur / Chrono</span></button>
-    <button data-action="deficalme" title="Défi calme"><span class="bqm-ico">🧘</span><span class="bqm-lbl">Défi calme</span></button>
-    <button data-action="contact" title="Envoyer une remarque à l'auteur du site"><span class="bqm-ico">💬</span><span class="bqm-lbl">Remarques</span></button>
 </div>
 
 <script>
@@ -3609,7 +3612,7 @@ function lancerTracesGeometriques() {
     function openQuickMenu(x, y) {
         menu.style.display = 'flex';
         // Le menu doit rester dans l'écran (évite qu'il sorte à droite/en bas)
-        var mw = 190, mh = 288; // estimation avant mesure réelle
+        var mw = 190, mh = 340; // estimation avant mesure réelle
         requestAnimationFrame(function() {
             var rect = menu.getBoundingClientRect();
             mw = rect.width  || mw;
@@ -3675,7 +3678,11 @@ function lancerTracesGeometriques() {
         if (!btn) return;
         var action = btn.dataset.action;
         closeQuickMenu();
-        if (action === 'paste') {
+        if (action === 'undo' && typeof undoAction === 'function') {
+            undoAction();
+        } else if (action === 'redo' && typeof redoAction === 'function') {
+            redoAction();
+        } else if (action === 'paste') {
             pasteFromQuickMenu();
         } else if (action === 'pdf' && typeof createWidget === 'function') {
             createWidget('pdf');
@@ -4642,6 +4649,274 @@ body.menu-light #contact-status.err { color: #d33a3f; }
             history.replaceState(null, '', location.pathname + (reste ? '?' + reste : '') + location.hash);
         }, 3200);
     });
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PASTILLE « ? » (Aide, Remarques, À propos) + FENÊTRE « À PROPOS »
+     + styles des éléments déplacés depuis l'ancienne rubrique « Actions »
+     Pour changer le numéro de version : modifier APP_VERSION ci-dessous.
+═══════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── Pastille « ? » sous les onglets ── */
+.side-help-wrap { display: flex; justify-content: center; padding: 12px 0 4px; }
+#side-help-btn {
+    pointer-events: auto;   /* #side-tabs est en pointer-events:none (style.css) */
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+    width: 34px; height: 34px; border-radius: 50%; padding: 0; cursor: pointer;
+    border: 1.5px solid rgba(255,255,255,0.25); background: #2a2a32; color: #cfd3dc;
+    font: 800 17px/1 'Quicksand', 'Nunito', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: background .15s, color .15s, border-color .15s, transform .15s;
+}
+#side-help-btn:hover, #side-help-btn[aria-expanded="true"] {
+    background: #4a90e2; border-color: #4a90e2; color: #fff; transform: scale(1.06);
+}
+#side-help-btn:focus-visible { outline: 3px solid #7ab8f5; outline-offset: 2px; }
+body.menu-light #side-help-btn { background: var(--panel-light-bg, #fff); color: #4a5568; border-color: var(--panel-light-border, #d6dae2); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+body.menu-light #side-help-btn:hover,
+body.menu-light #side-help-btn[aria-expanded="true"] { background: #4a90e2; border-color: #4a90e2; color: #fff; }
+/* Téléphone : colonne d'onglets de 40 px */
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+    .side-help-wrap { padding: 8px 0 2px; }
+    #side-help-btn { width: 30px; height: 30px; font-size: 15px; }
+}
+/* Téléphone en paysage : peu de hauteur */
+@media (max-height: 480px) and (pointer: coarse) {
+    .side-help-wrap { padding: 2px 0 0; }
+    #side-help-btn { width: 24px; height: 24px; font-size: 12px; border-width: 1px; }
+}
+body.presentation-mode .side-help-wrap,
+body.presentation-mode #side-help-btn,
+body.presentation-mode #side-help-menu { display: none !important; }
+
+/* ── Bulle du menu « ? » ── */
+#side-help-menu {
+    position: fixed; z-index: 60000; display: none; flex-direction: column; gap: 2px;
+    min-width: 170px; padding: 6px; border-radius: 12px;
+    background: #1f1e26; border: 1px solid #34303f; box-shadow: 0 10px 28px rgba(0,0,0,0.4);
+    font-family: 'Quicksand', 'Nunito', sans-serif;
+}
+#side-help-menu.open { display: flex; }
+#side-help-menu button {
+    all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px; cursor: pointer;
+    color: #e6e4ee; font-size: 14px; font-weight: 700;
+}
+#side-help-menu button:hover, #side-help-menu button:focus-visible { background: rgba(74,144,226,0.22); }
+#side-help-menu .shm-ico { width: 20px; text-align: center; font-size: 16px; }
+body.menu-light #side-help-menu { background: var(--panel-light-bg, #fff); border-color: var(--panel-light-border, #e1e4ea); box-shadow: 0 10px 28px rgba(0,0,0,0.18); }
+body.menu-light #side-help-menu button { color: #2a2440; }
+body.menu-light #side-help-menu button:hover,
+body.menu-light #side-help-menu button:focus-visible { background: #eaf2fc; }
+
+/* ── Bouton « Effacer le tableau affiché » (panneau Mes tableaux) ── */
+#proj-panel-clear-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: calc(100% - 28px); margin: 0 14px 6px; padding: 7px 10px; box-sizing: border-box; flex-shrink: 0;
+    border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 700;
+    background: transparent; color: #ff7b7b; border: 1px dashed rgba(255,107,107,0.55);
+    transition: background .15s, border-color .15s;
+}
+#proj-panel-clear-btn:hover { background: rgba(255,71,87,0.12); border-style: solid; }
+@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+    #proj-panel-clear-btn { width: calc(100% - 20px); margin: 0 10px 6px; padding: 9px 10px; }
+}
+body.menu-light #proj-panel-clear-btn { color: #d33a3f; border-color: rgba(211,58,63,0.45); }
+body.menu-light #proj-panel-clear-btn:hover { background: #fdecec; }
+
+/* ── Menu rapide : ligne Annuler / Refaire ── */
+#board-quick-menu .bqm-row { display: flex; gap: 4px; }
+/* Les 3 boutons de la ligne : icône au-dessus du libellé */
+#board-quick-menu .bqm-row > button {
+    flex: 1; min-width: 0; flex-direction: column; justify-content: center;
+    gap: 3px; padding: 7px 2px; text-align: center; font-size: 11.5px;
+}
+#board-quick-menu .bqm-row .bqm-lbl { flex: none; white-space: nowrap; }
+#board-quick-menu .bqm-sep { height: 1px; margin: 3px 4px; background: rgba(128,128,128,0.3); }
+
+/* ── Fenêtre « À propos » (même style que le formulaire Remarques) ── */
+#about-overlay {
+    position: fixed; inset: 0; z-index: 70000;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(10, 10, 20, 0.55); padding: 16px; box-sizing: border-box;
+}
+#about-overlay.open { display: flex; }
+#about-box {
+    width: 100%; max-width: 480px; max-height: calc(100vh - 32px); overflow-y: auto; box-sizing: border-box;
+    background: #1c1a26; color: #ecebf3; border: 1px solid #2c2838; border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.5);
+    font-family: 'Quicksand', 'Nunito', sans-serif;
+}
+#about-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 16px; color: #fff; border-radius: 18px 18px 0 0;
+    background: linear-gradient(120deg, #4a90e2 0%, #2f6fc4 100%);
+}
+#about-head h3 { margin: 0; font-size: 18px; font-weight: 800; }
+#about-close {
+    width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
+    background: rgba(255,255,255,0.2); color: #fff; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+}
+#about-close:hover { background: rgba(255,255,255,0.35); }
+#about-body { padding: 14px 18px 18px; font-size: 13.5px; line-height: 1.5; }
+#about-body .ab-hero { text-align: center; padding: 4px 0 12px; border-bottom: 1px solid #2c2838; margin-bottom: 10px; }
+#about-body .ab-name { font-size: 20px; font-weight: 800; }
+#about-body .ab-version {
+    display: inline-block; margin-top: 4px; padding: 2px 10px; border-radius: 999px;
+    background: rgba(74,144,226,0.2); color: #9cc6f5; font-size: 12px; font-weight: 800;
+}
+#about-body .ab-author { margin-top: 6px; color: #b9b6c8; }
+#about-body h4 { margin: 12px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #8fb8ea; }
+#about-body p, #about-body ul { margin: 0 0 6px; color: #d5d3df; }
+#about-body ul { padding-left: 18px; }
+#about-body li { margin: 2px 0; }
+#about-body a { color: #7ab8f5; }
+#about-body .ab-actions { display: flex; gap: 8px; margin-top: 14px; }
+#about-body .ab-actions button {
+    flex: 1; padding: 9px; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 13px;
+    font-family: inherit !important; border: 1px solid #34303f; background: #24212f; color: #ecebf3;
+}
+#about-body .ab-actions button.ab-primary { background: #4a90e2; border-color: #4a90e2; color: #fff; }
+body.menu-light #about-box { background: #f5f4f8; color: #2a2440; border-color: #dddbe6; box-shadow: 0 18px 50px rgba(0,0,0,0.25); }
+body.menu-light #about-body .ab-hero { border-bottom-color: #dddbe6; }
+body.menu-light #about-body .ab-author { color: #5c5870; }
+body.menu-light #about-body .ab-version { background: #e3eefb; color: #2f6fc4; }
+body.menu-light #about-body h4 { color: #2f6fc4; }
+body.menu-light #about-body p, body.menu-light #about-body ul { color: #3a3650; }
+body.menu-light #about-body a { color: #2f6fc4; }
+body.menu-light #about-body .ab-actions button { background: #fff; border-color: #e4e2ec; color: #2a2440; }
+body.menu-light #about-body .ab-actions button.ab-primary { background: #4a90e2; border-color: #4a90e2; color: #fff; }
+</style>
+
+<div id="about-overlay" role="dialog" aria-modal="true" aria-labelledby="about-title">
+    <div id="about-box">
+        <div id="about-head">
+            <h3 id="about-title">ℹ️ À propos</h3>
+            <button type="button" id="about-close" title="Fermer" aria-label="Fermer">✕</button>
+        </div>
+        <div id="about-body">
+            <div class="ab-hero">
+                <div class="ab-name">Le Bureau du Prof</div>
+                <div class="ab-version">Version <span id="about-version"></span></div>
+                <div class="ab-author">Conçu par Nicolas BERNARDET · <a href="https://lebureauduprof.fr/" target="_blank" rel="noopener">lebureauduprof.fr</a></div>
+            </div>
+
+            <p>Un tableau blanc numérique gratuit pour la classe : jeux, leçons, activités, outils et widgets à projeter au tableau.</p>
+
+            <h4>Vos données</h4>
+            <ul>
+                <li><strong>Aucune donnée personnelle n'est stockée sur un serveur.</strong> Vos tableaux, listes de classe, prénoms d'élèves et réglages restent dans votre navigateur, sur cet appareil.</li>
+                <li>Pensez à exporter vos tableaux (panneau « Tableaux ») pour en garder une copie : vider les données du navigateur les efface.</li>
+                <li>La fréquentation du site est mesurée avec Google Analytics et GoatCounter.</li>
+                <li>Certains widgets font appel à des services extérieurs quand vous les utilisez (YouTube, Google Maps, Qwant Junior…). Le formulaire « Remarques » passe par Web3Forms : seul ce que vous choisissez d'y écrire est envoyé.</li>
+            </ul>
+
+            <h4>Crédits</h4>
+            <ul>
+                <li>Polices : Nunito, Quicksand, Andika, Baloo et OpenDyslexic (licence SIL Open Font License), Marelle, Belle Allure GS, KG Perfect Penmanship et MDI école (selon les conditions de leurs auteurs).</li>
+                <li>Émojis animés : Noto Emoji, Google.</li>
+            </ul>
+
+            <div class="ab-actions">
+                <button type="button" data-about="remarques">💬 Envoyer une remarque</button>
+                <button type="button" class="ab-primary" data-about="close">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var APP_VERSION = '4.1';
+    window.APP_VERSION = APP_VERSION;
+    var v = document.getElementById('about-version');
+    if (v) v.textContent = APP_VERSION;
+
+    /* ── Fenêtre « À propos » ── */
+    var overlay = document.getElementById('about-overlay');
+    var lastFocus = null;
+
+    function openAboutModal() {
+        lastFocus = document.activeElement;
+        overlay.classList.add('open');
+        setTimeout(function() { document.getElementById('about-close').focus(); }, 50);
+    }
+    function closeAboutModal() {
+        overlay.classList.remove('open');
+        if (lastFocus && typeof lastFocus.focus === 'function') { try { lastFocus.focus(); } catch (e) {} }
+    }
+    window.openAboutModal  = openAboutModal;
+    window.closeAboutModal = closeAboutModal;
+
+    document.getElementById('about-close').addEventListener('click', closeAboutModal);
+    overlay.addEventListener('mousedown', function(e) { if (e.target === overlay) closeAboutModal(); });
+    overlay.addEventListener('click', function(e) {
+        var b = e.target.closest('[data-about]');
+        if (!b) return;
+        closeAboutModal();
+        if (b.dataset.about === 'remarques' && typeof openContactForm === 'function') openContactForm();
+    });
+    // Les touches ne déclenchent pas les raccourcis du tableau ; Échap ferme la fenêtre
+    overlay.addEventListener('keydown', function(e) {
+        e.stopPropagation();
+        if (e.key === 'Escape') { e.preventDefault(); closeAboutModal(); }
+    });
+
+    /* ── Pastille « ? » et sa bulle ── */
+    var btn  = document.getElementById('side-help-btn');
+    var menu = document.getElementById('side-help-menu');
+    if (!btn || !menu) return;
+
+    function placeMenu() {
+        var r = btn.getBoundingClientRect();
+        var m = menu.getBoundingClientRect();
+        var M = 8;
+        // À droite de la pastille si possible, sinon à gauche
+        var left = r.right + 10;
+        if (left + m.width > window.innerWidth - M) left = r.left - m.width - 10;
+        // Alignée sur le bas de la pastille (la pastille est en bas de la colonne)
+        var top = r.bottom - m.height;
+        left = Math.max(M, Math.min(left, window.innerWidth - m.width - M));
+        top  = Math.max(M, Math.min(top,  window.innerHeight - m.height - M));
+        menu.style.left = left + 'px';
+        menu.style.top  = top + 'px';
+    }
+    function openSideHelpMenu() {
+        menu.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+        placeMenu();
+    }
+    function closeSideHelpMenu() {
+        menu.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+    }
+    window.toggleSideHelpMenu = function() {
+        if (menu.classList.contains('open')) closeSideHelpMenu(); else openSideHelpMenu();
+    };
+
+    menu.addEventListener('click', function(e) {
+        var item = e.target.closest('[data-help]');
+        if (!item) return;
+        closeSideHelpMenu();
+        var what = item.dataset.help;
+        if (what === 'aide' && typeof openHelpModal === 'function') openHelpModal();
+        else if (what === 'remarques' && typeof openContactForm === 'function') openContactForm();
+        else if (what === 'apropos') openAboutModal();
+    });
+
+    document.addEventListener('pointerdown', function(e) {
+        if (!menu.classList.contains('open')) return;
+        if (menu.contains(e.target) || btn.contains(e.target)) return;
+        closeSideHelpMenu();
+    }, true);
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && menu.classList.contains('open')) closeSideHelpMenu();
+    });
+    window.addEventListener('resize', closeSideHelpMenu);
 })();
 </script>
 

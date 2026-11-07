@@ -39,7 +39,7 @@
             widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = 'none');
             const miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
             const labelEl = document.createElement('span');
             labelEl.textContent = label;
             labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -158,7 +158,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            cursor: move;
+            cursor: grab;
             user-select: none;
         }
         .sa-title {
@@ -324,7 +324,7 @@
             display: block;
             border: 1px solid #e5e7eb;
             touch-action: none;
-            cursor: crosshair;
+            cursor: pointer;
             max-width: 100%;
             height: auto;
         }
@@ -1044,7 +1044,7 @@ function createSymetrieAxialeWidget(savedData) {
         currentTool   = tool;
         isGommeActive = false;
         svg.classList.remove('cursor-gomme');
-        svg.style.cursor = 'crosshair';
+        svg.style.cursor = 'pointer';
         resetAide();
         updateBucketCursor();
         updateToolButtons();
@@ -1054,7 +1054,7 @@ function createSymetrieAxialeWidget(savedData) {
         isGommeActive = !isGommeActive;
         resetAide();
         if (isGommeActive) svg.classList.add('cursor-gomme');
-        else { svg.classList.remove('cursor-gomme'); svg.style.cursor = 'crosshair'; }
+        else { svg.classList.remove('cursor-gomme'); svg.style.cursor = 'pointer'; }
         updateBucketCursor();
         updateToolButtons();
     }
@@ -1784,6 +1784,29 @@ function createSymetrieAxialeWidget(savedData) {
 
 // Téléphone (même détection que les jeux)
 function _wfIsPhone() {
-    if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-symetrie-axiale')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-symetrie-axiale';
+    st.textContent = `
+.widget[data-type="symetrie-axiale"] { cursor: default; }
+.widget[data-type="symetrie-axiale"] .sa-header { cursor: grab; }
+.widget[data-type="symetrie-axiale"] .sa-header:active { cursor: grabbing; }
+.widget[data-type="symetrie-axiale"] .wf-fullboard .sa-header, .widget[data-type="symetrie-axiale"] .clr-fullboard .sa-header, .widget[data-type="symetrie-axiale"] .pixelart-fullboard .sa-header, .widget[data-type="symetrie-axiale"] .wf-fullboard .sa-header:active, .widget[data-type="symetrie-axiale"] .clr-fullboard .sa-header:active, .widget[data-type="symetrie-axiale"] .pixelart-fullboard .sa-header:active { cursor: default; }
+.widget[data-type="symetrie-axiale"] .sa-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="symetrie-axiale"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="symetrie-axiale"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="symetrie-axiale"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="symetrie-axiale"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="symetrie-axiale"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="symetrie-axiale"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

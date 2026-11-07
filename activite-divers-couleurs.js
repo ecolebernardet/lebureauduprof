@@ -3,11 +3,13 @@
 // setKey   : nom de la fonction de restauration (widget._xxSetData) : si le widget est
 //            restauré depuis une sauvegarde, le plein écran automatique est annulé.
 // launchOnly : n'ouvrir que si le widget vient d'être lancé depuis un panneau.
-if (!window._wfPhoneAutoMax) {
+// (version téléphone + tablette : elle remplace une ancienne version téléphone seul)
+if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
     window._wfPhoneAutoMax = function (widget, open, isOpen, setKey, launchOnly) {
         var phone = false;
         if (typeof isMobileBoardMode === 'function') { try { phone = !!isMobileBoardMode(); } catch (e) {} }
-        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches;
+        if (!phone && typeof isTabletBoardMode === 'function') { try { phone = !!isTabletBoardMode(); } catch (e) {} }
+        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches;
         if (!phone) return;
         if (launchOnly && !(typeof window._wfLastLaunch === 'number' && Date.now() - window._wfLastLaunch <= 2500)) return;
         var restored = false, auto = false;
@@ -26,6 +28,7 @@ if (!window._wfPhoneAutoMax) {
             open();
         });
     };
+    window._wfPhoneAutoMax._tablet = true;
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -250,10 +253,10 @@ function createCouleursWidget() {
         const s = document.createElement('style');
         s.id = 'clr-style';
         s.textContent = `
-        .widget[data-type="couleurs"] { cursor: move; overflow: visible !important; }
+        .widget[data-type="couleurs"] { cursor: default; overflow: visible !important; }
         .widget[data-type="couleurs"] button { cursor: pointer; }
         .widget[data-type="couleurs"] .custom-resize-handle { cursor: se-resize; }
-        .widget[data-type="couleurs"] .drag-handle { cursor: move; }
+        .widget[data-type="couleurs"] .drag-handle { cursor: grab; }
 
         .clr-ec { overflow: visible !important; display: flex; flex-direction: column; height: auto !important; }
 
@@ -304,7 +307,7 @@ function createCouleursWidget() {
             padding: .6em .9em;
             background: var(--clr-surface);
             border-bottom: 1px solid var(--clr-line);
-            cursor: move; user-select: none; flex-shrink: 0;
+            cursor: grab; user-select: none; flex-shrink: 0;
         }
         .clr-title { font-size: 1em; font-weight: 600; letter-spacing: .01em; display: flex; align-items: center; gap: .45em; }
         .clr-title-dots { display: inline-flex; }
@@ -1228,3 +1231,28 @@ function _initCouleursWidget(widget) {
     render();
     renderSaved();
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-couleurs')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-couleurs';
+    st.textContent = `
+.widget[data-type="couleurs"] { cursor: default; }
+.widget[data-type="couleurs"] .clr-header { cursor: grab; }
+.widget[data-type="couleurs"] .clr-header:active { cursor: grabbing; }
+.widget[data-type="couleurs"] .wf-fullboard .clr-header, .widget[data-type="couleurs"] .clr-fullboard .clr-header, .widget[data-type="couleurs"] .pixelart-fullboard .clr-header, .widget[data-type="couleurs"] .wf-fullboard .clr-header:active, .widget[data-type="couleurs"] .clr-fullboard .clr-header:active, .widget[data-type="couleurs"] .pixelart-fullboard .clr-header:active { cursor: default; }
+.widget[data-type="couleurs"] .clr-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="couleurs"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="couleurs"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="couleurs"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="couleurs"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="couleurs"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="couleurs"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+.widget[data-type="couleurs"] .drag-handle { cursor: grab; }
+.widget[data-type="couleurs"] .drag-handle:active { cursor: grabbing; }
+.widget[data-type="couleurs"] .clr-paint, .widget[data-type="couleurs"] .clr-jar, .widget[data-type="couleurs"] .clr-chip, .widget[data-type="couleurs"] .clr-chip-del { cursor: pointer; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

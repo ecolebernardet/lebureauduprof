@@ -751,6 +751,14 @@ function _oadInit(c) {
     _oadRender(c);
     new MutationObserver(() => _oadFitFullboard(c)).observe(c, { attributes: true, attributeFilter: ['class'] });
     _oadFitFullboard(c);
+    // Téléphone et tablette : un nouveau widget s'ouvre directement en plein écran (bouton vert)
+    if (!window.isInitialLoading && !window.isRestoringState && _oadIsPhoneOrTablet()) {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (!c.isConnected || c.classList.contains('wf-media-fullboard')) return;
+            const b = c.querySelector('.wf-btn-max');
+            if (b) b.click();
+        }));
+    }
 }
 // Passage à minuit (ou retour sur l'onglet le lendemain) : nouvelle œuvre du jour
 setInterval(() => {
@@ -768,6 +776,12 @@ const _OAD_FS_PROPS = ['position', 'inset', 'top', 'right', 'bottom', 'left', 'w
 function _oadIsPhone() {
     if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
     return !!(window.matchMedia && window.matchMedia(_OAD_PHONE_Q).matches);
+}
+// Téléphone OU tablette (ouverture automatique en plein écran)
+function _oadIsPhoneOrTablet() {
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 function _oadFitFullboard(c) {
     const on = c.classList.contains('wf-media-fullboard') && _oadIsPhone();
@@ -981,11 +995,13 @@ window.createOeuvreArtDuJourWidget = function () {
 .editor-container.oad-w .oad-bar,.editor-container.oad-w .oad-bar .oad-bar-title{cursor:grab!important;touch-action:none}
 .editor-container.oad-w .oad-bar.is-dragging,.editor-container.oad-w .oad-bar.is-dragging *{cursor:grabbing!important}
 .editor-container.oad-w.wf-media-fullboard .oad-bar,.editor-container.oad-w.wf-media-fullboard .oad-bar-title{cursor:default!important}
+.editor-container.oad-w .oad-bar:active,.editor-container.oad-w .oad-bar:active .oad-bar-title{cursor:grabbing!important}
+.editor-container.oad-w.wf-media-fullboard .oad-bar:active,.editor-container.oad-w.wf-media-fullboard .oad-bar:active .oad-bar-title{cursor:default!important}
 .editor-container.oad-w button,.editor-container.oad-w button *,.editor-container.oad-w .oad-link,
 .editor-container.oad-w .oad-toc-it,.editor-container.oad-w .oad-toc-it *{cursor:pointer!important}
 .editor-container.oad-w .oad-toc-input{cursor:text!important}
-.editor-container.oad-w .oad-art,.editor-container.oad-w .oad-art .oad-img{cursor:zoom-in!important}
-.editor-container.oad-w.is-present .oad-art,.editor-container.oad-w.is-present .oad-art .oad-img{cursor:zoom-out!important}
+.editor-container.oad-w .oad-art,.editor-container.oad-w .oad-art .oad-img{cursor:pointer!important}
+.editor-container.oad-w.is-present .oad-art,.editor-container.oad-w.is-present .oad-art .oad-img{cursor:pointer!important}
 /* Message temporaire */
 .oad-w .oad-flash{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:13;max-width:calc(100% - 24px);box-sizing:border-box;
   padding:7px 14px;border-radius:12px;background:rgba(0,0,0,.85);color:#fff;font-size:12.5px;font-weight:600;text-align:center;

@@ -201,7 +201,8 @@ function _csEsc(t) {
 }
 function _csIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 function _csSpeak(text) {
     try {
@@ -265,7 +266,7 @@ function _csSpeak(text) {
             -webkit-user-select: none;
             overflow: hidden;
         }
-        .cs-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: move; }
+        .cs-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: grab; }
         .cs-title { font-size: 13px; font-weight: 800; color: #374151; letter-spacing: .3px; pointer-events: none; }
         .cs-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #fef3c7; color: #92400e; }
 
@@ -1028,3 +1029,25 @@ function createChasseSonWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-chasse-son')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-chasse-son';
+    st.textContent = `
+.widget[data-type="chasse-son"] { cursor: default; }
+.widget[data-type="chasse-son"] .cs-header { cursor: grab; }
+.widget[data-type="chasse-son"] .cs-header:active { cursor: grabbing; }
+.widget[data-type="chasse-son"] .wf-fullboard .cs-header, .widget[data-type="chasse-son"] .clr-fullboard .cs-header, .widget[data-type="chasse-son"] .pixelart-fullboard .cs-header, .widget[data-type="chasse-son"] .wf-fullboard .cs-header:active, .widget[data-type="chasse-son"] .clr-fullboard .cs-header:active, .widget[data-type="chasse-son"] .pixelart-fullboard .cs-header:active { cursor: default; }
+.widget[data-type="chasse-son"] .cs-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="chasse-son"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="chasse-son"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="chasse-son"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="chasse-son"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="chasse-son"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="chasse-son"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

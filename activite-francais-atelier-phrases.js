@@ -70,7 +70,7 @@
         .atp-container input { user-select: text; -webkit-user-select: text; font-family: inherit; }
 
         /* En-tête */
-        .atp-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: move; }
+        .atp-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: grab; }
         .atp-title { font-size: 13px; font-weight: 800; color: #374151; letter-spacing: .3px; pointer-events: none; }
         .atp-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #fdecd8; color: #9a4a00; }
 
@@ -467,7 +467,8 @@ function _atpGuessPronoun(g) {
 
 function _atpIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 // ── Création du widget ────────────────────────────────────────────────────
@@ -1543,3 +1544,26 @@ function createAtelierPhrasesWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-atelier-phrases')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-atelier-phrases';
+    st.textContent = `
+.widget[data-type="atelier-phrases"] { cursor: default; }
+.widget[data-type="atelier-phrases"] .atp-header { cursor: grab; }
+.widget[data-type="atelier-phrases"] .atp-header:active { cursor: grabbing; }
+.widget[data-type="atelier-phrases"] .wf-fullboard .atp-header, .widget[data-type="atelier-phrases"] .clr-fullboard .atp-header, .widget[data-type="atelier-phrases"] .pixelart-fullboard .atp-header, .widget[data-type="atelier-phrases"] .wf-fullboard .atp-header:active, .widget[data-type="atelier-phrases"] .clr-fullboard .atp-header:active, .widget[data-type="atelier-phrases"] .pixelart-fullboard .atp-header:active { cursor: default; }
+.widget[data-type="atelier-phrases"] .atp-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="atelier-phrases"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="atelier-phrases"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="atelier-phrases"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="atelier-phrases"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="atelier-phrases"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="atelier-phrases"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+.widget[data-type="atelier-phrases"] .atp-mode-move .atp-g:not(.clitic) .atp-g-box:active { cursor: grabbing; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

@@ -5,7 +5,8 @@
 // ── Détection téléphone (même règle que le Taquin et style-phone.css) ─────
 function _tnumIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 function createTableauNumWidget() {
@@ -797,3 +798,28 @@ function _refreshRowInputsDOM(tr, row) {
 function _tnumRowId() {
     return 'r' + Math.random().toString(36).slice(2, 9);
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-tableau-num')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-tableau-num';
+    st.textContent = `
+.widget[data-type="tableau-num"] { cursor: default; }
+.widget[data-type="tableau-num"] .tnum-header { cursor: grab; }
+.widget[data-type="tableau-num"] .tnum-header:active { cursor: grabbing; }
+.widget[data-type="tableau-num"] .wf-fullboard .tnum-header, .widget[data-type="tableau-num"] .tnum-fullboard .tnum-header, .widget[data-type="tableau-num"] .s3d-fullboard .tnum-header, .widget[data-type="tableau-num"] .wf-fullboard .tnum-header:active, .widget[data-type="tableau-num"] .tnum-fullboard .tnum-header:active, .widget[data-type="tableau-num"] .s3d-fullboard .tnum-header:active { cursor: default; }
+.widget[data-type="tableau-num"] .tnum-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="tableau-num"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="tableau-num"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="tableau-num"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="tableau-num"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="tableau-num"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="tableau-num"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+.widget[data-type="tableau-num"] .tnum-step, .widget[data-type="tableau-num"] .tnum-toggle-label, .widget[data-type="tableau-num"] .tnum-mode-btn, .widget[data-type="tableau-num"] .tnum-settings-toggle, .widget[data-type="tableau-num"] .tnum-help-btn { cursor: pointer; }
+.widget[data-type="tableau-num"] .tnum-toggle-label:has(input:disabled) { cursor: default; }
+.widget[data-type="tableau-num"] .tnum-digit { cursor: text; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

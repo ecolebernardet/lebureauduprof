@@ -351,7 +351,8 @@ function _zdParse(txt) {
 // Téléphone (même détection que les autres jeux et activités)
 function _zdIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 // ── Création du widget ────────────────────────────────────────────────────
@@ -1279,3 +1280,25 @@ function createZoomDecimauxWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-zoom-decimaux')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-zoom-decimaux';
+    st.textContent = `
+.widget[data-type="zoom-decimaux"] { cursor: default; }
+.widget[data-type="zoom-decimaux"] .zd-header { cursor: grab; }
+.widget[data-type="zoom-decimaux"] .zd-header:active { cursor: grabbing; }
+.widget[data-type="zoom-decimaux"] .wf-fullboard .zd-header, .widget[data-type="zoom-decimaux"] .tnum-fullboard .zd-header, .widget[data-type="zoom-decimaux"] .s3d-fullboard .zd-header, .widget[data-type="zoom-decimaux"] .wf-fullboard .zd-header:active, .widget[data-type="zoom-decimaux"] .tnum-fullboard .zd-header:active, .widget[data-type="zoom-decimaux"] .s3d-fullboard .zd-header:active { cursor: default; }
+.widget[data-type="zoom-decimaux"] .zd-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="zoom-decimaux"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="zoom-decimaux"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="zoom-decimaux"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="zoom-decimaux"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="zoom-decimaux"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="zoom-decimaux"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

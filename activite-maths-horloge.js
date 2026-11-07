@@ -15,7 +15,8 @@
 // ── Détection téléphone (plein écran automatique, cf. Taquin) ──────────
 function _hrlgIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 function _hrlgInjectStyles() {
@@ -28,7 +29,7 @@ function _hrlgInjectStyles() {
         src: url('polices/MarelleBaton-Regular.ttf') format('truetype');
         font-weight: normal; font-style: normal;
     }
-    .widget[data-type="horloge"] { cursor: move; overflow: visible !important; }
+    .widget[data-type="horloge"] { cursor: default; overflow: visible !important; }
     /* Réduit en mini-barre : la mini-barre impose 300×50 et masque le reste */
     .widget[data-type="horloge"].hrlg-collapsed { overflow: hidden !important; }
     .widget[data-type="horloge"].hrlg-fit {
@@ -36,7 +37,7 @@ function _hrlgInjectStyles() {
         min-width: 0 !important; min-height: 0 !important;
     }
     .widget[data-type="horloge"] button { cursor: pointer; }
-    .widget[data-type="horloge"] .drag-handle { cursor: move; }
+    .widget[data-type="horloge"] .drag-handle { cursor: grab; }
 
     .hrlg-ec { overflow: visible !important; display: flex; flex-direction: column; height: auto !important; }
 
@@ -69,7 +70,7 @@ function _hrlgInjectStyles() {
         display: flex; align-items: center; gap: 0.5em;
         padding: 0.5em 0.8em; background: var(--h-head);
         border-bottom: 1px solid var(--h-line); border-radius: 1.1em 1.1em 0 0;
-        cursor: move; user-select: none;
+        cursor: grab; user-select: none;
     }
     .hrlg-title { font-size: 0.9em; font-weight: 800; color: var(--h-muted); letter-spacing: .02em; }
     .hrlg-icon-btn {
@@ -1162,3 +1163,27 @@ function _initHorlogeWidget(widget, uid) {
 
     render();
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-horloge')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-horloge';
+    st.textContent = `
+.widget[data-type="horloge"] { cursor: default; }
+.widget[data-type="horloge"] .hrlg-header { cursor: grab; }
+.widget[data-type="horloge"] .hrlg-header:active { cursor: grabbing; }
+.widget[data-type="horloge"] .wf-fullboard .hrlg-header, .widget[data-type="horloge"] .tnum-fullboard .hrlg-header, .widget[data-type="horloge"] .s3d-fullboard .hrlg-header, .widget[data-type="horloge"] .wf-fullboard .hrlg-header:active, .widget[data-type="horloge"] .tnum-fullboard .hrlg-header:active, .widget[data-type="horloge"] .s3d-fullboard .hrlg-header:active { cursor: default; }
+.widget[data-type="horloge"] .hrlg-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="horloge"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="horloge"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="horloge"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="horloge"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="horloge"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="horloge"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+.widget[data-type="horloge"] .drag-handle { cursor: grab; }
+.widget[data-type="horloge"] .drag-handle:active { cursor: grabbing; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

@@ -161,7 +161,7 @@
         }
         .bal-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
         .bal-svg .item { cursor: pointer; }
-        .bal-svg .item.locked { cursor: not-allowed; }
+        .bal-svg .item.locked { cursor: default; }
         .bal-svg .item:not(.locked):hover { filter: brightness(1.06) drop-shadow(0 0 4px rgba(37,99,235,.6)); }
         .bal-ghost { position: fixed; z-index: 100000; pointer-events: none; transform: translate(-50%, -50%) scale(1.15); opacity: .92; }
 
@@ -259,7 +259,8 @@ function _balEsc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').r
 function _balRnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
 function _balIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 // Décompose un nombre avec les étiquettes disponibles (le moins d'étiquettes possible)
 function _balDecompose(n, set) {
@@ -1060,3 +1061,25 @@ function createBalanceWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-balance')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-balance';
+    st.textContent = `
+.widget[data-type="balance"] { cursor: default; }
+.widget[data-type="balance"] .bal-header { cursor: grab; }
+.widget[data-type="balance"] .bal-header:active { cursor: grabbing; }
+.widget[data-type="balance"] .wf-fullboard .bal-header, .widget[data-type="balance"] .tnum-fullboard .bal-header, .widget[data-type="balance"] .s3d-fullboard .bal-header, .widget[data-type="balance"] .wf-fullboard .bal-header:active, .widget[data-type="balance"] .tnum-fullboard .bal-header:active, .widget[data-type="balance"] .s3d-fullboard .bal-header:active { cursor: default; }
+.widget[data-type="balance"] .bal-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="balance"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="balance"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="balance"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="balance"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="balance"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="balance"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

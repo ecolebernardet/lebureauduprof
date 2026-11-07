@@ -400,7 +400,8 @@ function _b10Pl(n, sing, plur) { return n + ' ' + (n > 1 ? plur : sing); }
 
 function _b10IsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 // ── Création du widget ────────────────────────────────────────────────────
@@ -1473,3 +1474,25 @@ function createBaseDixWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-base-dix')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-base-dix';
+    st.textContent = `
+.widget[data-type="base-dix"] { cursor: default; }
+.widget[data-type="base-dix"] .b10-header { cursor: grab; }
+.widget[data-type="base-dix"] .b10-header:active { cursor: grabbing; }
+.widget[data-type="base-dix"] .wf-fullboard .b10-header, .widget[data-type="base-dix"] .tnum-fullboard .b10-header, .widget[data-type="base-dix"] .s3d-fullboard .b10-header, .widget[data-type="base-dix"] .wf-fullboard .b10-header:active, .widget[data-type="base-dix"] .tnum-fullboard .b10-header:active, .widget[data-type="base-dix"] .s3d-fullboard .b10-header:active { cursor: default; }
+.widget[data-type="base-dix"] .b10-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="base-dix"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="base-dix"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="base-dix"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="base-dix"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="base-dix"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="base-dix"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

@@ -11,7 +11,7 @@ function createSolide3DWidget(fromSave) {
         s.id = 's3d-style';
         s.textContent = `
         .widget[data-type="solide3d"] {
-            cursor: move;
+            cursor: default;
             overflow: visible !important;
         }
         .s3d-container {
@@ -36,7 +36,7 @@ function createSolide3DWidget(fromSave) {
             background: #162535;
             border-bottom: 1px solid #1e3a50;
             border-radius: 14px 14px 0 0;
-            cursor: move;
+            cursor: grab;
             user-select: none;
             flex-wrap: wrap;
             flex-shrink: 0;
@@ -1136,6 +1136,29 @@ function _initSolide3D(widget) {
 
 // Téléphone (même détection que les jeux)
 function _wfIsPhone() {
-    if (typeof isMobileBoardMode === 'function') { try { return !!isMobileBoardMode(); } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-solide3d')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-solide3d';
+    st.textContent = `
+.widget[data-type="solide3d"] { cursor: default; }
+.widget[data-type="solide3d"] .s3d-header { cursor: grab; }
+.widget[data-type="solide3d"] .s3d-header:active { cursor: grabbing; }
+.widget[data-type="solide3d"] .wf-fullboard .s3d-header, .widget[data-type="solide3d"] .tnum-fullboard .s3d-header, .widget[data-type="solide3d"] .s3d-fullboard .s3d-header, .widget[data-type="solide3d"] .wf-fullboard .s3d-header:active, .widget[data-type="solide3d"] .tnum-fullboard .s3d-header:active, .widget[data-type="solide3d"] .s3d-fullboard .s3d-header:active { cursor: default; }
+.widget[data-type="solide3d"] .s3d-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="solide3d"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="solide3d"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="solide3d"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="solide3d"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="solide3d"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="solide3d"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

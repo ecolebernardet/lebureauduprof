@@ -350,7 +350,8 @@ function _peqPl(n, sing, plur) { return n + ' ' + (n > 1 ? plur : sing); }
 
 function _peqIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 // ── Création du widget ────────────────────────────────────────────────────
@@ -1184,3 +1185,25 @@ function createPartageEquitableWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-partage-equitable')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-partage-equitable';
+    st.textContent = `
+.widget[data-type="partage-equitable"] { cursor: default; }
+.widget[data-type="partage-equitable"] .peq-header { cursor: grab; }
+.widget[data-type="partage-equitable"] .peq-header:active { cursor: grabbing; }
+.widget[data-type="partage-equitable"] .wf-fullboard .peq-header, .widget[data-type="partage-equitable"] .tnum-fullboard .peq-header, .widget[data-type="partage-equitable"] .s3d-fullboard .peq-header, .widget[data-type="partage-equitable"] .wf-fullboard .peq-header:active, .widget[data-type="partage-equitable"] .tnum-fullboard .peq-header:active, .widget[data-type="partage-equitable"] .s3d-fullboard .peq-header:active { cursor: default; }
+.widget[data-type="partage-equitable"] .peq-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="partage-equitable"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="partage-equitable"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="partage-equitable"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="partage-equitable"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="partage-equitable"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="partage-equitable"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

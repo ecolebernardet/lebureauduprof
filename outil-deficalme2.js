@@ -32,7 +32,7 @@ if (!window._wfMiniBarCollapse) {
         widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = 'none');
         const miniBar = document.createElement('div');
         miniBar.className = 'wf-mini-bar';
-        miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+        miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
         const labelEl = document.createElement('span');
         labelEl.textContent = label;
         labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -1249,8 +1249,9 @@ const DC2_DRAWINGS = [
 // (bouton vert) — pas lors de la restauration d'un tableau enregistré.
 function _wfIsPhoneLaunch() {
     if (window.isInitialLoading || window.isRestoringState) return false;
-    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 function createDeficalme2Widget() {
@@ -2186,3 +2187,27 @@ function createDeficalme2Widget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-deficalme2')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-deficalme2';
+    st.textContent = `
+.widget[data-type="deficalme2"] { cursor: default; }
+.widget[data-type="deficalme2"] .dc2-header { cursor: grab; }
+.widget[data-type="deficalme2"] .dc2-header:active { cursor: grabbing; }
+.widget[data-type="deficalme2"] .wf-fullboard .dc2-header, .widget[data-type="deficalme2"] .wf-fullboard .dc2-header:active, .widget[data-type="deficalme2"] .cb-fullboard .dc2-header, .widget[data-type="deficalme2"] .cb-fullboard .dc2-header:active, .widget[data-type="deficalme2"] .radar-fullboard .dc2-header, .widget[data-type="deficalme2"] .radar-fullboard .dc2-header:active, .widget[data-type="deficalme2"] .sono-fullboard .dc2-header, .widget[data-type="deficalme2"] .sono-fullboard .dc2-header:active { cursor: default !important; }
+.widget[data-type="deficalme2"] .dc2-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+.widget[data-type="deficalme2"] .drag-handle { cursor: grab; }
+.widget[data-type="deficalme2"] .drag-handle:active { cursor: grabbing; }
+:where(.widget[data-type="deficalme2"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="deficalme2"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="deficalme2"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="deficalme2"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="deficalme2"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="deficalme2"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

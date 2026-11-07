@@ -857,6 +857,14 @@ function _ambInit(c) {
     _ambRender(c);
     new MutationObserver(() => _ambFitFullboard(c)).observe(c, { attributes: true, attributeFilter: ['class'] });
     _ambFitFullboard(c);
+    // Téléphone et tablette : un nouveau widget s'ouvre directement en plein écran (bouton vert)
+    if (!window.isInitialLoading && !window.isRestoringState && _ambIsPhoneOrTablet()) {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (!c.isConnected || c.classList.contains('wf-media-fullboard')) return;
+            const b = c.querySelector('.wf-btn-max');
+            if (b) b.click();
+        }));
+    }
 }
 
 /* ── Plein écran (bouton vert) sur téléphone : laisser la place des onglets à gauche ── */
@@ -866,6 +874,13 @@ const _AMB_FS_PROPS = ['position', 'inset', 'top', 'right', 'bottom', 'left', 'w
 function _ambIsPhone() {
     if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
     return !!(window.matchMedia && window.matchMedia(_AMB_PHONE_Q).matches);
+}
+// Téléphone OU tablette (ouverture automatique en plein écran)
+function _ambIsPhoneOrTablet() {
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 function _ambFitFullboard(c) {
     const on = c.classList.contains('wf-media-fullboard') && _ambIsPhone();
@@ -1071,6 +1086,8 @@ window.createAmbianceSonoreWidget = function () {
 .editor-container.amb-w .amb-bar,.editor-container.amb-w .amb-bar .amb-bar-title{cursor:grab!important;touch-action:none}
 .editor-container.amb-w .amb-bar.is-dragging,.editor-container.amb-w .amb-bar.is-dragging *{cursor:grabbing!important}
 .editor-container.amb-w.wf-media-fullboard .amb-bar,.editor-container.amb-w.wf-media-fullboard .amb-bar-title{cursor:default!important}
+.editor-container.amb-w .amb-bar:active,.editor-container.amb-w .amb-bar:active .amb-bar-title{cursor:grabbing!important}
+.editor-container.amb-w.wf-media-fullboard .amb-bar:active,.editor-container.amb-w.wf-media-fullboard .amb-bar:active .amb-bar-title{cursor:default!important}
 .editor-container.amb-w button,.editor-container.amb-w button *,.editor-container.amb-w .amb-tile,.editor-container.amb-w .amb-tile *,
 .editor-container.amb-w label,.editor-container.amb-w input{cursor:pointer!important}
 .editor-container.amb-w input.amb-min{cursor:text!important}

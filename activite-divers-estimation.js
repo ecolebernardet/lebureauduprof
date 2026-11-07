@@ -298,7 +298,8 @@ function _estEsc(t) {
 function _estFmt(n) { return Number(n).toLocaleString('fr-FR'); }
 function _estIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 // Place « count » objets sans trop de chevauchement dans une zone
@@ -1447,3 +1448,26 @@ function createEstimationWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-estimation')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-estimation';
+    st.textContent = `
+.widget[data-type="estimation"] { cursor: default; }
+.widget[data-type="estimation"] .est-header { cursor: grab; }
+.widget[data-type="estimation"] .est-header:active { cursor: grabbing; }
+.widget[data-type="estimation"] .wf-fullboard .est-header, .widget[data-type="estimation"] .wf-fullboard .est-header:active, .widget[data-type="estimation"].wf-fullboard .est-header, .widget[data-type="estimation"].wf-fullboard .est-header:active { cursor: default; }
+.widget[data-type="estimation"] .est-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="estimation"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="estimation"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="estimation"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="estimation"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="estimation"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="estimation"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+.widget[data-type="estimation"] .est-sel { cursor: pointer; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

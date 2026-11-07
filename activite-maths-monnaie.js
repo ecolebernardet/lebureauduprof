@@ -10,7 +10,8 @@
 // ── Détection téléphone (plein écran automatique, cf. Taquin) ──────────
 function _monnaieIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 // ── CSS ───────────────────────────────────────────────────────────────────
@@ -55,7 +56,7 @@ function _monnaieIsPhone() {
             // Créer la mini-barre
             const miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
 
             const labelEl = document.createElement('span');
             labelEl.textContent = label;
@@ -185,7 +186,7 @@ function _monnaieIsPhone() {
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            cursor: move;
+            cursor: grab;
             user-select: none;
         }
         .monnaie-title {
@@ -1103,3 +1104,25 @@ function createMonnaieWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-monnaie')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-monnaie';
+    st.textContent = `
+.widget[data-type="monnaie"] { cursor: default; }
+.widget[data-type="monnaie"] .monnaie-header { cursor: grab; }
+.widget[data-type="monnaie"] .monnaie-header:active { cursor: grabbing; }
+.widget[data-type="monnaie"] .wf-fullboard .monnaie-header, .widget[data-type="monnaie"] .wf-fullboard .monnaie-header:active, .widget[data-type="monnaie"].wf-fullboard .monnaie-header, .widget[data-type="monnaie"].wf-fullboard .monnaie-header:active { cursor: default; }
+.widget[data-type="monnaie"] .monnaie-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="monnaie"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="monnaie"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="monnaie"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="monnaie"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="monnaie"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="monnaie"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

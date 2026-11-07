@@ -14,7 +14,8 @@
     // un téléphone en paysage : on complète avec la même media query.
     function _isPhone() {
         if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
     }
 
     // ── Fonction utilitaire mini-barre collapse (partagée, injectée une seule fois) ──
@@ -38,7 +39,7 @@
             widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = 'none');
             const miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
             const labelEl = document.createElement('span');
             labelEl.textContent = label;
             labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -160,7 +161,7 @@
 
         .ncl-header {
             display: flex; align-items: center; justify-content: space-between;
-            gap: calc(8px * var(--ncl-s)); cursor: move; user-select: none;
+            gap: calc(8px * var(--ncl-s)); cursor: grab; user-select: none;
         }
         .ncl-title {
             font-size: calc(13px * var(--ncl-s)); font-weight: 800; color: #374151;
@@ -249,13 +250,13 @@
             display: inline-flex; align-items: center; justify-content: center;
             min-width: calc(38px * var(--ncl-s)); height: calc(25px * var(--ncl-s));
             padding: 0 calc(8px * var(--ncl-s)); border-radius: calc(8px * var(--ncl-s));
-            font-size: calc(12px * var(--ncl-s)); font-weight: 700; cursor: grab;
+            font-size: calc(12px * var(--ncl-s)); font-weight: 700; cursor: pointer;
             border: calc(1.5px * var(--ncl-s)) solid #d1d5db; background: white; color: #1e3a5f;
             box-shadow: 0 2px 5px rgba(0,0,0,0.08); transition: background .12s, border-color .12s, transform .1s;
             user-select: none; touch-action: none;
         }
         .ncl-tile:hover { border-color: #4a90e2; background: #eff6ff; }
-        .ncl-tile:active { cursor: grabbing; transform: scale(0.95); }
+        .ncl-tile:active { transform: scale(0.95); }
         .ncl-tile.word-tile {
             flex-direction: column; height: auto;
             min-height: calc(23px * var(--ncl-s));
@@ -1421,4 +1422,26 @@
         });
     }
 
+})();
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-nombres-chiffres-lettres')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-nombres-chiffres-lettres';
+    st.textContent = `
+.widget[data-type="nombres-chiffres-lettres"] { cursor: default; }
+.widget[data-type="nombres-chiffres-lettres"] .ncl-header { cursor: grab; }
+.widget[data-type="nombres-chiffres-lettres"] .ncl-header:active { cursor: grabbing; }
+.widget[data-type="nombres-chiffres-lettres"] .wf-fullboard .ncl-header, .widget[data-type="nombres-chiffres-lettres"] .wf-fullboard .ncl-header:active, .widget[data-type="nombres-chiffres-lettres"].wf-fullboard .ncl-header, .widget[data-type="nombres-chiffres-lettres"].wf-fullboard .ncl-header:active { cursor: default; }
+.widget[data-type="nombres-chiffres-lettres"] .ncl-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="nombres-chiffres-lettres"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="nombres-chiffres-lettres"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="nombres-chiffres-lettres"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="nombres-chiffres-lettres"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="nombres-chiffres-lettres"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="nombres-chiffres-lettres"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
 })();

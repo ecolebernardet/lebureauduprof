@@ -10,7 +10,8 @@
 // ── Détection téléphone (plein écran automatique, cf. Taquin) ──────────
 function _convIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 // ── CSS (injecté une seule fois) ──────────────────────────────────────────
@@ -36,7 +37,7 @@ function _convIsPhone() {
             widget.querySelectorAll('.drag-handle,.widget-action-bar,.widget-rotate-handle,.custom-resize-handle').forEach(el => el.style.display = 'none');
             const miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
             const labelEl = document.createElement('span');
             labelEl.textContent = label;
             labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -145,7 +146,7 @@ function _convIsPhone() {
             display: flex;
             align-items: center;
             gap: 8px;
-            cursor: move;
+            cursor: grab;
             user-select: none;
             flex-shrink: 0;
         }
@@ -945,3 +946,25 @@ function createConversionWidget(opts) {
     if (typeof saveBoard === 'function') saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-conversion')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-conversion';
+    st.textContent = `
+.widget[data-type="conversion"] { cursor: default; }
+.widget[data-type="conversion"] .wconv-header { cursor: grab; }
+.widget[data-type="conversion"] .wconv-header:active { cursor: grabbing; }
+.widget[data-type="conversion"] .wf-fullboard .wconv-header, .widget[data-type="conversion"] .wf-fullboard .wconv-header:active, .widget[data-type="conversion"].wf-fullboard .wconv-header, .widget[data-type="conversion"].wf-fullboard .wconv-header:active { cursor: default; }
+.widget[data-type="conversion"] .wconv-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="conversion"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="conversion"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="conversion"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="conversion"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="conversion"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="conversion"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

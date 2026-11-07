@@ -56,7 +56,8 @@ const CD_DE = {
 
 function _cdIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 // Parole : plusieurs phrases dites l'une après l'autre, avec une pause entre elles
 // (« huit » … pause … « cinq et trois »)
@@ -177,7 +178,7 @@ function _cdScatter(n) {
             -webkit-user-select: none;
             overflow: hidden;
         }
-        .cd-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: move; }
+        .cd-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: grab; }
         .cd-title { font-size: 13px; font-weight: 800; color: #374151; letter-spacing: .3px; pointer-events: none; }
         .cd-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #dbeafe; color: #1e40af; }
 
@@ -621,7 +622,7 @@ function createConstellationsDoigtsWidget() {
         stage.style.setProperty('--cd-q', q + 'px');
         stage.style.setProperty('--cd-a', Math.max(34, Math.min(stage.clientHeight * 0.28, 120)) + 'px');
         if (phase === 'idle') {
-            cover.className = 'cd-cover';
+            cover.className = 'cd-cover idle';
             cover.innerHTML = `<span class="q">🎲</span><span class="t">Clique sur ▶ Montrer</span>`;
         } else if (phase === 'hidden') {
             cover.className = 'cd-cover';
@@ -960,3 +961,26 @@ function createConstellationsDoigtsWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-constellations-doigts')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-constellations-doigts';
+    st.textContent = `
+.widget[data-type="constellations-doigts"] { cursor: default; }
+.widget[data-type="constellations-doigts"] .cd-header { cursor: grab; }
+.widget[data-type="constellations-doigts"] .cd-header:active { cursor: grabbing; }
+.widget[data-type="constellations-doigts"] .wf-fullboard .cd-header, .widget[data-type="constellations-doigts"] .wf-fullboard .cd-header:active, .widget[data-type="constellations-doigts"].wf-fullboard .cd-header, .widget[data-type="constellations-doigts"].wf-fullboard .cd-header:active { cursor: default; }
+.widget[data-type="constellations-doigts"] .cd-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="constellations-doigts"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="constellations-doigts"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="constellations-doigts"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="constellations-doigts"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="constellations-doigts"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="constellations-doigts"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+.widget[data-type="constellations-doigts"] .cd-cover.idle { cursor: pointer; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

@@ -74,7 +74,7 @@
 
             const miniBar = document.createElement('div');
             miniBar.className = 'wf-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
 
             const labelEl = document.createElement('span');
             labelEl.textContent = label;
@@ -1667,12 +1667,14 @@
             if (isMax || e.target.closest(INTERACTIVE)) e.stopPropagation();
         }, { passive: true });
 
-        // ── Curseur « déplacer » sur le fond ──
+        // ── Curseur : main sur la barre du haut, flèche ailleurs ──
         outer.addEventListener('mousemove', function (e) {
             if (isMax) { outer.style.cursor = ''; return; }
             if (e.target.closest('button, input, .calc-panel, .calc-history, .calc-screen.is-revealable')) { outer.style.cursor = ''; return; }
             if (e.target.closest('.calc-resize-handle')) { outer.style.cursor = 'nwse-resize'; return; }
-            outer.style.cursor = 'move';
+            // Barre du haut : main qui attrape (déplacement) ; ailleurs : flèche
+            var _r = outer.getBoundingClientRect();
+            outer.style.cursor = (e.clientY - _r.top) < 62 ? ((e.buttons & 1) ? 'grabbing' : 'grab') : 'default';
         });
         outer.addEventListener('mouseleave', function () { outer.style.cursor = ''; });
 
@@ -1748,8 +1750,9 @@
     // HOOK dans createWidget
     // =========================================================================
     function isPhone() {
-        if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+        if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
     }
     function installHook(orig) {
         window.createWidget = function (type) {
@@ -1770,4 +1773,24 @@
         });
     }
 
+})();
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-calculatrice')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-calculatrice';
+    st.textContent = `
+.widget[data-type="calculatrice"] { cursor: default; }
+.widget[data-type="calculatrice"] .drag-handle { cursor: grab; }
+.widget[data-type="calculatrice"] .drag-handle:active { cursor: grabbing; }
+:where(.widget[data-type="calculatrice"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="calculatrice"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="calculatrice"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="calculatrice"] [class*="mini-bar"] { cursor: grab !important; }
+.widget[data-type="calculatrice"] [class*="mini-bar"]:active { cursor: grabbing !important; }
+.widget[data-type="calculatrice"] [class*="mini-bar"] :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
 })();

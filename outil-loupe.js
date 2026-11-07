@@ -35,10 +35,12 @@
         font:600 12px 'Segoe UI', system-ui, sans-serif; user-select:none;
     }
     #loupe-root .lp-lens {
-        position:absolute; border-radius:50%; overflow:hidden; cursor:move; touch-action:none;
+        position:absolute; border-radius:50%; overflow:hidden; cursor:grab; touch-action:none;
         background:#fff;
         box-shadow:0 0 0 6px #2a2a2e, 0 0 0 8px #4a90e2, 0 10px 34px rgba(0,0,0,0.45);
     }
+    #loupe-root .lp-lens:active { cursor:grabbing; }
+    #loupe-root .lp-bar, #loupe-root .lp-bar span { cursor:default; }
     #loupe-root .lp-lens canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
     #loupe-root .lp-glass {
         position:absolute; inset:0; border-radius:50%; pointer-events:none;

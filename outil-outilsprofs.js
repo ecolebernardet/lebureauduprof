@@ -123,7 +123,7 @@ function toggleOutilsProfsCollapse(container) {
         // Créer la mini-barre
         const miniBar = document.createElement('div');
         miniBar.className = 'outilsprofs-mini-bar';
-        miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+        miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
 
         const iconEl = document.createElement('img');
         iconEl.src = 'https://outilsprofs.fr/outilsprofs_icone.png';
@@ -182,3 +182,52 @@ function toggleOutilsProfsCollapse(container) {
 
     if (typeof saveBoard === 'function') saveBoard();
 }
+
+// ── Téléphone et tablette : un nouveau widget OutilsProfs s'ouvre directement
+//    en plein écran (bouton vert) — pas lors de la restauration d'un tableau. ──
+function _opIsPhoneOrTablet() {
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
+}
+(function () {
+    function hook() {
+        var orig = window.createWidget;
+        if (typeof orig !== 'function' || orig._opFullHook) return;
+        var patched = function (type) {
+            var widget = orig.apply(this, arguments);
+            if (type === 'outilsprofs' && widget && !window.isInitialLoading && !window.isRestoringState && _opIsPhoneOrTablet()) {
+                requestAnimationFrame(function () { requestAnimationFrame(function () {
+                    var c = widget.querySelector('.outilsprofs-container');
+                    if (!c || !widget.isConnected || c.classList.contains('wf-fullboard')) return;
+                    var b = c.querySelector('.wf-btn-max');
+                    if (b) b.click();
+                }); });
+            }
+            return widget;
+        };
+        patched._opFullHook = true;
+        window.createWidget = patched;
+    }
+    if (typeof window.createWidget === 'function') hook();
+    else document.addEventListener('DOMContentLoaded', hook);
+})();
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-outilsprofs')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-outilsprofs';
+    st.textContent = `
+.widget:has(.outilsprofs-container) .outilsprofs-container .editor-toolbar { cursor: grab; }
+.widget:has(.outilsprofs-container) .outilsprofs-container .editor-toolbar:active { cursor: grabbing; }
+.widget:has(.outilsprofs-container) .outilsprofs-container.wf-fullboard .editor-toolbar, .widget:has(.outilsprofs-container) .outilsprofs-container.wf-fullboard .editor-toolbar:active { cursor: default; }
+.widget:has(.outilsprofs-container) .outilsprofs-container .editor-toolbar :is(button, .wf-btn) { cursor: pointer; }
+.widget:has(.outilsprofs-container) .outilsprofs-mini-bar { cursor: grab !important; }
+.widget:has(.outilsprofs-container) .outilsprofs-mini-bar:active { cursor: grabbing !important; }
+.widget:has(.outilsprofs-container) .outilsprofs-mini-bar button { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

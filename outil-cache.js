@@ -32,11 +32,12 @@
 
     /* ── Rideau ── */
     .cache-curtain {
-        position:absolute; pointer-events:auto; touch-action:none; cursor:move;
+        position:absolute; pointer-events:auto; touch-action:none; cursor:grab;
         background:#1F1F21;
         box-shadow:0 0 0 1px rgba(255,255,255,0.08), 0 6px 30px rgba(0,0,0,0.45);
         transition:background 0.25s;
     }
+    .cache-curtain:active { cursor:grabbing; }
     .cache-curtain-hint {
         position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
         font:600 15px 'Segoe UI', system-ui, sans-serif; color:rgba(255,255,255,0.28);
@@ -63,7 +64,8 @@
 
     /* ── Spot ── */
     .cache-spot-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-    .cache-spot-dark { pointer-events:visiblePainted; cursor:move; touch-action:none; }
+    .cache-spot-dark { pointer-events:visiblePainted; cursor:grab; touch-action:none; }
+    .cache-spot-dark:active { cursor:grabbing; }
     .cache-spot-grip { pointer-events:stroke; cursor:nwse-resize; touch-action:none; }
     .cache-spot-corner { pointer-events:all; cursor:nwse-resize; touch-action:none; }
 
@@ -81,6 +83,9 @@
         cursor:grab; opacity:0.5; border-radius:6px; background:rgba(255,255,255,0.06);
     }
     #cache-bar .cb-drag:hover { opacity:1; }
+    #cache-bar .cb-drag:active { cursor:grabbing; }
+    #cache-bar, #cache-bar span { cursor:default; }
+    #cache-bar .cb-drag, #cache-bar .cb-drag * { cursor:grab; }
     #cache-bar .cb-sep { width:1px; align-self:stretch; background:#3a3a40; }
     #cache-bar .cb-seg { display:flex; background:#2a2a2e; border-radius:8px; padding:2px; gap:2px; }
     #cache-bar button {

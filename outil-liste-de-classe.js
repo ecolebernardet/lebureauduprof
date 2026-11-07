@@ -88,8 +88,9 @@ if (!window.ClasseListe) {
 // (bouton vert) — pas lors de la restauration d'un tableau enregistré.
 function _wfIsPhoneLaunch() {
     if (window.isInitialLoading || window.isRestoringState) return false;
-    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 
@@ -822,7 +823,7 @@ if (!window.ClasseEdition) {
         gap: 10px;
         padding: 14px 0 0;
         flex-shrink: 0;
-        cursor: move;
+        cursor: grab;
     }
     .classe-title,
     .classe-tools,
@@ -1090,7 +1091,7 @@ if (!window.ClasseEdition) {
     }
     .classe-doc-card:hover { background: #fff; border-color: var(--c); box-shadow: 0 6px 16px -10px rgba(10,20,35,0.5); }
     .classe-doc-card:active { transform: scale(0.98); }
-    .classe-doc-card:disabled { opacity: .55; cursor: wait; }
+    .classe-doc-card:disabled { opacity: .55; cursor: default; }
     .classe-doc-ico {
         width: 40px; height: 40px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
@@ -1697,7 +1698,7 @@ if (!window.ClasseEdition) {
     }
 
     /* ── Déplacement : clic-glisser n'importe où sur une zone libre du cadre ── */
-    .classe-inner { cursor: move; }
+    .classe-inner { cursor: default; }
     .classe-inner input, .classe-inner textarea { cursor: text; }
     .classe-inner select, .classe-inner button:not(:disabled) { cursor: pointer; }
     .classe-inner label, .classe-panel, .classe-modal-overlay { cursor: default; }
@@ -1706,75 +1707,72 @@ if (!window.ClasseEdition) {
 
     /* ══════════════════════════════════════════════════════════════════
        TÉLÉPHONE : FICHES ÉLÈVES COMPACTES
-       Une seule ligne par élève : n°, prénom, nom, niveau, F/G, ×.
-       La date de naissance n'apparaît (sur une 2e ligne) que pour l'élève
-       en cours de modification (quand on touche un de ses champs).
+       Une seule ligne par élève : n°, prénom, nom, date de naissance,
+       niveau, F/G, ×. Police un peu réduite (14 px) pour que tout tienne.
        Sélecteurs volontairement plus précis que les règles « téléphone »
-       précédentes, pour les remplacer.
+       précédentes (et que la règle 16 px de style-phone.css), pour les remplacer.
        ══════════════════════════════════════════════════════════════════ */
     @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
         .widget[data-type="classe"] .classe-inner .classe-list[data-view] {
-            gap: 4px 8px;
+            gap: 5px 8px;
             padding: 6px;
         }
-        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-col { gap: 4px; }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-col { gap: 5px; }
         .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-col-head { padding: 3px 8px; font-size: 11px; }
         .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row {
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 3px;
-            row-gap: 0;
             padding: 2px 3px 2px 4px;
-            border-radius: 9px;
+            min-height: 34px;
+            box-sizing: border-box;
+            border-radius: 10px;
             border-width: 1px;
             box-shadow: none;
-            min-height: 0;
         }
         .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-num {
             width: 16px;
             font-size: 10px;
         }
         .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-in {
-            height: 26px;
-            padding: 0 5px;
-            line-height: 1.2;
+            height: 28px;
+            padding: 0 4px;
+            line-height: 28px;
             border-radius: 6px;
             box-sizing: border-box;
+            font-size: 14px !important;
         }
         .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-in-prenom,
         .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-in-nom {
             flex: 1 1 0;
             min-width: 0;
         }
-        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-niv {
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-in-dob {
             order: 1;
+            flex: 0 0 76px;
+            width: 76px;
+            margin: 0;
+            padding: 0 2px;
+            text-align: center;
+            font-size: 12px !important;
+        }
+        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-niv {
+            order: 2;
             height: 24px;
-            min-width: 34px;
-            max-width: 46px;
-            padding: 0 4px;
+            min-width: 32px;
+            max-width: 42px;
+            padding: 0 3px;
         }
         .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-sexe {
-            order: 2;
-            width: 26px;
+            order: 3;
+            width: 24px;
             height: 24px;
             font-size: 11px;
         }
         .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-del {
-            order: 3;
-            width: 24px;
+            order: 4;
+            width: 22px;
             height: 24px;
             font-size: 16px;
-        }
-        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row .classe-in-dob {
-            display: none;
-            order: 10;
-            flex: 1 0 calc(100% - 22px);
-            width: auto;
-            height: 26px;
-            margin: 2px 0 1px 19px;
-            text-align: left;
-        }
-        .widget[data-type="classe"] .classe-inner .classe-list[data-view] .classe-row:focus-within .classe-in-dob {
-            display: block;
         }
     }
 
@@ -2020,7 +2018,7 @@ if (!window.ClasseEdition) {
 
         const miniBar = document.createElement('div');
         miniBar.className = 'classe-mini-bar';
-        miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+        miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
 
         const labelEl = document.createElement('span');
         labelEl.textContent = CL_LABEL;
@@ -3206,4 +3204,28 @@ if (!window.ClasseEdition) {
         else document.addEventListener('DOMContentLoaded', doPatch);
     })();
 
+})();
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-classe')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-classe';
+    st.textContent = `
+.widget[data-type="classe"] { cursor: default; }
+.widget[data-type="classe"] .classe-header { cursor: grab; }
+.widget[data-type="classe"] .classe-header:active { cursor: grabbing; }
+.widget[data-type="classe"].wf-max .classe-header, .widget[data-type="classe"].phone-fs .classe-header, .widget[data-type="classe"].wf-max .classe-header:active, .widget[data-type="classe"].phone-fs .classe-header:active, .widget[data-type="classe"] .wf-fullboard .classe-header, .widget[data-type="classe"] .snd-fullboard .classe-header, .widget[data-type="classe"] .wf-fullboard .classe-header:active, .widget[data-type="classe"] .snd-fullboard .classe-header:active { cursor: default; }
+.widget[data-type="classe"] .classe-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+.widget[data-type="classe"] .drag-handle { cursor: grab; }
+.widget[data-type="classe"] .drag-handle:active { cursor: grabbing; }
+:where(.widget[data-type="classe"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="classe"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="classe"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="classe"] [class*="mini-bar"] { cursor: grab !important; }
+.widget[data-type="classe"] [class*="mini-bar"]:active { cursor: grabbing !important; }
+.widget[data-type="classe"] [class*="mini-bar"] :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
 })();

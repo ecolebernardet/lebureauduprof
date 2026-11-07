@@ -53,8 +53,9 @@ if (!window.bdpCanDragFrom) {
 (function () {
 
     function isPhoneNow() {
-        if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+        if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
     }
 
     // ── Police arrondie partagée avec les autres widgets ──────────────────
@@ -171,7 +172,7 @@ if (!window.bdpCanDragFrom) {
         position: relative;
         container-type: size;
         transition: background-color .3s;
-        cursor: move;
+        cursor: default;
     }
 
     /* ── En-tête : deux pastilles « verre » ── */
@@ -182,7 +183,7 @@ if (!window.bdpCanDragFrom) {
         gap: 10px;
         padding: 14px 0 0;
         flex-shrink: 0;
-        cursor: move;
+        cursor: grab;
     }
     .mf-title,
     .mf-tools {
@@ -281,7 +282,7 @@ if (!window.bdpCanDragFrom) {
     }
     .mf-select { cursor: pointer; font-weight: 700; }
     .mf-textarea { flex: 1 1 auto; min-height: 120px; resize: none; line-height: 1.45; }
-    .mf-input:disabled { opacity: .45; cursor: not-allowed; }
+    .mf-input:disabled { opacity: .45; cursor: default; }
     .mf-input:focus, .mf-select:focus, .mf-textarea:focus { border-color: var(--mf-op); background: #fff; }
     .mf-mini-link {
         border: none;
@@ -434,7 +435,7 @@ if (!window.bdpCanDragFrom) {
     }
     .mf-pdf-btn:hover { filter: brightness(1.1); }
     .mf-pdf-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
-    .mf-pdf-btn:disabled { opacity: .5; cursor: wait; }
+    .mf-pdf-btn:disabled { opacity: .5; cursor: default; }
     .mf-status { font-size: 12px; font-weight: 700; color: rgba(20,32,46,0.65); white-space: nowrap; }
     .mf-status.err { color: #C0392B; }
     .mf-status:empty { display: none; }
@@ -1138,7 +1139,7 @@ if (!window.bdpCanDragFrom) {
 
             const bar = document.createElement('div');
             bar.className = 'wf-mini-bar mf-mini-bar';
-            bar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            bar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
             const lbl = document.createElement('span');
             lbl.textContent = '✉️ Billets aux familles';
             lbl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -1364,4 +1365,28 @@ if (!window.bdpCanDragFrom) {
         else document.addEventListener('DOMContentLoaded', doPatch);
     })();
 
+})();
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-mots-familles')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-mots-familles';
+    st.textContent = `
+.widget[data-type="mots-familles"] { cursor: default; }
+.widget[data-type="mots-familles"] .mf-header { cursor: grab; }
+.widget[data-type="mots-familles"] .mf-header:active { cursor: grabbing; }
+.widget[data-type="mots-familles"].wf-max .mf-header, .widget[data-type="mots-familles"].phone-fs .mf-header, .widget[data-type="mots-familles"].wf-max .mf-header:active, .widget[data-type="mots-familles"].phone-fs .mf-header:active, .widget[data-type="mots-familles"] .wf-fullboard .mf-header, .widget[data-type="mots-familles"] .snd-fullboard .mf-header, .widget[data-type="mots-familles"] .wf-fullboard .mf-header:active, .widget[data-type="mots-familles"] .snd-fullboard .mf-header:active { cursor: default; }
+.widget[data-type="mots-familles"] .mf-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+.widget[data-type="mots-familles"] .drag-handle { cursor: grab; }
+.widget[data-type="mots-familles"] .drag-handle:active { cursor: grabbing; }
+:where(.widget[data-type="mots-familles"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="mots-familles"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="mots-familles"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="mots-familles"] [class*="mini-bar"] { cursor: grab !important; }
+.widget[data-type="mots-familles"] [class*="mini-bar"]:active { cursor: grabbing !important; }
+.widget[data-type="mots-familles"] [class*="mini-bar"] :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
 })();

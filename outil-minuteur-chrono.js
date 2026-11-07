@@ -738,7 +738,10 @@
             if (e.target.closest(INTERACTIVE)) return;
             const r = outer.getBoundingClientRect();
             const nearCorner = (r.right - e.clientX) < RESIZE_ZONE && (r.bottom - e.clientY) < RESIZE_ZONE;
-            outer.style.cursor = nearCorner ? 'se-resize' : 'move';
+            // Barre du haut (en-tête) : main qui attrape ; ailleurs : flèche
+            const inTopBar = (e.clientY - r.top) < 56;
+            outer.style.cursor = nearCorner ? 'se-resize'
+                : (inTopBar ? ((e.buttons & 1) ? 'grabbing' : 'grab') : 'default');
         });
         outer.addEventListener('mouseleave', function() {
             outer.style.cursor = '';
@@ -843,7 +846,7 @@
             // Créer la mini-barre
             const miniBar = document.createElement('div');
             miniBar.className = 'mc-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
 
             const labelEl = document.createElement('span');
             labelEl.textContent = '⏱️ Minuteur & Chrono';
@@ -1737,9 +1740,10 @@
     // =========================================================================
     // Sur téléphone : ouverture directe en plein écran (bouton vert)
     function openMaxOnPhone(widget) {
-        var phone = typeof window.isPhoneScreen === 'function'
-            ? window.isPhoneScreen()
-            : !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        var phone = false;
+        if (typeof window.isPhoneScreen === 'function') { try { phone = !!window.isPhoneScreen(); } catch (e) {} }
+        if (!phone && typeof isTabletBoardMode === 'function') { try { phone = !!isTabletBoardMode(); } catch (e) {} }
+        if (!phone && window.matchMedia) phone = window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches;
         if (phone && widget._mcEnterMax) widget._mcEnterMax();
     }
 
@@ -1817,4 +1821,24 @@
         });
     }
 
+})();
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-minuteur')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-minuteur';
+    st.textContent = `
+.widget[data-type="minuteur"] { cursor: default; }
+.widget[data-type="minuteur"] .drag-handle { cursor: grab; }
+.widget[data-type="minuteur"] .drag-handle:active { cursor: grabbing; }
+:where(.widget[data-type="minuteur"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="minuteur"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="minuteur"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="minuteur"] [class*="mini-bar"] { cursor: grab !important; }
+.widget[data-type="minuteur"] [class*="mini-bar"]:active { cursor: grabbing !important; }
+.widget[data-type="minuteur"] [class*="mini-bar"] :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
 })();

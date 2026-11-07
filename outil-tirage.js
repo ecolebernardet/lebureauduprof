@@ -55,8 +55,9 @@ if (!window.bdpCanDragFrom) {
 (function () {
 
     function isPhoneNow() {
-        if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
-        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+        if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+        if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
     }
 
     // ── Police arrondie partagée avec les autres widgets (repli système si hors-ligne)
@@ -138,7 +139,7 @@ if (!window.bdpCanDragFrom) {
         gap: 10px;
         padding: 14px 0 0;
         flex-shrink: 0;
-        cursor: move;
+        cursor: grab;
     }
     .tirage-title,
     .tirage-tools {
@@ -403,7 +404,7 @@ if (!window.bdpCanDragFrom) {
     }
     .tirage-draw-btn:hover { filter: brightness(1.1); }
     .tirage-draw-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
-    .tirage-draw-btn:disabled { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.4); transform: none; }
+    .tirage-draw-btn:disabled { opacity: 0.45; cursor: default; filter: grayscale(0.4); transform: none; }
     .tirage-stats {
         font-size: 12px;
         color: rgba(20,32,46,0.65);
@@ -627,7 +628,7 @@ if (!window.bdpCanDragFrom) {
     }
 
     /* ── Déplacement : clic-glisser n'importe où sur une zone libre du cadre ── */
-    .tirage-inner { cursor: move; }
+    .tirage-inner { cursor: default; }
     .tirage-inner input, .tirage-inner textarea { cursor: text; }
     .tirage-inner select, .tirage-inner button:not(:disabled) { cursor: pointer; }
     .tirage-inner label, .tirage-panel, .tirage-modal-overlay { cursor: default; }
@@ -895,7 +896,7 @@ if (!window.bdpCanDragFrom) {
             // Créer la mini-barre
             const miniBar = document.createElement('div');
             miniBar.className = 'tirage-mini-bar';
-            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+            miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
 
             const labelEl = document.createElement('span');
             labelEl.textContent = '🎲 Tirage au Sort';
@@ -1794,7 +1795,7 @@ if (!window.bdpCanDragFrom) {
                             if (!widget.querySelector('.tirage-mini-bar')) {
                                 const miniBar = document.createElement('div');
                                 miniBar.className = 'tirage-mini-bar';
-                                miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+                                miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
                                 const labelEl = document.createElement('span');
                                 labelEl.textContent = '🎲 Tirage au Sort';
                                 labelEl.style.cssText = 'font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;';
@@ -1857,4 +1858,28 @@ if (!window.bdpCanDragFrom) {
         else document.addEventListener('DOMContentLoaded', doPatch);
     })();
 
+})();
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-tirage')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-tirage';
+    st.textContent = `
+.widget[data-type="tirage"] { cursor: default; }
+.widget[data-type="tirage"] .tirage-header { cursor: grab; }
+.widget[data-type="tirage"] .tirage-header:active { cursor: grabbing; }
+.widget[data-type="tirage"].wf-max .tirage-header, .widget[data-type="tirage"].phone-fs .tirage-header, .widget[data-type="tirage"].wf-max .tirage-header:active, .widget[data-type="tirage"].phone-fs .tirage-header:active, .widget[data-type="tirage"] .wf-fullboard .tirage-header, .widget[data-type="tirage"] .snd-fullboard .tirage-header, .widget[data-type="tirage"] .wf-fullboard .tirage-header:active, .widget[data-type="tirage"] .snd-fullboard .tirage-header:active { cursor: default; }
+.widget[data-type="tirage"] .tirage-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+.widget[data-type="tirage"] .drag-handle { cursor: grab; }
+.widget[data-type="tirage"] .drag-handle:active { cursor: grabbing; }
+:where(.widget[data-type="tirage"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="tirage"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="tirage"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="tirage"] [class*="mini-bar"] { cursor: grab !important; }
+.widget[data-type="tirage"] [class*="mini-bar"]:active { cursor: grabbing !important; }
+.widget[data-type="tirage"] [class*="mini-bar"] :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
 })();

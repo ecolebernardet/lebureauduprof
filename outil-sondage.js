@@ -6,8 +6,9 @@
 // (bouton vert) — pas lors de la restauration d'un tableau enregistré.
 function _wfIsPhoneLaunch() {
     if (window.isInitialLoading || window.isRestoringState) return false;
-    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 
@@ -105,7 +106,7 @@ function createSondageWidget() {
             gap: 10px;
             padding: 14px 0 0;
             flex-shrink: 0;
-            cursor: move;
+            cursor: grab;
             user-select: none;
             border: none;
             background: transparent;
@@ -185,12 +186,12 @@ function createSondageWidget() {
         }
 
         .widget[data-type="sondage"] {
-            cursor: move;
+            cursor: default;
             overflow: visible !important;
         }
         .widget[data-type="sondage"] button { cursor: pointer; }
         .widget[data-type="sondage"] .custom-resize-handle { cursor: se-resize; }
-        .widget[data-type="sondage"] .drag-handle { cursor: move; }
+        .widget[data-type="sondage"] .drag-handle { cursor: default; }
         .snd-ec {
             overflow: visible !important;
             display: flex;
@@ -906,4 +907,28 @@ function _initSondageWidget(widget) {
     function doPatch() { patchBuild(); patchRestore(); }
     if (typeof window.buildBoardState === 'function' && typeof window.restoreBoardFromJSON === 'function') doPatch();
     else document.addEventListener('DOMContentLoaded', doPatch);
+})();
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-sondage')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-sondage';
+    st.textContent = `
+.widget[data-type="sondage"] { cursor: default; }
+.widget[data-type="sondage"] .snd-header { cursor: grab; }
+.widget[data-type="sondage"] .snd-header:active { cursor: grabbing; }
+.widget[data-type="sondage"].wf-max .snd-header, .widget[data-type="sondage"].phone-fs .snd-header, .widget[data-type="sondage"].wf-max .snd-header:active, .widget[data-type="sondage"].phone-fs .snd-header:active, .widget[data-type="sondage"] .wf-fullboard .snd-header, .widget[data-type="sondage"] .snd-fullboard .snd-header, .widget[data-type="sondage"] .wf-fullboard .snd-header:active, .widget[data-type="sondage"] .snd-fullboard .snd-header:active { cursor: default; }
+.widget[data-type="sondage"] .snd-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+.widget[data-type="sondage"] .drag-handle { cursor: grab; }
+.widget[data-type="sondage"] .drag-handle:active { cursor: grabbing; }
+:where(.widget[data-type="sondage"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="sondage"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="sondage"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="sondage"] [class*="mini-bar"] { cursor: grab !important; }
+.widget[data-type="sondage"] [class*="mini-bar"]:active { cursor: grabbing !important; }
+.widget[data-type="sondage"] [class*="mini-bar"] :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
 })();

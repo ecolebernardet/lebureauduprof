@@ -30,8 +30,9 @@
 // (bouton vert) — pas lors de la restauration d'un tableau enregistré.
 function _wfIsPhoneLaunch() {
     if (window.isInitialLoading || window.isRestoringState) return false;
-    if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 
@@ -150,7 +151,7 @@ if (!window.bdpCanDragFrom) {
         gap: 10px;
         padding: 14px 0 0;
         flex-shrink: 0;
-        cursor: move;
+        cursor: grab;
     }
     .ledit-title,
     .ledit-tools,
@@ -321,7 +322,7 @@ if (!window.bdpCanDragFrom) {
     }
     .ledit-doc-card:hover { background: #fff; border-color: var(--c); box-shadow: 0 6px 16px -10px rgba(10,20,35,0.5); }
     .ledit-doc-card:active { transform: scale(0.98); }
-    .ledit-doc-card:disabled { opacity: .55; cursor: wait; }
+    .ledit-doc-card:disabled { opacity: .55; cursor: default; }
     .ledit-doc-ico {
         width: 40px; height: 40px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
@@ -415,7 +416,7 @@ if (!window.bdpCanDragFrom) {
     }
 
     /* ── Déplacement : clic-glisser n'importe où sur une zone libre du cadre ── */
-    .ledit-inner { cursor: move; }
+    .ledit-inner { cursor: default; }
     .ledit-inner input, .ledit-inner textarea { cursor: text; }
     .ledit-inner select, .ledit-inner button:not(:disabled) { cursor: pointer; }
     .ledit-inner label, .ledit-panel, .ledit-modal-overlay { cursor: default; }
@@ -596,7 +597,7 @@ if (!window.bdpCanDragFrom) {
 
         const miniBar = document.createElement('div');
         miniBar.className = 'ledit-mini-bar';
-        miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+        miniBar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:' + COLLAPSED_H + 'px;display:flex;align-items:center;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
 
         const labelEl = document.createElement('span');
         labelEl.textContent = LE_LABEL;
@@ -1181,4 +1182,28 @@ if (!window.bdpCanDragFrom) {
         else document.addEventListener('DOMContentLoaded', doPatch);
     })();
 
+})();
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-liste-edition')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-liste-edition';
+    st.textContent = `
+.widget[data-type="liste-edition"] { cursor: default; }
+.widget[data-type="liste-edition"] .ledit-header { cursor: grab; }
+.widget[data-type="liste-edition"] .ledit-header:active { cursor: grabbing; }
+.widget[data-type="liste-edition"].wf-max .ledit-header, .widget[data-type="liste-edition"].phone-fs .ledit-header, .widget[data-type="liste-edition"].wf-max .ledit-header:active, .widget[data-type="liste-edition"].phone-fs .ledit-header:active, .widget[data-type="liste-edition"] .wf-fullboard .ledit-header, .widget[data-type="liste-edition"] .snd-fullboard .ledit-header, .widget[data-type="liste-edition"] .wf-fullboard .ledit-header:active, .widget[data-type="liste-edition"] .snd-fullboard .ledit-header:active { cursor: default; }
+.widget[data-type="liste-edition"] .ledit-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+.widget[data-type="liste-edition"] .drag-handle { cursor: grab; }
+.widget[data-type="liste-edition"] .drag-handle:active { cursor: grabbing; }
+:where(.widget[data-type="liste-edition"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"], input[type="file"]) { cursor: pointer; }
+.widget[data-type="liste-edition"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="liste-edition"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="liste-edition"] [class*="mini-bar"] { cursor: grab !important; }
+.widget[data-type="liste-edition"] [class*="mini-bar"]:active { cursor: grabbing !important; }
+.widget[data-type="liste-edition"] [class*="mini-bar"] :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
 })();

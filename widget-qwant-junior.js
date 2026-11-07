@@ -56,6 +56,45 @@ document.body.insertAdjacentHTML('beforeend', `
 </template>
 `);
 
+
+// ── Téléphone et tablette : un nouveau widget s'ouvre directement en plein écran
+//    (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+//    Fonction partagée (définie une seule fois) : le plein écran board est
+//    prioritaire sur le plein écran téléphone générique (.phone-fs). ──
+if (!window._wfMediaAutoFull) {
+    window._wfIsPhoneOrTablet = function () {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+        if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
+    };
+    window._wfMediaAutoFull = function (c) {
+        if (!c || c._wfAutoFullDone) return;
+        c._wfAutoFullDone = true;
+        if (window.isInitialLoading || window.isRestoringState) return;
+        if (!window._wfIsPhoneOrTablet()) return;
+        setTimeout(function () {
+            if (!c.isConnected || c.classList.contains('wf-media-fullboard')) return;
+            if (typeof toggleMediaBoardFullscreen === 'function') toggleMediaBoardFullscreen(c);
+            else c.classList.add('wf-media-fullboard');
+            var w = c.closest('.widget');
+            var dropPhoneFs = function () {
+                if (!w || !w.classList.contains('phone-fs') || !c.classList.contains('wf-media-fullboard')) return;
+                w.classList.remove('phone-fs');
+                if (!document.querySelector('.widget.phone-fs')) {
+                    document.querySelectorAll('.phone-fs-exit').forEach(function (b) { b.remove(); });
+                    document.body.classList.remove('has-phone-fs');
+                }
+            };
+            dropPhoneFs();
+            if (w && !w._wfAutoFullObs) {
+                w._wfAutoFullObs = true;
+                new MutationObserver(dropPhoneFs).observe(w, { attributes: true, attributeFilter: ['class'] });
+            }
+        }, 60);
+    };
+}
+
 /* ── Outils ─────────────────────────────────────────────────────── */
 const _qjEsc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function _qjLsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
@@ -314,6 +353,7 @@ function _qjInit(c) {
     // Plein écran (bouton vert) : on suit l'ajout / le retrait de la classe
     new MutationObserver(() => _qjFitFullboard(c)).observe(c, { attributes: true, attributeFilter: ['class'] });
     _qjFitFullboard(c);
+    window._wfMediaAutoFull(c);   // téléphone et tablette : ouverture en plein écran
 }
 
 /* ── Plein écran sur téléphone : laisser la place des onglets À GAUCHE ──
@@ -468,6 +508,8 @@ window.createQwantJuniorWidget = function () {
 .editor-container.qj-v2 .qj-bar,.editor-container.qj-v2 .qj-bar .qj-bar-title{cursor:grab!important;touch-action:none}
 .editor-container.qj-v2 .qj-bar.is-dragging,.editor-container.qj-v2 .qj-bar.is-dragging *{cursor:grabbing!important}
 .editor-container.qj-v2.wf-media-fullboard .qj-bar,.editor-container.qj-v2.wf-media-fullboard .qj-bar-title{cursor:default!important}
+.editor-container.qj-v2 .qj-bar:active,.editor-container.qj-v2 .qj-bar:active .qj-bar-title{cursor:grabbing!important}
+.editor-container.qj-v2.wf-media-fullboard .qj-bar:active,.editor-container.qj-v2.wf-media-fullboard .qj-bar:active .qj-bar-title{cursor:default!important}
 .editor-container.qj-v2 button,.editor-container.qj-v2 button *,.editor-container.qj-v2 .qj-mi,.editor-container.qj-v2 .qj-mi *{cursor:pointer!important}
 .editor-container.qj-v2 .qj-input{cursor:text!important;user-select:text;-webkit-user-select:text}
 .qj-v2 .qj-note{font-size:11px;color:#9a9aa6;margin-top:12px}

@@ -132,3 +132,78 @@ function _carteApplyBackgroundState(widget) {
     const iframe = widget.querySelector('iframe.carte-frame');
     if (iframe) iframe.style.pointerEvents = widget.dataset.background === 'true' ? 'none' : '';
 }
+
+// ── Téléphone et tablette : un nouveau widget s'ouvre directement en plein écran
+//    (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+//    Fonction partagée (définie une seule fois) : le plein écran board est
+//    prioritaire sur le plein écran téléphone générique (.phone-fs). ──
+if (!window._wfMediaAutoFull) {
+    window._wfIsPhoneOrTablet = function () {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+        if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
+    };
+    window._wfMediaAutoFull = function (c) {
+        if (!c || c._wfAutoFullDone) return;
+        c._wfAutoFullDone = true;
+        if (window.isInitialLoading || window.isRestoringState) return;
+        if (!window._wfIsPhoneOrTablet()) return;
+        setTimeout(function () {
+            if (!c.isConnected || c.classList.contains('wf-media-fullboard')) return;
+            if (typeof toggleMediaBoardFullscreen === 'function') toggleMediaBoardFullscreen(c);
+            else c.classList.add('wf-media-fullboard');
+            var w = c.closest('.widget');
+            var dropPhoneFs = function () {
+                if (!w || !w.classList.contains('phone-fs') || !c.classList.contains('wf-media-fullboard')) return;
+                w.classList.remove('phone-fs');
+                if (!document.querySelector('.widget.phone-fs')) {
+                    document.querySelectorAll('.phone-fs-exit').forEach(function (b) { b.remove(); });
+                    document.body.classList.remove('has-phone-fs');
+                }
+            };
+            dropPhoneFs();
+            if (w && !w._wfAutoFullObs) {
+                w._wfAutoFullObs = true;
+                new MutationObserver(dropPhoneFs).observe(w, { attributes: true, attributeFilter: ['class'] });
+            }
+        }, 60);
+    };
+}
+
+(function () {
+    function hook() {
+        var orig = window.createWidget;
+        if (typeof orig !== 'function' || orig._carteFullHook) return;
+        var patched = function (type) {
+            var widget = orig.apply(this, arguments);
+            if (type === 'carte' && widget) {
+                var c = widget.querySelector('.editor-container');
+                if (c) window._wfMediaAutoFull(c);   // téléphone et tablette : ouverture en plein écran
+            }
+            return widget;
+        };
+        patched._carteFullHook = true;
+        window.createWidget = patched;
+    }
+    if (typeof window.createWidget === 'function') hook();
+    else document.addEventListener('DOMContentLoaded', hook);
+})();
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-carte')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-carte';
+    st.textContent = `
+.editor-container:has(> iframe.carte-frame) { cursor: default; }
+.editor-container:has(> iframe.carte-frame) > .editor-toolbar { cursor: grab; }
+.editor-container:has(> iframe.carte-frame) > .editor-toolbar:active { cursor: grabbing; }
+.editor-container:has(> iframe.carte-frame).wf-media-fullboard > .editor-toolbar, .editor-container:has(> iframe.carte-frame).wf-media-fullboard > .editor-toolbar:active { cursor: default; }
+.editor-container:has(> iframe.carte-frame) > .editor-toolbar span { cursor: inherit; }
+.editor-container:has(> iframe.carte-frame) :is(button, .wf-btn) { cursor: pointer; }
+.editor-container:has(> iframe.carte-frame) .carte-address-input { cursor: text; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

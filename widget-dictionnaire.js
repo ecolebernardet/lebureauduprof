@@ -90,6 +90,45 @@ document.body.insertAdjacentHTML('beforeend', `
 </template>
 `);
 
+
+// ── Téléphone et tablette : un nouveau widget s'ouvre directement en plein écran
+//    (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+//    Fonction partagée (définie une seule fois) : le plein écran board est
+//    prioritaire sur le plein écran téléphone générique (.phone-fs). ──
+if (!window._wfMediaAutoFull) {
+    window._wfIsPhoneOrTablet = function () {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+        if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
+    };
+    window._wfMediaAutoFull = function (c) {
+        if (!c || c._wfAutoFullDone) return;
+        c._wfAutoFullDone = true;
+        if (window.isInitialLoading || window.isRestoringState) return;
+        if (!window._wfIsPhoneOrTablet()) return;
+        setTimeout(function () {
+            if (!c.isConnected || c.classList.contains('wf-media-fullboard')) return;
+            if (typeof toggleMediaBoardFullscreen === 'function') toggleMediaBoardFullscreen(c);
+            else c.classList.add('wf-media-fullboard');
+            var w = c.closest('.widget');
+            var dropPhoneFs = function () {
+                if (!w || !w.classList.contains('phone-fs') || !c.classList.contains('wf-media-fullboard')) return;
+                w.classList.remove('phone-fs');
+                if (!document.querySelector('.widget.phone-fs')) {
+                    document.querySelectorAll('.phone-fs-exit').forEach(function (b) { b.remove(); });
+                    document.body.classList.remove('has-phone-fs');
+                }
+            };
+            dropPhoneFs();
+            if (w && !w._wfAutoFullObs) {
+                w._wfAutoFullObs = true;
+                new MutationObserver(dropPhoneFs).observe(w, { attributes: true, attributeFilter: ['class'] });
+            }
+        }, 60);
+    };
+}
+
 /* ── Outils ─────────────────────────────────────────────────────── */
 const _dicEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function _dicLsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
@@ -684,6 +723,7 @@ function _dicInit(c) {
     _dicRenderRecents(c);
     new MutationObserver(() => _dicFitFullboard(c)).observe(c, { attributes: true, attributeFilter: ['class'] });
     _dicFitFullboard(c);
+    window._wfMediaAutoFull(c);   // téléphone et tablette : ouverture en plein écran
 }
 
 /* ── Plein écran sur téléphone : laisser la place des onglets À GAUCHE ──
@@ -907,6 +947,8 @@ window.createDictionnaireWidget = function () {
 .editor-container.dic-w .dic-bar,.editor-container.dic-w .dic-bar .dic-bar-title{cursor:grab!important;touch-action:none}
 .editor-container.dic-w .dic-bar.is-dragging,.editor-container.dic-w .dic-bar.is-dragging *{cursor:grabbing!important}
 .editor-container.dic-w.wf-media-fullboard .dic-bar,.editor-container.dic-w.wf-media-fullboard .dic-bar-title{cursor:default!important}
+.editor-container.dic-w .dic-bar:active,.editor-container.dic-w .dic-bar:active .dic-bar-title{cursor:grabbing!important}
+.editor-container.dic-w.wf-media-fullboard .dic-bar:active,.editor-container.dic-w.wf-media-fullboard .dic-bar:active .dic-bar-title{cursor:default!important}
 .editor-container.dic-w button,.editor-container.dic-w button *,.editor-container.dic-w .dic-mi,.editor-container.dic-w .dic-mi *,
 .editor-container.dic-w .dic-link,.editor-container.dic-w summary{cursor:pointer!important}
 .editor-container.dic-w .dic-input{cursor:text!important;user-select:text;-webkit-user-select:text}

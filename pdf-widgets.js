@@ -513,7 +513,7 @@ function togglePdfCollapse(container) {
         const shortName = pdfName.replace(/\.pdf$/i, '');
         const miniBar = document.createElement('div');
         miniBar.className = 'pdf-mini-bar';
-        miniBar.style.cssText = 'position:absolute;top:0;left:0;display:flex;align-items:center;justify-content:space-between;width:' + COLLAPSED_W + 'px;height:' + COLLAPSED_H + 'px;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:move;user-select:none;gap:6px;z-index:1;';
+        miniBar.style.cssText = 'position:absolute;top:0;left:0;display:flex;align-items:center;justify-content:space-between;width:' + COLLAPSED_W + 'px;height:' + COLLAPSED_H + 'px;padding:0 8px;box-sizing:border-box;background:#2a2a3e;border-radius:8px;cursor:grab;user-select:none;gap:6px;z-index:1;';
         miniBar.innerHTML =
             '<span style="font-size:16px;flex-shrink:0;">📄</span>' +
             '<span style="font-size:11px;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + pdfName + '">' + shortName + '</span>' +
@@ -769,3 +769,17 @@ document.addEventListener('DOMContentLoaded', function() {
         window.closeGeoSubmenu = window.closeGeoToolbar;
     }
 });
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-pdf')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-pdf';
+    st.textContent = `
+.pdf-mini-bar:active { cursor: grabbing !important; }
+.pdf-mini-bar button { cursor: pointer !important; }
+#pdf-fs-tabbar .pdf-fs-tab, #pdf-fs-tabbar button { cursor: pointer; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

@@ -628,7 +628,7 @@ function _lsvPhoneAutoFullboard(c) {
     c._lsvAutoFs = true;
     // On attend que createWidget / la restauration aient fini de placer le widget
     setTimeout(() => {
-        if (!c.isConnected || !_lsvIsPhone()) return;
+        if (!c.isConnected || !_lsvIsPhoneOrTablet()) return;
         if (!c.classList.contains('wf-media-fullboard')) {
             if (typeof toggleMediaBoardFullscreen === 'function') toggleMediaBoardFullscreen(c);
             else c.classList.add('wf-media-fullboard');
@@ -657,6 +657,13 @@ setInterval(() => {
 const _LSV_PHONE_Q = '(max-width: 768px), (max-height: 500px) and (pointer: coarse)';
 const _LSV_TABS_W = 40;
 const _LSV_FS_PROPS = ['position', 'inset', 'top', 'right', 'bottom', 'left', 'width', 'height', 'max-width', 'max-height', 'margin', 'transform'];
+// Téléphone OU tablette (ouverture automatique en plein écran)
+function _lsvIsPhoneOrTablet() {
+    if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
+}
 function _lsvIsPhone() {
     if (typeof window.isPhoneScreen === 'function') return window.isPhoneScreen();
     return !!(window.matchMedia && window.matchMedia(_LSV_PHONE_Q).matches);
@@ -868,6 +875,8 @@ window.createLeSaviezVousWidget = function () {
 .editor-container.lsv-w .lsv-bar,.editor-container.lsv-w .lsv-bar .lsv-bar-title{cursor:grab!important;touch-action:none}
 .editor-container.lsv-w .lsv-bar.is-dragging,.editor-container.lsv-w .lsv-bar.is-dragging *{cursor:grabbing!important}
 .editor-container.lsv-w.wf-media-fullboard .lsv-bar,.editor-container.lsv-w.wf-media-fullboard .lsv-bar-title{cursor:default!important}
+.editor-container.lsv-w .lsv-bar:active,.editor-container.lsv-w .lsv-bar:active .lsv-bar-title{cursor:grabbing!important}
+.editor-container.lsv-w.wf-media-fullboard .lsv-bar:active,.editor-container.lsv-w.wf-media-fullboard .lsv-bar:active .lsv-bar-title{cursor:default!important}
 .editor-container.lsv-w button,.editor-container.lsv-w button *,.editor-container.lsv-w .lsv-mi-t,.editor-container.lsv-w .lsv-mi-t *,
 .editor-container.lsv-w .lsv-toc-it,.editor-container.lsv-w .lsv-toc-it *,
 .editor-container.lsv-w select,.editor-container.lsv-w label,.editor-container.lsv-w input[type=checkbox]{cursor:pointer!important}

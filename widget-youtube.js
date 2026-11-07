@@ -806,11 +806,51 @@ function _ytUpgrade(c) {
     if (/embed\/[a-zA-Z0-9_-]{11}/.test(src)) c.querySelector('iframe.yt-player').setAttribute('src', src);
 }
 
+
+// ── Téléphone et tablette : un nouveau widget s'ouvre directement en plein écran
+//    (bouton vert) — pas lors de la restauration d'un tableau enregistré.
+//    Fonction partagée (définie une seule fois) : le plein écran board est
+//    prioritaire sur le plein écran téléphone générique (.phone-fs). ──
+if (!window._wfMediaAutoFull) {
+    window._wfIsPhoneOrTablet = function () {
+        if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
+        if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+        if (typeof window.isPhoneScreen === 'function' && window.isPhoneScreen()) return true;
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
+    };
+    window._wfMediaAutoFull = function (c) {
+        if (!c || c._wfAutoFullDone) return;
+        c._wfAutoFullDone = true;
+        if (window.isInitialLoading || window.isRestoringState) return;
+        if (!window._wfIsPhoneOrTablet()) return;
+        setTimeout(function () {
+            if (!c.isConnected || c.classList.contains('wf-media-fullboard')) return;
+            if (typeof toggleMediaBoardFullscreen === 'function') toggleMediaBoardFullscreen(c);
+            else c.classList.add('wf-media-fullboard');
+            var w = c.closest('.widget');
+            var dropPhoneFs = function () {
+                if (!w || !w.classList.contains('phone-fs') || !c.classList.contains('wf-media-fullboard')) return;
+                w.classList.remove('phone-fs');
+                if (!document.querySelector('.widget.phone-fs')) {
+                    document.querySelectorAll('.phone-fs-exit').forEach(function (b) { b.remove(); });
+                    document.body.classList.remove('has-phone-fs');
+                }
+            };
+            dropPhoneFs();
+            if (w && !w._wfAutoFullObs) {
+                w._wfAutoFullObs = true;
+                new MutationObserver(dropPhoneFs).observe(w, { attributes: true, attributeFilter: ['class'] });
+            }
+        }, 60);
+    };
+}
+
 function _ytInit(widget) {
     const c = widget.querySelector && widget.querySelector('.editor-container');
     if (!c) return;
     if (!c.classList.contains('yt-v2')) _ytUpgrade(c);
     if (!c.classList.contains('yt-v2')) return;
+    window._wfMediaAutoFull(c);   // téléphone et tablette : ouverture en plein écran
     // La classe editor-toolbar permet au tableau de déplacer / réduire le widget par sa barre
     const bar = c.querySelector('.yt-bar');
     if (bar) bar.classList.add('editor-toolbar');
@@ -980,7 +1020,7 @@ window.addEventListener('blur', () => {
   font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
 .yt-v2 .yt-ib:hover{background:rgba(255,255,255,.1);color:#fff}
 .yt-v2 .yt-ib.is-on{background:rgba(74,144,226,.25);color:#fff}
-.yt-v2 .yt-ib:disabled{opacity:.6;cursor:wait}
+.yt-v2 .yt-ib:disabled{opacity:.6;cursor:default}
 .yt-v2 .yt-fav-btn{font-size:18px}
 .yt-v2 .yt-fav-btn.saved{color:#ff4d6d}
 .yt-v2 .yt-lib-btn[data-count]::after{content:attr(data-count);position:absolute;top:1px;right:-1px;min-width:14px;height:14px;padding:0 3px;
@@ -1104,3 +1144,21 @@ window.addEventListener('blur', () => {
 
 // Widgets YouTube déjà présents au chargement du script.
 document.querySelectorAll('.widget[data-type="youtube"]').forEach(_ytInit);
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-youtube')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-youtube';
+    st.textContent = `
+.editor-container.yt-v2 { cursor: default; }
+.editor-container.yt-v2 .yt-bar { cursor: grab; }
+.editor-container.yt-v2 .yt-bar:active { cursor: grabbing; }
+.editor-container.yt-v2.wf-media-fullboard .yt-bar, .editor-container.yt-v2.wf-media-fullboard .yt-bar:active { cursor: default; }
+.editor-container.yt-v2 :is(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="range"]) { cursor: pointer; }
+.editor-container.yt-v2 :is(button, select, input):disabled { cursor: default !important; }
+.editor-container.yt-v2 input[type="text"] { cursor: text; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

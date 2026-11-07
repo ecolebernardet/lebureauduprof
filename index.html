@@ -1887,16 +1887,6 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
 		<div class="act-section act-section-maths">
 		<div class="act-section-label">🔢 MATHÉMATIQUES</div>
 		<div class="act-grid">
-			<div class="act-card" onclick="createWidget('tables-multi');toggleLessonsPanel()">
-                <div class="act-card-ico"><img src="pics/lecon-maths-tables-multi.jpg" alt="Les tables de multiplication" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='✖️'"></div>
-                <div class="act-card-name">Les tables de multiplication</div>
-                <div class="act-card-desc">Leçons pleines d'astuces (doigts du 9, horloge du 5, doubles…), table de Pythagore qui fond, et exercices sur une table ou toutes, avec la carte de mes progrès</div>
-            </div>
-			<div class="act-card" onclick="createWidget('operations-posees');toggleLessonsPanel()">
-                <div class="act-card-ico"><img src="pics/lecon-maths-operations-posees.jpg" alt="Opérations posées" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧮'"></div>
-                <div class="act-card-name">Opérations posées</div>
-                <div class="act-card-desc">Leçons animées et exercices corrigés : addition, soustraction, multiplication et division posées, avec les retenues</div>
-            </div>
 			<div class="act-card" onclick="createWidget('nombre-decomp');toggleLessonsPanel()">
                 <div class="act-card-ico"><img src="pics/lecon-maths-grands-nombres.jpg" alt="Les grands nombres" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🔢'"></div>
                 <div class="act-card-name">Les grands nombres</div>
@@ -1911,6 +1901,16 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/lecon-maths-fractions.jpg" alt="Comprendre les fractions" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🍕'"></div>
                 <div class="act-card-name">Comprendre les fractions</div>
                 <div class="act-card-desc">Découvrir pas à pas ce qu'est une fraction : parts égales, droite graduée, fractions égales, comparaison et défi</div>
+            </div>
+			<div class="act-card" onclick="createWidget('tables-multi');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/lecon-maths-tables-multi.jpg" alt="Les tables de multiplication" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='✖️'"></div>
+                <div class="act-card-name">Les tables de multiplication</div>
+                <div class="act-card-desc">Leçons pleines d'astuces (doigts du 9, horloge du 5, doubles…), table de Pythagore qui fond, et exercices sur une table ou toutes, avec la carte de mes progrès</div>
+            </div>
+			<div class="act-card" onclick="createWidget('operations-posees');toggleLessonsPanel()">
+                <div class="act-card-ico"><img src="pics/lecon-maths-operations-posees.jpg" alt="Opérations posées" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='🧮'"></div>
+                <div class="act-card-name">Opérations posées</div>
+                <div class="act-card-desc">Leçons animées et exercices corrigés : addition, soustraction, multiplication et division posées, avec les retenues</div>
             </div>
 			<div class="act-card" onclick="createWidget('conversion-lecon');toggleLessonsPanel()">
                 <div class="act-card-ico"><img src="pics/lecon-maths-conversion.jpg" alt="Les conversions" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='📐'"></div>

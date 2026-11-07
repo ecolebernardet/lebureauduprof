@@ -41,7 +41,7 @@
     p(`Vous pouvez y poser librement des <strong>jeux</strong>, des <strong>leçons et entraînements</strong>, des <strong>activités</strong> de classe, des <strong>outils</strong> de gestion (tirage au sort, minuteur, sonomètre…), des <strong>widgets</strong> (date, météo, devoirs, PDF, YouTube…), des stickers et des images. Vous pouvez aussi <strong>dessiner</strong>, <strong>écrire</strong>, <strong>annoter des PDF</strong>, changer le <strong>fond</strong> du tableau, et tout <strong>sauvegarder</strong>.`) +
     p(`Le tableau respecte un <strong>format 16:9</strong> et s'adapte à la taille de votre écran ou vidéoprojecteur.`) +
     `<p class="hm-p" style="font-size:14px;line-height:1.8;text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #e5e8ee;">Le Bureau du Prof est un outil <strong>libre</strong> et <strong>gratuit</strong>. </p>
-	<p class="hm-p" style="font-size:12px;line-height:1.8;text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #e5e8ee;">🤓 créé et géré par Nicolas Bernardet - prof d'école à Chambéry (Savoie) 🤓</p>`,
+	<p class="hm-p" style="font-size:12px;text-align:center;margin:0;"><a href="#" class="hm-link" onclick="closeHelpModal();if(typeof openAboutModal==='function')openAboutModal();return false;">ℹ️ Version <span id="hm-version"></span> — À propos</a></p>`,
     true));
 
   // EXPLORER
@@ -55,16 +55,23 @@
       ['📦 Widgets',   'Médias, temps & météo, organisation', '<kbd>Alt+5</kbd>'],
       ['🖼️ Visuels',   'Stickers animés, émojis classiques et images', '<kbd>Alt+6</kbd>'],
       ['📁 Tableaux',  'Vos tableaux, sauvegarde et import/export', '<kbd>Alt+7</kbd>'],
-      ['🖥️ Écran',     'Annuler, thème, laser, A4, capture, fonds d\'écran', '<kbd>Alt+8</kbd>'],
+      ['🖥️ Écran',     'Thème, laser, A4, capture, fonds d\'écran', '<kbd>Alt+8</kbd>'],
       ['📽️ Présenter', 'Active / désactive le mode présentation', '<kbd>Alt+9</kbd>'],
     ]) +
     p(`Les onglets sont rangés en trois familles, chacune annoncée par un petit titre : <strong>Élèves</strong> (Jeux, Leçons), <strong>Prof</strong> (Activités, Outils, Widgets, Visuels) et <strong>Gestion</strong> (Tableaux, Écran, Présenter).`) +
+    h3('❓ La pastille « ? »') +
+    p(`Sous les onglets, la petite pastille <strong>?</strong> ouvre une bulle avec l'<strong>Aide</strong> (cette fenêtre), le formulaire <strong>Remarques</strong> pour écrire à l'auteur, et la fenêtre <strong>À propos</strong> (version, vos données, crédits).`) +
     h3('✏️ Le bouton Dessiner') +
-    p(`En bas à droite, le bouton <strong>Dessiner</strong> (<kbd>Alt+0</kbd>) ouvre la barre de dessin et de figures.`) +
+    p(`En bas à droite, le bouton <strong>Dessiner</strong> (<kbd>Alt+0</kbd>) ouvre la barre de dessin et de figures. Sur téléphone, il est remplacé par l'onglet <strong>Dessin</strong>, en bas de la colonne d'onglets.`) +
     h3('🖱️ Le menu rapide') +
-    p(`<strong>Clic droit</strong> (ou <strong>appui long</strong> au doigt ou au stylet) sur une zone vide du tableau : un mini-menu propose <em>Coller, PDF, Écriture Seyes, Texte, Devoirs à noter, Planning du jour, Minuteur / Chrono</em> et <em>Défi calme</em>.`) +
+    p(`<strong>Clic droit</strong> (ou <strong>appui long</strong> au doigt ou au stylet) sur une zone vide du tableau : un mini-menu s'ouvre.`) +
+    table(['Ligne', 'Contenu'], [
+      ['En haut', '↩️ <strong>Annuler</strong>, ↪️ <strong>Refaire</strong> et 📋 <strong>Coller</strong>, côte à côte'],
+      ['En dessous', 'PDF, Écriture Seyes, Texte, Devoirs à noter, Planning du jour, Minuteur / Chrono, Défi calme, Remarques'],
+    ]) +
+    tip(`Au TBI, sans clavier, c'est le moyen le plus rapide d'annuler une erreur : appui long sur le tableau, puis Annuler.`) +
     h3('📥 Glisser-déposer') +
-    p(`Glissez un <strong>fichier PDF</strong> ou une ou plusieurs <strong>images</strong> depuis votre ordinateur directement sur le tableau : ils s'ouvrent aussitôt.`) +
+    p(`Glissez un <strong>fichier PDF</strong>, une ou plusieurs <strong>images</strong>, ou une <strong>vidéo</strong> ou un <strong>son</strong> depuis votre ordinateur directement sur le tableau : ils s'ouvrent aussitôt, à l'endroit où vous les lâchez.`) +
     tip(`Avec la souris, survolez une vignette dans les panneaux Jeux, Leçons et Activités pour voir sa description.`)
   ));
 
@@ -84,6 +91,8 @@
       ['Battle homophones', 'Choisir le bon homophone'],
       ['Battle orthographe', 'Trouver la bonne orthographe'],
       ['Battle temps des verbes', 'Trouver le temps du verbe'],
+      ['Battle drapeaux', 'Reconnaître les drapeaux du monde'],
+      ['Battle capitales', 'Pays et capitales'],
     ]) +
     group('🔢 Jeux de maths', [
       ['Multi-ball', 'Tables de multiplication'],
@@ -96,6 +105,8 @@
       ['La caisse du marchand', 'Rendre la monnaie'],
       ['Tour de calcul', 'Guider les calculs'],
       ['MathMaster', 'Calcul mental chronométré'],
+      ['Reproduction sur quadrillage', 'Reproduire un modèle en couleurs'],
+      ['Symétrie axiale', 'Compléter la figure par symétrie'],
     ]) +
     group('📖 Jeux de français', [
       ['Le train de l\'alphabet', 'Ordre alphabétique'],
@@ -120,10 +131,10 @@
       ['Simon', 'Mémoriser une suite'],
       ['Rush Hour', 'Libérer la voiture rouge'],
       ['Taquin', 'Remettre les pièces en ordre'],
-      ['Reproduction sur quadrillage', 'Reproduire un modèle'],
       ['Pixel art', 'Dessiner case par case'],
       ['Labyrinthe', 'Trouver la sortie'],
       ['Jeu des 7 différences', 'Comparer deux images'],
+      ['Géo France', 'Replacer villes, fleuves, régions, départements'],
     ])
   ));
 
@@ -131,16 +142,19 @@
   S.push(section('h-lecons', '📘 Leçons et entraînements',
     p(`Des modules pensés <strong>pour les élèves</strong> : une partie <strong>leçon</strong> pour comprendre, puis des <strong>exercices corrigés</strong> pour s'entraîner. Ils peuvent être suivis seul, en petit groupe ou collectivement au tableau. Chaque module a son propre bouton d'aide ❓.`) +
     group('🔢 Mathématiques', [
+      ['Les grands nombres', 'Lire, écrire, décomposer avec le tableau de numération'],
+      ['Les nombres décimaux', 'Dixièmes, centièmes, comparer, ranger'],
+      ['Comprendre les fractions', 'Parcours pas à pas'],
       ['Les tables de multiplication', 'Astuces, table de Pythagore, exercices'],
       ['Opérations posées', 'Les 4 opérations, avec les retenues'],
-      ['Les grands nombres', 'Lire, écrire, décomposer avec le tableau de numération'],
-      ['Comprendre les fractions', 'Parcours pas à pas'],
+      ['Les conversions', 'Tableau de conversion, zéros et virgule'],
     ]) +
     group('📖 Français', [
       ['La phrase', 'Types, formes, phrase simple ou complexe'],
       ['Les fonctions dans la phrase', 'Sujet, COD, COI, compléments…'],
       ['La nature des mots', 'Déterminant, nom, adjectif, verbe…'],
       ['La chaîne d\'accords', 'Accords dans le groupe nominal'],
+      ['L\'accord sujet-verbe', 'Trouver le sujet, les pièges'],
       ['Les homophones', 'a/à, et/est, son/sont…'],
       ['La conjugaison', '5 temps de l\'indicatif'],
       ['Ordre alphabétique', 'Ranger, chercher dans le dictionnaire'],
@@ -155,6 +169,7 @@
       ['La Révolution française', '1789 – 1799'],
       ['L\'âge industriel', 'Machine à vapeur, usines, villes'],
       ['Symboles de la République', 'Drapeau, devise, Marianne…'],
+      ['Les institutions de la France', 'Qui fait quoi, le voyage d\'une loi'],
       ['Le globe terrestre', 'La Terre en 3D'],
       ['Carte du monde', 'Planisphère interactif'],
       ['Carte de l\'Europe', 'Pays, capitales, UE'],
@@ -166,6 +181,8 @@
       ['La Terre en mouvement', 'Jour, nuit, saisons'],
       ['Le système solaire', 'Planètes et tailles'],
       ['Le cycle de l\'eau', 'États de l\'eau'],
+      ['La reproduction des plantes', 'De la graine au fruit'],
+      ['Les chaînes alimentaires', 'Qui mange qui ?'],
       ['Volcans et séismes', 'Éruptions, failles, ondes'],
       ['Les circuits électriques', 'Série, dérivation, défis'],
       ['Le corps humain', 'Squelette, organes, fonctions'],
@@ -186,16 +203,30 @@
       ['Heures et durées', 'Lire l\'heure, calculer'],
       ['Conversion', 'Unités de mesure'],
       ['Droite numérique', 'Placer des nombres'],
+      ['Estimation', 'Estimer, puis révéler'],
+      ['Constellations et doigts', 'Reconnaître une quantité sans compter'],
       ['Le mot le plus long', 'Avec 9 lettres tirées au sort'],
+      ['La phrase du jour', 'Analyser une phrase ensemble'],
+      ['Le mot du jour', 'Un mot de vocabulaire en 6 volets'],
+      ['Transforme la phrase', 'Temps, pluriel, négation, pronom'],
+      ['L\'intrus', 'Trouver l\'intrus et justifier'],
+      ['Conjugaison flash', 'Conjuguer sur l\'ardoise'],
+      ['Dictée flash', 'Mot ou phrase affiché quelques secondes'],
     ]) +
     group('🧮 Manipuler pour comprendre', [
       ['Tableau de numération', 'Manipuler les nombres'],
-
       ['Horloge interactive', 'Régler les aiguilles'],
-
       ['Fractions', 'Figures partageables'],
+      ['Zoom sur les décimaux', 'Dixièmes, centièmes, millièmes'],
       ['Solides 3D', 'Manipuler en 3D'],
       ['Tracés géométriques', 'Règle, équerre, compas'],
+      ['La balance à plateaux', 'Égalités, masses, équations'],
+      ['Le matériel base dix', 'Cubes, barres, plaques'],
+      ['Le partage équitable', 'Le sens de la division et du reste'],
+      ['L\'atelier de phrases', 'Déplacer, supprimer, pronominaliser'],
+      ['Lettres cursives', 'Voir et repasser le tracé'],
+      ['Chasse au son', 'Où entend-on le son ?'],
+      ['Robot à programmer', 'Programmer un déplacement sur une grille'],
     ]) +
     group('🛠️ Générer des activités', [
       ['Reproduction quadrillage', 'Créer un modèle à reproduire'],
@@ -206,6 +237,7 @@
     group('🎨 Arts et musique', [
       ['Mélange de couleurs', 'Couleurs primaires'],
       ['Clavier de piano', '3 octaves'],
+      ['Œuvre d\'art du jour', 'Observer un tableau célèbre'],
     ]) +
     tip(`« Le mot le plus long » et « Mots mêlés » existent aussi dans l'onglet Jeux, dans une version à jouer par les élèves.`)
   ));
@@ -222,6 +254,8 @@
       ['Sondage', 'Vote express'],
       ['Plan de la classe', 'Placer les élèves'],
       ['Emploi du temps', 'Organiser la semaine'],
+      ['Déroulé de la journée', 'Où en est-on dans la journée'],
+      ['Billets aux familles', 'Mots à coller dans le cahier, en PDF'],
     ]) +
     group('📢 Gestion du bruit', [
       ['Défi Calme Photo', 'Le silence révèle une image'],
@@ -230,6 +264,7 @@
       ['Sonomètre', 'Niveau sonore'],
       ['Les couleurs du bruit', 'L\'écran change de couleur'],
       ['Pause Calme', 'Respiration guidée'],
+      ['Ambiance sonore', 'Pluie, forêt, vagues, musique calme'],
     ]) +
     group('🪛 Outils divers', [
       ['Écriture Seyes', 'Taper sur un lignage Seyes'],
@@ -239,7 +274,7 @@
       ['Calculatrice', 'En grand, avec historique'],
       ['Visualiseur', 'Caméra USB / webcam'],
       ['Structure École', 'Répartition en classes'],
-      ['Page de garde', 'Page de cahier illustrée'],
+      ['108 heures', 'Suivre ses 108 heures annuelles'],
       ['OutilsProfs', 'Outils en ligne outilsprofs.fr'],
     ]) +
     warn(`Les outils de gestion du bruit et le visualiseur demandent l'autorisation d'accès au microphone ou à la caméra dans le navigateur.`)
@@ -252,7 +287,16 @@
       ['PDF', 'Afficher et annoter un document'],
       ['Fenêtre Web', 'Intégrer un site'],
       ['YouTube', 'Vidéo ou audio seul, bibliothèque de favoris'],
+      ['Qwant Junior', 'Moteur de recherche des enfants'],
+      ['Dictionnaire', 'Chercher une définition'],
+      ['QR code', 'Transformer une adresse en code'],
+      ['Œuvre d\'art du jour', 'Un tableau célèbre chaque jour'],
+      ['Diaporama', 'Projeter les images d\'un dossier'],
+      ['Lecteur vidéo', 'Vidéo ou son de l\'ordinateur'],
       ['Carte', 'Google Maps, avec fond d\'écran possible'],
+      ['Citations', 'Une citation expliquée'],
+      ['Devinettes', 'Devinette, indice, réponse'],
+      ['Le saviez-vous ?', 'Une anecdote par jour'],
     ]) +
     group('🕒 Temps & météo', [
       ['Date du jour', ''],
@@ -265,6 +309,9 @@
       ['Texte', 'Zone de texte libre'],
       ['Devoirs à noter', ''],
       ['Planning de la journée', 'Lignes éditables et réordonnables'],
+      ['Tableau', 'À remplir au stylet ou au clavier'],
+      ['Tableau de conversion', 'Écrire au stylet'],
+      ['Tableau de numération', 'Écrire au stylet'],
     ]) +
     tip(`Les widgets PDF, Web, YouTube et Carte ont un bouton <strong>⛶</strong> pour le plein écran du navigateur.`)
   ));
@@ -356,6 +403,7 @@
     p(`L'onglet <strong>Tableaux</strong> liste tous vos tableaux enregistrés dans le navigateur. Cliquez sur l'un d'eux pour l'ouvrir.`) +
     table(['Action', 'Description'], [
       ['＋ Nouveau tableau', 'Créer un tableau vierge'],
+      ['🗑️ Effacer le tableau affiché', 'Vider le tableau ouvert (une confirmation est demandée)'],
       ['📝 Brouillon', 'Un tableau non enregistré ; un point jaune sur l\'onglet le signale, bouton 💾 Enregistrer pour le garder'],
       ['💾 Sauvegarder un tableau', 'Télécharger le tableau courant (.json)'],
       ['📂 Charger un tableau', 'Ouvrir un fichier .json'],
@@ -371,12 +419,17 @@
   S.push(section('h-ecran', '🖥️ Écran',
     p(`L'onglet <strong>Écran</strong> rassemble les réglages d'affichage.`) +
     table(['Rubrique', 'Contenu'], [
-      ['↩️ Actions', 'Annuler (<kbd>Ctrl+Z</kbd>), Refaire (<kbd>Ctrl+Y</kbd>), Effacer le tableau, Aide'],
       ['🎨 Thème', 'Menus en mode clair ou sombre'],
       ['🔴 Laser', 'Pointeur rouge bien visible au vidéoprojecteur (<kbd>Échap</kbd> pour l\'arrêter)'],
       ['📄 A4 Portrait', 'Tableau au format d\'une page A4'],
       ['📸 Capture', 'Enregistrer le tableau en JPG, PNG ou PDF'],
       ['🎨 Fond d\'écran', 'Couleurs unies ou personnalisées, réglures (Séyès, lignes, carreaux, ardoise, papier pointé), fonds pratiques (tableaux de numération et de conversion, proportionnalité, Pythagore), images, ou import de votre propre image'],
+    ]) +
+    h3('Où sont passés Annuler, Effacer et Aide ?') +
+    table(['Action', 'Nouvelle place'], [
+      ['↩️ Annuler / ↪️ Refaire', 'Clic droit ou appui long sur le tableau, en haut du menu ; barre de dessin ; <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd>'],
+      ['🗑️ Effacer', 'Onglet <strong>Tableaux</strong>, sous « Nouveau tableau »'],
+      ['❓ Aide, 💬 Remarques, ℹ️ À propos', 'Pastille <strong>?</strong> sous les onglets'],
     ])
   ));
 
@@ -389,7 +442,19 @@
   // TÉLÉPHONE
   S.push(section('h-mobile', '📱 Tablette & téléphone',
     p(`Le Bureau du Prof fonctionne au doigt et au stylet : <strong>appui long</strong> sur le tableau pour le menu rapide, gestes adaptés pour les boutons.`) +
-    p(`Sur <strong>téléphone</strong>, les jeux, leçons, activités et outils ouverts depuis un panneau s'affichent en <strong>plein écran</strong> ; le bouton <strong>⤡</strong> permet d'en sortir.`)
+    p(`Sur <strong>téléphone</strong>, les jeux, leçons, activités et outils ouverts depuis un panneau s'affichent en <strong>plein écran</strong> ; le bouton <strong>⤡</strong> permet d'en sortir.`) +
+    p(`Les onglets n'affichent que leur icône ; le dessin s'ouvre avec l'onglet <strong>Dessin</strong>, et la pastille <strong>?</strong> reste en bas de la colonne.`)
+  ));
+
+  // AIDE, REMARQUES, À PROPOS
+  S.push(section('h-contact', '❓ Aide, remarques & à propos',
+    p(`La pastille <strong>?</strong>, en bas de la colonne d'onglets, regroupe trois entrées :`) +
+    table(['Entrée', 'Contenu'], [
+      ['❓ Aide', 'Cette fenêtre : une vue d\'ensemble de tout le bureau'],
+      ['💬 Remarques', 'Envoyer une suggestion, signaler un bug ou dire merci à l\'auteur'],
+      ['ℹ️ À propos', 'Version, vos données et crédits'],
+    ]) +
+    tip(`Aucune donnée personnelle n'est stockée sur un serveur : vos tableaux et listes de classe restent dans votre navigateur. Seul ce que vous écrivez dans « Remarques » est envoyé.`)
   ));
 
   // RACCOURCIS
@@ -401,7 +466,7 @@
       ['<kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd>', 'Annuler / refaire'],
       ['<kbd>Ctrl+C</kbd> / <kbd>Ctrl+V</kbd>', 'Copier / coller des éléments ou une image'],
       ['<kbd>Ctrl+G</kbd> / <kbd>Ctrl+Maj+G</kbd>', 'Grouper / dissocier'],
-      ['Clic droit sur le tableau', 'Menu rapide'],
+      ['Clic droit sur le tableau', 'Menu rapide (Annuler, Refaire, Coller…)'],
     ])
   ));
 
@@ -424,6 +489,7 @@
       ${nav('h-intro', '🏠 Introduction', true)}
       ${nav('h-explorer', '🗺️ Explorer le bureau')}
       ${nav('h-raccourcis', '⌨️ Raccourcis clavier')}
+      ${nav('h-contact', '❓ Aide, remarques & à propos')}
       ${navSep}
       ${navTitle('Contenus')}
       ${nav('h-jeux', '🎮 Jeux')}
@@ -465,7 +531,7 @@
     }
     #help-modal-overlay {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.72);
-      z-index: 20010; justify-content: center; align-items: center; padding: 20px;
+      z-index: 70000; justify-content: center; align-items: center; padding: 20px;
     }
     #help-modal-overlay * { font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif !important; box-sizing: border-box; }
     #help-modal-box {
@@ -512,6 +578,8 @@
     .hm-table tr:last-child td { border-bottom: none; }
     .hm-tip { background: #eef7ff; border-left: 4px solid #2B7FFF; border-radius: 0 8px 8px 0; padding: 10px 14px; font-size: 12.5px; color: #1a4d8f; margin: 10px 0; }
     .hm-tip.hm-warn { background: #fff8e6; border-left-color: #f39c12; color: #7a5000; }
+    .hm-link { color: #2B7FFF; font-weight: 700; text-decoration: none; }
+    .hm-link:hover { text-decoration: underline; }
     .hm-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: middle; }
     #help-modal-overlay kbd {
       font-size: 11px; background: #eee; border: 1px solid #ccc; border-radius: 3px; padding: 1px 5px; white-space: nowrap;
@@ -545,6 +613,9 @@
 function openHelpModal() {
   const o = document.getElementById('help-modal-overlay');
   o.style.display = 'flex';
+  // Numéro de version défini dans index.html (APP_VERSION), lu à l'ouverture
+  const v = document.getElementById('hm-version');
+  if (v) v.textContent = window.APP_VERSION || '';
   helpShow(document.querySelector('.help-nav[data-s="h-intro"]'));
 }
 

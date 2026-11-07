@@ -2191,5 +2191,28 @@ function createMotLePlusLongWidget() {
 // Téléphone (même détection que les jeux)
 function _wfIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-mot-long')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-mot-long';
+    st.textContent = `
+.widget[data-type="mot-long"] { cursor: default; }
+.widget[data-type="mot-long"] .ml-header { cursor: grab; }
+.widget[data-type="mot-long"] .ml-header:active { cursor: grabbing; }
+.widget[data-type="mot-long"] .wf-fullboard .ml-header, .widget[data-type="mot-long"] .wf-fullboard .ml-header:active { cursor: default; }
+.widget[data-type="mot-long"] .ml-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="mot-long"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="mot-long"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="mot-long"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="mot-long"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="mot-long"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="mot-long"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

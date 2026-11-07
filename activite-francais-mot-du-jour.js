@@ -75,7 +75,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            cursor: move;
+            cursor: grab;
             user-select: none;
         }
         .mdj-title {
@@ -1132,7 +1132,8 @@ function _mdjFindIdx(lv, mot) {
 // Téléphone (même détection que les autres jeux et activités)
 function _mdjIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 // Petite explication de la nature, selon le début de l'intitulé
 function _mdjNatHelp(n) {
@@ -1797,3 +1798,26 @@ function createMotDuJourWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-mot-du-jour')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-mot-du-jour';
+    st.textContent = `
+.widget[data-type="mot-du-jour"] { cursor: default; }
+.widget[data-type="mot-du-jour"] .mdj-header { cursor: grab; }
+.widget[data-type="mot-du-jour"] .mdj-header:active { cursor: grabbing; }
+.widget[data-type="mot-du-jour"] .wf-fullboard .mdj-header, .widget[data-type="mot-du-jour"] .wf-fullboard .mdj-header:active { cursor: default; }
+.widget[data-type="mot-du-jour"] .mdj-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="mot-du-jour"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="mot-du-jour"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="mot-du-jour"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="mot-du-jour"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="mot-du-jour"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="mot-du-jour"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+.widget[data-type="mot-du-jour"] .mdj-volet.open .mdj-volet-head { cursor: pointer; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

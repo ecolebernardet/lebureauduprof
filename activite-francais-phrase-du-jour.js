@@ -80,7 +80,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            cursor: move;
+            cursor: grab;
             user-select: none;
         }
         .pdj-title {
@@ -642,7 +642,8 @@ function _pdjDayOfYear() {
 // Téléphone (même détection que les autres jeux et activités)
 function _pdjIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 // ── Création du widget ────────────────────────────────────────────────────
@@ -1485,3 +1486,25 @@ function createPhraseDuJourWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-phrase-du-jour')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-phrase-du-jour';
+    st.textContent = `
+.widget[data-type="phrase-du-jour"] { cursor: default; }
+.widget[data-type="phrase-du-jour"] .pdj-header { cursor: grab; }
+.widget[data-type="phrase-du-jour"] .pdj-header:active { cursor: grabbing; }
+.widget[data-type="phrase-du-jour"] .wf-fullboard .pdj-header, .widget[data-type="phrase-du-jour"] .wf-fullboard .pdj-header:active { cursor: default; }
+.widget[data-type="phrase-du-jour"] .pdj-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="phrase-du-jour"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="phrase-du-jour"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="phrase-du-jour"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="phrase-du-jour"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="phrase-du-jour"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="phrase-du-jour"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

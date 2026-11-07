@@ -418,7 +418,8 @@ function _tfpDiffHTML(a, b) {
 }
 function _tfpIsPhone() {
     if (typeof isMobileBoardMode === 'function') { try { if (isMobileBoardMode()) return true; } catch (e) {} }
-    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches);
+    if (typeof isTabletBoardMode === 'function') { try { if (isTabletBoardMode()) return true; } catch (e) {} }
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse), (pointer: coarse) and (min-width: 601px) and (min-height: 501px)').matches);
 }
 
 // ── Création du widget ────────────────────────────────────────────────────
@@ -985,3 +986,25 @@ function createTransformePhraseWidget() {
     saveBoard();
     return widget;
 }
+
+// ── Curseurs : flèche par défaut, main qui attrape sur la barre du haut (déplacement),
+//    doigt qui pointe sur tout ce qui est cliquable. ──
+(function () {
+    if (typeof document === 'undefined' || document.getElementById('curseurs-transforme-phrase')) return;
+    const st = document.createElement('style');
+    st.id = 'curseurs-transforme-phrase';
+    st.textContent = `
+.widget[data-type="transforme-phrase"] { cursor: default; }
+.widget[data-type="transforme-phrase"] .tfp-header { cursor: grab; }
+.widget[data-type="transforme-phrase"] .tfp-header:active { cursor: grabbing; }
+.widget[data-type="transforme-phrase"] .wf-fullboard .tfp-header, .widget[data-type="transforme-phrase"] .wf-fullboard .tfp-header:active { cursor: default; }
+.widget[data-type="transforme-phrase"] .tfp-header :is(button, select, .wf-btn, [role="button"]) { cursor: pointer; }
+:where(.widget[data-type="transforme-phrase"]) :where(button, select, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="transforme-phrase"] :is(input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]) { cursor: pointer; }
+.widget[data-type="transforme-phrase"] :is(button, select, input, textarea):disabled { cursor: default !important; }
+.widget[data-type="transforme-phrase"] .wf-mini-bar { cursor: grab !important; }
+.widget[data-type="transforme-phrase"] .wf-mini-bar:active { cursor: grabbing !important; }
+.widget[data-type="transforme-phrase"] .wf-mini-bar :is(button, .wf-btn) { cursor: pointer !important; }
+`;
+    (document.head || document.documentElement).appendChild(st);
+})();

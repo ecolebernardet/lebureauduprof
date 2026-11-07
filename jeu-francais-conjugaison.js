@@ -665,6 +665,87 @@
         }
         .jcj-container:hover .jcj-resize-handle { opacity: 1; }
 
+        /* =================================================================
+           📱 TÉLÉPHONE : les portes du temps ne doivent jamais s'écraser.
+           Sans ces règles, la grille 2×2 se partage la petite hauteur
+           restante et chaque case tombe à ~0 px : l'étiquette déposée
+           existe bien mais reste invisible (case trop petite).
+           ================================================================= */
+        @media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {
+            .jcj-container { min-width: 0 !important; padding: 8px 10px; gap: 6px; border-radius: 16px; }
+            .jcj-container.wf-fullboard { min-width: 0 !important; }
+
+            /* En-tête compact */
+            .jcj-title { font-size: 18px; gap: 6px; }
+            .jcj-title small { display: none; }
+            .jcj-title-clock { width: 20px; height: 20px; border-width: 2px; }
+
+            /* Paramètres repliés (bouton ⚙ pour les ouvrir) */
+            .jcj-params-panel { padding: 6px 10px; }
+            .jcj-params-row label { font-size: 11px; }
+            .jcj-count-select, .jcj-group-select { font-size: 12px; padding: 4px 8px; max-width: 100%; }
+
+            /* HUD compact */
+            .jcj-hud { gap: 5px; }
+            .jcj-chip { padding: 3px 8px 3px 4px; gap: 4px; font-size: 12px; }
+            .jcj-chip-ico { width: 20px; height: 20px; font-size: 11px; }
+            .jcj-chip small { display: none; }
+            .jcj-chip b { font-size: 15px; }
+            .jcj-score { padding-right: 8px; }
+            .jcj-timer b { min-width: 40px; }
+
+            .jcj-message { font-size: 12px; padding: 6px 10px; }
+            .jcj-help-popup { width: auto; left: 8px; right: 8px; max-height: 70%; overflow-y: auto; }
+
+            /* Zone de jeu : défile si besoin au lieu d'écraser les cases */
+            .jcj-play-zone { min-height: 0; gap: 8px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+            /* Réservoir plus petit */
+            .jcj-pool { max-height: 32%; min-height: 48px; padding: 22px 8px 8px; gap: 6px; flex-shrink: 0; }
+            .jcj-pool::before { top: 4px; left: 8px; font-size: 11px; }
+
+            /* Portes du temps : hauteur minimale garantie */
+            .jcj-zones {
+                flex: 1 0 auto;
+                grid-template-rows: none;
+                grid-auto-rows: minmax(110px, 1fr);
+                gap: 8px;
+                min-height: 0;
+            }
+            .jcj-zone { padding: 0 6px 6px; gap: 5px; border-radius: 12px; min-height: 110px; }
+            .jcj-zone::after { display: none; }
+            .jcj-zone-title { margin: 0 -6px; padding: 4px 6px; font-size: 13px; border-radius: 10px 10px 0 0; }
+            .jcj-zone-drops { min-height: 40px; gap: 4px; align-content: flex-start; }
+
+            /* Billets : plus petits, et retour à la ligne autorisé dans les cases */
+            .jcj-tag { padding: 6px 10px 6px 15px; }
+            .jcj-tag::after { left: 5px; }
+            .jcj-tag.placed {
+                font-size: 11px;
+                padding: 4px 7px 4px 12px;
+                white-space: normal;
+                max-width: 100%;
+                line-height: 1.2;
+            }
+
+            .jcj-overlay-title { font-size: 24px; }
+            .jcj-overlay-clock { width: 60px; height: 60px; border-width: 4px; }
+            .jcj-overlay-sub { font-size: 13px; }
+            .jcj-btn { padding: 6px 12px; font-size: 12px; }
+            .jcj-btn-correction { font-size: 14px; padding: 6px 16px; }
+        }
+
+        /* 📱 Téléphone en paysage : peu de hauteur → les 4 portes sur une seule ligne */
+        @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape) {
+            .jcj-hud { flex-wrap: nowrap; }
+            .jcj-zones {
+                grid-template-columns: repeat(4, 1fr);
+                grid-auto-rows: minmax(100px, 1fr);
+            }
+            .jcj-zone { min-height: 100px; }
+            .jcj-pool { max-height: 34%; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .jcj-container *, .jcj-container *::before, .jcj-container *::after {
                 animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important;
@@ -1036,9 +1117,28 @@
         }
 
         // ── Paramètres (toujours affichés, comme le jeu de memory) ────────
-        paramsPanel.classList.add('show');
-        paramsBtn.classList.add('active');
-        if (paramsBtn) paramsBtn.style.display = 'none';
+        // Sur téléphone, le panneau est replié par défaut (il prend trop de
+        // hauteur) et le bouton ⚙ permet de l'ouvrir / le fermer.
+        const PHONE_Q = window.PHONE_MEDIA_QUERY || '(max-width: 600px), (max-height: 500px) and (pointer: coarse)';
+        function isPhoneLayout() {
+            try { return !!(window.matchMedia && window.matchMedia(PHONE_Q).matches); } catch (e) { return false; }
+        }
+        function applyParamsLayout() {
+            if (isPhoneLayout()) {
+                paramsBtn.style.display = '';
+                paramsPanel.classList.remove('show');
+                paramsBtn.classList.remove('active');
+            } else {
+                paramsBtn.style.display = 'none';
+                paramsPanel.classList.add('show');
+                paramsBtn.classList.add('active');
+            }
+        }
+        applyParamsLayout();
+        makeTap(paramsBtn, () => {
+            const open = paramsPanel.classList.toggle('show');
+            paramsBtn.classList.toggle('active', open);
+        });
         paramsPanel.addEventListener('pointerdown', (e) => e.stopPropagation());
         countSelect.addEventListener('pointerdown', (e) => e.stopPropagation());
         groupSelect.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -1218,6 +1318,8 @@
             tag.classList.add('placed');
             const drops = zone.querySelector('.jcj-zone-drops');
             drops.appendChild(tag);
+            // L'étiquette déposée reste visible même si la case est pleine
+            drops.scrollTop = drops.scrollHeight;
             updateHUD();
             updateCorrectionButton();
         }
@@ -1495,8 +1597,7 @@
 
             applyFontScale();
             resetGame();
-            paramsPanel.classList.add('show');
-            paramsBtn.classList.add('active');
+            applyParamsLayout();
             rafId = requestAnimationFrame(gameLoop);
         }));
 

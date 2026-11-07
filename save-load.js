@@ -112,7 +112,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW)  * 100;
             tP = (w.offsetTop  / curVH) * 100;
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
-        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones' || w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2' || w.dataset.type === 'mots-alpha' || w.dataset.type === 'nature-gramm' || w.dataset.type === 'fonctions' || w.dataset.type === 'operations-posees' || w.dataset.type === 'familles-derivation' || w.dataset.type === 'accord-gn' || w.dataset.type === 'nombre-decomp' || w.dataset.type === 'nombres-decimaux' || w.dataset.type === 'accord-sujet' || w.dataset.type === 'tables-multi' || w.dataset.type === 'conversion-lecon') {
+        } else if (w.dataset.type === 'calculatrice' || w.dataset.type === 'phrase-desordre' || w.dataset.type === 'visualiseur' || w.dataset.type === 'heures108' || w.dataset.type === 'mots-familles' || w.dataset.type === 'deroule' || w.dataset.type === 'fractions2' || w.dataset.type === 'homophones' || w.dataset.type === 'conjugaison' || w.dataset.type === 'conjugaison2' || w.dataset.type === 'mots-alpha' || w.dataset.type === 'nature-gramm' || w.dataset.type === 'fonctions' || w.dataset.type === 'operations-posees' || w.dataset.type === 'familles-derivation' || w.dataset.type === 'accord-gn' || w.dataset.type === 'nombre-decomp' || w.dataset.type === 'nombres-decimaux' || w.dataset.type === 'accord-sujet' || w.dataset.type === 'figures-planes' || w.dataset.type === 'tables-multi' || w.dataset.type === 'conversion-lecon') {
             // Calculatrice / Phrase en désordre / Visualiseur / 108 heures / Billets aux familles : si le widget est réduit
             // (mini-barre), on garde sa position d'origine (ses dimensions sont gérées par le widget)
             const _calcMini = !!w.querySelector('.wf-mini-bar, .h108-mini-bar, .der-mini-bar');
@@ -146,7 +146,7 @@ function buildBoardState() {
             lP = (w.offsetLeft / curW) * 100;
             tP = (w.offsetTop  / curVH) * 100;
         }
-        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones' && w.dataset.type !== 'conjugaison' && w.dataset.type !== 'conjugaison2' && w.dataset.type !== 'mots-alpha' && w.dataset.type !== 'nature-gramm' && w.dataset.type !== 'fonctions' && w.dataset.type !== 'operations-posees' && w.dataset.type !== 'familles-derivation' && w.dataset.type !== 'accord-gn' && w.dataset.type !== 'nombre-decomp' && w.dataset.type !== 'nombres-decimaux' && w.dataset.type !== 'accord-sujet' && w.dataset.type !== 'tables-multi' && w.dataset.type !== 'conversion-lecon') {
+        if (w.dataset.type !== 'deficalme' && w.dataset.type !== 'deficalme2' && w.dataset.type !== 'sondage' && w.dataset.type !== 'couleurs' && w.dataset.type !== 'musique-clavier' && w.dataset.type !== 'calculatrice' && w.dataset.type !== 'phrase-desordre' && w.dataset.type !== 'visualiseur' && w.dataset.type !== 'heures108' && w.dataset.type !== 'mots-familles' && w.dataset.type !== 'deroule' && w.dataset.type !== 'fractions2' && w.dataset.type !== 'homophones' && w.dataset.type !== 'conjugaison' && w.dataset.type !== 'conjugaison2' && w.dataset.type !== 'mots-alpha' && w.dataset.type !== 'nature-gramm' && w.dataset.type !== 'fonctions' && w.dataset.type !== 'operations-posees' && w.dataset.type !== 'familles-derivation' && w.dataset.type !== 'accord-gn' && w.dataset.type !== 'nombre-decomp' && w.dataset.type !== 'nombres-decimaux' && w.dataset.type !== 'accord-sujet' && w.dataset.type !== 'figures-planes' && w.dataset.type !== 'tables-multi' && w.dataset.type !== 'conversion-lecon') {
             Object.assign(w.dataset, { widthPercent: wP, contentHPercent: hP, leftPercent: lP, topPercent: tP });
         }
         // Données propres aux stickers
@@ -726,6 +726,11 @@ function buildBoardState() {
         if (w.dataset.type === 'accord-sujet' && typeof w._asvGetData === 'function') {
             asvData = w._asvGetData();
         }
+        // Données propres à la leçon « Les figures planes » (onglet, leçon, tri en cours, exercice en cours, taille, plein écran)
+        let fgpData = null;
+        if (w.dataset.type === 'figures-planes' && typeof w._fgpGetData === 'function') {
+            fgpData = w._fgpGetData();
+        }
         // Données propres au widget calculatrice
         // Données propres au widget visualiseur (caméra USB)
         let visuData = null;
@@ -911,6 +916,7 @@ function buildBoardState() {
 			ndData,
 			dcData,
 			asvData,
+			fgpData,
 			calcData,
 			visuData,
 			h108Data,
@@ -1857,6 +1863,13 @@ function restoreBoardFromJSON(json) {
             // Leçon « L'accord sujet-verbe » : leçon, atelier, exercice en cours, taille, plein écran
             if (typeof createAccordSujetWidget === 'function') {
                 widget = createAccordSujetWidget(w.asvData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'figures-planes') {
+            // Leçon « Les figures planes » : leçon, tri en cours, exercice en cours, taille, plein écran
+            if (typeof createFiguresPlanesWidget === 'function') {
+                widget = createFiguresPlanesWidget(w.fgpData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

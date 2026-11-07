@@ -6,9 +6,9 @@
 //   - « Bonjour ! / Bonsoir ! », l'heure et la date en grand
 //   - 8 grandes tuiles vers les panneaux (mêmes icônes et couleurs que
 //     les onglets latéraux) + 2 actions rapides (Dessiner, Écrire)
-//   - un bouton « Mode d'emploi » sous l'heure, qui ouvre la modale d'aide,
-//     et un bouton « Remarques » qui ouvre le formulaire de contact
-//     (openContactForm, défini dans index.html)
+//   - sous l'heure, trois boutons sur une ligne : « Aide » (modale d'aide),
+//     « Remarques » (formulaire de contact, openContactForm) et
+//     « À propos » (fenêtre À propos, openAboutModal) — définis dans index.html
 //   - une astuce tirée au hasard
 // Elle disparaît dès qu'on commence à travailler : clic sur une tuile,
 // clic sur un onglet latéral (ou Alt+1…9), ajout d'un widget, ouverture
@@ -43,7 +43,8 @@
         texte:   '<path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/>',
         pdf:     '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 14.5l2 2 4-4.5"/>',
         bulle:   '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z"/><path d="M8.5 11h7M8.5 14.5h4.5"/>',
-        aide:    '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17h.01"/>'
+        aide:    '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17h.01"/>',
+        info:    '<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5h.01"/>'
     };
     function svg(k) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICO[k] + '</svg>'; }
 
@@ -124,6 +125,7 @@
         '  transition:transform .12s,filter .15s;touch-action:manipulation;white-space:nowrap;}',
         '.acc-help:hover{transform:translateY(-2px);filter:brightness(1.06);}',
         '.acc-help.acc-contact{background:linear-gradient(120deg,#4a90e2,#3a74c4);box-shadow:0 4px 12px rgba(74,144,226,.35);}',
+        '.acc-help.acc-about{background:linear-gradient(120deg,#9b6cf0,#7b4fe0);box-shadow:0 4px 12px rgba(123,79,224,.35);}',
         '.acc-time-btns{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:6px;margin-top:10px;}',
         '.acc-time-btns .acc-help{margin-top:0;}',
         '.acc-help svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}',
@@ -275,8 +277,9 @@
                 '</div>' +
                 '<div class="acc-time"><div class="acc-clock">--:--</div><div class="acc-date"></div>' +
                   '<div class="acc-time-btns">' +
-                    '<button type="button" class="acc-help" data-act="help">' + svg('aide') + 'Mode d\'emploi</button>' +
+                    '<button type="button" class="acc-help" data-act="help" title="Ouvrir l\'aide">' + svg('aide') + 'Aide</button>' +
                     '<button type="button" class="acc-help acc-contact" data-act="contact" title="Envoyer une remarque à l\'auteur du site">' + svg('bulle') + 'Remarques</button>' +
+                    '<button type="button" class="acc-help acc-about" data-act="about" title="Version, données et crédits">' + svg('info') + 'À propos</button>' +
                   '</div>' +
                 '</div>' +
               '</div>' +
@@ -336,6 +339,10 @@
         root.querySelector('[data-act="contact"]').addEventListener('click', function () {
             hide();
             if (typeof openContactForm === 'function') openContactForm();
+        });
+        root.querySelector('[data-act="about"]').addEventListener('click', function () {
+            hide();
+            if (typeof openAboutModal === 'function') openAboutModal();
         });
         root.querySelector('.acc-close').addEventListener('click', hide);
         root.querySelector('.acc-never input').addEventListener('change', function (e) {

@@ -538,14 +538,18 @@
       background: #fff; border-radius: 18px; width: 100%; max-width: 920px; max-height: 92vh;
       display: flex; flex-direction: column; box-shadow: 0 24px 80px rgba(0,0,0,0.5); overflow: hidden;
     }
+    /* Barre du haut aux couleurs de l'icône : bleu #478bdc, orange #f4a320, blanc et noir */
     #help-modal-header {
-      background: linear-gradient(135deg,#2B7FFF 0%,#8E51FF 100%); color: white; padding: 22px 28px;
+      background: #478bdc; color: white; padding: 22px 28px;
+      border-bottom: 5px solid #f4a320;
       display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-shrink: 0;
     }
     #help-modal-close {
-      background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 36px; height: 36px;
-      color: white; font-size: 20px; cursor: pointer; flex-shrink: 0;
+      background: #f4a320; border: none; border-radius: 50%; width: 36px; height: 36px;
+      color: #1a1a1a; font-size: 20px; font-weight: 800; cursor: pointer; flex-shrink: 0;
+      transition: transform .12s, filter .15s;
     }
+    #help-modal-close:hover { filter: brightness(1.08); transform: scale(1.06); }
     #help-modal-body { display: flex; flex: 1; overflow: hidden; }
     #help-sidebar {
       width: 230px; flex-shrink: 0; background: #f4f6f9; border-right: 1px solid #e5e8ee;

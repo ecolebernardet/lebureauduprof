@@ -666,6 +666,9 @@
         .jcm-rh-e { top: 18px; bottom: 18px; right: 0; width: 5px; cursor: e-resize; }
         .jcm-rh-w { top: 18px; bottom: 18px; left: 0; width: 5px; cursor: w-resize; }
 
+        /* Plein écran : toujours au premier plan (téléphone, tablette, PC) */
+        .widget:has(> .jcm-container.wf-fullboard) { z-index: 9999 !important; }
+
         @media (prefers-reduced-motion: reduce) {
             .jcm-container *, .jcm-container *::before, .jcm-container *::after {
                 animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important;
@@ -1468,21 +1471,33 @@
         let _isMax = false, _savedW = null, _savedH = null;
         wfMin.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (_isMax) wfMax.click();
+            if (_isMax) setFullboard(false);
             window._wfMiniBarCollapse(widget, '🧺 La caisse du marchand', { onExpand: applyScale });
         });
-        wfMax.addEventListener('click', (e) => {
-            e.stopPropagation();
-            _isMax = !_isMax;
+        // Plein écran (bouton vert) : met aussi le widget au premier plan
+        // (sinon d'autres widgets passent devant sur téléphone / tablette).
+        function setFullboard(on) {
+            if (on === _isMax) return;
+            _isMax = on;
             if (_isMax) {
                 _savedW = container.style.width; _savedH = container.style.height;
+                widget.dataset.wfSavedZ = widget.style.zIndex || '';
+                widget.style.zIndex = '9999';
+                if (_isPhone()) container.classList.add('jti-mobile');
                 container.classList.add('wf-fullboard');
             } else {
-                container.classList.remove('wf-fullboard');
+                container.classList.remove('wf-fullboard', 'jti-mobile');
+                widget.style.zIndex = widget.dataset.wfSavedZ || '';
                 container.style.width = _savedW || '';
                 container.style.height = _savedH || '';
             }
             requestAnimationFrame(applyScale);
+            if (typeof saveBoard === 'function') saveBoard();
+        }
+        wfMax.addEventListener('pointerdown', (e) => e.stopPropagation());
+        wfMax.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setFullboard(!_isMax);
         });
         wfClose.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1557,8 +1572,11 @@
         requestAnimationFrame(() => requestAnimationFrame(() => {
             applyScale();
             setLevel(1);
+            // Téléphone ou tablette : ouverture directe en plein écran
+            // (comme si on avait appuyé sur le bouton vert).
             if (window._jeuWantsFullboard()) {
-                wfMax.click();
+                setFullboard(true);
+                setTimeout(applyScale, 300); // après l'arrivée des polices
             } else {
                 const curW = window.innerWidth;
                 widget.style.left = '100px';

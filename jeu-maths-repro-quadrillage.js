@@ -17,7 +17,9 @@
 // • Options : repères (A, B, C… / 1, 2, 3…), aide au repérage (la case
 //   survolée est surlignée dans le modèle), défi symétrie (miroir).
 // • Vérifier (les erreurs sont marquées), calque (voir le modèle par-dessus),
-//   annuler (Ctrl+Z), effacer, victoire automatique, étoiles et records.
+//   annuler (Ctrl+Z), effacer ; la victoire n'est annoncée qu'au clic sur
+//   « Vérifier » (la vérification réussie ne coûte pas d'étoile) ;
+//   étoiles et records.
 // • Sauvegarde du tableau via _jrqGetData / createJeuReproQuadrillageWidget(data)
 //   (même mécanisme que le Taquin, cf. save-load.js).
 // =========================================================================
@@ -689,7 +691,8 @@
                 '<p style="margin:6px 0;">✏️ <b>Tracer</b> : appuie sur un point de la grille et glisse jusqu\'à un autre point (ou touche les deux points l\'un après l\'autre).</p>' +
                 '<p style="margin:6px 0;">🧽 <b>Gomme</b> : touche une case ou un trait pour l\'effacer.</p>' +
                 '<p style="margin:6px 0;">💡 Astuce : compte les carreaux à partir d\'un coin ou utilise les <b>repères</b> (A1, B3…).</p>' +
-                '<p style="margin:6px 0;">⭐ 3 étoiles sans aide, 2 étoiles avec 1 ou 2 vérifications, 1 étoile avec le calque.</p></div></div>' +
+                '<p style="margin:6px 0;">✔ Quand tu penses avoir fini, appuie sur <b>Vérifier</b>.</p>' +
+                '<p style="margin:6px 0;">⭐ 3 étoiles si c\'est juste du premier coup, 2 étoiles après 1 ou 2 vérifications avec des erreurs, 1 étoile avec le calque.</p></div></div>' +
             '<div class="jrq-grip" title="Redimensionner"></div>';
         host.appendChild(root);
 
@@ -1007,7 +1010,7 @@
             S.marks = null;
             if (!S.editing && !S.started) S.started = true;
             render(); updateUI();
-            if (!S.editing && compare(S.target, S.player).done) win(); else save();
+            save();   // la victoire n'est annoncée qu'au clic sur « Vérifier »
         }
         function paintCell(rc, mode) {
             var m = cur(), k = rc[0] + ',' + rc[1];
@@ -1187,7 +1190,8 @@
             var good = r.okCells + r.okSegs;
             parts.push('✔ ' + good + ' bon' + (good > 1 ? 's' : ''));
             if (r.nBad) parts.push('✖ ' + r.nBad + ' erreur' + (r.nBad > 1 ? 's' : '') + ' (en rouge)');
-            if (r.nMiss) parts.push('il manque ' + r.nMiss + ' ' + unit + (r.nMiss > 1 && unit !== 'morceau de trait' ? 's' : (r.nMiss > 1 ? 's' : '')));
+            var plur = { 'case': 'cases', 'élément': 'éléments', 'morceau de trait': 'morceaux de trait' };
+            if (r.nMiss) parts.push('il manque ' + r.nMiss + ' ' + (r.nMiss > 1 ? plur[unit] : unit));
             setMsg(parts.join(' · '));
             if (prog.sound) { if (r.nBad) beep(200, 0.15, 'square', 0.03); else beep(660, 0.1, 'sine', 0.05); }
         }
@@ -1219,7 +1223,7 @@
                 se.innerHTML = starHTML(st);
                 se.querySelectorAll('.on').forEach(function (s, j) { s.style.animationDelay = (j * 0.18) + 's'; });
                 var txt = (S.mirror ? 'Symétrique réussi' : 'Modèle reproduit') + ' en <b>' + fmtTime(S.time) + '</b>';
-                if (S.checks) txt += '<br>avec ' + S.checks + ' vérification' + (S.checks > 1 ? 's' : '');
+                if (S.checks) txt += '<br>après ' + S.checks + ' vérification' + (S.checks > 1 ? 's' : '') + ' avec des erreurs';
                 if (S.peeked) txt += '<br>avec le calque — essaie sans la prochaine fois !';
                 if (newRec && key) txt += '<br>🏆 Nouveau record !';
                 $('.jrq-win-txt').innerHTML = txt;
@@ -1449,7 +1453,6 @@
                 S.player = sanitizeModel(d.player, n);
                 S.time = +d.time || 0; S.checks = +d.checks || 0; S.peeked = !!d.peeked;
                 S.started = !isEmpty(S.player);
-                if (S.started && compare(S.target, S.player).done) S.player = emptyModel();
                 renderTools(); render(); updateUI();
             }
         }

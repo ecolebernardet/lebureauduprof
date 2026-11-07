@@ -728,6 +728,181 @@
         document.head.appendChild(s);
     }
 
+    // ── Thème graphique « La caisse du marchand » (encre, or, crème) ──────
+    // Surcharge le style d'origine : injecté APRÈS lui, il l'emporte.
+    if (!document.getElementById('widget-jeu-taupe-theme')) {
+        const th = document.createElement('style');
+        th.id = 'widget-jeu-taupe-theme';
+        th.textContent = `
+        @import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap');
+
+        .jtt-container {
+            --encre: #2A1F4A; --creme: #FFF7E6; --or: #FFC933;
+            --vert: #2FBF71; --rouge: #FF4F5E; --violet: #3B2F63;
+            background: var(--encre) !important;
+            border: none !important;
+            border-radius: 24px;
+            box-shadow: 0 8px 0 #16102B, 0 14px 34px rgba(20,10,50,0.35) !important;
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif !important;
+            color: #fff !important;
+            gap: 10px;
+        }
+        .jtt-container.wf-fullboard { border-radius: 0 !important; box-shadow: none !important; }
+
+        /* En-tête */
+        .jtt-title {
+            font-family: 'Lilita One', 'Arial Rounded MT Bold', 'Segoe UI', sans-serif !important;
+            font-size: 22px !important; font-weight: 400 !important;
+            color: var(--or) !important; letter-spacing: 0.5px;
+            text-shadow: 0 3px 0 #B3470F !important; line-height: 1.1;
+        }
+        .jtt-params-btn, .jtt-help-btn {
+            width: 28px !important; height: 28px !important;
+            border: none !important; background: rgba(255,255,255,0.12) !important;
+            color: #fff !important; font-family: inherit; font-size: 14px !important; font-weight: 900 !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .jtt-params-btn:hover, .jtt-help-btn:hover { background: rgba(255,255,255,0.25) !important; }
+        .jtt-params-btn.active { background: var(--or) !important; color: var(--encre) !important; }
+
+        /* Aide */
+        .jtt-help-popup {
+            background: #fff !important; border: none !important; border-radius: 14px !important;
+            box-shadow: 0 6px 0 #B9B2D6, 0 10px 30px rgba(0,0,0,0.3) !important;
+            width: 330px !important; max-width: calc(100% - 20px); box-sizing: border-box;
+            font-size: 12.5px !important; font-weight: 700; line-height: 1.45 !important;
+            color: var(--encre) !important; z-index: 30 !important;
+            top: 54px !important;
+        }
+        .jtt-help-popup h4 {
+            font-family: 'Lilita One', sans-serif; font-weight: 400;
+            font-size: 17px !important; color: var(--encre) !important;
+        }
+
+        /* Panneau paramètres */
+        .jtt-params-panel {
+            background: var(--violet) !important; border: none !important;
+            border-radius: 16px !important;
+            box-shadow: inset 0 -6px 0 rgba(0,0,0,0.2);
+            padding: 10px 14px 14px !important; gap: 8px !important;
+            position: relative; z-index: 12;
+        }
+        .jtt-params-title, .jtt-params-row > label {
+            color: rgba(255,255,255,0.78) !important; font-weight: 900 !important;
+            font-size: 11px !important; letter-spacing: 1px; text-transform: uppercase;
+        }
+        .jtt-params-row { flex-wrap: wrap; }
+        .jtt-params-row .jtt-speed-select { display: none !important; }
+        .jtt-params-grid, .jtt-speed-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+        .jtt-table-check, .jtt-speed-pill {
+            -webkit-appearance: none; appearance: none;
+            font-family: inherit !important; font-weight: 900 !important; font-size: 14px !important;
+            min-height: 36px; min-width: 50px; padding: 5px 14px !important;
+            border-radius: 999px !important;
+            border: 2px solid rgba(255,255,255,0.28) !important;
+            background: transparent !important; color: #fff !important;
+            opacity: 1 !important; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+            touch-action: none; -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none; user-select: none;
+            transition: background .15s, transform .1s, box-shadow .15s;
+            box-sizing: border-box;
+        }
+        .jtt-table-check:hover, .jtt-speed-pill:hover { background: rgba(255,255,255,0.1) !important; }
+        .jtt-table-check:active, .jtt-speed-pill:active { transform: scale(0.94); }
+        .jtt-table-check.checked, .jtt-speed-pill.active {
+            background: var(--or) !important; color: var(--encre) !important;
+            border-color: var(--or) !important; box-shadow: 0 3px 0 #B3840B;
+        }
+        .jtt-table-check:not(.checked) { opacity: 0.7 !important; }
+        .jtt-table-check:focus-visible, .jtt-speed-pill:focus-visible { outline: 3px solid var(--or); outline-offset: 2px; }
+
+        /* HUD : pastilles arrondies */
+        .jtt-hud { color: #fff !important; gap: 8px; flex-wrap: wrap; font-family: inherit; }
+        .jtt-score, .jtt-timer, .jtt-lives, .jtt-best {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: rgba(255,255,255,0.1) !important; color: #fff !important;
+            border: none !important; border-radius: 999px !important;
+            padding: 4px 12px !important; box-shadow: none !important;
+            font-family: inherit !important; font-weight: 900 !important; font-size: 15px !important;
+            white-space: nowrap; text-shadow: none !important;
+        }
+        .jtt-score { background: rgba(47,191,113,0.28) !important; }
+        .jtt-lives { letter-spacing: 2px; }
+
+        /* Opération (étiquette crème façon message du marchand) */
+        .jtt-op {
+            font-family: 'Lilita One', 'Nunito', sans-serif !important; font-weight: 400 !important;
+            color: var(--encre) !important; background: var(--creme) !important;
+            border: none !important; border-left: 6px solid var(--or) !important;
+            border-radius: 14px !important; padding: 4px 18px !important;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.25); letter-spacing: 1px !important;
+        }
+        .jtt-op.jtt-op-missed { background: #FFEDEF !important; border-left-color: var(--rouge) !important; color: #A3223A !important; }
+
+        /* Aire de jeu */
+        .jtt-space {
+            border: none !important; border-radius: 18px !important;
+            box-shadow: inset 0 0 0 3px rgba(255,255,255,0.07), 0 5px 0 #16102B !important;
+        }
+
+        /* Écran de démarrage / pause / fin : carte blanche */
+        .jtt-overlay {
+            background: rgba(42,31,74,0.5) !important;
+            backdrop-filter: blur(2px) !important; -webkit-backdrop-filter: blur(2px);
+        }
+        .jtt-card {
+            background: #fff; border-radius: 18px;
+            padding: 16px 24px 18px; box-sizing: border-box;
+            box-shadow: 0 6px 0 #B9B2D6, 0 12px 30px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            text-align: center; max-width: min(440px, 92%);
+            animation: jtt-card-pop .35s ease-out;
+        }
+        @keyframes jtt-card-pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
+        .jtt-overlay-title {
+            font-family: 'Lilita One', sans-serif !important; font-weight: 400 !important;
+            font-size: 26px !important; color: var(--encre) !important; line-height: 1.1;
+        }
+        .jtt-overlay-sub {
+            color: #6A5E8E !important; font-weight: 800 !important; font-size: 14px !important;
+            max-width: 100% !important; line-height: 1.35;
+        }
+        .jtt-start-btn {
+            background: var(--vert) !important; color: #fff !important; border: none !important;
+            font-family: 'Lilita One', 'Nunito', sans-serif !important; font-weight: 400 !important;
+            font-size: 19px !important; letter-spacing: 0.5px;
+            padding: 9px 26px !important; border-radius: 14px !important;
+            box-shadow: 0 5px 0 #1C8A4F !important; text-shadow: 0 2px 0 rgba(0,0,0,0.2);
+            transition: transform .08s, box-shadow .08s, filter .15s !important;
+            margin-top: 4px;
+        }
+        .jtt-start-btn:hover { filter: brightness(1.06); background: var(--vert) !important; }
+        .jtt-start-btn:active { transform: translateY(4px) !important; box-shadow: 0 1px 0 #1C8A4F !important; }
+
+        /* Boutons du bas */
+        .jtt-controls { gap: 10px !important; padding-bottom: 4px; }
+        .jtt-btn {
+            font-family: inherit !important; font-weight: 900 !important; font-size: 13px !important;
+            padding: 7px 14px !important; border-radius: 14px !important; border: none !important;
+            background: #fff !important; color: var(--encre) !important;
+            box-shadow: 0 5px 0 #B9B2D6 !important;
+            transition: transform .08s, box-shadow .08s, filter .15s !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .jtt-btn:hover { filter: brightness(1.05); }
+        .jtt-btn:active { transform: translateY(4px) !important; box-shadow: 0 1px 0 #B9B2D6 !important; }
+        .jtt-btn-pause { background: var(--or) !important; box-shadow: 0 5px 0 #B3840B !important; }
+        .jtt-btn-pause:active { box-shadow: 0 1px 0 #B3840B !important; }
+
+        .jtt-resize-handle { background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.6) 50%) !important; border-radius: 0 0 22px 0 !important; }
+
+        .jtt-round-bar { background: rgba(255,255,255,0.12) !important; border: none !important; height: 8px !important; border-radius: 999px !important; }
+        .jtt-round-bar-fill { background: linear-gradient(90deg, var(--or), #FF7A1A) !important; border-radius: 999px !important; }
+        `;
+        document.head.appendChild(th);
+    }
+
     // ── Template HTML ──────────────────────────────────────────────────────
     const TEMPLATE_ID = 'template-jeu-tables-taupe';
     if (!document.getElementById(TEMPLATE_ID)) {
@@ -778,9 +953,11 @@
   <!-- Espace de jeu -->
   <div class="jtt-space">
     <div class="jtt-overlay">
+      <div class="jtt-card">
       <div class="jtt-overlay-title">🐹 Taupe des tables</div>
       <div class="jtt-overlay-sub">Tape sur la taupe qui porte le bon résultat avant qu'elle ne redescende dans son trou !</div>
       <button class="jtt-start-btn">▶ Démarrer</button>
+      </div>
     </div>
   </div>
 
@@ -890,19 +1067,63 @@
             });
         }
 
+        // ── Tap fiable sur téléphone / tablette / TBI pour les pastilles du
+        //    panneau Paramètres (tables, vitesse). L'ancien <label> + « click »
+        //    ne marchait pas au doigt : le tableau annule le « click » simulé
+        //    après un toucher. Ici on réagit directement au pointerup (et en
+        //    secours au touchend), avec anti-double déclenchement.
+        function bindChipTap(el, fn) {
+            let downId = null, sx = 0, sy = 0, tsx = 0, tsy = 0, lastFire = 0;
+            const fire = () => {
+                const t = Date.now();
+                if (t - lastFire < 400) return;
+                lastFire = t;
+                fn();
+            };
+            el.addEventListener('pointerdown', (e) => {
+                e.stopPropagation(); e.preventDefault();
+                downId = e.pointerId; sx = e.clientX; sy = e.clientY;
+                try { el.setPointerCapture(e.pointerId); } catch (err) {}
+            });
+            el.addEventListener('pointerup', (e) => {
+                if (downId === null || e.pointerId !== downId) return;
+                downId = null;
+                e.stopPropagation();
+                try { el.releasePointerCapture(e.pointerId); } catch (err) {}
+                if (Math.hypot(e.clientX - sx, e.clientY - sy) < 16) fire();
+            });
+            el.addEventListener('pointercancel', () => { downId = null; });
+            el.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                const t = e.changedTouches && e.changedTouches[0];
+                if (t) { tsx = t.clientX; tsy = t.clientY; }
+            }, { passive: true });
+            el.addEventListener('touchend', (e) => {
+                e.stopPropagation();
+                if (e.cancelable) e.preventDefault();
+                const t = e.changedTouches && e.changedTouches[0];
+                if (t && Math.hypot(t.clientX - tsx, t.clientY - tsy) < 16) fire();
+            }, { passive: false });
+            el.addEventListener('mousedown', (e) => e.stopPropagation());
+            el.addEventListener('click', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                if (e.detail === 0) fire(); // clavier (Entrée / Espace)
+            });
+        }
+
         // ── Construction des cases à cocher des tables (0 et 1 exclues) ──
         for (let n = 2; n <= 9; n++) {
-            const label = document.createElement('label');
+            const label = document.createElement('button');
+            label.type = 'button';
             label.className = 'jtt-table-check checked';
             label.dataset.table = n;
-            label.innerHTML = `<input type="checkbox" value="${n}" checked> ×${n}`;
-            label.addEventListener('pointerdown', (e) => e.stopPropagation());
-            label.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const cb = label.querySelector('input[type=checkbox]');
-                cb.checked = !cb.checked;
-                if (cb.checked) { activeTables.add(n); label.classList.add('checked'); }
-                else { activeTables.delete(n); label.classList.remove('checked'); }
+            label.setAttribute('aria-pressed', 'true');
+            label.textContent = '×' + n;
+            bindChipTap(label, () => {
+                const on = !activeTables.has(n);
+                if (on) activeTables.add(n); else activeTables.delete(n);
+                label.classList.toggle('checked', on);
+                label.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
             paramsGrid.appendChild(label);
         }
@@ -914,6 +1135,36 @@
         paramsPanel.addEventListener('pointerdown', (e) => e.stopPropagation());
         speedSelect.addEventListener('pointerdown', (e) => e.stopPropagation());
         speedSelect.addEventListener('change', () => { applySpeedSelection(); });
+
+        // ── Vitesse : pastilles cliquables (le <select> reste caché, il
+        //    garde la valeur et sert à la sauvegarde) ─────────────────────
+        const speedPills = document.createElement('div');
+        speedPills.className = 'jtt-speed-pills';
+        Array.from(speedSelect.options).forEach((opt) => {
+            const pill = document.createElement('button');
+            pill.type = 'button';
+            pill.className = 'jtt-speed-pill';
+            pill.dataset.value = opt.value;
+            pill.textContent = opt.textContent.split(' (')[0];
+            pill.title = opt.textContent;
+            bindChipTap(pill, () => {
+                if (speedSelect.value === opt.value) return;
+                speedSelect.value = opt.value;
+                speedSelect.dispatchEvent(new Event('change'));
+            });
+            speedPills.appendChild(pill);
+        });
+        speedSelect.parentNode.appendChild(speedPills);
+        function syncSpeedPills() {
+            speedPills.querySelectorAll('.jtt-speed-pill').forEach(p => {
+                const on = p.dataset.value === speedSelect.value;
+                p.classList.toggle('active', on);
+                p.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+        }
+        speedSelect.addEventListener('change', syncSpeedPills);
+        syncSpeedPills();
+        ['touchstart', 'mousedown'].forEach(ev => paramsPanel.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
 
         function applySpeedSelection() {
             if (speedSelect.value === 'progressive') {

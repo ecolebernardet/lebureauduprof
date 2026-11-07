@@ -983,6 +983,21 @@
 
     /* Pas de survol au doigt : les boutons d'un tableau restent visibles */
     html body #projects-panel .proj-panel-item-actions { opacity: 1 !important; }
+
+    /* Panneaux Visuels, Tableaux et Écran : sur ordinateur ils s'ouvrent à
+       30 % de la largeur de l'écran, ce qui est trop étroit sur tablette
+       (≈ 230 à 350 px). On leur garantit au moins 420 px, sans jamais
+       dépasser la place disponible à droite des onglets latéraux. */
+    :root {
+        --sticker-panel-w: max(30vw, 420px);
+        --proj-panel-w:    max(30vw, 420px);
+        --display-panel-w: max(30vw, 420px);
+    }
+    #sticker-panel,
+    #projects-panel,
+    #display-panel {
+        max-width: calc(100vw - var(--side-tabs-w)) !important;
+    }
 }
 
 

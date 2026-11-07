@@ -199,7 +199,16 @@ window.TABLET_MEDIA_QUERY = TABLET_MEDIA_QUERY;
 function isTabletBoardMode() {
     return window.matchMedia(TABLET_MEDIA_QUERY).matches;
 }
-let _wasMobileBoardMode = isMobileBoardMode();
+// Tableau « vertical » : téléphone (toujours), ou tablette tenue en portrait.
+// Le tableau occupe alors toute la hauteur de l'écran au lieu du ratio 16/9,
+// et les images de fond sont recadrées (cover) pour remplir la hauteur.
+// La tablette repasse en 16/9 dès qu'on la tourne en paysage.
+function isVerticalBoardMode() {
+    if (isMobileBoardMode()) return true;
+    return isTabletBoardMode() && window.innerHeight > window.innerWidth;
+}
+window.isVerticalBoardMode = isVerticalBoardMode;
+let _wasMobileBoardMode = isVerticalBoardMode();
 
 // =========================================================================
 // INIT
@@ -530,10 +539,10 @@ function _showCopyFeedback(count) {
 
 
 function virtualH(w) {
-    // Sur téléphone (hors mode A4, géré séparément), le board doit rester
-    // vertical : il occupe toute la hauteur visible de l'écran au lieu de
-    // suivre le ratio 16/9 pensé pour un écran large en paysage.
-    if (isMobileBoardMode() && !document.body.classList.contains('a4-mode')) {
+    // Sur téléphone et sur tablette en portrait (hors mode A4, géré séparément),
+    // le board est vertical : il occupe toute la hauteur visible de l'écran au
+    // lieu de suivre le ratio 16/9 pensé pour un écran large en paysage.
+    if (isVerticalBoardMode() && !document.body.classList.contains('a4-mode')) {
         return window.innerHeight;
     }
     return w / RATIO;
@@ -602,9 +611,10 @@ function getToolbarHeight(container) {
 function handleWindowResize() {
     const newW = window.innerWidth;
     const factor = newW / _lastW;
-    // Si on franchit la frontière mobile ↔ desktop (ex. rotation du téléphone),
-    // réappliquer le fond d'écran pour qu'il bascule cover/100% auto correctement.
-    const nowMobile = isMobileBoardMode();
+    // Si on franchit la frontière vertical ↔ paysage (rotation du téléphone ou
+    // de la tablette), réappliquer le fond d'écran pour qu'il bascule
+    // cover / 100% auto correctement.
+    const nowMobile = isVerticalBoardMode();
     if (nowMobile !== _wasMobileBoardMode) {
         _wasMobileBoardMode = nowMobile;
         const currentBg = localStorage.getItem('boardBackground');

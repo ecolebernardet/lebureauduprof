@@ -190,9 +190,10 @@ function applyBackground(value) {
         board.style.backgroundImage    = '';
         board.style.backgroundSize     = '';
         board.style.background         = value;
-        if (typeof isMobileBoardMode === 'function' && isMobileBoardMode()
-            && !document.body.classList.contains('a4-mode')) {
-            // Sur téléphone, le board est vertical (portrait) alors que ces
+        const _vertical = typeof isVerticalBoardMode === 'function' ? isVerticalBoardMode()
+                        : (typeof isMobileBoardMode === 'function' && isMobileBoardMode());
+        if (_vertical && !document.body.classList.contains('a4-mode')) {
+            // Sur téléphone et sur tablette en portrait, le board est vertical alors que ces
             // images de fond sont pensées pour un tableau large (paysage).
             // 'cover' remplit toute la hauteur du board au lieu de laisser
             // une bande "100% auto" centrée avec du vide au-dessus/dessous.

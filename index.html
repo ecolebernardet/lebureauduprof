@@ -402,6 +402,8 @@
         // sessionStorage est vidé à la fermeture de l'onglet, pas au F5
         if (sessionStorage.getItem('_bureauSessionStarted')) return;
         sessionStorage.setItem('_bureauSessionStarted', '1');
+        // Aucun tableau n'est « ouvert » au démarrage : évite d'écraser le dernier tableau avec ce tableau vide
+        localStorage.removeItem('currentProjectId');
         // Board vide
         localStorage.setItem('profBoardConfig', JSON.stringify({ widgets: [] }));
         // Fond tableau vert
@@ -1183,13 +1185,13 @@ function setVisuelsMode(mode) {
 <script src="outil-outilsprofs.js"></script>
 <script src="help-modal.js"></script>
 <script src="modal-ui.js"></script>
-<script src="save-load.js"></script>
+<script src="save-load.js?v=20261108a"></script>
 <script src="groups.js"></script>
 <script src="widget-datetime.js"></script>
 <script src="widget-meteo.js"></script>
 
 <script src="scenes.js"></script>
-<script src="projects.js"></script>
+<script src="projects.js?v=20261108a"></script>
 <script src="shapes.js"></script>
 <script src="draw.js"></script>
 <script src="stickers.js"></script>
@@ -4818,7 +4820,7 @@ body.menu-light #about-body .ab-actions button.ab-primary { background: #4a90e2;
 
 <script>
 (function() {
-    var APP_VERSION = '4.1';
+    var APP_VERSION = '4.2';
     window.APP_VERSION = APP_VERSION;
     var v = document.getElementById('about-version');
     if (v) v.textContent = APP_VERSION;

@@ -80,14 +80,24 @@ let _isDraft = false;
 function isDraftMode() { return _isDraft; }
 
 // ── ID du projet courant ──────────────────────────────────────────────────
+// Gardé dans sessionStorage : propre à chaque onglet, effacé quand l'onglet
+// est fermé, conservé par F5. Un nouvel onglet démarre donc toujours sans
+// tableau ouvert, et deux onglets ne se marchent plus dessus.
+let _startupDone = false;   // passe à true quand l'ouverture du site est terminée
+function _readCurId()   { try { return sessionStorage.getItem('currentProjectId') || null; } catch(e) { return null; } }
+function _writeCurId(id) {
+    try {
+        if (id) sessionStorage.setItem('currentProjectId', id);
+        else    sessionStorage.removeItem('currentProjectId');
+    } catch(e) {}
+}
 function getCurrentProjectId() {
     if (_isDraft) return null;
-    return localStorage.getItem('currentProjectId') || null;
+    return _readCurId();
 }
 function setCurrentProjectId(id) {
     if (_isDraft) return;
-    if (id) localStorage.setItem('currentProjectId', id);
-    else    localStorage.removeItem('currentProjectId');
+    _writeCurId(id);
 }
 
 // ── Migration : projets multi-scènes → un projet par scène ───────────────
@@ -100,7 +110,7 @@ async function migrateScenesToProjects() {
         // Sauvegarder l'état courant en DB avant de lire les projets,
         // sinon la scène active peut avoir config=null ou obsolète.
         // Attendre que la restauration du board soit terminée.
-        const curId = localStorage.getItem('currentProjectId');
+        const curId = _readCurId();
         if (curId) {
             try {
                 // Patienter jusqu'à 3s que isRestoringState soit false
@@ -155,9 +165,9 @@ async function migrateScenesToProjects() {
         for (const p of toAdd)    await dbPut(p);
 
         // Si le projet courant a été éclaté, pointer sur le premier nouveau
-        const oldCurId = localStorage.getItem('currentProjectId');
+        const oldCurId = _readCurId();
         if (oldCurId && toDelete.includes(oldCurId) && toAdd.length) {
-            localStorage.setItem('currentProjectId', toAdd[0].id);
+            _writeCurId(toAdd[0].id);
         }
 
         localStorage.setItem('_scenesMigrationDone', 'v2');
@@ -191,6 +201,7 @@ async function saveProjectToDB(name) {
 async function loadProjectFromDB(id) {
     const project = await dbGet(id);
     if (!project) return false;
+    _isDraft = false;   // ouvrir un tableau de la bibliothèque quitte le brouillon (import compris)
     setCurrentProjectId(project.id);
     scenes       = project.scenes && project.scenes.length ? [project.scenes[0]] : [{ id: Date.now(), name: 'Tableau 1', config: null, background: 'none' }];
     currentScene = 0;
@@ -237,7 +248,7 @@ async function newDraftProject() {
         }
     }
     _isDraft = true;
-    localStorage.removeItem('currentProjectId');
+    _writeCurId(null);
     scenes = [{ id: Date.now(), name: 'Tableau 1', config: null, background: '#BAA09B' }];
     currentScene = 0;
     loadScene(0);
@@ -254,15 +265,32 @@ function _updateProjectTitle(name) {
 }
 
 // ── Charger le nom du projet courant au démarrage ────────────────────────
+// Ouverture du site (nouvel onglet) : tableau vierge en mode brouillon,
+// aucun tableau de la bibliothèque n'est ouvert, donc aucun ne peut être écrasé.
+// Rechargement (F5) d'un onglet où un tableau était ouvert : ce tableau est
+// relu depuis la bibliothèque (enregistrée automatiquement), qui fait foi.
 async function initCurrentProjectName() {
+    // Page de garde (iframe) : ne jamais toucher à la bibliothèque
+    if (window.location.search.indexOf('mode=pagegarde') !== -1) {
+        _isDraft = true;
+        _startupDone = true;
+        return;
+    }
     // Lancer la migration en premier
     await migrateScenesToProjects();
     const id = getCurrentProjectId();
-    if (!id) return;
-    try {
-        const p = await dbGet(id);
-        if (p) _updateProjectTitle(p.name);
-    } catch(e) {}
+    let project = null;
+    if (id) {
+        try { project = await loadProjectFromDB(id); } catch(e) {}
+    }
+    if (project) {
+        _updateProjectTitle(project.name);
+    } else {
+        _writeCurId(null);
+        _isDraft = true;
+        _updateProjectTitle('');
+    }
+    _startupDone = true;
 }
 
 
@@ -289,15 +317,38 @@ async function saveCurrentProject() {
 
 async function _projSaveDraft() {
     const name = await modalPrompt('Enregistrer le brouillon', 'Donnez un nom à ce tableau :', 'Nouveau tableau');
-    if (name === null) return;
+    if (name === null) return false;
     const finalName = name.trim() || 'Nouveau projet';
     _isDraft = false;
     const newId = 'proj_' + Date.now();
-    localStorage.setItem('currentProjectId', newId);
+    setCurrentProjectId(newId);
     saveCurrentSceneData();
     await dbPut({ id: newId, name: finalName, scenes, currentScene: 0, updatedAt: Date.now() });
     _updateProjectTitle(finalName);
     if (typeof refreshProjectsPanel === 'function') refreshProjectsPanel();
+    return true;
+}
+
+// ── Avertissement avant de quitter un brouillon qui contient du travail ──
+// Renvoie true si on peut continuer (brouillon vide, enregistré ou abandonné
+// volontairement), false si l'utilisateur annule.
+function _draftHasContent() {
+    if (document.querySelector('#board .widget, #board .shape-widget')) return true;
+    try { if (typeof strokes !== 'undefined' && strokes && strokes.length) return true; } catch(e) {}
+    return false;
+}
+async function _confirmLeaveDraft() {
+    if (!_isDraft || !_draftHasContent()) return true;
+    const save = await modalConfirm(
+        'Brouillon non enregistré',
+        'Le tableau affiché est un brouillon qui contient du travail.\n\nVoulez-vous l\'enregistrer dans « Mes tableaux » avant de continuer ?'
+    );
+    if (save) return await _projSaveDraft();   // false si le nom est annulé → on ne continue pas
+    return await modalConfirm(
+        'Abandonner le brouillon ?',
+        'Le travail de ce brouillon sera définitivement perdu.\n\nContinuer sans l\'enregistrer ?',
+        { danger: true }
+    );
 }
 
 // ── Sauvegarder silencieusement sans changer l'ordre (updatedAt préservé) ─
@@ -314,7 +365,19 @@ async function _saveProjectSilent(id) {
     await dbPut(existing);
 }
 
+// ── Enregistrement automatique du tableau ouvert (1,5 s après la dernière modification) ──
+let _autoSaveTimer = null;
+function scheduleProjectAutoSave() {
+    if (!_startupDone || _isDraft) return;
+    if (window.location.search.indexOf('mode=pagegarde') !== -1) return; // ne jamais toucher aux tableaux depuis la page de garde
+    const id = getCurrentProjectId();
+    if (!id) return;
+    clearTimeout(_autoSaveTimer);
+    _autoSaveTimer = setTimeout(() => { _saveProjectSilent(id).catch(() => {}); }, 1500);
+}
+
 async function _projLoad(id) {
+    if (!await _confirmLeaveDraft()) return;
     if (!_isDraft) {
         const curId = getCurrentProjectId();
         if (curId) {
@@ -344,6 +407,7 @@ async function _projLoad(id) {
 }
 
 async function _projNewProject() {
+    if (!await _confirmLeaveDraft()) return;
     const name = await modalPrompt('Nouveau tableau', 'Nom du nouveau tableau :', 'Nouveau tableau');
     if (name === null) return;
     const finalName = name.trim() || 'Nouveau tableau';

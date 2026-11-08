@@ -992,6 +992,7 @@ function saveBoard() {
         scenes[currentScene].config     = json;
         scenes[currentScene].background = localStorage.getItem('boardBackground') || 'none';
         saveScenesMeta();
+        if (typeof scheduleProjectAutoSave === 'function') scheduleProjectAutoSave();
     }
     scheduleSaveSnapshot();
 }
@@ -2237,6 +2238,12 @@ function importConfig(event) {
             // ── Nouveau format : projet unique ────────────────────────────
             if (data._type === 'prof-bureau-single-project' && data.project) {
                 const p = data.project;
+
+                // Brouillon avec du travail : proposer de l'enregistrer avant d'importer
+                if (typeof _confirmLeaveDraft === 'function' && !(await _confirmLeaveDraft())) {
+                    event.target.value = '';
+                    return;
+                }
 
                 // Sauvegarder le projet courant EN PREMIER, avant toute modale
                 // (évite qu'une sauvegarde auto ne corrompe la config pendant les await)

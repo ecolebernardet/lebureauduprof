@@ -254,6 +254,11 @@ function buildBoardState() {
         if (w.dataset.type === 'conjugaison-flash' && typeof w._cjfGetData === 'function') {
             cjfData = w._cjfGetData();
         }
+        // Données propres au widget « Je conjugue » (réglages, série en cours, réponses, correction, taille, plein écran)
+        let cjvData = null;
+        if (w.dataset.type === 'conjugaison-verbes' && typeof w._cjvGetData === 'function') {
+            cjvData = w._cjvGetData();
+        }
         // Données propres au widget « Dictée flash » (liste, réglages, mot en cours, taille, plein écran)
         let dcfData = null;
         if (w.dataset.type === 'dictee-flash' && typeof w._dcfGetData === 'function') {
@@ -841,6 +846,7 @@ function buildBoardState() {
 			peqData,
 			zdData,
 			cjfData,
+			cjvData,
 			dcfData,
 			friseHistData,
 			chateauFortData,
@@ -1172,6 +1178,15 @@ function restoreBoardFromJSON(json) {
                 widget = createDicteeFlashWidget();
                 if (typeof widget._dcfSetData === 'function') {
                     widget._dcfSetData(w.dcfData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'conjugaison-verbes') {
+            if (typeof createConjugaisonVerbesWidget === 'function') {
+                widget = createConjugaisonVerbesWidget();
+                if (typeof widget._cjvSetData === 'function') {
+                    widget._cjvSetData(w.cjvData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);

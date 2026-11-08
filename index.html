@@ -1215,6 +1215,7 @@ function setVisuelsMode(mode) {
 <script src="activite-maths-partage-equitable.js"></script>
 <script src="activite-maths-zoom-decimaux.js"></script>
 <script src="activite-francais-conjugaison-flash.js"></script>
+<script src="activite-francais-conjugaison.js"></script>
 <script src="activite-francais-dictee-flash.js"></script>
 <script src="lecon-histoire-frise.js"></script>
 <script src="lecon-histoire-chateau-fort.js"></script>
@@ -1374,38 +1375,6 @@ function setVisuelsMode(mode) {
 <input type="file" id="yt-import-input" style="display:none" accept=".json">
 <a id="yt-export-link" style="display:none" download="bibliotheque-youtube.json"></a>
 
-<script>
-// ── Intégration Electron : ouverture d'un PDF par double-clic ─────────────
-if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
-    window.electronAPI.onOpenPdf(async function(filePath) {
-        if (!filePath) return;
-        if (typeof createWidget !== 'function' || typeof _showPdfInWidget !== 'function') {
-            console.error('[Electron] createWidget ou _showPdfInWidget non disponible');
-            return;
-        }
-        try {
-            const base64 = await window.electronAPI.readPdfFile(filePath);
-            if (!base64) { console.error('[Electron] PDF non lisible :', filePath); return; }
-            const widget = createWidget('pdf', null, null, true);
-            if (!widget) { console.error('[Electron] createWidget pdf a echoue'); return; }
-            const container = widget.querySelector('.editor-container');
-            if (!container) { console.error('[Electron] .editor-container introuvable'); return; }
-            if (!widget.dataset.pdfId) {
-                widget.dataset.pdfId = 'pdf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-            }
-            const filename = filePath.split(/[\\/]/).pop();
-            widget.dataset.pdfName = filename;
-            _showPdfInWidget(container, base64, filename);
-            pdfStorage.set(widget.dataset.pdfId, base64).then(() => saveBoard());
-        } catch(err) {
-            console.error('[Electron] Erreur ouverture PDF :', err);
-        }
-    });
-
-    // Signaler à main.js que la page est prête
-    window.electronAPI.notifyReady();
-}
-</script>
 <!-- ── Panneau latéral Jeux ──────────────────────────────────────── -->
 <div id="jeux-panel">
     <div id="jeux-panel-resize-handle" title="Redimensionner le panneau"></div>
@@ -2266,6 +2235,11 @@ if (window.electronAPI && typeof window.electronAPI.onOpenPdf === 'function') {
                 <div class="act-card-ico"><img src="pics/activite-francais-conjugaison-flash.jpg" alt="Conjugaison flash" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='⚡'"></div>
                 <div class="act-card-name">Conjugaison flash</div>
                 <div class="act-card-desc">Un verbe, un pronom et un temps tirés au sort : conjuguer sur l'ardoise, puis voir le radical et la terminaison</div>
+            </div>
+			<div class="act-card mat-francais" onclick="createConjugaisonVerbesWidget();toggleActivitiesPanel()">
+                <div class="act-card-ico"><img src="pics/activite-francais-conjugaison.jpg" alt="Je conjugue" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='✏️'"></div>
+                <div class="act-card-name">Je conjugue</div>
+                <div class="act-card-desc">Une série de verbes à conjuguer : choisir les temps, les groupes (1er simple ou particulier, 2e, 3e) ou sa liste de verbes, le nombre de questions, puis corriger ou imprimer</div>
             </div>
 			<div class="act-card mat-francais" onclick="createDicteeFlashWidget();toggleActivitiesPanel()">
                 <div class="act-card-ico"><img src="pics/activite-francais-dictee-flash.jpg" alt="Dictée flash" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.textContent='✍️'"></div>
@@ -4156,8 +4130,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'calculatrice', 'minuteur', 'tirage', 'equipes', 'sondage', 'edt', 'plan',
     // 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2',
     // 'radar', 'sonometre', 'pause-calme', 'structure-ecole'
-    // ainsi que les activités 'droite-num', 'fractions', 'fractions2', 'homophones', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'phrase-du-jour', 'mot-du-jour', 'atelier-phrases', 'lettres-cursives', 'chasse-son', 'robot', 'fabrique-syllabes', 'constellations-doigts', 'transforme-phrase', 'intrus', 'estimation', 'balance', 'base-dix', 'partage-equitable', 'zoom-decimaux', 'conjugaison-flash', 'dictee-flash', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'frise-rois', 'histoire-revolution', 'histoire-industriel', 'histoire-renaissance', 'symboles-republique', 'institutions-france', 'geo-france', 'geo-savoie', 'geo-relief', 'geo-latlong', 'geo-europe', 'geo-monde', 'geo-globe', 'pays-riches-pauvres', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'reproduction-plantes', 'chaines-alimentaires', 'corps-humain', 'cinq-sens', 'volcans-seismes', 'sciences-electricite', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', les activités 'phrase-desordre', 'operations-posees', 'familles-derivation', 'accord-gn', 'nombre-decomp', 'nombres-decimaux', 'accord-sujet', 'figures-planes', 'droites-angles', 'tables-multi' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-symetrie-axiale', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
-    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-drapeaux', 'battle-capitales', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-symetrie-axiale', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'fractions2', 'homophones', 'conjugaison2', 'fonctions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'phrase-du-jour', 'mot-du-jour', 'atelier-phrases', 'lettres-cursives', 'chasse-son', 'robot', 'fabrique-syllabes', 'constellations-doigts', 'transforme-phrase', 'intrus', 'estimation', 'balance', 'base-dix', 'partage-equitable', 'zoom-decimaux', 'conjugaison-flash', 'dictee-flash', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'frise-rois', 'histoire-revolution', 'histoire-industriel', 'histoire-renaissance', 'symboles-republique', 'institutions-france', 'geo-france', 'geo-savoie', 'geo-relief', 'geo-latlong', 'geo-europe', 'geo-monde', 'geo-globe', 'pays-riches-pauvres', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'reproduction-plantes', 'chaines-alimentaires', 'corps-humain', 'cinq-sens', 'volcans-seismes', 'sciences-electricite', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama', 'lecteur-video', 'devinettes', 'le-saviez-vous', 'tableau', 'tableau-conversion', 'tableau-numeration', 'operations-posees', 'familles-derivation', 'accord-gn', 'nombre-decomp', 'nombres-decimaux', 'accord-sujet', 'figures-planes', 'droites-angles', 'tables-multi', 'conversion-lecon'];
+    // ainsi que les activités 'droite-num', 'fractions', 'fractions2', 'homophones', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'phrase-du-jour', 'mot-du-jour', 'atelier-phrases', 'lettres-cursives', 'chasse-son', 'robot', 'fabrique-syllabes', 'constellations-doigts', 'transforme-phrase', 'intrus', 'estimation', 'balance', 'base-dix', 'partage-equitable', 'zoom-decimaux', 'conjugaison-flash', 'conjugaison-verbes', 'dictee-flash', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'frise-rois', 'histoire-revolution', 'histoire-industriel', 'histoire-renaissance', 'symboles-republique', 'institutions-france', 'geo-france', 'geo-savoie', 'geo-relief', 'geo-latlong', 'geo-europe', 'geo-monde', 'geo-globe', 'pays-riches-pauvres', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'reproduction-plantes', 'chaines-alimentaires', 'corps-humain', 'cinq-sens', 'volcans-seismes', 'sciences-electricite', 'couleurs', 'pixelart', 'musique-clavier', les widgets 'calendrier', 'ephemeride', les activités 'phrase-desordre', 'operations-posees', 'familles-derivation', 'accord-gn', 'nombre-decomp', 'nombres-decimaux', 'accord-sujet', 'figures-planes', 'droites-angles', 'tables-multi' et les jeux 'jeu-plus-grand', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-symetrie-axiale', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion'
+    var EXCLUDED_TYPES = ['text', 'sticker', 'date', 'time', 'calculatrice', 'minuteur', 'tirage', 'mots-familles', 'heures108', 'deroule', 'equipes', 'sondage', 'edt', 'plan', 'couleurs-bruit', 'liste-edition', 'classe', 'de', 'deficalme', 'deficalme2', 'radar', 'sonometre', 'pause-calme', 'structure-ecole', 'jeu-plus-grand', 'battle-drapeaux', 'battle-capitales', 'battle-synonymes', 'battle-nature-mots', 'jeu-caisse-marchand', 'battle-calculs', 'battle-homophones', 'battle-temps-verbes', 'battle-fonctions', 'battle-decomposition', 'battle-droite-graduee', 'battle-nombre-lettres', 'battle-orthographe', 'battle-arrondis', 'jeu-rush-hour', 'jeu-taquin', 'jeu-repro-quadrillage', 'jeu-symetrie-axiale', 'jeu-pixel-art', 'jeu-labyrinthe', 'jeu-7-differences', 'jeu-geo-france', 'jeu-memory', 'jeu-sudoku', 'jeu-tangram', 'jeu-simon', 'jeu-tables-multi', 'jeu-tables-invaders', 'jeu-tables-pacman', 'jeu-tables-serpent', 'jeu-tables-taupe', 'jeu-multi-run', 'jeu-nombre', 'jeu-tour-calcul', 'jeu-mathmaster', 'jeu-mot-alpha', 'jeu-mot-le-plus-long', 'jeu-nature-mots-pacman', 'jeu-homophones', 'conjugaison', 'jeu-pendu', 'jeu-phrase-desordre', 'jeu-sing-plur', 'jeu-motsmeles', 'jeu-nature-mots-texte', 'jeu-sujet-commande', 'jeu-tir-fonctions', 'jeu-tir-natures', 'jeu-correcteur-fou', 'calcul', 'calcul-flash', 'tableau-num', 'compte-est-bon', 'nombres-chiffres-lettres', 'heure', 'horloge', 'loto-multi', 'monnaie', 'conversion', 'phrase-desordre', 'visualiseur', 'droite-num', 'fractions', 'fractions2', 'homophones', 'conjugaison2', 'fonctions', 'repro-quadrillage', 'symetrie-axiale', 'solide3d', 'mots-alpha', 'nature-gramm', 'motsmeles', 'mot-long', 'phrase-du-jour', 'mot-du-jour', 'atelier-phrases', 'lettres-cursives', 'chasse-son', 'robot', 'fabrique-syllabes', 'constellations-doigts', 'transforme-phrase', 'intrus', 'estimation', 'balance', 'base-dix', 'partage-equitable', 'zoom-decimaux', 'conjugaison-flash', 'conjugaison-verbes', 'dictee-flash', 'frise-historique', 'histoire-chateau-fort', 'histoire-societe-moyen-age', 'frise-rois', 'histoire-revolution', 'histoire-industriel', 'histoire-renaissance', 'symboles-republique', 'institutions-france', 'geo-france', 'geo-savoie', 'geo-relief', 'geo-latlong', 'geo-europe', 'geo-monde', 'geo-globe', 'pays-riches-pauvres', 'systeme-solaire', 'terre-mouvement', 'cycle-eau', 'reproduction-plantes', 'chaines-alimentaires', 'corps-humain', 'cinq-sens', 'volcans-seismes', 'sciences-electricite', 'couleurs', 'pixelart', 'musique-clavier', 'calendrier', 'ephemeride', 'citations', 'diaporama', 'lecteur-video', 'devinettes', 'le-saviez-vous', 'tableau', 'tableau-conversion', 'tableau-numeration', 'operations-posees', 'familles-derivation', 'accord-gn', 'nombre-decomp', 'nombres-decimaux', 'accord-sujet', 'figures-planes', 'droites-angles', 'tables-multi', 'conversion-lecon'];
     var lastLaunch = 0;
 
     function isPhone() {
@@ -4594,6 +4568,7 @@ body.menu-light #contact-status.err { color: #d33a3f; }
         'monnaie':       'createMonnaieWidget',
         'conversion':    'createConversionWidget',
         'conjugaison':   'createConjugaisonWidget',
+        'conjugaison-verbes': 'createConjugaisonVerbesWidget',
         'traces':        'lancerTracesGeometriques'
     };
 
@@ -4938,8 +4913,8 @@ body.menu-light #about-body .ab-actions button.ab-primary { background: #4a90e2;
 <!-- Statistiques de fréquentation (GoatCounter : sans cookies, tableau de bord sur lebureauduprof.goatcounter.com) -->
 <script data-goatcounter="https://lebureauduprof.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
-<!-- Service worker : rend le site installable et garde une copie pour le hors-ligne.
-     Ignoré dans l'application Electron (fichiers locaux). -->
+<!-- Service worker : rend le site installable et garde une copie pour le hors-ligne
+     (uniquement en https). -->
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', function() {

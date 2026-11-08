@@ -301,6 +301,10 @@
             padding: 4px;
             border-radius: 18px;
             flex-shrink: 0;
+            /* Le flou « verre » (backdrop-filter) crée un contexte d'empilement :
+               sans z-index, le menu « Ajouter » restait coincé derrière la zone du plan. */
+            position: relative;
+            z-index: 50;
         }
         .plan-btn {
             min-width: 32px;

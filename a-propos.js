@@ -15,7 +15,7 @@
 (function () {
 
     // ── Numéro de version : à modifier ici ───────────────────────────────
-    var APP_VERSION = '4.3';
+    var APP_VERSION = '4.4';
     window.APP_VERSION = APP_VERSION;
 
     // ── CSS (même style que le formulaire « Remarques ») ─────────────────

@@ -617,7 +617,7 @@
 function openHelpModal() {
   const o = document.getElementById('help-modal-overlay');
   o.style.display = 'flex';
-  // Numéro de version défini dans index.html (APP_VERSION), lu à l'ouverture
+  // Numéro de version défini dans a-propos.js (APP_VERSION), lu à l'ouverture
   const v = document.getElementById('hm-version');
   if (v) v.textContent = window.APP_VERSION || '';
   helpShow(document.querySelector('.help-nav[data-s="h-intro"]'));

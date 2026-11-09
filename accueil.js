@@ -8,7 +8,7 @@
 //     les onglets latéraux) + 2 actions rapides (Dessiner, Écrire)
 //   - sous l'heure, trois boutons sur une ligne : « Aide » (modale d'aide),
 //     « Remarques » (formulaire de contact, openContactForm) et
-//     « À propos » (fenêtre À propos, openAboutModal) — définis dans index.html
+//     « À propos » (fenêtre À propos, openAboutModal, dans a-propos.js)
 //   - une astuce tirée au hasard
 // Elle disparaît dès qu'on commence à travailler : clic sur une tuile,
 // clic sur un onglet latéral (ou Alt+1…9), ajout d'un widget, ouverture

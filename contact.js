@@ -11,6 +11,8 @@
 // - Pour changer de clé : modifier CONTACT_ACCESS_KEY ci-dessous.
 // - Le numéro de version (version.js, window.APP_VERSION) est affiché
 //   sous le bouton « Envoyer » et joint à chaque message.
+// - En bas du formulaire, un lien « Soutenir sur Tipeee » (adresse lue
+//   dans donateurs.js, DONATEURS_LIEN, sinon TIPEEE_DEFAUT ci-dessous).
 //
 // Installation : <script src="contact.js"></script> dans index.html
 // (le CSS et le HTML sont injectés par ce fichier).
@@ -20,6 +22,14 @@
     // ── Clé Web3Forms : à modifier ici ───────────────────────────────────
     var CONTACT_ACCESS_KEY = '023db423-3526-40d8-b585-328fc2352ed9';
     var CONTACT_URL = 'https://api.web3forms.com/submit';
+
+    // ── Lien Tipeee : celui de donateurs.js (DONATEURS_LIEN) s'il existe,
+    //    sinon cette adresse par défaut ────────────────────────────────────
+    var TIPEEE_DEFAUT = 'https://fr.tipeee.com/lebureauduprof/';
+    function lienTipeee() {
+        var l = String(window.DONATEURS_LIEN || '').trim();
+        return /^https?:\/\//i.test(l) ? l : TIPEEE_DEFAUT;
+    }
 
     // ── CSS ──────────────────────────────────────────────────────────────
     var CSS = [
@@ -92,6 +102,20 @@
         '.ct-honeypot { display: none !important; }',
         '#contact-version { margin-top: -6px; font-size: 11px; text-align: center; color: #8a8698; }',
         '#contact-version:empty { display: none; }',
+        /* Soutenir sur Tipeee */
+        '#contact-tipeee {',
+        '    display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px;',
+        '    background: linear-gradient(120deg, #35202c, #2a2238); border: 1px solid #4a2d3e;',
+        '    font-size: 12.5px; line-height: 1.35; color: #e3dcf2;',
+        '}',
+        '#contact-tipeee span { flex: 1; min-width: 0; }',
+        '#contact-tipeee a {',
+        '    flex-shrink: 0; padding: 6px 12px; border-radius: 999px; text-decoration: none; white-space: nowrap;',
+        '    font-weight: 800; font-size: 12.5px; color: #fff;',
+        '    background: linear-gradient(120deg, #e84393, #d6336c); box-shadow: 0 3px 10px rgba(214,51,108,.3);',
+        '}',
+        '#contact-tipeee a:hover { filter: brightness(1.06); }',
+        'body.menu-light #contact-tipeee { background: linear-gradient(120deg, #fff0f5, #f4efff); border-color: #f0d4e4; color: #4a3d66; }',
         /* Mode clair */
         'body.menu-light #contact-box { background: #f5f4f8; color: #2a2440; border-color: #dddbe6; box-shadow: 0 18px 50px rgba(0,0,0,0.25); }',
         'body.menu-light #contact-form .ct-intro { color: #5c5870; }',
@@ -146,6 +170,10 @@
               '<button type="submit" id="contact-send">Envoyer</button>' +
               '<div id="contact-status" aria-live="polite"></div>' +
               '<div id="contact-version"></div>' +
+              '<div id="contact-tipeee">' +
+                '<span>Envie d\'aller plus loin ? Votre soutien aide le Bureau du Prof à rester gratuit.</span>' +
+                '<a id="contact-tipeee-lien" href="https://fr.tipeee.com/lebureauduprof/" target="_blank" rel="noopener">❤️ Soutenir sur Tipeee</a>' +
+              '</div>' +
             '</form>' +
           '</div>' +
         '</div>';
@@ -184,6 +212,8 @@
         // Numéro de version (version.js)
         var ver = document.getElementById('contact-version');
         if (ver) ver.textContent = window.APP_VERSION ? 'Le Bureau du Prof · version ' + window.APP_VERSION : '';
+        var tip = document.getElementById('contact-tipeee-lien');
+        if (tip) tip.href = lienTipeee();
         overlay.classList.add('open');
         setTimeout(function () { document.getElementById('contact-message').focus(); }, 50);
     }

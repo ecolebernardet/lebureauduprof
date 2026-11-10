@@ -41,7 +41,7 @@
     p(`Vous pouvez y poser librement des <strong>jeux</strong>, des <strong>leçons et entraînements</strong>, des <strong>activités</strong> de classe, des <strong>outils</strong> de gestion (tirage au sort, minuteur, sonomètre…), des <strong>widgets</strong> (date, météo, devoirs, PDF, YouTube…), des stickers et des images. Vous pouvez aussi <strong>dessiner</strong>, <strong>écrire</strong>, <strong>annoter des PDF</strong>, changer le <strong>fond</strong> du tableau, et tout <strong>sauvegarder</strong>.`) +
     p(`Le tableau respecte un <strong>format 16:9</strong> et s'adapte à la taille de votre écran ou vidéoprojecteur.`) +
     `<p class="hm-p" style="font-size:14px;line-height:1.8;text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #e5e8ee;">Le Bureau du Prof est un outil <strong>libre</strong> et <strong>gratuit</strong>. </p>
-	<p class="hm-p" style="text-align:center;margin:0 0 12px;"><a href="https://fr.tipeee.com/lebureauduprof/" target="_blank" rel="noopener" class="hm-tipeee">❤️ Soutenir le projet sur Tipeee</a></p>
+	<p class="hm-p" style="text-align:center;margin:0 0 12px;display:flex;justify-content:center;flex-wrap:wrap;gap:8px;"><a href="https://fr.tipeee.com/lebureauduprof/" target="_blank" rel="noopener" class="hm-tipeee">❤️ Soutenir le projet sur Tipeee</a><button type="button" class="hm-share" onclick="if(typeof partagerBureauDuProf==='function')partagerBureauDuProf();">📣 Faire connaître à un collègue</button></p>
 	<p class="hm-p" style="font-size:12px;text-align:center;margin:0;"><a href="#" class="hm-link" onclick="closeHelpModal();if(typeof openAboutModal==='function')openAboutModal();return false;">ℹ️ Version <span id="hm-version"></span> — À propos</a></p>`,
     true));
 
@@ -458,7 +458,10 @@
     tip(`Aucune donnée personnelle n'est stockée sur un serveur : vos tableaux et listes de classe restent dans votre navigateur. Seul ce que vous écrivez dans « Contact » est envoyé.`) +
     h3('❤️ Soutenir le projet') +
     p(`Le Bureau du Prof est gratuit et sans publicité. Si vous l'appréciez, vous pouvez soutenir son développement sur Tipeee : votre nom apparaîtra sur l'écran d'accueil.`) +
-    `<p class="hm-p"><a href="https://fr.tipeee.com/lebureauduprof/" target="_blank" rel="noopener" class="hm-tipeee">❤️ Soutenir sur Tipeee</a></p>`
+    `<p class="hm-p"><a href="https://fr.tipeee.com/lebureauduprof/" target="_blank" rel="noopener" class="hm-tipeee">❤️ Soutenir sur Tipeee</a></p>` +
+    h3('📣 Faire connaître le Bureau du Prof') +
+    p(`Le site vous rend service ? Parlez-en à vos collègues : un message tout prêt, avec le lien, se copie ou s'envoie en un clic (e-mail, WhatsApp, Facebook…).`) +
+    `<p class="hm-p"><button type="button" class="hm-share" onclick="if(typeof partagerBureauDuProf==='function')partagerBureauDuProf();">📣 Faire connaître à un collègue</button></p>`
   ));
 
   // RACCOURCIS
@@ -595,6 +598,13 @@
       transition: transform .12s, filter .15s;
     }
     .hm-tipeee:hover { transform: translateY(-1px); filter: brightness(1.06); }
+    .hm-share {
+      display: inline-block; padding: 8px 18px; border-radius: 999px; border: none; cursor: pointer;
+      font-size: 13.5px; font-weight: 800; color: #fff;
+      background: linear-gradient(120deg, #2ecc71, #1fa85a); box-shadow: 0 3px 10px rgba(46,204,113,.3);
+      transition: transform .12s, filter .15s;
+    }
+    .hm-share:hover { transform: translateY(-1px); filter: brightness(1.06); }
     .hm-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: middle; }
     #help-modal-overlay kbd {
       font-size: 11px; background: #eee; border: 1px solid #ccc; border-radius: 3px; padding: 1px 5px; white-space: nowrap;
@@ -628,7 +638,7 @@
 function openHelpModal() {
   const o = document.getElementById('help-modal-overlay');
   o.style.display = 'flex';
-  // Numéro de version défini dans version.js (APP_VERSION), lu à l'ouverture
+  // Numéro de version défini dans a-propos.js (APP_VERSION), lu à l'ouverture
   const v = document.getElementById('hm-version');
   if (v) v.textContent = window.APP_VERSION || '';
   // Lien Tipeee : celui de donateurs.js (DONATEURS_LIEN) s'il est rempli

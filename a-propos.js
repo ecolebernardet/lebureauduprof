@@ -2,20 +2,22 @@
 // FENÊTRE « À PROPOS » — Le Bureau du Prof
 // -------------------------------------------------------------------------
 // Version de l'application, soutien (Tipeee), vos données, crédits.
+// Bouton « Faire connaître » : partagerBureauDuProf() (partage.js).
 // Ouverture : openAboutModal()  (pastille « ? », écran d'accueil, aide)
 // Fermeture : closeAboutModal(), bouton ✕, « Fermer », clic sur le fond
 //             grisé ou touche Échap.
 //
-// Le numéro de version est défini dans version.js (window.APP_VERSION),
-// à charger avant ce fichier.
+// Le numéro de version est défini ici (APP_VERSION) et exposé dans
+// window.APP_VERSION : la modale d'aide (help-modal.js) le lit aussi.
 //
 // Installation : <script src="a-propos.js"></script> dans index.html
 // (le CSS et le HTML sont injectés par ce fichier).
 // =========================================================================
 (function () {
 
-    // ── Numéro de version : défini dans version.js ───────────────────────
-    var APP_VERSION = String(window.APP_VERSION || '');
+    // ── Numéro de version : à modifier ici ───────────────────────────────
+    var APP_VERSION = '4.4';
+    window.APP_VERSION = APP_VERSION;
 
     // ── Lien Tipeee : celui de donateurs.js (DONATEURS_LIEN) s'il existe,
     //    sinon cette adresse par défaut ────────────────────────────────────
@@ -70,6 +72,8 @@
         '    font-family: inherit !important; border: 1px solid #34303f; background: #24212f; color: #ecebf3;',
         '}',
         '#about-body .ab-actions button.ab-primary { background: #4a90e2; border-color: #4a90e2; color: #fff; }',
+        '#about-body .ab-actions button.ab-share { background: #2ecc71; border-color: #2ecc71; color: #fff; }',
+        'body.menu-light #about-body .ab-actions button.ab-share { background: #2ecc71; border-color: #2ecc71; color: #fff; }',
         /* Soutenir le projet */
         '#about-body .ab-soutien {',
         '    display: flex; align-items: center; gap: 12px; margin: 4px 0 6px; padding: 10px 12px; border-radius: 12px;',
@@ -135,6 +139,7 @@
 
               '<div class="ab-actions">' +
                 '<button type="button" data-about="contact">💬 Contacter l\'auteur</button>' +
+                '<button type="button" class="ab-share" data-about="share">📣 Faire connaître</button>' +
                 '<button type="button" class="ab-primary" data-about="close">Fermer</button>' +
               '</div>' +
             '</div>' +
@@ -160,7 +165,6 @@
         lastFocus = document.activeElement;
         var t = document.getElementById('about-tipeee');
         if (t) t.href = lienTipeee();
-        if (v) v.textContent = String(window.APP_VERSION || '');
         overlay.classList.add('open');
         setTimeout(function () { document.getElementById('about-close').focus(); }, 50);
     }
@@ -180,6 +184,7 @@
         if (!b) return;
         closeAboutModal();
         if (b.dataset.about === 'contact' && typeof openContactForm === 'function') openContactForm();
+        if (b.dataset.about === 'share' && typeof partagerBureauDuProf === 'function') partagerBureauDuProf();
     });
     // Les touches ne déclenchent pas les raccourcis du tableau ; Échap ferme la fenêtre
     overlay.addEventListener('keydown', function (e) {

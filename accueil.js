@@ -6,11 +6,10 @@
 //   - « Bonjour ! / Bonsoir ! », l'heure et la date en grand
 //   - 8 grandes tuiles vers les panneaux (mêmes icônes et couleurs que
 //     les onglets latéraux) + 2 actions rapides (Dessiner, Écrire)
-//   - sous l'heure, trois boutons sur une ligne : « Aide » (modale d'aide),
-//     « Contact » (formulaire de contact, openContactForm, dans contact.js) et
-//     « À propos » (fenêtre À propos, openAboutModal, dans a-propos.js)
-//   - un badge avec le numéro de version à côté du titre (version.js,
-//     window.APP_VERSION ; cliquable : ouvre la fenêtre « À propos »)
+//   - sous l'heure, quatre boutons : « Aide » (modale d'aide),
+//     « Contact » (formulaire de contact, openContactForm, dans contact.js),
+//     « À propos » (fenêtre À propos, openAboutModal, dans a-propos.js) et
+//     « Partager » (partagerBureauDuProf, dans partage.js)
 //   - une astuce tirée au hasard
 //   - un bandeau « Merci à nos soutiens » avec les noms de donateurs.js ;
 //     tant que la liste est vide, un appel au soutien avec le lien Tipeee
@@ -50,7 +49,8 @@
         pdf:     '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 14.5l2 2 4-4.5"/>',
         bulle:   '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z"/><path d="M8.5 11h7M8.5 14.5h4.5"/>',
         aide:    '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17h.01"/>',
-        info:    '<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5h.01"/>'
+        info:    '<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5h.01"/>',
+        partage: '<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/>'
     };
     function svg(k) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICO[k] + '</svg>'; }
 
@@ -102,11 +102,6 @@
         '.acc-hello{font-size:15px;font-weight:700;color:#7b4fe0;letter-spacing:.3px;margin:0 0 2px;}',
         '.acc-title{font-size:30px;font-weight:900;margin:0;line-height:1.1;letter-spacing:-.3px;}',
         '.acc-brand{display:flex;align-items:center;gap:14px;}',
-        '.acc-ver{display:inline-block;vertical-align:middle;margin-left:8px;padding:2px 9px;border-radius:999px;border:none;cursor:pointer;',
-        '  font:inherit;font-size:12px;font-weight:800;letter-spacing:0;line-height:1.5;',
-        '  background:rgba(74,144,226,.14);color:#2f6fc4;transition:filter .15s;}',
-        '.acc-ver:hover{filter:brightness(.95);}',
-        'body:not(.menu-light) .acc-ver{background:rgba(74,144,226,.22);color:#9cc6f5;}',
         '.acc-logo{height:68px;width:auto;max-width:150px;flex-shrink:0;object-fit:contain;border-radius:14px;',
         '  background:#fff;box-shadow:0 4px 14px rgba(40,30,70,.18);}',
         '.acc-time{text-align:right;flex-shrink:0;}',
@@ -137,6 +132,7 @@
         '.acc-help:hover{transform:translateY(-2px);filter:brightness(1.06);}',
         '.acc-help.acc-contact{background:linear-gradient(120deg,#4a90e2,#3a74c4);box-shadow:0 4px 12px rgba(74,144,226,.35);}',
         '.acc-help.acc-about{background:linear-gradient(120deg,#9b6cf0,#7b4fe0);box-shadow:0 4px 12px rgba(123,79,224,.35);}',
+        '.acc-help.acc-share{background:linear-gradient(120deg,#2ecc71,#1fa85a);box-shadow:0 4px 12px rgba(46,204,113,.35);}',
         '.acc-time-btns{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:6px;margin-top:10px;}',
         '.acc-time-btns .acc-help{margin-top:0;}',
         '.acc-help svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}',
@@ -221,7 +217,6 @@
         '  .acc-head{flex-direction:column;align-items:stretch;gap:6px;margin-bottom:8px;padding-right:34px;}',
         '  .acc-brand{gap:8px;} .acc-logo{height:36px;border-radius:8px;}',
         '  .acc-hello{font-size:12px;margin:0;} .acc-title{font-size:18px;}',
-        '  .acc-ver{font-size:10.5px;padding:1px 7px;margin-left:6px;}',
         '  .acc-intro{display:none;} .acc-points{display:none;}',
         '  .acc-time{text-align:left;display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;}',
         '  .acc-clock{font-size:24px;} .acc-date{font-size:12px;margin-top:0;}',
@@ -353,12 +348,6 @@
                    '</button>';
         }).join('');
 
-        // Numéro de version (version.js)
-        var version = String(window.APP_VERSION || '').trim();
-        var badgeVersion = version
-            ? '<button type="button" class="acc-ver" data-act="version" title="Version ' + escHtml(version) + ' — À propos">v' + escHtml(version) + '</button>'
-            : '';
-
         root = document.createElement('div');
         root.id = 'accueil';
         root.innerHTML =
@@ -367,7 +356,7 @@
               '<div class="acc-head">' +
                 '<div><div class="acc-brand">' +
                   '<img class="acc-logo" src="pics/logo-le-bureau-du-prof4.jpg" alt="Logo Le Bureau du Prof" onerror="this.remove()">' +
-                  '<div><p class="acc-hello">Bonjour !</p><h1 class="acc-title">Le Bureau du Prof' + badgeVersion + '</h1></div>' +
+                  '<div><p class="acc-hello">Bonjour !</p><h1 class="acc-title">Le Bureau du Prof</h1></div>' +
                 '</div>' +
                   '<p class="acc-intro">Votre <b>tableau blanc numérique</b> pour la classe : écrivez, dessinez, projetez vos documents ' +
                   'et lancez en un clic des <b>jeux</b>, des <b>leçons</b>, des <b>activités</b> et des <b>outils</b> pensés pour l\'école, au TBI, au VPI ou sur ordinateur.</p>' +
@@ -377,6 +366,7 @@
                     '<button type="button" class="acc-help" data-act="help" title="Ouvrir l\'aide">' + svg('aide') + 'Aide</button>' +
                     '<button type="button" class="acc-help acc-contact" data-act="contact" title="Contacter l\'auteur du site">' + svg('bulle') + 'Contact</button>' +
                     '<button type="button" class="acc-help acc-about" data-act="about" title="Version, données et crédits">' + svg('info') + 'À propos</button>' +
+                    '<button type="button" class="acc-help acc-share" data-act="share" title="Faire connaître le Bureau du Prof à un collègue">' + svg('partage') + 'Partager</button>' +
                   '</div>' +
                 '</div>' +
               '</div>' +
@@ -443,10 +433,9 @@
             hide();
             if (typeof openAboutModal === 'function') openAboutModal();
         });
-        var verBtn = root.querySelector('[data-act="version"]');
-        if (verBtn) verBtn.addEventListener('click', function () {
+        root.querySelector('[data-act="share"]').addEventListener('click', function () {
             hide();
-            if (typeof openAboutModal === 'function') openAboutModal();
+            if (typeof partagerBureauDuProf === 'function') partagerBureauDuProf();
         });
         root.querySelector('.acc-close').addEventListener('click', hide);
         root.querySelector('.acc-never input').addEventListener('change', function (e) {

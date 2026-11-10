@@ -12,7 +12,8 @@
 // - Le numéro de version (version.js, window.APP_VERSION) est affiché
 //   sous le bouton « Envoyer » et joint à chaque message.
 // - En bas du formulaire, un lien « Soutenir sur Tipeee » (adresse lue
-//   dans donateurs.js, DONATEURS_LIEN, sinon TIPEEE_DEFAUT ci-dessous).
+//   dans donateurs.js, DONATEURS_LIEN, sinon TIPEEE_DEFAUT ci-dessous),
+//   puis un bouton « Partager » (partagerBureauDuProf, dans partage.js).
 //
 // Installation : <script src="contact.js"></script> dans index.html
 // (le CSS et le HTML sont injectés par ce fichier).
@@ -116,6 +117,20 @@
         '}',
         '#contact-tipeee a:hover { filter: brightness(1.06); }',
         'body.menu-light #contact-tipeee { background: linear-gradient(120deg, #fff0f5, #f4efff); border-color: #f0d4e4; color: #4a3d66; }',
+        /* Faire connaître (partage.js) */
+        '#contact-partage {',
+        '    display: flex; align-items: center; gap: 10px; margin-top: -2px; padding: 9px 12px; border-radius: 12px;',
+        '    background: linear-gradient(120deg, #1d3328, #1f2a33); border: 1px solid #2c4a3a;',
+        '    font-size: 12.5px; line-height: 1.35; color: #e3dcf2;',
+        '}',
+        '#contact-partage span { flex: 1; min-width: 0; }',
+        '#contact-partage-btn {',
+        '    flex-shrink: 0; padding: 6px 12px; border-radius: 999px; border: none; cursor: pointer; white-space: nowrap;',
+        '    font-weight: 800; font-size: 12.5px; color: #fff; font-family: inherit !important;',
+        '    background: linear-gradient(120deg, #2ecc71, #1fa85a); box-shadow: 0 3px 10px rgba(46,204,113,.3);',
+        '}',
+        '#contact-partage-btn:hover { filter: brightness(1.06); }',
+        'body.menu-light #contact-partage { background: linear-gradient(120deg, #ecfbf2, #eef5fb); border-color: #c9ecd7; color: #2f4a3c; }',
         /* Mode clair */
         'body.menu-light #contact-box { background: #f5f4f8; color: #2a2440; border-color: #dddbe6; box-shadow: 0 18px 50px rgba(0,0,0,0.25); }',
         'body.menu-light #contact-form .ct-intro { color: #5c5870; }',
@@ -174,6 +189,10 @@
                 '<span>Envie d\'aller plus loin ? Votre soutien aide le Bureau du Prof à rester gratuit.</span>' +
                 '<a id="contact-tipeee-lien" href="https://fr.tipeee.com/lebureauduprof/" target="_blank" rel="noopener">❤️ Soutenir sur Tipeee</a>' +
               '</div>' +
+              '<div id="contact-partage">' +
+                '<span>Le site vous plaît ? Faites-le connaître à vos collègues.</span>' +
+                '<button type="button" id="contact-partage-btn">📣 Partager</button>' +
+              '</div>' +
             '</form>' +
           '</div>' +
         '</div>';
@@ -227,6 +246,10 @@
     window.closeContactForm = closeContactForm;
 
     document.getElementById('contact-close').addEventListener('click', closeContactForm);
+    // « Partager » : ouvre la fenêtre de partage (partage.js) par-dessus le formulaire
+    document.getElementById('contact-partage-btn').addEventListener('click', function () {
+        if (typeof partagerBureauDuProf === 'function') partagerBureauDuProf();
+    });
     // Clic sur le fond grisé : ferme la fenêtre
     overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) closeContactForm(); });
 

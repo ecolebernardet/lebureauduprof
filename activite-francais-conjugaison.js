@@ -279,6 +279,9 @@
             padding: 1px 4px;
             outline: none;
             border-radius: 4px 4px 0 0;
+            touch-action: manipulation;
+            -webkit-user-select: text;
+            user-select: text;
         }
         .cjv-input:focus { border-bottom-color: #8b5cf6; background: #f5f3ff; }
         .cjv-input.ok { color: #15803d; border-bottom-color: #22c55e; background: #f0fdf4; }
@@ -1442,9 +1445,39 @@ function createConjugaisonVerbesWidget() {
     });
 
     // Les clics dans la scène et les réglages ne déplacent pas le widget
+    // (souris, doigt et stylet : le tableau ne doit pas « voler » le toucher des cases)
     [controls, settings, stage, legend, actions].forEach(el => {
         el.addEventListener('mousedown', (e) => e.stopPropagation());
-        el.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+        ['pointerdown', 'touchstart', 'touchmove', 'touchend'].forEach(evt =>
+            el.addEventListener(evt, (e) => e.stopPropagation(), { passive: true }));
+    });
+
+    // Téléphone / tablette : un toucher sur une case l'active à coup sûr (et ouvre le clavier),
+    // même si un autre script de la page annule le toucher
+    let _tapX = 0, _tapY = 0;
+    container.addEventListener('touchstart', (e) => {
+        const t = e.touches && e.touches[0];
+        if (t) { _tapX = t.clientX; _tapY = t.clientY; }
+    }, { passive: true, capture: true });
+    container.addEventListener('touchend', (e) => {
+        const f = e.target && e.target.closest ? e.target.closest('input[type="text"], textarea') : null;
+        if (!f || f.readOnly || f.disabled) return;
+        const t = e.changedTouches && e.changedTouches[0];
+        if (t && Math.hypot(t.clientX - _tapX, t.clientY - _tapY) > 10) return;   // c'était un défilement
+        if (document.activeElement !== f) f.focus();
+    }, { capture: true });
+
+    // La case touchée reste visible quand le clavier s'ouvre
+    function revealInput(inp) {
+        if (!inp || !document.body.contains(inp)) return;
+        const sr = stage.getBoundingClientRect(), ir = inp.getBoundingClientRect();
+        if (ir.top < sr.top || ir.bottom > sr.bottom) {
+            stage.scrollTop += (ir.top + ir.height / 2) - (sr.top + sr.height / 2);
+        }
+    }
+    gridEl.addEventListener('focusin', (e) => {
+        if (!e.target.classList || !e.target.classList.contains('cjv-input')) return;
+        setTimeout(() => revealInput(e.target), 350);
     });
 
     helpBtn.addEventListener('click', (e) => {
@@ -1496,14 +1529,19 @@ function createConjugaisonVerbesWidget() {
     function onWinResize() {
         if (!document.body.contains(widget)) {
             window.removeEventListener('resize', onWinResize);
+            if (window.visualViewport) window.visualViewport.removeEventListener('resize', onWinResize);
             document.removeEventListener('click', _closeHelp);
             if (ro) ro.disconnect();
             return;
         }
         fit();
         sizeFull();
+        // Clavier du téléphone ouvert : on garde la case active en vue
+        const a = document.activeElement;
+        if (a && a.classList && a.classList.contains('cjv-input') && gridEl.contains(a)) revealInput(a);
     }
     window.addEventListener('resize', onWinResize);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', onWinResize);
 
     // ── Boutons fenêtre ───────────────────────────────────────────────────
     const wfMin   = header.querySelector('[data-role="wf-min"]');
@@ -1563,6 +1601,7 @@ function createConjugaisonVerbesWidget() {
         e.stopPropagation();
         clearTimeout(saveT); clearTimeout(listT);
         window.removeEventListener('resize', onWinResize);
+        if (window.visualViewport) window.visualViewport.removeEventListener('resize', onWinResize);
         document.removeEventListener('click', _closeHelp);
         if (ro) ro.disconnect();
         if (typeof snapshotNow === 'function') snapshotNow();

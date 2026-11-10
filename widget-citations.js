@@ -384,7 +384,9 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
         author: true,            // false : auteur caché (devinette « Qui a dit ça ? »)
         themes: { apprendre: true, effort: true, respect: true, confiance: true, nature: true, imagination: true, bonheur: true },
         perso: '',               // citations de l'enseignant, une par ligne : « Texte — Auteur »
-        persoOnly: false         // n'afficher que les citations personnelles
+        persoOnly: false,        // n'afficher que les citations personnelles
+        fs: 1,                   // taille du texte (boutons A− / A+), de 0,7 à 2
+        bare: false              // contrôles masqués : seule la citation reste affichée
     };
 
     /* ── Outils ───────────────────────────────────────────────────── */
@@ -505,6 +507,9 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
                 '<button type="button" class="cit-ib' + (isDay ? ' is-on' : '') + '" data-cit-action="today" title="La citation du jour" aria-label="La citation du jour">📅</button>' +
                 '<button type="button" class="cit-ib' + on('cit-toc-open') + '" data-cit-action="toc" title="Sommaire : choisir une citation" aria-label="Sommaire">📚</button>' +
                 '<span class="cit-sep"></span>' +
+                '<button type="button" class="cit-ib" data-cit-action="font-down" title="Texte plus petit" aria-label="Texte plus petit">A−</button>' +
+                '<button type="button" class="cit-ib" data-cit-action="font-up" title="Texte plus grand" aria-label="Texte plus grand">A+</button>' +
+                '<button type="button" class="cit-ib cit-ib-bare" data-cit-action="bare" title="Masquer les contrôles" aria-label="Masquer les contrôles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><path d="M7 6.5h.01M10 6.5h.01"/></svg></button>' +
                 '<button type="button" class="cit-ib' + on('cit-open') + '" data-cit-action="toggle" title="Réglages" aria-label="Réglages">⚙</button>' +
                 '<button type="button" class="cit-ib cit-ib-help' + on('cit-help-open') + '" data-cit-action="help" title="Aide" aria-label="Aide">?</button>' +
             '</div>' +
@@ -546,7 +551,9 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
             (explainShown ? '🙈 Cacher l’explication' : '✨ Qu’est-ce que ça veut dire&nbsp;?') + '</button>';
         if (btns) html += '<div class="cit-actions">' + btns + '</div>';
 
-        html += '</div></div></div></div>';
+        html += '</div></div>' +
+            '<button type="button" class="cit-float-ctrl" data-cit-action="bare" title="Afficher les contrôles" aria-label="Afficher les contrôles"' + STOP + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><path d="M7 6.5h.01M10 6.5h.01"/></svg><span>Contrôles</span></button>' +
+            '</div></div>';
         return html;
     }
 
@@ -586,6 +593,8 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
               '<li><b>📚 Sommaire :</b> toutes les citations classées par thème. Cherche un mot ou un auteur, filtre par thème, puis clique sur celle de ton choix.</li>' +
               '<li><b>✨ Qu’est-ce que ça veut dire ?</b> dévoile une explication simple pour lancer la discussion.</li>' +
               '<li><b>👤 Qui a dit ça ?</b> Si l’auteur est caché (réglages), la classe peut chercher qui a écrit la citation avant de le révéler.</li>' +
+              '<li><b>A− / A+ :</b> rend le texte plus petit ou plus grand pour la projection.</li>' +
+              '<li><b>▭ Masquer les contrôles :</b> ne laisse que la citation (sans barre ni boutons). Le petit bouton <b>Contrôles</b>, en bas à droite, les fait revenir.</li>' +
               '<li><b>⚙ Réglages :</b> mode du jour ou au hasard, thèmes, auteur visible ou caché, et tes propres citations.</li>' +
               '<li><b>Fenêtre :</b> bouton jaune : réduire, vert : plein écran, rouge : fermer. Le coin en bas à droite permet d’agrandir la fenêtre.</li>' +
             '</ul>' +
@@ -713,7 +722,28 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
        lequel le contenu tient. Auteur, boutons et explication se réduisent
        moitié moins vite que la citation (--ct-ka). ─────────────────── */
     const K_MIN = 0.3;
+    // Taille du texte choisie avec A− / A+ (de 0,7 à 2)
+    const fsOf = cfg => Math.max(0.7, Math.min(2, Math.round((+cfg.fs || 1) * 10) / 10));
+    function setFs(root, dir) {
+        const cfg = getCfg(root);
+        cfg.fs = fsOf({ fs: fsOf(cfg) + dir * 0.1 });
+        root.setAttribute('data-cfg', JSON.stringify(cfg));
+        fitSheet(root);
+        if (typeof saveBoard === 'function') saveBoard();
+    }
+    // L'ajustement automatique est calculé pour la taille normale, puis la
+    // taille choisie (--ct-fs) est appliquée par-dessus : A+ agrandit
+    // toujours le texte (on peut alors faire défiler la feuille si besoin).
     function fitSheet(root) {
+        const cfg = getCfg(root);
+        root.classList.toggle('cit-bare', !!cfg.bare);
+        const fs = fsOf(cfg);
+        root.classList.toggle('cit-big', fs > 1);
+        root.style.setProperty('--ct-fs', '1');
+        try { fitAuto(root); }
+        finally { root.style.setProperty('--ct-fs', String(fs)); }
+    }
+    function fitAuto(root) {
         const body = root.querySelector('.cit-body');
         if (!body || !root.offsetWidth || !root.offsetHeight) return;
         const fits = k => {
@@ -810,6 +840,9 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
             setCur(root, r);
             return;
         }
+        if (act === 'bare')      { cfg.bare = !cfg.bare; closePanels(root); setCfg(root, cfg); return; }
+        if (act === 'font-down') { setFs(root, -1); return; }
+        if (act === 'font-up')   { setFs(root, +1); return; }
         if (act === 'author')  { root.setAttribute('data-show-author', ''); renderLight(root); return; }
         if (act === 'explain') { root.toggleAttribute('data-show-explain'); renderLight(root); return; }
         if (act === 'toc')      { openToc(root); return; }
@@ -1014,7 +1047,7 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
 .cit-sheet.is-ring{animation:cit-ring .6s ease 2}
 @keyframes cit-ring{25%{transform:rotate(-1deg)}75%{transform:rotate(1deg)}}
 .cit-top{flex:none;display:flex;align-items:center;gap:.8em;flex-wrap:wrap;padding:.65em 1.1em;
-  background:var(--ct-c);color:#fff;font-size:max(11px,2.5cqw)}
+  background:var(--ct-c);color:#fff;font-size:calc(max(11px,2.5cqw) * var(--ct-fs,1))}
 .cit-chip{display:inline-flex;align-items:center;gap:.4em;font-weight:900}
 .cit-stars{color:#ffe08a;letter-spacing:.05em;font-size:1.05em}
 .cit-off{color:rgba(255,255,255,.35)}
@@ -1023,21 +1056,22 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
 .cit-tbar span{display:block;height:100%;width:100%;background:var(--ct-gold);transform-origin:left;transition:transform .2s linear}
 .cit-sheet.is-hurry .cit-tbar span{background:#e0533d}
 .cit-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:1.6cqw 4.5cqw 2.6cqw}
+.cit-root.cit-big .cit-body{overflow:auto;-webkit-overflow-scrolling:touch}
 .cit-inner{margin:auto 0;width:100%;text-align:center}
 .cit-kicker{display:inline-block;padding:.15em .8em;border-radius:99px;background:#fff3c4;color:#8a6400;font-weight:900;
-  letter-spacing:.3px;text-transform:uppercase;font-size:calc(2.2cqw * var(--ct-ka,1))}
+  letter-spacing:.3px;text-transform:uppercase;font-size:calc(2.2cqw * var(--ct-ka,1) * var(--ct-fs,1))}
 .cit-q{margin-top:.35em;text-align:center;font-weight:900;line-height:1.25;text-wrap:balance;color:var(--ct-ink);
-  font-size:calc(5.4cqw * var(--ct-k,1))}
-.cit-think{margin-top:.7em;color:#7a7a88;font-style:italic;font-size:calc(2.9cqw * var(--ct-ka,1))}
+  font-size:calc(5.4cqw * var(--ct-k,1) * var(--ct-fs,1))}
+.cit-think{margin-top:.7em;color:#7a7a88;font-style:italic;font-size:calc(2.9cqw * var(--ct-ka,1) * var(--ct-fs,1))}
 .cit-hint{margin:.8em auto 0;max-width:92%;padding:.5em 1em;border-radius:12px;text-align:center;
-  background:#fff8dc;border:2px dashed #e8c14a;color:#5c4a00;font-size:calc(3.3cqw * var(--ct-ka,1))}
+  background:#fff8dc;border:2px dashed #e8c14a;color:#5c4a00;font-size:calc(3.3cqw * var(--ct-ka,1) * var(--ct-fs,1))}
 .cit-answer{margin:.8em auto 0;max-width:95%;animation:cit-pop .35s cubic-bezier(.2,1.4,.5,1)}
 @keyframes cit-pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
 .cit-r{display:inline-block;padding:.3em .9em;border-radius:14px;font-weight:900;line-height:1.25;
   background:color-mix(in srgb,var(--ct-c) 15%,#fff);color:color-mix(in srgb,var(--ct-c) 75%,#000);
-  border:2px solid color-mix(in srgb,var(--ct-c) 35%,#fff);font-size:calc(4.6cqw * var(--ct-ka,1))}
-.cit-e{margin-top:.6em;color:#3d3d48;line-height:1.5;font-size:calc(3cqw * var(--ct-ka,1))}
-.cit-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:.6em;margin-top:1em;font-size:calc(2.8cqw * var(--ct-ka,1))}
+  border:2px solid color-mix(in srgb,var(--ct-c) 35%,#fff);font-size:calc(4.6cqw * var(--ct-ka,1) * var(--ct-fs,1))}
+.cit-e{margin-top:.6em;color:#3d3d48;line-height:1.5;font-size:calc(3cqw * var(--ct-ka,1) * var(--ct-fs,1))}
+.cit-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:.6em;margin-top:1em;font-size:calc(2.8cqw * var(--ct-ka,1) * var(--ct-fs,1))}
 .cit-btn{font:inherit;font-size:1em;font-weight:800;border:0;background:#eef0f4;color:#3d4a66;border-radius:99px;
   padding:.55em 1.2em;cursor:pointer;line-height:1.2;white-space:nowrap}
 .cit-btn:hover{background:#e2e6ee}
@@ -1049,13 +1083,13 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
 .cit-btn.cit-tbtn.is-done{background:#fdecea;color:#b03520}
 /* Citation */
 .cit-quote{margin:.35em 0 0;text-align:center;font-weight:600;line-height:1.28;text-wrap:balance;color:var(--ct-ink);
-  font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;font-size:calc(6cqw * var(--ct-k,1))}
+  font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;font-size:calc(6cqw * var(--ct-k,1) * var(--ct-fs,1))}
 .cit-g{color:var(--ct-c);font-weight:800}
-.cit-author{margin-top:.6em;text-align:right;color:var(--ct-soft);font-weight:700;font-size:calc(3.3cqw * var(--ct-ka,1))}
+.cit-author{margin-top:.6em;text-align:right;color:var(--ct-soft);font-weight:700;font-size:calc(3.3cqw * var(--ct-ka,1) * var(--ct-fs,1))}
 .cit-author i{font-weight:400}
 .cit-explain{margin:.8em auto 0;max-width:95%;padding:.6em 1em;border-radius:12px;text-align:left;line-height:1.5;color:#3d3d48;
   background:color-mix(in srgb,var(--ct-c) 10%,#fff);border-left:4px solid var(--ct-c);
-  font-size:calc(3.1cqw * var(--ct-ka,1));animation:cit-pop .35s cubic-bezier(.2,1.4,.5,1)}
+  font-size:calc(3.1cqw * var(--ct-ka,1) * var(--ct-fs,1));animation:cit-pop .35s cubic-bezier(.2,1.4,.5,1)}
 .cit-btn.cit-main{background:var(--ct-gold);color:#2a2000;box-shadow:0 4px 12px rgba(245,179,1,.35)}
 .cit-btn.cit-main:hover{filter:brightness(1.05)}
 .cit-toc-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -1111,6 +1145,28 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
 .cit-badge-cur{background:#d49a00;color:#fff}
 .cit-toc-empty{padding:24px 8px;text-align:center;color:#8a8a96;font-style:italic}
 .cit-toc-input:focus-visible{outline:none}
+/* Contrôles masqués : seule la citation reste */
+.cit-ib svg{width:16px;height:16px}
+.cit-float-ctrl{display:none;position:absolute;right:10px;bottom:10px;z-index:3;align-items:center;gap:5px;padding:5px 11px;border:0;border-radius:99px;
+  background:rgba(255,255,255,.75);color:#3d4a66;font:inherit;font-size:11px;font-weight:800;cursor:pointer;
+  box-shadow:0 2px 6px rgba(0,0,0,.18);opacity:.35;transition:opacity .2s}
+.cit-float-ctrl svg{width:13px;height:13px}
+.cit-root:hover .cit-float-ctrl{opacity:.7}
+.cit-float-ctrl:hover,.cit-float-ctrl:focus-visible{opacity:1!important}
+@media (hover: none){.cit-float-ctrl{opacity:.55}}
+.cit-root.cit-bare .cit-float-ctrl{display:inline-flex}
+.cit-root.cit-bare .cit-bar,
+.cit-root.cit-bare .cit-top,
+.cit-root.cit-bare .cit-actions,
+.cit-root.cit-bare .cit-think,
+.cit-root.cit-bare .cit-settings,
+.cit-root.cit-bare .cit-help,
+.cit-root.cit-bare .cit-toc{display:none}
+.cit-root.cit-bare:not(.cit-full){background:transparent}
+.cit-root.cit-bare:not(.cit-full) .cit-stage{background:transparent;padding:4px}
+.cit-root.cit-bare:not(.cit-full) .cit-sheet{box-shadow:0 2px 8px rgba(0,0,0,.22)}
+.editor-container:has(> .cit-root.cit-bare:not(.cit-full)){background:transparent!important;box-shadow:none!important}
+.cit-root.cit-bare .cit-body{padding-bottom:max(2.6cqw,34px)}
 /* Plein écran : la carte occupe tout l'écran, la barre du haut reste affichée */
 .cit-root.cit-full{position:fixed;z-index:9999;inset:0;width:auto;height:auto}
 /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
@@ -1131,6 +1187,9 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
 @container (max-width: 380px){
   .cit-sep{display:none}
   .cit-ib{min-width:24px;padding:0 3px}
+}
+@container (max-width: 340px){
+  [data-cit-action="font-down"],[data-cit-action="font-up"]{display:none}
 }
 @media print{.cit-bar,.cit-settings,.cit-help,.cit-toc,.cit-actions,.cit-tbar{display:none}}
 `;

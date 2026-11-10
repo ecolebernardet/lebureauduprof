@@ -13,7 +13,7 @@
 //   - 6 thèmes : animaux, corps humain, espace, Terre et nature,
 //     histoire, sciences et inventions (à choisir dans les réglages)
 //   - « Mes anecdotes » : ajouter ses propres anecdotes
-//   - 🔊 lire à voix haute, A− / A+ taille du texte, ? aide
+//   - 🔊 lire à voix haute, A− / A+ taille du texte, ▭ masquer les contrôles, ? aide
 //   - déplacement en tirant la barre de titre, redimensionnement libre
 //   - boutons fenêtre jaune (réduire) / vert (plein écran board) / rouge (fermer)
 //   - restauré après l'actualisation du tableau
@@ -129,6 +129,10 @@ const LSV_FACTS = [
     { id: 'mot-long', c: 'sciences', q: 'Quel est l’un des plus longs mots de la langue française ?', a: '« Anticonstitutionnellement » : 25 lettres !', e: 'Il veut dire « d’une manière contraire à la Constitution ». Essaie de l’écrire sans te tromper !' }
 ];
 
+// Masquer les contrôles : icône (comme dans Défi calme) et bouton flottant pour les réafficher
+const _LSV_BARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><path d="M7 6.5h.01M10 6.5h.01"/></svg>';
+const _LSV_FLOAT_CTRL = '<button type="button" class="lsv-float-ctrl" data-lsv-action="bare" title="Afficher les contrôles">' + _LSV_BARE_ICON + '<span>Contrôles</span></button>';
+
 document.body.insertAdjacentHTML('beforeend', `
 <template id="template-le-saviez-vous">
     <div class="editor-container lsv-w" style="height:460px;width:640px;">
@@ -142,6 +146,7 @@ document.body.insertAdjacentHTML('beforeend', `
                 <button type="button" class="lsv-ib" data-lsv-action="speak" title="Lire à voix haute">🔊</button>
                 <button type="button" class="lsv-ib" data-lsv-action="font-down" title="Texte plus petit">A−</button>
                 <button type="button" class="lsv-ib" data-lsv-action="font-up" title="Texte plus grand">A+</button>
+                <button type="button" class="lsv-ib lsv-ib-bare" data-lsv-action="bare" title="Masquer les contrôles">${_LSV_BARE_ICON}</button>
                 <button type="button" class="lsv-ib" data-lsv-action="settings" title="Réglages et mes anecdotes">⚙</button>
                 <button type="button" class="lsv-ib lsv-ib-help" data-lsv-action="help" title="Aide">?</button>
             </div>
@@ -206,6 +211,7 @@ document.body.insertAdjacentHTML('beforeend', `
                     <li><b>La question d’abord :</b> laisse la classe réfléchir et faire des hypothèses, puis clique sur <b>Révéler</b> pour la réponse et l’explication.</li>
                     <li><b>🔊 Lire :</b> fait lire la question (et la réponse si elle est affichée) par l’ordinateur.</li>
                     <li><b>A− / A+ :</b> rend le texte plus petit ou plus grand pour la projection.</li>
+                    <li><b>▭ Masquer les contrôles :</b> ne laisse que l’anecdote (sans barre ni boutons). Tire la carte pour déplacer le widget ; le petit bouton <b>Contrôles</b>, en bas à droite, les fait revenir.</li>
                     <li><b>⚙ Réglages :</b> choisis les thèmes, affiche directement la réponse, ou ajoute <b>tes propres anecdotes</b>.</li>
                     <li><b>Fenêtre :</b> tire la barre du haut pour déplacer le widget, le coin pour l’agrandir. Bouton jaune : réduire, vert : plein écran, rouge : fermer.</li>
                 </ul>
@@ -245,7 +251,7 @@ function _lsvDateLabel() {
 /* ── État du widget ─────────────────────────────────────────────── */
 function _lsvState(c) {
     if (!c._lsv) c._lsv = { mode: 'jour', id: '', day: _lsvDayKey(), revealed: false, cats: Object.keys(LSV_CATS),
-                            showAnswer: false, useCustom: true, custom: [], fs: 1 };
+                            showAnswer: false, useCustom: true, custom: [], fs: 1, bare: false };
     return c._lsv;
 }
 // Les anecdotes proposées : thèmes choisis + (éventuellement) mes anecdotes
@@ -288,6 +294,7 @@ function _lsvRender(c) {
     const cat = LSV_CATS[f.c] || LSV_CATS.sciences;
     const open = st.revealed || st.showAnswer;
     c.style.setProperty('--lsv-fs', st.fs || 1);
+    c.classList.toggle('lsv-bare', !!st.bare);
     c.style.setProperty('--lsv-cat', cat.col);
     card.innerHTML = `
         <div class="lsv-top">
@@ -305,7 +312,7 @@ function _lsvRender(c) {
             ${st.showAnswer ? '' : '<button type="button" class="lsv-btn lsv-btn-ghost lsv-hide" data-lsv-action="hide">Cacher la réponse</button>'}`
             : `<div class="lsv-think">🤔 Qu’en pensez-vous ? Faites des hypothèses…</div>
                <button type="button" class="lsv-btn lsv-reveal" data-lsv-action="reveal">✨ Révéler la réponse</button>`}
-        </div>`;
+        </div>${_LSV_FLOAT_CTRL}`;
     const tb = c.querySelector('.lsv-tools [data-lsv-action="today"]');
     if (tb) tb.classList.toggle('is-on', st.mode === 'jour');
 }
@@ -482,6 +489,13 @@ document.addEventListener('click', e => {
             st.fs = Math.min(2, Math.round(((st.fs || 1) + 0.1) * 10) / 10);
             c.style.setProperty('--lsv-fs', st.fs); _lsvSave();
             break;
+        case 'bare':
+            st.bare = !st.bare;
+            c.querySelectorAll('.lsv-panel').forEach(p => { p.hidden = true; });
+            _lsvTocOpen(c, false);
+            const sb = c.querySelector('.lsv-tools [data-lsv-action="settings"]'); if (sb) sb.classList.remove('is-on');
+            _lsvRender(c); _lsvSave();
+            break;
         case 'settings':       _lsvPanel(c, 'settings'); break;
         case 'settings-close': _lsvPanel(c, 'settings', false); break;
         case 'help':           _lsvPanel(c, 'help'); break;
@@ -586,11 +600,30 @@ function _lsvDragStart(e) {
     bar.addEventListener('pointerup', end);
     bar.addEventListener('pointercancel', end);
 }
+// Contrôles masqués : plus de barre, on déplace le widget en tirant la carte
+function _lsvStageDown(e) {
+    const c = e.currentTarget.closest('.lsv-w');
+    if (!c || !c.classList.contains('lsv-bare') || e.target.closest('button')) return;
+    _lsvDragStart(e);
+}
+// Widgets créés avec une version précédente : on ajoute le bouton manquant
+function _lsvEnsureBareButtons(c) {
+    const tools = c.querySelector('.lsv-tools');
+    if (tools && !tools.querySelector('[data-lsv-action="bare"]')) {
+        const set = tools.querySelector('[data-lsv-action="settings"]');
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'lsv-ib lsv-ib-bare'; b.title = 'Masquer les contrôles';
+        b.setAttribute('data-lsv-action', 'bare'); b.innerHTML = _LSV_BARE_ICON;
+        tools.insertBefore(b, set || null);
+    }
+}
 function _lsvBindDrag(c) {
     const bar = c.querySelector('.lsv-bar');
     if (!bar || bar._lsvDrag) return;
     bar._lsvDrag = true;
     bar.addEventListener('pointerdown', _lsvDragStart);
+    const stage = c.querySelector('.lsv-stage');
+    if (stage) stage.addEventListener('pointerdown', _lsvStageDown);
     ['mousedown', 'touchstart'].forEach(t => bar.addEventListener(t, ev => {
         if (!ev.target.closest('button, .wf-btns')) ev.stopPropagation();
     }));
@@ -603,6 +636,7 @@ function _lsvInit(c) {
     const bar = c.querySelector('.lsv-bar');
     if (bar) { bar.classList.add('editor-toolbar'); bar.title = 'Glisser pour déplacer'; }
     c.querySelectorAll('.lsv-panel, .lsv-toc').forEach(p => { p.hidden = true; });
+    _lsvEnsureBareButtons(c);
     _lsvBindDrag(c);
     _lsvRender(c);
     new MutationObserver(() => _lsvFitFullboard(c)).observe(c, { attributes: true, attributeFilter: ['class'] });
@@ -728,7 +762,7 @@ window.lsvGetData = function (widget) {
     if (!c) return null;
     const st = _lsvState(c);
     return { mode: st.mode, id: st.id, day: st.day, revealed: !!st.revealed, cats: st.cats.slice(),
-             showAnswer: !!st.showAnswer, useCustom: !!st.useCustom, custom: st.custom.map(f => Object.assign({}, f)), fs: st.fs || 1 };
+             showAnswer: !!st.showAnswer, useCustom: !!st.useCustom, custom: st.custom.map(f => Object.assign({}, f)), fs: st.fs || 1, bare: !!st.bare };
 };
 window.lsvSetData = function (widget, d) {
     const c = widget && widget.querySelector('.lsv-w');
@@ -747,6 +781,7 @@ window.lsvSetData = function (widget, d) {
         .map(f => ({ id: String(f.id || ('mine-' + Math.random().toString(36).slice(2))), c: LSV_CATS[f.c] ? f.c : 'sciences',
                      q: f.q, a: f.a, e: typeof f.e === 'string' ? f.e : '', mine: true })) : [];
     st.fs         = Math.max(0.7, Math.min(2, +d.fs || 1));
+    st.bare       = !!d.bare;
     // Nouveau jour en mode « du jour » : _lsvCurrent() passe à la nouvelle anecdote
     if (!c._lsvInited) _lsvInit(c); else _lsvRender(c);
 };
@@ -881,6 +916,24 @@ window.createLeSaviezVousWidget = function () {
 .editor-container.lsv-w .lsv-toc-it,.editor-container.lsv-w .lsv-toc-it *,
 .editor-container.lsv-w select,.editor-container.lsv-w label,.editor-container.lsv-w input[type=checkbox]{cursor:pointer!important}
 .editor-container.lsv-w input[type=text],.editor-container.lsv-w textarea{cursor:text!important}
+/* Contrôles masqués : seule l'anecdote reste */
+.lsv-w .lsv-ib svg{width:16px;height:16px}
+.lsv-w .lsv-float-ctrl{display:none;position:absolute;right:10px;bottom:10px;z-index:12;align-items:center;gap:5px;padding:5px 11px;border:0;border-radius:99px;
+  background:rgba(255,255,255,.75);color:#3d4a66;font-size:11px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.18);opacity:.35;transition:opacity .2s}
+.lsv-w .lsv-float-ctrl svg{width:13px;height:13px}
+.lsv-w:hover .lsv-float-ctrl{opacity:.7}
+.lsv-w .lsv-float-ctrl:hover,.lsv-w .lsv-float-ctrl:focus-visible{opacity:1!important}
+@media (hover: none){.lsv-w .lsv-float-ctrl{opacity:.55}}
+.lsv-w.lsv-bare .lsv-float-ctrl{display:inline-flex}
+.lsv-w.lsv-bare .lsv-bar,.lsv-w.lsv-bare .lsv-top,.lsv-w.lsv-bare .lsv-think,.lsv-w.lsv-bare .lsv-btn,
+.lsv-w.lsv-bare .lsv-panel,.lsv-w.lsv-bare .lsv-toc{display:none!important}
+.lsv-w.lsv-bare .lsv-body{padding-bottom:max(1.2em,34px)}
+.editor-container.lsv-w.lsv-bare:not(.wf-media-fullboard){background:transparent!important;box-shadow:none!important}
+.lsv-w.lsv-bare:not(.wf-media-fullboard) .lsv-stage{background:transparent;padding:4px}
+.lsv-w.lsv-bare:not(.wf-media-fullboard) .lsv-card{box-shadow:0 2px 8px rgba(0,0,0,.22)}
+.lsv-w .lsv-card{position:relative}
+.editor-container.lsv-w.lsv-bare:not(.wf-media-fullboard) .lsv-stage,.editor-container.lsv-w.lsv-bare:not(.wf-media-fullboard) .lsv-card{cursor:grab!important;touch-action:none}
+.editor-container.lsv-w.lsv-bare .lsv-float-ctrl,.editor-container.lsv-w.lsv-bare .lsv-float-ctrl *{cursor:pointer!important}
 /* Message temporaire */
 .lsv-w .lsv-flash{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:13;max-width:calc(100% - 24px);box-sizing:border-box;
   padding:7px 14px;border-radius:12px;background:rgba(0,0,0,.85);color:#fff;font-size:12.5px;font-weight:600;text-align:center;

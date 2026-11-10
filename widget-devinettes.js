@@ -42,8 +42,6 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
    - niveau de difficulté (★ facile, ★★ moyen, ★★★ difficile)
    - bouton « 💡 Indice », puis « 👀 Voir la réponse » avec une
      explication quand la réponse mérite d'être expliquée
-   - bouton « ⏱ Réfléchir » : temps de réflexion avec barre qui se
-     vide, petit son à la fin, réponse dévoilée automatiquement (option)
 
    Barre du haut (même présentation que « Le saviez-vous ? ») :
    - ‹ 🎲 › pour passer d'une devinette à l'autre ou en tirer une au
@@ -51,7 +49,7 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
    - 📚 sommaire : toutes les devinettes par thème (recherche, filtres),
      questions seules, pour choisir celle dont on veut parler
    - ⚙ réglages : mode (devinette du jour / au hasard), thèmes et
-     niveaux proposés, temps de réflexion, devinettes de l'enseignant
+     niveaux proposés, devinettes de l'enseignant
    - ? aide
    - boutons fenêtre jaune (réduire), vert (plein écran), rouge (fermer),
      identiques à ceux de l'éphéméride
@@ -61,7 +59,8 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
    qu'une même devinette revienne.
 
    Clavier (souris sur le widget ou plein écran) : I indice, R ou Entrée
-   réponse, T temps de réflexion, ← → devinette précédente / suivante,
+   réponse, ← → devinette précédente / suivante,
+   + / − taille du texte, M masquer / afficher les contrôles,
    F plein écran, Échap pour en sortir.
 
    Utilisation : createWidget('devinettes')
@@ -246,19 +245,16 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
         mode: 'jour',            // 'jour' : devinette du jour ; 'hasard' : au hasard
         themes: { quisuisje: true, logique: true, maths: true, mots: true, charades: true, sciences: true },
         niveaux: { 1: true, 2: true, 3: true },
-        timer: 60,               // temps de réflexion en secondes (0 : pas de bouton)
-        autoReveal: false,       // dévoiler la réponse à la fin du temps
-        sound: true,             // petit son à la fin du temps
         perso: '',               // devinettes de l'enseignant, une par ligne : « Devinette = Réponse = Indice »
-        persoOnly: false         // n'afficher que les devinettes personnelles
+        persoOnly: false,        // n'afficher que les devinettes personnelles
+        fs: 1,                   // taille du texte (boutons A− / A+), de 0,7 à 2
+        bare: false              // contrôles masqués : seule la devinette reste affichée
     };
-    const TIMERS = [[0, 'Pas de minuteur'], [30, '30 secondes'], [60, '1 minute'], [120, '2 minutes'], [180, '3 minutes'], [300, '5 minutes']];
 
     /* ── Outils ───────────────────────────────────────────────────── */
     const DAY = 86400000;
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const gcd = (a, b) => b ? gcd(b, a % b) : a;
-    const fmtTime = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 
     // Numéro du jour, en ne comptant que les jours du lundi au vendredi :
     // la devinette du jour ne change pas le week-end.
@@ -310,7 +306,7 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
         cfg = Object.assign({}, DEFAULT_CFG, cfg);
         cfg.themes = Object.assign({}, DEFAULT_CFG.themes, cfg.themes || {});
         cfg.niveaux = Object.assign({}, DEFAULT_CFG.niveaux, cfg.niveaux || {});
-        cfg.timer = +cfg.timer || 0;
+        delete cfg.timer; delete cfg.autoReveal; delete cfg.sound;   // ancien minuteur (supprimé)
         return cfg;
     }
 
@@ -351,80 +347,11 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
         const list = pool(cfg);
         if (cfg.mode === 'jour' && (!d || d === dayRiddle(list))) root.removeAttribute('data-cur');
         else if (d) root.setAttribute('data-cur', d.q);
-        // une nouvelle devinette repart avec indice et réponse cachés, et sans minuteur
+        // une nouvelle devinette repart avec indice et réponse cachés
         root.removeAttribute('data-show-hint');
         root.removeAttribute('data-show-answer');
-        stopTimer(root);
         renderLight(root);
         if (typeof saveBoard === 'function') saveBoard();
-    }
-
-    /* ── Minuteur de réflexion (en mémoire, pas sauvegardé) ─────────── */
-    const RT = new WeakMap();
-    function T(root) {
-        let t = RT.get(root);
-        if (!t) { t = { end: 0, dur: 0, iv: null, done: false }; RT.set(root, t); }
-        return t;
-    }
-    function startTimer(root) {
-        const cfg = getCfg(root);
-        if (!cfg.timer) return;
-        const t = T(root);
-        clearInterval(t.iv);
-        t.dur = cfg.timer;
-        t.end = Date.now() + cfg.timer * 1000;
-        t.done = false;
-        t.iv = setInterval(() => tickTimer(root), 200);
-        renderLight(root);
-    }
-    function stopTimer(root) {
-        const t = T(root);
-        clearInterval(t.iv);
-        t.iv = null; t.end = 0; t.done = false;
-    }
-    const timerRunning = root => !!T(root).iv;
-    function timerLeft(root) {
-        const t = T(root);
-        return t.iv ? Math.max(0, Math.ceil((t.end - Date.now()) / 1000)) : 0;
-    }
-    function tickTimer(root) {
-        const t = T(root);
-        if (!root.isConnected) { clearInterval(t.iv); return; }
-        const leftMs = Math.max(0, t.end - Date.now());
-        const bar = root.querySelector('.dv-tbar span');
-        const txt = root.querySelector('.dv-ttxt');
-        if (bar) bar.style.transform = 'scaleX(' + (leftMs / (t.dur * 1000)).toFixed(4) + ')';
-        if (txt) txt.textContent = '⏱ ' + fmtTime(Math.ceil(leftMs / 1000));
-        const sheet = root.querySelector('.dv-sheet');
-        if (sheet) sheet.classList.toggle('is-hurry', leftMs > 0 && leftMs <= 10000);
-        if (leftMs <= 0) {
-            clearInterval(t.iv);
-            t.iv = null; t.done = true;
-            const cfg = getCfg(root);
-            if (cfg.sound) beep();
-            if (cfg.autoReveal) root.setAttribute('data-show-answer', '');
-            renderLight(root);
-            const sh = root.querySelector('.dv-sheet');
-            if (sh) { sh.classList.remove('is-ring'); void sh.offsetWidth; sh.classList.add('is-ring'); }
-        }
-    }
-
-    // Petit son de fin (trois notes douces)
-    let actx = null;
-    function beep() {
-        try {
-            actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-            const t0 = actx.currentTime;
-            [660, 880, 1100].forEach((f, k) => {
-                const o = actx.createOscillator(), g = actx.createGain();
-                o.type = 'sine'; o.frequency.value = f;
-                g.gain.setValueAtTime(0.0001, t0 + k * 0.18);
-                g.gain.exponentialRampToValueAtTime(0.25, t0 + k * 0.18 + 0.02);
-                g.gain.exponentialRampToValueAtTime(0.0001, t0 + k * 0.18 + 0.35);
-                o.connect(g); g.connect(actx.destination);
-                o.start(t0 + k * 0.18); o.stop(t0 + k * 0.18 + 0.4);
-            });
-        } catch (e) {}
     }
 
     /* ── Rendu ────────────────────────────────────────────────────── */
@@ -444,6 +371,9 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
                 '<button type="button" class="dv-ib' + (isDay ? ' is-on' : '') + '" data-dv-action="today" title="La devinette du jour" aria-label="La devinette du jour">📅</button>' +
                 '<button type="button" class="dv-ib' + on('dv-toc-open') + '" data-dv-action="toc" title="Sommaire : choisir une devinette" aria-label="Sommaire">📚</button>' +
                 '<span class="dv-sep"></span>' +
+                '<button type="button" class="dv-ib" data-dv-action="font-down" title="Texte plus petit" aria-label="Texte plus petit">A−</button>' +
+                '<button type="button" class="dv-ib" data-dv-action="font-up" title="Texte plus grand" aria-label="Texte plus grand">A+</button>' +
+                '<button type="button" class="dv-ib dv-ib-bare" data-dv-action="bare" title="Masquer les contrôles" aria-label="Masquer les contrôles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><path d="M7 6.5h.01M10 6.5h.01"/></svg></button>' +
                 '<button type="button" class="dv-ib' + on('dv-open') + '" data-dv-action="toggle" title="Réglages" aria-label="Réglages">⚙</button>' +
                 '<button type="button" class="dv-ib dv-ib-help' + on('dv-help-open') + '" data-dv-action="help" title="Aide" aria-label="Aide">?</button>' +
             '</div>' +
@@ -464,20 +394,12 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
             : (cfg.mode === 'hasard' ? '🎲 ' : '') + (idx + 1) + ' / ' + list.length;
         const hintShown = root.hasAttribute('data-show-hint');
         const answerShown = root.hasAttribute('data-show-answer');
-        const t = T(root);
-        const running = timerRunning(root);
         const stars = d.n ? '<span class="dv-stars" title="' + NIVEAUX[d.n] + '">' + '★'.repeat(d.n) + '<span class="dv-off">' + '★'.repeat(3 - d.n) + '</span></span>' : '';
 
         let html = '<div class="dv-stage" style="--dv-c:' + th.c + '">' +
-            '<div class="dv-sheet' + (running && timerLeft(root) <= 10 ? ' is-hurry' : '') + '">' +
+            '<div class="dv-sheet">' +
             '<div class="dv-top"><span class="dv-chip"><span aria-hidden="true">' + th.ico + '</span>' + esc(th.nom) + '</span>' +
             stars + '<span class="dv-label">' + label + '</span></div>';
-
-        // Barre du minuteur
-        if (running) {
-            const leftMs = Math.max(0, t.end - Date.now());
-            html += '<div class="dv-tbar"><span style="transform:scaleX(' + (leftMs / (t.dur * 1000)).toFixed(4) + ')"></span></div>';
-        }
 
         html += '<div class="dv-body"><div class="dv-inner">' +
             '<div class="dv-kicker">Devinette</div>' +
@@ -488,7 +410,7 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
         if (answerShown) {
             html += '<div class="dv-answer"><div class="dv-r">' + esc(d.r) + '</div>' +
                 (d.e ? '<div class="dv-e">' + esc(d.e) + '</div>' : '') + '</div>';
-        } else if (!hintShown && !running && !t.done) {
+        } else if (!hintShown) {
             html += '<div class="dv-think">🤔 Cherchez bien… Qui a une idée ?</div>';
         }
 
@@ -497,16 +419,13 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
             btns += '<button type="button" class="dv-btn' + (hintShown ? ' is-on' : '') + '" data-dv-action="hint"' + STOP + '>💡 ' +
                 (hintShown ? 'Cacher l’indice' : 'Indice') + '</button>';
         }
-        if (cfg.timer && !answerShown) {
-            if (running) btns += '<button type="button" class="dv-btn dv-tbtn is-on" data-dv-action="timer-stop"' + STOP + ' title="Arrêter le minuteur"><span class="dv-ttxt">⏱ ' + fmtTime(timerLeft(root)) + '</span> ✕</button>';
-            else if (t.done) btns += '<button type="button" class="dv-btn dv-tbtn is-done" data-dv-action="timer"' + STOP + '>⏰ Temps écoulé ! Relancer</button>';
-            else btns += '<button type="button" class="dv-btn dv-tbtn" data-dv-action="timer"' + STOP + '>⏱ Réfléchir ' + fmtTime(cfg.timer) + '</button>';
-        }
         btns += '<button type="button" class="dv-btn dv-main' + (answerShown ? ' is-on' : '') + '" data-dv-action="answer"' + STOP + '>' +
             (answerShown ? '🙈 Cacher la réponse' : '✨ Voir la réponse') + '</button>';
         html += '<div class="dv-actions">' + btns + '</div>';
 
-        html += '</div></div></div></div>';
+        html += '</div></div>' +
+            '<button type="button" class="dv-float-ctrl" data-dv-action="bare" title="Afficher les contrôles" aria-label="Afficher les contrôles"' + STOP + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><path d="M7 6.5h.01M10 6.5h.01"/></svg><span>Contrôles</span></button>' +
+            '</div></div>';
         return html;
     }
 
@@ -523,7 +442,6 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
             lv += '<label class="dv-chk dv-chk-inline"><input type="checkbox" data-dv-niveau="' + k + '"' + (cfg.niveaux[k] ? ' checked' : '') + '> ' +
                 '★'.repeat(k) + ' ' + NIVEAUX[k] + ' <span class="dv-n">(' + n + ')</span></label>';
         });
-        const tOpts = TIMERS.map(([v, l]) => '<option value="' + v + '"' + (cfg.timer === v ? ' selected' : '') + '>' + l + '</option>').join('');
         return '<div class="dv-settings"' + STOP + '><div class="dv-set-card">' +
             '<div class="dv-panel-head"><span>⚙ Réglages des devinettes</span>' +
               '<button type="button" class="dv-ib" data-dv-action="close" title="Fermer les réglages" aria-label="Fermer">✕</button></div>' +
@@ -534,9 +452,6 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
               '</select></label>' +
             '<div class="dv-lbl">Niveaux proposés</div><div class="dv-row">' + lv + '</div>' +
             '<div class="dv-lbl">Thèmes proposés</div>' + checks +
-            '<label class="dv-lbl">Temps de réflexion<select data-dv-timer>' + tOpts + '</select></label>' +
-            '<label class="dv-chk"><input type="checkbox" data-dv-autoreveal' + (cfg.autoReveal ? ' checked' : '') + '> Dévoiler la réponse à la fin du temps</label>' +
-            '<label class="dv-chk"><input type="checkbox" data-dv-sound' + (cfg.sound ? ' checked' : '') + '> Petit son à la fin du temps</label>' +
             '<label class="dv-lbl">Mes devinettes <span class="dv-n">— une par ligne : Devinette = Réponse = Indice (l’indice est facultatif)</span>' +
               '<textarea data-dv-perso rows="5" placeholder="Je suis le prénom de la maîtresse à l’envers : ENIRAM. = Marine = Lis de droite à gauche.">' + esc(cfg.perso || '') + '</textarea></label>' +
             '<label class="dv-chk"><input type="checkbox" data-dv-persoonly' + (cfg.persoOnly ? ' checked' : '') + '> N’afficher que mes devinettes</label>' +
@@ -553,11 +468,13 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
               '<li><b>📅 La devinette du jour :</b> elle change chaque jour de classe (pas le week-end).</li>' +
               '<li><b>‹ 🎲 › :</b> devinette précédente, au hasard ou suivante.</li>' +
               '<li><b>📚 Sommaire :</b> toutes les devinettes classées par thème. Cherche un mot, filtre par thème, puis clique sur celle de ton choix. Seules les questions sont affichées : les réponses restent secrètes !</li>' +
-              '<li><b>💡 Indice</b> pour aider la classe, <b>⏱ Réfléchir</b> pour lancer un temps de réflexion, puis <b>✨ Voir la réponse</b>.</li>' +
-              '<li><b>⚙ Réglages :</b> mode du jour ou au hasard, thèmes, niveaux (★ facile à ★★★ difficile), temps de réflexion et tes propres devinettes.</li>' +
+              '<li><b>💡 Indice</b> pour aider la classe, puis <b>✨ Voir la réponse</b>.</li>' +
+              '<li><b>A− / A+ :</b> rend le texte plus petit ou plus grand pour la projection.</li>' +
+              '<li><b>▭ Masquer les contrôles :</b> ne laisse que la devinette (sans barre ni boutons). Le petit bouton <b>Contrôles</b>, en bas à droite, les fait revenir. Raccourci : touche M.</li>' +
+              '<li><b>⚙ Réglages :</b> mode du jour ou au hasard, thèmes, niveaux (★ facile à ★★★ difficile) et tes propres devinettes.</li>' +
               '<li><b>Fenêtre :</b> bouton jaune : réduire, vert : plein écran, rouge : fermer. Le coin en bas à droite permet d’agrandir la fenêtre.</li>' +
             '</ul>' +
-            '<div class="dv-help-note">Clavier (souris sur le widget) : I indice · R ou Entrée réponse · T minuteur · ← → devinette précédente / suivante · F plein écran · Échap pour en sortir.</div>' +
+            '<div class="dv-help-note">Clavier (souris sur le widget) : I indice · R ou Entrée réponse · ← → devinette précédente / suivante · + / − taille du texte · M masquer les contrôles · F plein écran · Échap pour en sortir.</div>' +
         '</div></div>';
     }
 
@@ -659,7 +576,28 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
        lequel le contenu tient. Indice, réponse et boutons se réduisent
        moitié moins vite que la devinette (--dv-ka). ─────────────────── */
     const K_MIN = 0.3;
+    // Taille du texte choisie avec A− / A+ (de 0,7 à 2)
+    const fsOf = cfg => Math.max(0.7, Math.min(2, Math.round((+cfg.fs || 1) * 10) / 10));
+    function setFs(root, dir) {
+        const cfg = getCfg(root);
+        cfg.fs = fsOf({ fs: fsOf(cfg) + dir * 0.1 });
+        root.setAttribute('data-cfg', JSON.stringify(cfg));
+        fitSheet(root);
+        if (typeof saveBoard === 'function') saveBoard();
+    }
+    // L'ajustement automatique est calculé pour la taille normale, puis la
+    // taille choisie (--dv-fs) est appliquée par-dessus : A+ agrandit
+    // toujours le texte (on peut alors faire défiler la feuille si besoin).
     function fitSheet(root) {
+        const cfg = getCfg(root);
+        root.classList.toggle('dv-bare', !!cfg.bare);
+        const fs = fsOf(cfg);
+        root.classList.toggle('dv-big', fs > 1);
+        root.style.setProperty('--dv-fs', '1');
+        try { fitAuto(root); }
+        finally { root.style.setProperty('--dv-fs', String(fs)); }
+    }
+    function fitAuto(root) {
         const body = root.querySelector('.dv-body');
         if (!body || !root.offsetWidth || !root.offsetHeight) return;
         const fits = k => {
@@ -712,7 +650,6 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
     function closeWidget(root) {
         const widget = root.closest('.widget');
         if (!widget) return;
-        stopTimer(root);
         if (typeof snapshotNow === 'function') snapshotNow();
         widget.remove();
         if (typeof saveBoard === 'function') saveBoard();
@@ -727,7 +664,6 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
                 r.removeAttribute('data-cur');
                 r.removeAttribute('data-show-hint');
                 r.removeAttribute('data-show-answer');
-                stopTimer(r);
             }
             render(r);
         });
@@ -759,11 +695,11 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
                 return;
             case 'answer':
                 root.toggleAttribute('data-show-answer');
-                if (root.hasAttribute('data-show-answer')) stopTimer(root);
                 renderLight(root);
                 return;
-            case 'timer':      startTimer(root); return;
-            case 'timer-stop': stopTimer(root); renderLight(root); return;
+            case 'bare':       cfg.bare = !cfg.bare; closePanels(root); setCfg(root, cfg); return;
+            case 'font-down':  setFs(root, -1); return;
+            case 'font-up':    setFs(root, +1); return;
             case 'toggle': { const o = root.classList.contains('dv-open'); closePanels(root); root.classList.toggle('dv-open', !o); break; }
             case 'close':  root.classList.remove('dv-open'); break;
             case 'help': { const o = root.classList.contains('dv-help-open'); closePanels(root); root.classList.toggle('dv-help-open', !o); break; }
@@ -831,9 +767,6 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
         }
         else if (t.hasAttribute('data-dv-theme'))  cfg.themes[t.getAttribute('data-dv-theme')] = t.checked;
         else if (t.hasAttribute('data-dv-niveau')) cfg.niveaux[t.getAttribute('data-dv-niveau')] = t.checked;
-        else if (t.hasAttribute('data-dv-timer'))  { cfg.timer = +t.value || 0; stopTimer(root); }
-        else if (t.hasAttribute('data-dv-autoreveal')) cfg.autoReveal = t.checked;
-        else if (t.hasAttribute('data-dv-sound'))  cfg.sound = t.checked;
         else if (t.hasAttribute('data-dv-perso'))  { cfg.perso = t.value; setCfg(root, cfg, true); return; } // sans reconstruire les réglages
         else if (t.hasAttribute('data-dv-persoonly')) cfg.persoOnly = t.checked;
         else return;
@@ -895,10 +828,12 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
         let a = null;
         if (k === 'i' || k === 'I') a = 'hint';
         else if (k === 'r' || k === 'R' || k === 'Enter') a = 'answer';
-        else if (k === 't' || k === 'T') a = timerRunning(root) ? 'timer-stop' : 'timer';
         else if (k === 'ArrowRight') a = 'next';
         else if (k === 'ArrowLeft') a = 'prev';
         else if (k === 'f' || k === 'F') a = 'wf-max';
+        else if (k === 'm' || k === 'M') a = 'bare';
+        else if (k === '+' || k === '=') a = 'font-up';
+        else if (k === '-' || k === '_') a = 'font-down';
         else if (k === 'Escape' && root.classList.contains('dv-full')) { toggleFull(root, false); e.preventDefault(); e.stopPropagation(); return; }
         if (!a) return;
         e.preventDefault(); e.stopPropagation();
@@ -987,12 +922,6 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
                     hydrate(n);
                 }
             });
-            // Widget supprimé : arrêt du minuteur
-            m.removedNodes.forEach(n => {
-                if (!(n instanceof Element)) return;
-                const roots = n.matches('.dv-root') ? [n] : Array.from(n.querySelectorAll('.dv-root'));
-                roots.forEach(r => setTimeout(() => { if (!r.isConnected) stopTimer(r); }, 0));
-            });
         }
     });
 
@@ -1041,42 +970,35 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
              radial-gradient(circle at 92% 95%,rgba(245,179,1,.30),transparent 50%),#1b1c26}
 .dv-sheet{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;background:#fffdf6;
   border-radius:max(12px,2.6cqw);box-shadow:0 12px 30px rgba(0,0,0,.4);overflow:hidden}
-.dv-sheet.is-ring{animation:dv-ring .6s ease 2}
-@keyframes dv-ring{25%{transform:rotate(-1deg)}75%{transform:rotate(1deg)}}
 .dv-top{flex:none;display:flex;align-items:center;gap:.8em;flex-wrap:wrap;padding:.65em 1.1em;
-  background:var(--dv-c);color:#fff;font-size:max(11px,2.5cqw)}
+  background:var(--dv-c);color:#fff;font-size:calc(max(11px,2.5cqw) * var(--dv-fs,1))}
 .dv-chip{display:inline-flex;align-items:center;gap:.4em;font-weight:900}
 .dv-stars{color:#ffe08a;letter-spacing:.05em;font-size:1.05em}
 .dv-off{color:rgba(255,255,255,.35)}
 .dv-label{margin-left:auto;font-weight:700;opacity:.92;white-space:nowrap}
-.dv-tbar{flex:none;height:max(5px,.9cqw);background:color-mix(in srgb,var(--dv-c) 18%,#fff);overflow:hidden}
-.dv-tbar span{display:block;height:100%;width:100%;background:var(--dv-gold);transform-origin:left;transition:transform .2s linear}
-.dv-sheet.is-hurry .dv-tbar span{background:#e0533d}
 .dv-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:1.6cqw 4.5cqw 2.6cqw}
+.dv-root.dv-big .dv-body{overflow:auto;-webkit-overflow-scrolling:touch}
 .dv-inner{margin:auto 0;width:100%;text-align:center}
 .dv-kicker{display:inline-block;padding:.15em .8em;border-radius:99px;background:#fff3c4;color:#8a6400;font-weight:900;
-  letter-spacing:.3px;text-transform:uppercase;font-size:calc(2.2cqw * var(--dv-ka,1))}
+  letter-spacing:.3px;text-transform:uppercase;font-size:calc(2.2cqw * var(--dv-ka,1) * var(--dv-fs,1))}
 .dv-q{margin-top:.35em;text-align:center;font-weight:900;line-height:1.25;text-wrap:balance;color:var(--dv-ink);
-  font-size:calc(5.4cqw * var(--dv-k,1))}
-.dv-think{margin-top:.7em;color:#7a7a88;font-style:italic;font-size:calc(2.9cqw * var(--dv-ka,1))}
+  font-size:calc(5.4cqw * var(--dv-k,1) * var(--dv-fs,1))}
+.dv-think{margin-top:.7em;color:#7a7a88;font-style:italic;font-size:calc(2.9cqw * var(--dv-ka,1) * var(--dv-fs,1))}
 .dv-hint{margin:.8em auto 0;max-width:92%;padding:.5em 1em;border-radius:12px;text-align:center;
-  background:#fff8dc;border:2px dashed #e8c14a;color:#5c4a00;font-size:calc(3.3cqw * var(--dv-ka,1))}
+  background:#fff8dc;border:2px dashed #e8c14a;color:#5c4a00;font-size:calc(3.3cqw * var(--dv-ka,1) * var(--dv-fs,1))}
 .dv-answer{margin:.8em auto 0;max-width:95%;animation:dv-pop .35s cubic-bezier(.2,1.4,.5,1)}
 @keyframes dv-pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
 .dv-r{display:inline-block;padding:.3em .9em;border-radius:14px;font-weight:900;line-height:1.25;
   background:color-mix(in srgb,var(--dv-c) 15%,#fff);color:color-mix(in srgb,var(--dv-c) 75%,#000);
-  border:2px solid color-mix(in srgb,var(--dv-c) 35%,#fff);font-size:calc(4.6cqw * var(--dv-ka,1))}
-.dv-e{margin-top:.6em;color:#3d3d48;line-height:1.5;font-size:calc(3cqw * var(--dv-ka,1))}
-.dv-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:.6em;margin-top:1em;font-size:calc(2.8cqw * var(--dv-ka,1))}
+  border:2px solid color-mix(in srgb,var(--dv-c) 35%,#fff);font-size:calc(4.6cqw * var(--dv-ka,1) * var(--dv-fs,1))}
+.dv-e{margin-top:.6em;color:#3d3d48;line-height:1.5;font-size:calc(3cqw * var(--dv-ka,1) * var(--dv-fs,1))}
+.dv-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:.6em;margin-top:1em;font-size:calc(2.8cqw * var(--dv-ka,1) * var(--dv-fs,1))}
 .dv-btn{font:inherit;font-size:1em;font-weight:800;border:0;background:#eef0f4;color:#3d4a66;border-radius:99px;
   padding:.55em 1.2em;cursor:pointer;line-height:1.2;white-space:nowrap}
 .dv-btn:hover{background:#e2e6ee}
 .dv-btn.is-on{background:color-mix(in srgb,var(--dv-c) 18%,#fff);color:color-mix(in srgb,var(--dv-c) 75%,#000)}
 .dv-btn.dv-main:not(.is-on){background:var(--dv-gold);color:#2a2000;box-shadow:0 4px 12px rgba(245,179,1,.35)}
 .dv-btn.dv-main:not(.is-on):hover{filter:brightness(1.05)}
-.dv-btn.dv-tbtn.is-on{background:#fff;color:var(--dv-c);box-shadow:inset 0 0 0 2px var(--dv-c);font-variant-numeric:tabular-nums}
-.dv-sheet.is-hurry .dv-btn.dv-tbtn.is-on{color:#e0533d;box-shadow:inset 0 0 0 2px #e0533d}
-.dv-btn.dv-tbtn.is-done{background:#fdecea;color:#b03520}
 /* Fenêtres Réglages, Aide et Sommaire */
 .dv-settings,.dv-help,.dv-toc{position:absolute;left:0;right:0;top:40px;bottom:0;z-index:4;display:flex;justify-content:center;
   align-items:flex-start;padding:12px;box-sizing:border-box;overflow:auto;background:rgba(10,10,20,.6);user-select:auto}
@@ -1127,6 +1049,28 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
 .dv-badge-cur{background:#d49a00;color:#fff}
 .dv-toc-empty{padding:24px 8px;text-align:center;color:#8a8a96;font-style:italic}
 .dv-toc-input:focus-visible{outline:none}
+/* Contrôles masqués : seule la devinette reste */
+.dv-ib svg{width:16px;height:16px}
+.dv-float-ctrl{display:none;position:absolute;right:10px;bottom:10px;z-index:3;align-items:center;gap:5px;padding:5px 11px;border:0;border-radius:99px;
+  background:rgba(255,255,255,.75);color:#3d4a66;font:inherit;font-size:11px;font-weight:800;cursor:pointer;
+  box-shadow:0 2px 6px rgba(0,0,0,.18);opacity:.35;transition:opacity .2s}
+.dv-float-ctrl svg{width:13px;height:13px}
+.dv-root:hover .dv-float-ctrl{opacity:.7}
+.dv-float-ctrl:hover,.dv-float-ctrl:focus-visible{opacity:1!important}
+@media (hover: none){.dv-float-ctrl{opacity:.55}}
+.dv-root.dv-bare .dv-float-ctrl{display:inline-flex}
+.dv-root.dv-bare .dv-bar,
+.dv-root.dv-bare .dv-top,
+.dv-root.dv-bare .dv-actions,
+.dv-root.dv-bare .dv-think,
+.dv-root.dv-bare .dv-settings,
+.dv-root.dv-bare .dv-help,
+.dv-root.dv-bare .dv-toc{display:none}
+.dv-root.dv-bare:not(.dv-full){background:transparent}
+.dv-root.dv-bare:not(.dv-full) .dv-stage{background:transparent;padding:4px}
+.dv-root.dv-bare:not(.dv-full) .dv-sheet{box-shadow:0 2px 8px rgba(0,0,0,.22)}
+.editor-container:has(> .dv-root.dv-bare:not(.dv-full)){background:transparent!important;box-shadow:none!important}
+.dv-root.dv-bare .dv-body{padding-bottom:max(2.6cqw,34px)}
 /* Plein écran : la carte occupe tout l'écran, la barre du haut reste affichée */
 .dv-root.dv-full{position:fixed;z-index:9999;inset:0;width:auto;height:auto}
 /* Téléphone : plein écran en laissant 40 px à gauche pour les onglets latéraux (comme le Taquin) */
@@ -1148,7 +1092,10 @@ if (!window._wfPhoneAutoMax || !window._wfPhoneAutoMax._tablet) {
   .dv-sep{display:none}
   .dv-ib{min-width:24px;padding:0 3px}
 }
-@media print{.dv-bar,.dv-settings,.dv-help,.dv-toc,.dv-actions,.dv-tbar{display:none}}
+@container (max-width: 340px){
+  [data-dv-action="font-down"],[data-dv-action="font-up"]{display:none}
+}
+@media print{.dv-bar,.dv-settings,.dv-help,.dv-toc,.dv-actions{display:none}}
 `;
         document.head.appendChild(st);
     }

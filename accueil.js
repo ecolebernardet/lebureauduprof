@@ -7,7 +7,7 @@
 //   - 8 grandes tuiles vers les panneaux (mêmes icônes et couleurs que
 //     les onglets latéraux) + 2 actions rapides (Dessiner, Écrire)
 //   - sous l'heure, trois boutons sur une ligne : « Aide » (modale d'aide),
-//     « Remarques » (formulaire de contact, openContactForm) et
+//     « Contact » (formulaire de contact, openContactForm, dans contact.js) et
 //     « À propos » (fenêtre À propos, openAboutModal, dans a-propos.js)
 //   - une astuce tirée au hasard
 // Elle disparaît dès qu'on commence à travailler : clic sur une tuile,
@@ -278,7 +278,7 @@
                 '<div class="acc-time"><div class="acc-clock">--:--</div><div class="acc-date"></div>' +
                   '<div class="acc-time-btns">' +
                     '<button type="button" class="acc-help" data-act="help" title="Ouvrir l\'aide">' + svg('aide') + 'Aide</button>' +
-                    '<button type="button" class="acc-help acc-contact" data-act="contact" title="Envoyer une remarque à l\'auteur du site">' + svg('bulle') + 'Remarques</button>' +
+                    '<button type="button" class="acc-help acc-contact" data-act="contact" title="Contacter l\'auteur du site">' + svg('bulle') + 'Contact</button>' +
                     '<button type="button" class="acc-help acc-about" data-act="about" title="Version, données et crédits">' + svg('info') + 'À propos</button>' +
                   '</div>' +
                 '</div>' +

@@ -9,6 +9,8 @@
 //
 // - Les messages arrivent dans la boîte mail liée à la clé Web3Forms.
 // - Pour changer de clé : modifier CONTACT_ACCESS_KEY ci-dessous.
+// - Le numéro de version (version.js, window.APP_VERSION) est affiché
+//   sous le bouton « Envoyer » et joint à chaque message.
 //
 // Installation : <script src="contact.js"></script> dans index.html
 // (le CSS et le HTML sont injectés par ce fichier).
@@ -88,6 +90,8 @@
         '#contact-status.ok  { color: #4fd18b; }',
         '#contact-status.err { color: #ff8a8a; }',
         '.ct-honeypot { display: none !important; }',
+        '#contact-version { margin-top: -6px; font-size: 11px; text-align: center; color: #8a8698; }',
+        '#contact-version:empty { display: none; }',
         /* Mode clair */
         'body.menu-light #contact-box { background: #f5f4f8; color: #2a2440; border-color: #dddbe6; box-shadow: 0 18px 50px rgba(0,0,0,0.25); }',
         'body.menu-light #contact-form .ct-intro { color: #5c5870; }',
@@ -141,6 +145,7 @@
 
               '<button type="submit" id="contact-send">Envoyer</button>' +
               '<div id="contact-status" aria-live="polite"></div>' +
+              '<div id="contact-version"></div>' +
             '</form>' +
           '</div>' +
         '</div>';
@@ -176,6 +181,9 @@
         } catch (e) {}
         setStatus('');
         sendBtn.disabled = false;
+        // Numéro de version (version.js)
+        var ver = document.getElementById('contact-version');
+        if (ver) ver.textContent = window.APP_VERSION ? 'Le Bureau du Prof · version ' + window.APP_VERSION : '';
         overlay.classList.add('open');
         setTimeout(function () { document.getElementById('contact-message').focus(); }, 50);
     }
@@ -234,6 +242,7 @@
             name:       name || 'Anonyme',
             type:       type,
             message:    message,
+            version:    window.APP_VERSION || '?',
             page:       location.href,
             navigateur: navigator.userAgent,
             botcheck:   F('botcheck').checked

@@ -9,9 +9,12 @@
 //   - sous l'heure, trois boutons sur une ligne : « Aide » (modale d'aide),
 //     « Contact » (formulaire de contact, openContactForm, dans contact.js) et
 //     « À propos » (fenêtre À propos, openAboutModal, dans a-propos.js)
+//   - un badge avec le numéro de version à côté du titre (version.js,
+//     window.APP_VERSION ; cliquable : ouvre la fenêtre « À propos »)
 //   - une astuce tirée au hasard
-//   - un bandeau « Merci à nos soutiens » avec les noms de donateurs.js,
-//     seulement si cette liste contient au moins un nom (sinon rien)
+//   - un bandeau « Merci à nos soutiens » avec les noms de donateurs.js ;
+//     tant que la liste est vide, un appel au soutien avec le lien Tipeee
+//     (DONATEURS_LIEN) le remplace — rien du tout s'il n'y a pas de lien
 // Elle disparaît dès qu'on commence à travailler : clic sur une tuile,
 // clic sur un onglet latéral (ou Alt+1…9), ajout d'un widget, ouverture
 // de la barre Dessin, clic sur le tableau, mode présentation, touche Échap
@@ -99,6 +102,11 @@
         '.acc-hello{font-size:15px;font-weight:700;color:#7b4fe0;letter-spacing:.3px;margin:0 0 2px;}',
         '.acc-title{font-size:30px;font-weight:900;margin:0;line-height:1.1;letter-spacing:-.3px;}',
         '.acc-brand{display:flex;align-items:center;gap:14px;}',
+        '.acc-ver{display:inline-block;vertical-align:middle;margin-left:8px;padding:2px 9px;border-radius:999px;border:none;cursor:pointer;',
+        '  font:inherit;font-size:12px;font-weight:800;letter-spacing:0;line-height:1.5;',
+        '  background:rgba(74,144,226,.14);color:#2f6fc4;transition:filter .15s;}',
+        '.acc-ver:hover{filter:brightness(.95);}',
+        'body:not(.menu-light) .acc-ver{background:rgba(74,144,226,.22);color:#9cc6f5;}',
         '.acc-logo{height:68px;width:auto;max-width:150px;flex-shrink:0;object-fit:contain;border-radius:14px;',
         '  background:#fff;box-shadow:0 4px 14px rgba(40,30,70,.18);}',
         '.acc-time{text-align:right;flex-shrink:0;}',
@@ -162,6 +170,9 @@
         '.acc-merci{display:flex;align-items:center;gap:10px;margin-top:14px;padding:8px 12px;border-radius:14px;',
         '  background:linear-gradient(120deg,#fff0f5,#f4efff);border:1px solid #f0d4e4;font-size:13px;}',
         '.acc-merci-lbl{flex-shrink:0;font-weight:800;color:#d6336c;white-space:nowrap;}',
+        '.acc-merci-txt{flex:1;min-width:0;color:#4a3d66;line-height:1.35;}',
+        '.acc-merci-txt b{color:#d6336c;}',
+        'body:not(.menu-light) .acc-merci-txt{color:#e3dcf2;} body:not(.menu-light) .acc-merci-txt b{color:#ff8fb8;}',
         '.acc-merci-view{flex:1;min-width:0;overflow:hidden;',
         '  -webkit-mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent);',
         '  mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent);}',
@@ -210,6 +221,7 @@
         '  .acc-head{flex-direction:column;align-items:stretch;gap:6px;margin-bottom:8px;padding-right:34px;}',
         '  .acc-brand{gap:8px;} .acc-logo{height:36px;border-radius:8px;}',
         '  .acc-hello{font-size:12px;margin:0;} .acc-title{font-size:18px;}',
+        '  .acc-ver{font-size:10.5px;padding:1px 7px;margin-left:6px;}',
         '  .acc-intro{display:none;} .acc-points{display:none;}',
         '  .acc-time{text-align:left;display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;}',
         '  .acc-clock{font-size:24px;} .acc-date{font-size:12px;margin-top:0;}',
@@ -280,17 +292,25 @@
     }
     function bandeauDonateurs() {
         var noms = listeDonateurs();
-        if (!noms.length) return '';                        // aucun donateur : rien
         var lien = String(window.DONATEURS_LIEN || '').trim();
+        var lienOk = /^https?:\/\//i.test(lien);
+        var bouton = lienOk
+            ? '<a class="acc-merci-lien" href="' + escHtml(lien) + '" target="_blank" rel="noopener">Soutenir</a>'
+            : '';
+        if (!noms.length) {
+            // Aucun donateur : appel au soutien (seulement si un lien Tipeee est indiqué)
+            if (!lienOk) return '';
+            return '<div class="acc-merci acc-merci-appel">' +
+                '<span class="acc-merci-lbl">❤️</span>' +
+                '<span class="acc-merci-txt">Le Bureau du Prof est <b>gratuit</b> : vous pouvez le soutenir sur Tipeee.</span>' +
+                bouton + '</div>';
+        }
         var html = '<div class="acc-merci" aria-label="Merci à nos soutiens">' +
             '<span class="acc-merci-lbl">❤️ Merci à nos soutiens</span>' +
             '<div class="acc-merci-view"><div class="acc-merci-track"><span class="acc-merci-grp">' +
             noms.map(function (n) { return '<span class="acc-merci-nom">' + escHtml(n) + '</span>'; }).join('') +
             '</span></div></div>';
-        if (/^https?:\/\//i.test(lien)) {
-            html += '<a class="acc-merci-lien" href="' + escHtml(lien) + '" target="_blank" rel="noopener">Soutenir</a>';
-        }
-        return html + '</div>';
+        return html + bouton + '</div>';
     }
     // Si les noms ne tiennent pas sur la ligne, ils défilent en boucle
     // (la liste est doublée pour que la boucle soit continue).
@@ -333,6 +353,12 @@
                    '</button>';
         }).join('');
 
+        // Numéro de version (version.js)
+        var version = String(window.APP_VERSION || '').trim();
+        var badgeVersion = version
+            ? '<button type="button" class="acc-ver" data-act="version" title="Version ' + escHtml(version) + ' — À propos">v' + escHtml(version) + '</button>'
+            : '';
+
         root = document.createElement('div');
         root.id = 'accueil';
         root.innerHTML =
@@ -341,7 +367,7 @@
               '<div class="acc-head">' +
                 '<div><div class="acc-brand">' +
                   '<img class="acc-logo" src="pics/logo-le-bureau-du-prof4.jpg" alt="Logo Le Bureau du Prof" onerror="this.remove()">' +
-                  '<div><p class="acc-hello">Bonjour !</p><h1 class="acc-title">Le Bureau du Prof</h1></div>' +
+                  '<div><p class="acc-hello">Bonjour !</p><h1 class="acc-title">Le Bureau du Prof' + badgeVersion + '</h1></div>' +
                 '</div>' +
                   '<p class="acc-intro">Votre <b>tableau blanc numérique</b> pour la classe : écrivez, dessinez, projetez vos documents ' +
                   'et lancez en un clic des <b>jeux</b>, des <b>leçons</b>, des <b>activités</b> et des <b>outils</b> pensés pour l\'école, au TBI, au VPI ou sur ordinateur.</p>' +
@@ -414,6 +440,11 @@
             if (typeof openContactForm === 'function') openContactForm();
         });
         root.querySelector('[data-act="about"]').addEventListener('click', function () {
+            hide();
+            if (typeof openAboutModal === 'function') openAboutModal();
+        });
+        var verBtn = root.querySelector('[data-act="version"]');
+        if (verBtn) verBtn.addEventListener('click', function () {
             hide();
             if (typeof openAboutModal === 'function') openAboutModal();
         });

@@ -1,22 +1,29 @@
 // =========================================================================
 // FENÊTRE « À PROPOS » — Le Bureau du Prof
 // -------------------------------------------------------------------------
-// Version de l'application, vos données, crédits.
+// Version de l'application, soutien (Tipeee), vos données, crédits.
 // Ouverture : openAboutModal()  (pastille « ? », écran d'accueil, aide)
 // Fermeture : closeAboutModal(), bouton ✕, « Fermer », clic sur le fond
 //             grisé ou touche Échap.
 //
-// Le numéro de version est défini ici (APP_VERSION) et exposé dans
-// window.APP_VERSION : la modale d'aide (help-modal.js) le lit aussi.
+// Le numéro de version est défini dans version.js (window.APP_VERSION),
+// à charger avant ce fichier.
 //
 // Installation : <script src="a-propos.js"></script> dans index.html
 // (le CSS et le HTML sont injectés par ce fichier).
 // =========================================================================
 (function () {
 
-    // ── Numéro de version : à modifier ici ───────────────────────────────
-    var APP_VERSION = '4.4';
-    window.APP_VERSION = APP_VERSION;
+    // ── Numéro de version : défini dans version.js ───────────────────────
+    var APP_VERSION = String(window.APP_VERSION || '');
+
+    // ── Lien Tipeee : celui de donateurs.js (DONATEURS_LIEN) s'il existe,
+    //    sinon cette adresse par défaut ────────────────────────────────────
+    var TIPEEE_DEFAUT = 'https://fr.tipeee.com/lebureauduprof/';
+    function lienTipeee() {
+        var l = String(window.DONATEURS_LIEN || '').trim();
+        return /^https?:\/\//i.test(l) ? l : TIPEEE_DEFAUT;
+    }
 
     // ── CSS (même style que le formulaire « Contact ») ──────────────────
     var CSS = [
@@ -63,6 +70,20 @@
         '    font-family: inherit !important; border: 1px solid #34303f; background: #24212f; color: #ecebf3;',
         '}',
         '#about-body .ab-actions button.ab-primary { background: #4a90e2; border-color: #4a90e2; color: #fff; }',
+        /* Soutenir le projet */
+        '#about-body .ab-soutien {',
+        '    display: flex; align-items: center; gap: 12px; margin: 4px 0 6px; padding: 10px 12px; border-radius: 12px;',
+        '    background: linear-gradient(120deg, #35202c, #2a2238); border: 1px solid #4a2d3e;',
+        '}',
+        '#about-body .ab-soutien p { flex: 1; margin: 0; }',
+        '#about-body a.ab-tipeee {',
+        '    flex-shrink: 0; padding: 7px 14px; border-radius: 999px; text-decoration: none; white-space: nowrap;',
+        '    font-weight: 800; font-size: 13px; color: #fff;',
+        '    background: linear-gradient(120deg, #e84393, #d6336c); box-shadow: 0 3px 10px rgba(214,51,108,.3);',
+        '}',
+        '#about-body a.ab-tipeee:hover { filter: brightness(1.06); }',
+        'body.menu-light #about-body .ab-soutien { background: linear-gradient(120deg, #fff0f5, #f4efff); border-color: #f0d4e4; }',
+        'body.menu-light #about-body a.ab-tipeee { color: #fff; }',
         /* Mode clair */
         'body.menu-light #about-box { background: #f5f4f8; color: #2a2440; border-color: #dddbe6; box-shadow: 0 18px 50px rgba(0,0,0,0.25); }',
         'body.menu-light #about-body .ab-hero { border-bottom-color: #dddbe6; }',
@@ -91,6 +112,12 @@
               '</div>' +
 
               '<p>Un tableau blanc numérique gratuit pour la classe : jeux, leçons, activités, outils et widgets à projeter au tableau.</p>' +
+
+              '<h4>Soutenir le projet</h4>' +
+              '<div class="ab-soutien">' +
+                '<p>Le Bureau du Prof est gratuit et sans publicité. Si vous l\'appréciez, vous pouvez soutenir son développement : votre nom apparaîtra sur l\'écran d\'accueil.</p>' +
+                '<a class="ab-tipeee" id="about-tipeee" href="https://fr.tipeee.com/lebureauduprof/" target="_blank" rel="noopener">❤️ Soutenir sur Tipeee</a>' +
+              '</div>' +
 
               '<h4>Vos données</h4>' +
               '<ul>' +
@@ -131,6 +158,9 @@
 
     function openAboutModal() {
         lastFocus = document.activeElement;
+        var t = document.getElementById('about-tipeee');
+        if (t) t.href = lienTipeee();
+        if (v) v.textContent = String(window.APP_VERSION || '');
         overlay.classList.add('open');
         setTimeout(function () { document.getElementById('about-close').focus(); }, 50);
     }

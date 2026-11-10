@@ -41,6 +41,7 @@
     p(`Vous pouvez y poser librement des <strong>jeux</strong>, des <strong>leçons et entraînements</strong>, des <strong>activités</strong> de classe, des <strong>outils</strong> de gestion (tirage au sort, minuteur, sonomètre…), des <strong>widgets</strong> (date, météo, devoirs, PDF, YouTube…), des stickers et des images. Vous pouvez aussi <strong>dessiner</strong>, <strong>écrire</strong>, <strong>annoter des PDF</strong>, changer le <strong>fond</strong> du tableau, et tout <strong>sauvegarder</strong>.`) +
     p(`Le tableau respecte un <strong>format 16:9</strong> et s'adapte à la taille de votre écran ou vidéoprojecteur.`) +
     `<p class="hm-p" style="font-size:14px;line-height:1.8;text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #e5e8ee;">Le Bureau du Prof est un outil <strong>libre</strong> et <strong>gratuit</strong>. </p>
+	<p class="hm-p" style="text-align:center;margin:0 0 12px;"><a href="https://fr.tipeee.com/lebureauduprof/" target="_blank" rel="noopener" class="hm-tipeee">❤️ Soutenir le projet sur Tipeee</a></p>
 	<p class="hm-p" style="font-size:12px;text-align:center;margin:0;"><a href="#" class="hm-link" onclick="closeHelpModal();if(typeof openAboutModal==='function')openAboutModal();return false;">ℹ️ Version <span id="hm-version"></span> — À propos</a></p>`,
     true));
 
@@ -454,7 +455,10 @@
       ['💬 Contact', 'Envoyer une suggestion, signaler un bug ou dire merci à l\'auteur'],
       ['ℹ️ À propos', 'Version, vos données et crédits'],
     ]) +
-    tip(`Aucune donnée personnelle n'est stockée sur un serveur : vos tableaux et listes de classe restent dans votre navigateur. Seul ce que vous écrivez dans « Contact » est envoyé.`)
+    tip(`Aucune donnée personnelle n'est stockée sur un serveur : vos tableaux et listes de classe restent dans votre navigateur. Seul ce que vous écrivez dans « Contact » est envoyé.`) +
+    h3('❤️ Soutenir le projet') +
+    p(`Le Bureau du Prof est gratuit et sans publicité. Si vous l'appréciez, vous pouvez soutenir son développement sur Tipeee : votre nom apparaîtra sur l'écran d'accueil.`) +
+    `<p class="hm-p"><a href="https://fr.tipeee.com/lebureauduprof/" target="_blank" rel="noopener" class="hm-tipeee">❤️ Soutenir sur Tipeee</a></p>`
   ));
 
   // RACCOURCIS
@@ -584,6 +588,13 @@
     .hm-tip.hm-warn { background: #fff8e6; border-left-color: #f39c12; color: #7a5000; }
     .hm-link { color: #2B7FFF; font-weight: 700; text-decoration: none; }
     .hm-link:hover { text-decoration: underline; }
+    .hm-tipeee {
+      display: inline-block; padding: 8px 18px; border-radius: 999px; text-decoration: none;
+      font-size: 13.5px; font-weight: 800; color: #fff !important;
+      background: linear-gradient(120deg, #e84393, #d6336c); box-shadow: 0 3px 10px rgba(214,51,108,.3);
+      transition: transform .12s, filter .15s;
+    }
+    .hm-tipeee:hover { transform: translateY(-1px); filter: brightness(1.06); }
     .hm-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: middle; }
     #help-modal-overlay kbd {
       font-size: 11px; background: #eee; border: 1px solid #ccc; border-radius: 3px; padding: 1px 5px; white-space: nowrap;
@@ -617,9 +628,14 @@
 function openHelpModal() {
   const o = document.getElementById('help-modal-overlay');
   o.style.display = 'flex';
-  // Numéro de version défini dans a-propos.js (APP_VERSION), lu à l'ouverture
+  // Numéro de version défini dans version.js (APP_VERSION), lu à l'ouverture
   const v = document.getElementById('hm-version');
   if (v) v.textContent = window.APP_VERSION || '';
+  // Lien Tipeee : celui de donateurs.js (DONATEURS_LIEN) s'il est rempli
+  const lien = String(window.DONATEURS_LIEN || '').trim();
+  if (/^https?:\/\//i.test(lien)) {
+    document.querySelectorAll('#help-modal-overlay .hm-tipeee').forEach(a => { a.href = lien; });
+  }
   helpShow(document.querySelector('.help-nav[data-s="h-intro"]'));
 }
 

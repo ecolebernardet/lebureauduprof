@@ -10,13 +10,16 @@
 //     « Contact » (formulaire de contact, openContactForm, dans contact.js) et
 //     « À propos » (fenêtre À propos, openAboutModal, dans a-propos.js)
 //   - une astuce tirée au hasard
+//   - un bandeau « Merci à nos soutiens » avec les noms de donateurs.js,
+//     seulement si cette liste contient au moins un nom (sinon rien)
 // Elle disparaît dès qu'on commence à travailler : clic sur une tuile,
 // clic sur un onglet latéral (ou Alt+1…9), ajout d'un widget, ouverture
 // de la barre Dessin, clic sur le tableau, mode présentation, touche Échap
 // ou bouton ✕.
 // « Ne plus afficher » la désactive définitivement (localStorage).
 //
-// Installation : <script src="accueil.js"></script> en fin de index.html.
+// Installation : <script src="accueil.js"></script> en fin de index.html,
+// précédé de <script src="donateurs.js"></script> pour les donateurs.
 // Pour la retirer : supprimer cette ligne (le CSS est injecté par ce fichier).
 // =========================================================================
 (function () {
@@ -155,6 +158,27 @@
         '.acc-btn.alt{background:#fff;color:#2a2440;border:1px solid #e4e2ec;box-shadow:0 1px 3px rgba(40,30,70,.07);}',
         '.acc-btn:hover{transform:translateY(-2px);filter:brightness(1.05);}',
         '.acc-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}',
+        /* Bandeau des donateurs (affiché seulement s'il y a au moins un nom) */
+        '.acc-merci{display:flex;align-items:center;gap:10px;margin-top:14px;padding:8px 12px;border-radius:14px;',
+        '  background:linear-gradient(120deg,#fff0f5,#f4efff);border:1px solid #f0d4e4;font-size:13px;}',
+        '.acc-merci-lbl{flex-shrink:0;font-weight:800;color:#d6336c;white-space:nowrap;}',
+        '.acc-merci-view{flex:1;min-width:0;overflow:hidden;',
+        '  -webkit-mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent);',
+        '  mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent);}',
+        '.acc-merci-track{display:inline-flex;white-space:nowrap;font-weight:700;color:#4a3d66;padding:0 18px;}',
+        '.acc-merci-track.acc-defile{padding:0;animation:acc-defile var(--d,30s) linear infinite;}',
+        '.acc-merci-view:hover .acc-merci-track{animation-play-state:paused;}',
+        '.acc-merci-grp{display:inline-flex;}',
+        '.acc-merci-nom::after{content:"·";margin:0 10px;color:#d6336c;opacity:.6;}',
+        '.acc-merci-track:not(.acc-defile) .acc-merci-nom:last-child::after{content:none;}',
+        '@keyframes acc-defile{from{transform:translateX(0)}to{transform:translateX(-50%)}}',
+        '.acc-merci-lien{flex-shrink:0;font-size:12px;font-weight:800;color:#fff;text-decoration:none;white-space:nowrap;',
+        '  padding:5px 12px;border-radius:999px;background:linear-gradient(120deg,#e84393,#d6336c);',
+        '  box-shadow:0 3px 10px rgba(214,51,108,.3);transition:transform .12s,filter .15s;}',
+        '.acc-merci-lien:hover{transform:translateY(-1px);filter:brightness(1.06);}',
+        'body:not(.menu-light) .acc-merci{background:linear-gradient(120deg,#35202c,#2a2238);border-color:#4a2d3e;}',
+        'body:not(.menu-light) .acc-merci-lbl{color:#ff8fb8;}',
+        'body:not(.menu-light) .acc-merci-track{color:#e3dcf2;}',
         /* Pied : astuce + ne plus afficher */
         '.acc-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:12px;',
         '  border-top:1px solid rgba(42,36,64,.08);font-size:12px;color:#6b6880;}',
@@ -204,6 +228,8 @@
         '  .acc-quick{margin-top:8px;gap:6px;flex-wrap:nowrap;}',
         '  .acc-btn{min-width:0;font-size:12px;padding:8px 6px;gap:6px;} .acc-btn svg{width:15px;height:15px;}',
         '  .acc-tip{display:none;} .acc-foot{justify-content:flex-end;margin-top:8px;padding-top:6px;font-size:11px;}',
+        '  .acc-merci{margin-top:8px;padding:5px 8px;gap:6px;font-size:11.5px;border-radius:10px;}',
+        '  .acc-merci-lien{padding:4px 9px;font-size:11px;}',
         '}',
         /* Téléphone en paysage (écran bas) : tout sur une ligne quand c'est possible */
         '@media (max-height:500px) and (pointer:coarse) and (min-width:560px){',
@@ -211,7 +237,10 @@
         '  .acc-time{justify-content:flex-end;}',
         '  .acc-grid{grid-template-columns:repeat(8,1fr);}',
         '}',
-        '@media (prefers-reduced-motion:reduce){.acc-card,.acc-tile{animation:none;}#accueil.acc-hide{transition:none;}}'
+        '@media (prefers-reduced-motion:reduce){.acc-card,.acc-tile{animation:none;}#accueil.acc-hide{transition:none;}',
+        '  .acc-merci-view{-webkit-mask-image:none;mask-image:none;}',
+        '  .acc-merci-track,.acc-merci-track.acc-defile{animation:none;white-space:normal;flex-wrap:wrap;padding:0;}',
+        '  .acc-merci-grp{flex-wrap:wrap;}}'
     ].join('\n');
 
     // ── Construction ─────────────────────────────────────────────────────
@@ -235,6 +264,48 @@
             var list = Array.isArray(parsed) ? parsed : ((parsed && parsed.widgets) || []);
             return list.length > 0;
         } catch (e) { return false; }
+    }
+
+    // ── Donateurs (liste définie dans donateurs.js) ──────────────────────
+    function escHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+    function listeDonateurs() {
+        var l = window.DONATEURS;
+        if (!Array.isArray(l)) return [];
+        return l.map(function (n) { return String(n == null ? '' : n).trim(); })
+                .filter(function (n) { return n.length > 0; });
+    }
+    function bandeauDonateurs() {
+        var noms = listeDonateurs();
+        if (!noms.length) return '';                        // aucun donateur : rien
+        var lien = String(window.DONATEURS_LIEN || '').trim();
+        var html = '<div class="acc-merci" aria-label="Merci à nos soutiens">' +
+            '<span class="acc-merci-lbl">❤️ Merci à nos soutiens</span>' +
+            '<div class="acc-merci-view"><div class="acc-merci-track"><span class="acc-merci-grp">' +
+            noms.map(function (n) { return '<span class="acc-merci-nom">' + escHtml(n) + '</span>'; }).join('') +
+            '</span></div></div>';
+        if (/^https?:\/\//i.test(lien)) {
+            html += '<a class="acc-merci-lien" href="' + escHtml(lien) + '" target="_blank" rel="noopener">Soutenir</a>';
+        }
+        return html + '</div>';
+    }
+    // Si les noms ne tiennent pas sur la ligne, ils défilent en boucle
+    // (la liste est doublée pour que la boucle soit continue).
+    function activerDefilement() {
+        var view = root && root.querySelector('.acc-merci-view');
+        if (!view) return;
+        var track = view.querySelector('.acc-merci-track');
+        if (track.scrollWidth <= view.clientWidth + 1) return;
+        var grp = track.querySelector('.acc-merci-grp');
+        var copie = grp.cloneNode(true);
+        copie.setAttribute('aria-hidden', 'true');
+        track.appendChild(copie);
+        track.classList.add('acc-defile');
+        // Vitesse constante (≈ 40 px/s), quel que soit le nombre de noms
+        track.style.setProperty('--d', Math.max(12, Math.round(grp.offsetWidth / 40)) + 's');
     }
 
     function updateClock() {
@@ -296,12 +367,14 @@
                 '<button type="button" class="acc-btn" data-act="draw">' + svg('crayon') + 'Dessiner au tableau</button>' +
                 '<button type="button" class="acc-btn acc-btn-text" data-act="text">' + svg('texte') + 'Écrire un texte</button>' +
               '</div>' +
+              bandeauDonateurs() +
               '<div class="acc-foot">' +
                 '<div class="acc-tip"><b>💡 Astuce</b><span>' + ASTUCES[Math.floor(Math.random() * ASTUCES.length)] + '</span></div>' +
                 '<label class="acc-never"><input type="checkbox"> Ne plus afficher</label>' +
               '</div>' +
             '</div>';
         document.body.appendChild(root);
+        activerDefilement();
 
         updateClock();
         clockTimer = setInterval(updateClock, 10000);

@@ -7,7 +7,9 @@
 //   - Format « Toutes les personnes » : N verbes à conjuguer en entier.
 // Réglages : temps (présent, imparfait, futur, passé simple, passé composé),
 //   groupes (être / avoir, 1er groupe simple, 1er groupe particulier
-//   (-cer, -ger, -yer, -eler / -eter, e → è, é → è, -éer, -ier, -uer, -ouer),
+//   (-cer, -ger, -yer, appeler / jeter, e → è, é → è, -éer, -ier, -uer, -ouer),
+//   avec l'orthographe réformée de 1990 pour les verbes en -eler / -eter
+//   (j'épèle, je feuillète ; mais j'appelle, je jette et leurs dérivés),
 //   2e groupe, 3e groupe) ou une liste de verbes personnelle, personnes,
 //   nombre de questions ou de verbes, titre de la fiche.
 // Les élèves écrivent dans les cases ; « Correction » colore les réponses
@@ -404,8 +406,8 @@ const CJV_FAMS = [
     { k: 'cer',    nom: '-cer',              ex: 'commencer' },
     { k: 'ger',    nom: '-ger',              ex: 'manger' },
     { k: 'yer',    nom: '-yer',              ex: 'payer, envoyer' },
-    { k: 'eler',   nom: '-eler / -eter',     ex: 'appeler, jeter' },
-    { k: 'egrave', nom: 'e → è',             ex: 'acheter, lever' },
+    { k: 'eler',   nom: 'appeler / jeter',   ex: 'rappeler, rejeter' },
+    { k: 'egrave', nom: 'e → è',             ex: 'acheter, épeler, lever' },
     { k: 'eaigu',  nom: 'é → è',             ex: 'céder, espérer' },
     { k: 'eer',    nom: '-éer',              ex: 'créer' },
     { k: 'ier',    nom: '-ier',              ex: 'crier' },
@@ -428,7 +430,12 @@ const CJV_AUX = {
     etre:  ['suis', 'es', 'est', 'sommes', 'êtes', 'sont']
 };
 
-// Verbes en -eler / -eter qui prennent un accent grave (et non une consonne doublée)
+// Orthographe réformée de 1990 : les verbes en -eler / -eter prennent un accent grave
+// (j'épèle, je feuillète), sauf appeler, jeter et leurs dérivés qui doublent la consonne
+// (j'appelle, je rappelle, je jette, je rejette, je projette).
+const CJV_LL_TT = /(appeler|jeter)$/;
+// Verbes en -eler / -eter qui prenaient déjà un accent grave avant la réforme
+// (pour les autres, l'ancienne forme avec consonne doublée reste acceptée)
 const CJV_E_GRAVE = ['acheter', 'racheter', 'geler', 'congeler', 'dégeler', 'surgeler', 'peler',
     'modeler', 'marteler', 'ciseler', 'haleter', 'crocheter', 'fureter', 'démanteler',
     'écarteler', 'celer', 'déceler', 'receler'];
@@ -458,7 +465,8 @@ const CJV_VERBES = [
     ...['commencer', 'lancer', 'placer', 'avancer', 'effacer', 'tracer', 'prononcer',
         'manger', 'nager', 'ranger', 'partager', 'voyager', 'changer', 'bouger',
         'payer', 'essayer', 'nettoyer', 'envoyer', 'employer', 'essuyer', 'aboyer',
-        'appeler', 'rappeler', 'épeler', 'jeter', 'feuilleter',
+        'appeler', 'rappeler', 'jeter', 'rejeter', 'projeter',
+        'épeler', 'feuilleter', 'étiqueter', 'ficeler',
         'acheter', 'geler', 'peler', 'lever', 'mener', 'peser', 'promener', 'semer', 'enlever',
         'céder', 'espérer', 'répéter', 'préférer', 'compléter', 'sécher',
         'créer', 'recréer',
@@ -546,8 +554,12 @@ function _cjvFirst(inf, extra) {
     else if (/[^gq]uer$/.test(inf)) v.fam = 'uer';
     else if (/ier$/.test(inf)) v.fam = 'ier';
     else if (/[^é]e[lt]er$/.test(inf)) {
-        if (CJV_E_GRAVE.includes(inf)) { v.fam = 'egrave'; v.s = w.slice(0, -2) + 'è' + w.slice(-1); }   // j'achète
-        else { v.fam = 'eler'; v.s = w + w.slice(-1); }                                                    // j'appelle, je jette
+        if (CJV_LL_TT.test(inf)) { v.fam = 'eler'; v.s = w + w.slice(-1); }                                 // j'appelle, je jette
+        else {
+            v.fam = 'egrave'; v.s = w.slice(0, -2) + 'è' + w.slice(-1);                                     // j'achète, j'épèle, je feuillète
+            // Ancienne orthographe (consonne doublée) encore acceptée : j'épelle, je feuillette
+            if (!CJV_E_GRAVE.includes(inf)) { v.altS = w + w.slice(-1); v.altFut = v.altS + 'er'; }
+        }
         v.fut = v.s + 'er';
     }
     else if (/é(ch|gn|gr|gl|br|tr|cr|vr|pl|[bcdfgjklmnpqrstvz])er$/.test(inf)) {
@@ -885,8 +897,10 @@ function createConjugaisonVerbesWidget() {
         <p><b>✏️ Une personne</b> : chaque question donne un verbe, un pronom et un temps.
         <b>📋 Toutes les personnes</b> : chaque verbe se conjugue en entier.</p>
         <p><b>⚙️ Réglages</b> : temps (présent, imparfait, futur, passé simple, passé composé), groupes
-        (être / avoir, 1er groupe simple, 1er groupe particulier : -cer, -ger, -yer, -eler / -eter, e → è, é → è,
+        (être / avoir, 1er groupe simple, 1er groupe particulier : -cer, -ger, -yer, appeler / jeter, e → è, é → è,
         -éer, -ier, -uer, -ouer, 2e groupe, 3e groupe) ou <b>votre liste de verbes</b>, personnes et nombre.</p>
+        <p>Orthographe réformée de 1990 : les verbes en -eler / -eter prennent un accent grave (j’épèle, je feuillète),
+        sauf <b>appeler</b>, <b>jeter</b> et leurs dérivés (j’appelle, je rejette). L’ancienne forme reste acceptée.</p>
         <p>Les élèves écrivent la forme conjuguée dans les cases (le pronom peut être retapé ou non).
         <b>👁 Correction</b> colore les réponses et donne la bonne forme : <b style="color:#2563eb">radical</b>,
         <b style="color:#dc2626">terminaison</b>, <b style="color:#7c3aed">auxiliaire</b>, <b style="color:#ea580c">accord</b>.

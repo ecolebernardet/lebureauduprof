@@ -60,14 +60,14 @@
     ]) +
     p(`Les onglets sont rangés en trois familles, chacune annoncée par un petit titre : <strong>Élèves</strong> (Jeux, Leçons), <strong>Prof</strong> (Activités, Outils, Widgets, Visuels) et <strong>Gestion</strong> (Tableaux, Écran, Présenter).`) +
     h3('❓ La pastille « ? »') +
-    p(`Sous les onglets, la petite pastille <strong>?</strong> ouvre une bulle avec l'<strong>Aide</strong> (cette fenêtre), le formulaire <strong>Remarques</strong> pour écrire à l'auteur, et la fenêtre <strong>À propos</strong> (version, vos données, crédits).`) +
+    p(`Sous les onglets, la petite pastille <strong>?</strong> ouvre une bulle avec l'<strong>Aide</strong> (cette fenêtre), le formulaire <strong>Contact</strong> pour écrire à l'auteur, et la fenêtre <strong>À propos</strong> (version, vos données, crédits).`) +
     h3('✏️ Le bouton Dessiner') +
     p(`En bas à droite, le bouton <strong>Dessiner</strong> (<kbd>Alt+0</kbd>) ouvre la barre de dessin et de figures. Sur téléphone, il est remplacé par l'onglet <strong>Dessin</strong>, en bas de la colonne d'onglets.`) +
     h3('🖱️ Le menu rapide') +
     p(`<strong>Clic droit</strong> (ou <strong>appui long</strong> au doigt ou au stylet) sur une zone vide du tableau : un mini-menu s'ouvre.`) +
     table(['Ligne', 'Contenu'], [
       ['En haut', '↩️ <strong>Annuler</strong>, ↪️ <strong>Refaire</strong> et 📋 <strong>Coller</strong>, côte à côte'],
-      ['En dessous', 'PDF, Écriture Seyes, Texte, Devoirs à noter, Planning du jour, Minuteur / Chrono, Défi calme, Remarques'],
+      ['En dessous', 'PDF, Écriture Seyes, Texte, Devoirs à noter, Planning du jour, Minuteur / Chrono'],
     ]) +
     tip(`Au TBI, sans clavier, c'est le moyen le plus rapide d'annuler une erreur : appui long sur le tableau, puis Annuler.`) +
     h3('📥 Glisser-déposer') +
@@ -429,7 +429,7 @@
     table(['Action', 'Nouvelle place'], [
       ['↩️ Annuler / ↪️ Refaire', 'Clic droit ou appui long sur le tableau, en haut du menu ; barre de dessin ; <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd>'],
       ['🗑️ Effacer', 'Onglet <strong>Tableaux</strong>, sous « Nouveau tableau »'],
-      ['❓ Aide, 💬 Remarques, ℹ️ À propos', 'Pastille <strong>?</strong> sous les onglets'],
+      ['❓ Aide, 💬 Contact, ℹ️ À propos', 'Pastille <strong>?</strong> sous les onglets'],
     ])
   ));
 
@@ -446,15 +446,15 @@
     p(`Les onglets n'affichent que leur icône ; le dessin s'ouvre avec l'onglet <strong>Dessin</strong>, et la pastille <strong>?</strong> reste en bas de la colonne.`)
   ));
 
-  // AIDE, REMARQUES, À PROPOS
-  S.push(section('h-contact', '❓ Aide, remarques & à propos',
+  // AIDE, CONTACT, À PROPOS
+  S.push(section('h-contact', '❓ Aide, contact & à propos',
     p(`La pastille <strong>?</strong>, en bas de la colonne d'onglets, regroupe trois entrées :`) +
     table(['Entrée', 'Contenu'], [
       ['❓ Aide', 'Cette fenêtre : une vue d\'ensemble de tout le bureau'],
-      ['💬 Remarques', 'Envoyer une suggestion, signaler un bug ou dire merci à l\'auteur'],
+      ['💬 Contact', 'Envoyer une suggestion, signaler un bug ou dire merci à l\'auteur'],
       ['ℹ️ À propos', 'Version, vos données et crédits'],
     ]) +
-    tip(`Aucune donnée personnelle n'est stockée sur un serveur : vos tableaux et listes de classe restent dans votre navigateur. Seul ce que vous écrivez dans « Remarques » est envoyé.`)
+    tip(`Aucune donnée personnelle n'est stockée sur un serveur : vos tableaux et listes de classe restent dans votre navigateur. Seul ce que vous écrivez dans « Contact » est envoyé.`)
   ));
 
   // RACCOURCIS
@@ -489,7 +489,7 @@
       ${nav('h-intro', '🏠 Introduction', true)}
       ${nav('h-explorer', '🗺️ Explorer le bureau')}
       ${nav('h-raccourcis', '⌨️ Raccourcis clavier')}
-      ${nav('h-contact', '❓ Aide, remarques & à propos')}
+      ${nav('h-contact', '❓ Aide, contact & à propos')}
       ${navSep}
       ${navTitle('Contenus')}
       ${nav('h-jeux', '🎮 Jeux')}

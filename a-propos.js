@@ -18,7 +18,7 @@
     var APP_VERSION = '4.4';
     window.APP_VERSION = APP_VERSION;
 
-    // ── CSS (même style que le formulaire « Remarques ») ─────────────────
+    // ── CSS (même style que le formulaire « Contact ») ──────────────────
     var CSS = [
         '#about-overlay {',
         '    position: fixed; inset: 0; z-index: 70000;',
@@ -97,7 +97,7 @@
                 '<li><strong>Aucune donnée personnelle n\'est stockée sur un serveur.</strong> Vos tableaux, listes de classe, prénoms d\'élèves et réglages restent dans votre navigateur, sur cet appareil.</li>' +
                 '<li>Pensez à exporter vos tableaux (panneau « Tableaux ») pour en garder une copie : vider les données du navigateur les efface.</li>' +
                 '<li>La fréquentation du site est mesurée avec Google Analytics et GoatCounter.</li>' +
-                '<li>Certains widgets font appel à des services extérieurs quand vous les utilisez (YouTube, Google Maps, Qwant Junior…). Le formulaire « Remarques » passe par Web3Forms : seul ce que vous choisissez d\'y écrire est envoyé.</li>' +
+                '<li>Certains widgets font appel à des services extérieurs quand vous les utilisez (YouTube, Google Maps, Qwant Junior…). Le formulaire « Contact » passe par Web3Forms : seul ce que vous choisissez d\'y écrire est envoyé.</li>' +
               '</ul>' +
 
               '<h4>Crédits</h4>' +
@@ -107,7 +107,7 @@
               '</ul>' +
 
               '<div class="ab-actions">' +
-                '<button type="button" data-about="remarques">💬 Envoyer une remarque</button>' +
+                '<button type="button" data-about="contact">💬 Contacter l\'auteur</button>' +
                 '<button type="button" class="ab-primary" data-about="close">Fermer</button>' +
               '</div>' +
             '</div>' +
@@ -144,12 +144,12 @@
     document.getElementById('about-close').addEventListener('click', closeAboutModal);
     // Clic sur le fond grisé : ferme la fenêtre
     overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) closeAboutModal(); });
-    // Boutons « Envoyer une remarque » et « Fermer »
+    // Boutons « Contacter l'auteur » et « Fermer »
     overlay.addEventListener('click', function (e) {
         var b = e.target.closest('[data-about]');
         if (!b) return;
         closeAboutModal();
-        if (b.dataset.about === 'remarques' && typeof openContactForm === 'function') openContactForm();
+        if (b.dataset.about === 'contact' && typeof openContactForm === 'function') openContactForm();
     });
     // Les touches ne déclenchent pas les raccourcis du tableau ; Échap ferme la fenêtre
     overlay.addEventListener('keydown', function (e) {

@@ -1,0 +1,269 @@
+// =========================================================================
+// FORMULAIRE « CONTACT » — Le Bureau du Prof
+// -------------------------------------------------------------------------
+// Envoi d'un message à l'auteur (suggestion, bug, merci…) par Web3Forms.
+// Ouverture : openContactForm()  (pastille « ? », clic droit, accueil,
+//             fenêtre « À propos »)
+// Fermeture : closeContactForm(), bouton ✕, clic sur le fond grisé
+//             ou touche Échap.
+//
+// - Les messages arrivent dans la boîte mail liée à la clé Web3Forms.
+// - Pour changer de clé : modifier CONTACT_ACCESS_KEY ci-dessous.
+//
+// Installation : <script src="contact.js"></script> dans index.html
+// (le CSS et le HTML sont injectés par ce fichier).
+// =========================================================================
+(function () {
+
+    // ── Clé Web3Forms : à modifier ici ───────────────────────────────────
+    var CONTACT_ACCESS_KEY = '023db423-3526-40d8-b585-328fc2352ed9';
+    var CONTACT_URL = 'https://api.web3forms.com/submit';
+
+    // ── CSS ──────────────────────────────────────────────────────────────
+    var CSS = [
+        '#contact-overlay {',
+        '    position: fixed; inset: 0; z-index: 70000;',
+        '    display: none; align-items: center; justify-content: center;',
+        '    background: rgba(10, 10, 20, 0.55);',
+        '    padding: 16px; box-sizing: border-box;',
+        '    animation: fadeInOverlay .18s ease;',
+        '}',
+        '#contact-overlay.open { display: flex; }',
+        '#contact-box {',
+        '    width: 100%; max-width: 460px; max-height: calc(100vh - 32px); overflow-y: auto;',
+        '    box-sizing: border-box;',
+        '    background: #1c1a26; color: #ecebf3;',
+        '    border: 1px solid #2c2838; border-radius: 18px;',
+        '    box-shadow: 0 18px 50px rgba(0,0,0,0.5);',
+        "    font-family: 'Quicksand', 'Nunito', sans-serif;",
+        '    animation: slideUpModal .22s ease;',
+        '}',
+        '#contact-head {',
+        '    display: flex; align-items: center; justify-content: space-between; gap: 10px;',
+        '    padding: 12px 16px;',
+        '    background: linear-gradient(120deg, #4a90e2 0%, #2f6fc4 100%);',
+        '    border-radius: 18px 18px 0 0; color: #fff;',
+        '}',
+        '#contact-head h3 { margin: 0; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }',
+        '#contact-close {',
+        '    width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer;',
+        '    background: rgba(255,255,255,0.2); color: #fff; font-size: 15px;',
+        '    display: flex; align-items: center; justify-content: center; flex-shrink: 0;',
+        '}',
+        '#contact-close:hover { background: rgba(255,255,255,0.35); }',
+        '#contact-form { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; }',
+        '#contact-form .ct-intro { margin: 0; font-size: 13px; line-height: 1.4; color: #b9b6c8; }',
+        '#contact-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: #c9c6d6; }',
+        '#contact-form .ct-opt { font-weight: 400; opacity: .7; }',
+        '#contact-form input[type=text],',
+        '#contact-form input[type=email],',
+        '#contact-form textarea {',
+        '    box-sizing: border-box; width: 100%;',
+        '    background: #24212f; color: #ecebf3;',
+        '    border: 1px solid #34303f; border-radius: 10px;',
+        '    padding: 9px 11px; font-size: 14px; font-family: inherit !important; outline: none;',
+        '}',
+        '#contact-form textarea { min-height: 120px; resize: vertical; }',
+        '#contact-form input:focus, #contact-form textarea:focus { border-color: #4a90e2; box-shadow: 0 0 0 3px rgba(74,144,226,0.25); }',
+        '#contact-form .ct-row { display: flex; gap: 8px; }',
+        '#contact-form .ct-row > label { flex: 1; min-width: 0; }',
+        '#contact-types { display: flex; gap: 6px; flex-wrap: wrap; }',
+        '#contact-types input { position: absolute; opacity: 0; pointer-events: none; }',
+        '#contact-types label {',
+        '    flex-direction: row; align-items: center; cursor: pointer;',
+        '    padding: 6px 12px; border-radius: 999px; font-size: 12.5px;',
+        '    background: #24212f; border: 1px solid #34303f; color: #c9c6d6;',
+        '}',
+        '#contact-types input:checked + span { color: #fff; }',
+        '#contact-types label:has(input:checked) { background: #4a90e2; border-color: #4a90e2; color: #fff; }',
+        '#contact-types input:focus-visible + span { outline: 2px solid #4a90e2; outline-offset: 3px; border-radius: 4px; }',
+        '#contact-send {',
+        '    margin-top: 4px; padding: 11px; border: none; border-radius: 12px; cursor: pointer;',
+        '    background: #4a90e2; color: #fff; font-size: 14px; font-weight: 800; font-family: inherit !important;',
+        '    box-shadow: 0 4px 12px rgba(74,144,226,0.4);',
+        '}',
+        '#contact-send:hover { filter: brightness(1.07); }',
+        '#contact-send:disabled { opacity: .6; cursor: wait; }',
+        '#contact-status { min-height: 18px; font-size: 13px; font-weight: 700; text-align: center; }',
+        '#contact-status.ok  { color: #4fd18b; }',
+        '#contact-status.err { color: #ff8a8a; }',
+        '.ct-honeypot { display: none !important; }',
+        /* Mode clair */
+        'body.menu-light #contact-box { background: #f5f4f8; color: #2a2440; border-color: #dddbe6; box-shadow: 0 18px 50px rgba(0,0,0,0.25); }',
+        'body.menu-light #contact-form .ct-intro { color: #5c5870; }',
+        'body.menu-light #contact-form label { color: #3a3650; }',
+        'body.menu-light #contact-form input[type=text],',
+        'body.menu-light #contact-form input[type=email],',
+        'body.menu-light #contact-form textarea { background: #fff; color: #2a2440; border-color: #e4e2ec; }',
+        'body.menu-light #contact-types label { background: #fff; border-color: #e4e2ec; color: #3a3650; }',
+        'body.menu-light #contact-types label:has(input:checked) { background: #4a90e2; border-color: #4a90e2; color: #fff; }',
+        'body.menu-light #contact-status.ok  { color: #1e8a4c; }',
+        'body.menu-light #contact-status.err { color: #d33a3f; }',
+        /* Petit écran */
+        '@media (max-width: 480px) {',
+        '    #contact-form .ct-row { flex-direction: column; }',
+        '}'
+    ].join('\n');
+
+    // ── Contenu ──────────────────────────────────────────────────────────
+    var HTML =
+        '<div id="contact-overlay" role="dialog" aria-modal="true" aria-labelledby="contact-title">' +
+          '<div id="contact-box">' +
+            '<div id="contact-head">' +
+              '<h3 id="contact-title">💬 Contact</h3>' +
+              '<button type="button" id="contact-close" title="Fermer" aria-label="Fermer">✕</button>' +
+            '</div>' +
+            '<form id="contact-form" novalidate>' +
+              '<p class="ct-intro">Une suggestion, un bug, un mot gentil… Votre message arrive directement à l\'auteur du Bureau du Prof.</p>' +
+
+              '<div id="contact-types" role="radiogroup" aria-label="Type de message">' +
+                '<label><input type="radio" name="ct_type" value="Suggestion" checked><span>💡 Suggestion</span></label>' +
+                '<label><input type="radio" name="ct_type" value="Bug"><span>🐞 Bug</span></label>' +
+                '<label><input type="radio" name="ct_type" value="Remerciement"><span>❤️ Merci</span></label>' +
+                '<label><input type="radio" name="ct_type" value="Autre"><span>✉️ Autre</span></label>' +
+              '</div>' +
+
+              '<label>Votre message' +
+                '<textarea name="message" id="contact-message" required maxlength="5000" placeholder="Écrivez ici…"></textarea>' +
+              '</label>' +
+
+              '<div class="ct-row">' +
+                '<label>Nom <span class="ct-opt">(facultatif)</span>' +
+                  '<input type="text" name="name" id="contact-name" maxlength="100" autocomplete="name">' +
+                '</label>' +
+                '<label>E-mail <span class="ct-opt">(pour une réponse)</span>' +
+                  '<input type="email" name="email" id="contact-email" maxlength="200" autocomplete="email">' +
+                '</label>' +
+              '</div>' +
+
+              // Piège à robots : invisible pour les humains
+              '<input type="checkbox" name="botcheck" class="ct-honeypot" tabindex="-1" autocomplete="off">' +
+
+              '<button type="submit" id="contact-send">Envoyer</button>' +
+              '<div id="contact-status" aria-live="polite"></div>' +
+            '</form>' +
+          '</div>' +
+        '</div>';
+
+    // ── Injection ────────────────────────────────────────────────────────
+    var style = document.createElement('style');
+    style.id = 'contact-style';
+    style.textContent = CSS;
+    document.head.appendChild(style);
+
+    document.body.insertAdjacentHTML('beforeend', HTML);
+
+    // ── Ouverture / fermeture ────────────────────────────────────────────
+    var overlay = document.getElementById('contact-overlay');
+    var form    = document.getElementById('contact-form');
+    var status  = document.getElementById('contact-status');
+    var sendBtn = document.getElementById('contact-send');
+    var lastFocus = null;
+    function F(n) { return form.elements[n]; }   // champ du formulaire par son nom
+
+    function setStatus(text, cls) {
+        status.textContent = text || '';
+        status.className = cls || '';
+    }
+
+    function openContactForm() {
+        lastFocus = document.activeElement;
+        // Mémorise nom / e-mail d'une fois sur l'autre (sur cet appareil uniquement)
+        try {
+            var saved = JSON.parse(localStorage.getItem('contactIdentity') || '{}');
+            if (saved.name  && !F('name').value)  F('name').value  = saved.name;
+            if (saved.email && !F('email').value) F('email').value = saved.email;
+        } catch (e) {}
+        setStatus('');
+        sendBtn.disabled = false;
+        overlay.classList.add('open');
+        setTimeout(function () { document.getElementById('contact-message').focus(); }, 50);
+    }
+
+    function closeContactForm() {
+        overlay.classList.remove('open');
+        if (lastFocus && typeof lastFocus.focus === 'function') { try { lastFocus.focus(); } catch (e) {} }
+    }
+
+    window.openContactForm  = openContactForm;
+    window.closeContactForm = closeContactForm;
+
+    document.getElementById('contact-close').addEventListener('click', closeContactForm);
+    // Clic sur le fond grisé : ferme la fenêtre
+    overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) closeContactForm(); });
+
+    // Les touches tapées dans le formulaire ne déclenchent pas les raccourcis du tableau
+    // (Suppr, Ctrl+C/V, Alt+1…). Échap ferme la fenêtre.
+    overlay.addEventListener('keydown', function (e) {
+        e.stopPropagation();
+        if (e.key === 'Escape') { e.preventDefault(); closeContactForm(); }
+    });
+    ['keyup', 'keypress', 'paste', 'copy', 'cut'].forEach(function (evt) {
+        overlay.addEventListener(evt, function (e) { e.stopPropagation(); });
+    });
+
+    // ── Envoi ────────────────────────────────────────────────────────────
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var message = F('message').value.trim();
+        var email   = F('email').value.trim();
+        var name    = F('name').value.trim();
+        var type    = (form.querySelector('input[name=ct_type]:checked') || {}).value || 'Autre';
+
+        if (!message) {
+            setStatus('Merci d\'écrire un message avant d\'envoyer.', 'err');
+            F('message').focus();
+            return;
+        }
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setStatus('L\'adresse e-mail ne semble pas valide.', 'err');
+            F('email').focus();
+            return;
+        }
+        if (!navigator.onLine) {
+            setStatus('Pas de connexion internet : le message ne peut pas partir pour l\'instant.', 'err');
+            return;
+        }
+
+        try { localStorage.setItem('contactIdentity', JSON.stringify({ name: name, email: email })); } catch (err) {}
+
+        var payload = {
+            access_key: CONTACT_ACCESS_KEY,
+            subject:    'Le Bureau du Prof – ' + type,
+            from_name:  'Le Bureau du Prof',
+            name:       name || 'Anonyme',
+            type:       type,
+            message:    message,
+            page:       location.href,
+            navigateur: navigator.userAgent,
+            botcheck:   F('botcheck').checked
+        };
+        if (email) { payload.email = email; payload.replyto = email; }
+
+        sendBtn.disabled = true;
+        setStatus('Envoi en cours…', '');
+
+        fetch(CONTACT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(function (r) { return r.json().catch(function () { return { success: r.ok }; }); })
+        .then(function (res) {
+            if (res && res.success) {
+                F('message').value = '';
+                setStatus('✅ Merci ! Votre message a bien été envoyé.', 'ok');
+                setTimeout(function () {
+                    if (overlay.classList.contains('open')) closeContactForm();
+                }, 2200);
+            } else {
+                sendBtn.disabled = false;
+                setStatus('L\'envoi a échoué' + (res && res.message ? ' (' + res.message + ')' : '') + '. Réessayez dans un moment.', 'err');
+            }
+        })
+        .catch(function () {
+            sendBtn.disabled = false;
+            setStatus('L\'envoi a échoué (connexion). Réessayez dans un moment.', 'err');
+        });
+    });
+})();

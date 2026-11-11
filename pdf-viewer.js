@@ -388,12 +388,38 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 return (canvasWrap.clientHeight - 24) / vp0.height;
             }
 
+            // ── Netteté : densité de pixels RÉELLE à l'écran ─────────────────
+            // = densité de l'écran (devicePixelRatio, ex. 1.25 / 1.5 sous Windows)
+            //   × agrandissement CSS éventuel du tableau ou du widget (transform/zoom).
+            // Sans ce second facteur, un widget agrandi affiche un canvas étiré → flou.
+            // C'est notamment le cas dans l'application installée (fenêtre Chrome
+            // « appli ») où la taille de la fenêtre et la mise à l'échelle diffèrent.
+            let _lastPixelRatio = 0;
+            function _computePixelRatio(page, scale) {
+                const dpr = window.devicePixelRatio || 1;
+                let k = 1;
+                const ow = canvasWrap.offsetWidth;
+                const rw = canvasWrap.getBoundingClientRect().width;
+                if (ow > 0 && rw > 0) k = rw / ow;
+                k = Math.min(Math.max(k, 1), 4);       // jamais moins net qu'avant, max ×4
+                let pr = dpr * k;
+                // Garde-fou mémoire : ~36 millions de pixels max (sauf si l'ancien rendu dépassait déjà)
+                if (page) {
+                    const vp0 = page.getViewport({ scale: 1 });
+                    const px = (vp0.width * scale * pr) * (vp0.height * scale * pr);
+                    const MAX_PIX = 36e6;
+                    if (px > MAX_PIX) pr = Math.max(dpr, pr * Math.sqrt(MAX_PIX / px));
+                }
+                return pr;
+            }
+
             function renderPage(num) {
                 _invalidateSnapshot(); // le canvas va être redimensionné → snapshot obsolète
                 pdfDoc.getPage(num).then(page => {
                     const scale = zoomScale ?? fitScale(page);
                     _currentRenderScale = scale;
-                    const dpr = window.devicePixelRatio || 1;
+                    const dpr = _computePixelRatio(page, scale);
+                    _lastPixelRatio = dpr;
                     const viewport = page.getViewport({ scale: scale * dpr });
                     // Taille physique du canvas (haute résolution)
                     pdfCanvas.width  = viewport.width;
@@ -2050,6 +2076,54 @@ function _showPdfInWidget(container, base64OrUrl, filename) {
                 });
                 _resizeObs.observe(canvasWrap);
             }
+
+            // ── Re-rendu net quand la densité d'affichage change ──────────────
+            // Cas couverts : fenêtre de l'appli installée qui démarre avant que
+            // Windows applique sa mise à l'échelle, déplacement vers un autre écran,
+            // Ctrl +/− , agrandissement du tableau ou du widget.
+            // Le ResizeObserver ci-dessus ne voit rien dans ces cas (taille CSS inchangée).
+            (function() {
+                let _sharpTimer = null;
+                let _mq = null;
+                const alive = () => container.isConnected && container._currentPdfDoc === pdfDoc;
+                function checkSharpness() {
+                    if (!alive()) { cleanup(); return; }
+                    if (_sharpTimer) clearTimeout(_sharpTimer);
+                    _sharpTimer = setTimeout(() => {
+                        _sharpTimer = null;
+                        if (!alive() || !_lastPixelRatio || !canvasWrap.offsetWidth) return;
+                        const target = _computePixelRatio(null, _currentRenderScale);
+                        // On ne refait le rendu que si l'écart est notable (> 8 %)
+                        if (Math.abs(target - _lastPixelRatio) / _lastPixelRatio > 0.08) {
+                            renderPage(currentPage);
+                        }
+                    }, 200);
+                }
+                function watchDpr() {
+                    if (_mq) _mq.removeEventListener('change', onDprChange);
+                    if (!window.matchMedia) return;
+                    _mq = window.matchMedia('(resolution: ' + (window.devicePixelRatio || 1) + 'dppx)');
+                    _mq.addEventListener('change', onDprChange);
+                }
+                function onDprChange() { watchDpr(); checkSharpness(); }
+                function cleanup() {
+                    if (_mq) _mq.removeEventListener('change', onDprChange);
+                    window.removeEventListener('resize', checkSharpness);
+                    canvasWrap.removeEventListener('pointerenter', checkSharpness);
+                    canvasWrap.removeEventListener('wheel', checkSharpness);
+                    document.removeEventListener('visibilitychange', checkSharpness);
+                }
+                watchDpr();
+                window.addEventListener('resize', checkSharpness);
+                // Le zoom du tableau/widget ne déclenche aucun événement dédié :
+                // on revérifie dès que l'utilisateur revient sur le PDF.
+                canvasWrap.addEventListener('pointerenter', checkSharpness);
+                canvasWrap.addEventListener('wheel', checkSharpness, { passive: true });
+                document.addEventListener('visibilitychange', checkSharpness);
+                // Filet de sécurité au démarrage de l'appli (la fenêtre se cale après coup)
+                setTimeout(checkSharpness, 800);
+                setTimeout(checkSharpness, 2500);
+            })();
 
             // ── API publique pour draw.js (mode annotation via draw-toolbar) ──
             // Exposée sur le widget DOM pour que draw.js puisse y accéder.

@@ -186,13 +186,17 @@ async function saveProjectToDB(name) {
     if (_isDraft) return null;
     let id = getCurrentProjectId();
     if (!id) return null;
-    const project = {
+    // Repartir de l'enregistrement existant pour ne pas perdre ses autres champs
+    // (notamment « order », sinon le tableau saute en fin de liste)
+    let existing = null;
+    try { existing = await dbGet(id); } catch(e) {}
+    const project = Object.assign({}, existing || {}, {
         id,
         name:         name || 'Sans titre',
         scenes:       scenes.slice(0, 1), // toujours 1 scène
         currentScene: 0,
         updatedAt:    Date.now(),
-    };
+    });
     await dbPut(project);
     return project;
 }
@@ -201,6 +205,7 @@ async function saveProjectToDB(name) {
 async function loadProjectFromDB(id) {
     const project = await dbGet(id);
     if (!project) return false;
+    _cancelProjectAutoSave();   // un enregistrement en attente viserait l'ancien tableau
     _isDraft = false;   // ouvrir un tableau de la bibliothèque quitte le brouillon (import compris)
     setCurrentProjectId(project.id);
     scenes       = project.scenes && project.scenes.length ? [project.scenes[0]] : [{ id: Date.now(), name: 'Tableau 1', config: null, background: 'none' }];
@@ -222,6 +227,7 @@ async function newProject(name) {
             await saveProjectToDB('Sans titre');
         }
     }
+    _cancelProjectAutoSave();   // sinon l'ancien tableau serait écrasé par le tableau vide
     _isDraft = false;
     setCurrentProjectId(null);
     scenes = [{ id: Date.now(), name: 'Tableau 1', config: null, background: 'none' }];
@@ -247,6 +253,7 @@ async function newDraftProject() {
             } catch(e) {}
         }
     }
+    _cancelProjectAutoSave();
     _isDraft = true;
     _writeCurId(null);
     scenes = [{ id: Date.now(), name: 'Tableau 1', config: null, background: '#BAA09B' }];
@@ -339,24 +346,76 @@ function _draftHasContent() {
 }
 async function _confirmLeaveDraft() {
     if (!_isDraft || !_draftHasContent()) return true;
-    const save = await modalConfirm(
-        'Brouillon non enregistré',
-        'Le tableau affiché est un brouillon qui contient du travail.\n\nVoulez-vous l\'enregistrer dans « Mes tableaux » avant de continuer ?'
-    );
-    if (save) return await _projSaveDraft();   // false si le nom est annulé → on ne continue pas
-    return await modalConfirm(
-        'Abandonner le brouillon ?',
-        'Le travail de ce brouillon sera définitivement perdu.\n\nContinuer sans l\'enregistrer ?',
-        { danger: true }
-    );
+    const choice = await _draftChoiceDialog();
+    if (choice === 'save')    return await _projSaveDraft();   // false si le nom est annulé → on reste sur le brouillon
+    if (choice === 'discard') return true;
+    return false;                                              // ✕, Échap ou clic à côté : on reste sur le brouillon
+}
+
+// Fenêtre à deux choix. Renvoie 'save', 'discard' ou null (fermée sans choisir).
+function _draftChoiceDialog() {
+    return new Promise(resolve => {
+        if (!document.getElementById('draft-dlg-style')) {
+            const st = document.createElement('style');
+            st.id = 'draft-dlg-style';
+            st.textContent = `
+#draft-dlg{position:fixed;inset:0;z-index:70000;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:rgba(10,10,20,.55);font-family:'Quicksand','Nunito',sans-serif;}
+#draft-dlg .dd-box{position:relative;width:100%;max-width:440px;box-sizing:border-box;padding:22px 22px 18px;border-radius:18px;background:#1c1a26;color:#ecebf3;border:1px solid #2c2838;box-shadow:0 18px 50px rgba(0,0,0,.5);}
+#draft-dlg h3{margin:0 34px 10px 0;font-size:19px;font-weight:800;}
+#draft-dlg p{margin:0 0 4px;font-size:14px;line-height:1.45;color:#c9c6d6;}
+#draft-dlg .dd-btns{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+#draft-dlg .dd-btns button{padding:11px 14px;border-radius:12px;cursor:pointer;font:inherit;font-size:14px;font-weight:800;border:none;text-align:center;}
+#draft-dlg .dd-save{background:#4a90e2;color:#fff;box-shadow:0 4px 12px rgba(74,144,226,.4);}
+#draft-dlg .dd-discard{background:transparent;color:#ff7b7b;border:1px solid rgba(255,107,107,.55)!important;}
+#draft-dlg .dd-btns button:hover{filter:brightness(1.08);}
+#draft-dlg .dd-close{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;background:rgba(255,255,255,.08);color:#ccc;font-size:14px;}
+body.menu-light #draft-dlg .dd-box{background:#f5f4f8;color:#2a2440;border-color:#dddbe6;}
+body.menu-light #draft-dlg p{color:#4a4660;}
+body.menu-light #draft-dlg .dd-discard{color:#d33a3f;border-color:rgba(211,58,63,.45)!important;}
+body.menu-light #draft-dlg .dd-close{background:rgba(42,36,64,.07);color:#5c5870;}`;
+            document.head.appendChild(st);
+        }
+        const ov = document.createElement('div');
+        ov.id = 'draft-dlg';
+        ov.setAttribute('role', 'dialog');
+        ov.setAttribute('aria-modal', 'true');
+        ov.innerHTML =
+            '<div class="dd-box">' +
+              '<button type="button" class="dd-close" title="Annuler" aria-label="Annuler">✕</button>' +
+              '<h3>Brouillon non enregistré</h3>' +
+              '<p>Le tableau affiché contient du travail en cours.</p>' +
+              '<p>Que voulez-vous faire ?</p>' +
+              '<div class="dd-btns">' +
+                '<button type="button" class="dd-save">L\'enregistrer dans « Mes tableaux » avant de continuer</button>' +
+                '<button type="button" class="dd-discard">Quitter le brouillon et perdre le travail en cours</button>' +
+              '</div>' +
+            '</div>';
+        function close(result) {
+            ov.remove();
+            resolve(result);
+        }
+        ov.querySelector('.dd-save').addEventListener('click', () => close('save'));
+        ov.querySelector('.dd-discard').addEventListener('click', () => close('discard'));
+        ov.querySelector('.dd-close').addEventListener('click', () => close(null));
+        ov.addEventListener('mousedown', e => { if (e.target === ov) close(null); });
+        // Les touches ne déclenchent pas les raccourcis du tableau ; Échap annule
+        ov.addEventListener('keydown', e => {
+            e.stopPropagation();
+            if (e.key === 'Escape') { e.preventDefault(); close(null); }
+        });
+        document.body.appendChild(ov);
+        setTimeout(() => ov.querySelector('.dd-save').focus(), 30);
+    });
 }
 
 // ── Sauvegarder silencieusement sans changer l'ordre (updatedAt préservé) ─
 async function _saveProjectSilent(id) {
     // Ne pas sauvegarder si une restauration est en cours (board potentiellement vide/incomplet)
     if (typeof isRestoringState !== 'undefined' && isRestoringState) return;
+    // Le tableau affiché doit être celui qu'on enregistre : sinon on écrirait
+    // le contenu d'un tableau dans un autre (changement de tableau entre-temps)
+    if (_isDraft || !id || id !== getCurrentProjectId()) return;
     saveCurrentSceneData();
-    if (_isDraft || !id) return;
     const existing = await dbGet(id);
     if (!existing) return;
     existing.scenes       = scenes.slice(0, 1);
@@ -367,14 +426,44 @@ async function _saveProjectSilent(id) {
 
 // ── Enregistrement automatique du tableau ouvert (1,5 s après la dernière modification) ──
 let _autoSaveTimer = null;
+function _cancelProjectAutoSave() {
+    clearTimeout(_autoSaveTimer);
+    _autoSaveTimer = null;
+}
 function scheduleProjectAutoSave() {
     if (!_startupDone || _isDraft) return;
     if (window.location.search.indexOf('mode=pagegarde') !== -1) return; // ne jamais toucher aux tableaux depuis la page de garde
     const id = getCurrentProjectId();
     if (!id) return;
     clearTimeout(_autoSaveTimer);
-    _autoSaveTimer = setTimeout(() => { _saveProjectSilent(id).catch(() => {}); }, 1500);
+    _autoSaveTimer = setTimeout(() => { _autoSaveTimer = null; _saveProjectSilent(id).catch(() => {}); }, 1500);
 }
+
+// ── Fermeture de l'onglet / de la page ───────────────────────────────────
+// 1. Un enregistrement automatique en attente (les 1,5 dernières secondes) est
+//    fait tout de suite, au lieu d'être perdu.
+// 2. Un brouillon qui contient du travail déclenche l'avertissement du
+//    navigateur (« Quitter le site ? »). Le texte de cette fenêtre est imposé
+//    par le navigateur et ne peut pas être personnalisé.
+function flushProjectAutoSave() {
+    if (!_autoSaveTimer) return;
+    _cancelProjectAutoSave();
+    const id = getCurrentProjectId();
+    if (id) _saveProjectSilent(id).catch(() => {});
+}
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushProjectAutoSave();
+});
+window.addEventListener('pagehide', flushProjectAutoSave);
+window.addEventListener('beforeunload', (e) => {
+    flushProjectAutoSave();
+    if (window.location.search.indexOf('mode=pagegarde') !== -1) return;
+    if (_isDraft && _draftHasContent()) {
+        e.preventDefault();
+        e.returnValue = '';   // nécessaire pour Chrome / Edge
+        return '';
+    }
+});
 
 async function _projLoad(id) {
     if (!await _confirmLeaveDraft()) return;
@@ -433,12 +522,17 @@ async function _projDelete(id) {
     const p = await dbGet(id);
     if (!p) return;
     if (!await modalConfirm('Supprimer ce tableau', `Voulez-vous vraiment supprimer "${p.name}" ?\n\nCette action est irréversible.`, { danger: true })) return;
+    const wasCurrent = (id === getCurrentProjectId());
+    if (wasCurrent) _cancelProjectAutoSave();
     await dbDelete(id);
-    if (id === getCurrentProjectId()) {
-        setCurrentProjectId(null);
+    if (wasCurrent) {
+        // Le tableau reste affiché, mais devient un brouillon : il peut être
+        // ré-enregistré, et quitter ce brouillon déclenchera l'avertissement.
+        _writeCurId(null);
+        _isDraft = true;
         _updateProjectTitle('');
     }
-    _renderProjectsList();
+    if (typeof refreshProjectsPanel === 'function') refreshProjectsPanel();
 }
 
 function exportCurrentProject() {
@@ -505,6 +599,7 @@ async function importAllProjects() {
                 { danger: true }
             );
             if (!ok) return;
+            _cancelProjectAutoSave();   // ne rien réécrire dans la base pendant le remplacement
             const db = await dbOpen();
             await new Promise((resolve, reject) => {
                 const tx = db.transaction(STORE_NAME, 'readwrite');

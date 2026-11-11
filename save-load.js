@@ -319,6 +319,11 @@ function buildBoardState() {
         if (w.dataset.type === 'institutions-france' && typeof w._ifrGetData === 'function') {
             institutionsData = w._ifrGetData();
         }
+        // Données propres au widget « L'égalité filles-garçons » (onglet, date, votes, estimations, situations, taille)
+        let egaliteFGData = null;
+        if (w.dataset.type === 'egalite-fg' && typeof w._egfgGetData === 'function') {
+            egaliteFGData = w._egfgGetData();
+        }
         // Données propres au widget géographie de la France
         let geoFranceData = null;
         if (w.dataset.type === 'geo-france' && typeof w._gfGetData === 'function') {
@@ -666,6 +671,11 @@ function buildBoardState() {
         if (w.dataset.type === 'jeu-rush-hour' && typeof w._jrhGetData === 'function') {
             jrhData = w._jrhGetData();
         }
+        // Données propres au widget Bataille navale (mode, flottes, tirs, tour, taille)
+        let jbnData = null;
+        if (w.dataset.type === 'jeu-bataille-navale' && typeof w._jbnGetData === 'function') {
+            jbnData = w._jbnGetData();
+        }
         // Données propres au widget Taquin (niveau, image, pièces, coups, temps, taille)
         let jtqData = null;
         if (w.dataset.type === 'jeu-taquin' && typeof w._jtqGetData === 'function') {
@@ -874,6 +884,7 @@ function buildBoardState() {
 			renaissanceData,
 			symRepData,
 			institutionsData,
+			egaliteFGData,
 			geoFranceData,
 			geoSavoieData,
 			geoReliefData,
@@ -929,6 +940,7 @@ function buildBoardState() {
 			bhData,
 			jcfData,
 			jrhData,
+			jbnData,
 			jtqData,
 			jrqData,
 			jsaData,
@@ -1393,6 +1405,16 @@ function restoreBoardFromJSON(json) {
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }
+        } else if (w.type === 'egalite-fg') {
+            // Onglet, date de la frise, votes, estimations, situations, taille
+            if (typeof createEgaliteFGWidget === 'function') {
+                widget = createEgaliteFGWidget();
+                if (w.egaliteFGData && typeof widget._egfgSetData === 'function') {
+                    widget._egfgSetData(w.egaliteFGData);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
         } else if (w.type === 'histoire-industriel') {
             widget = createAgeIndustrielWidget();
             if (w.industrielData && typeof widget._indSetData === 'function') {
@@ -1819,6 +1841,13 @@ function restoreBoardFromJSON(json) {
             // Niveau, position des véhicules, coups, taille et plein écran
             if (typeof createJeuRushHourWidget === 'function') {
                 widget = createJeuRushHourWidget(w.jrhData || { _restored: true });
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'jeu-bataille-navale') {
+            // Mode, grille, flottes, tirs, tour, taille et plein écran
+            if (typeof createJeuBatailleNavaleWidget === 'function') {
+                widget = createJeuBatailleNavaleWidget(w.jbnData || { _restored: true });
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
             }

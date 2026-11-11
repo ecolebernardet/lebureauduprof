@@ -1568,6 +1568,43 @@ if (typeof window._wfIsPhoneLaunch !== 'function') {
             });
             obs.observe(document.body, { childList: true, subtree: true });
 
+            // ── API pour save-load.js : chaque gong garde ses propres réglages ──
+            widget._gongGetData = function () {
+                return {
+                    sound: soundId, vol: volume, rep: repeats, delay: delaySec,
+                    msg: msgId, custom: msgCustom, muted: isMuted, ctrl: controlsVisible,
+                    theme: themeId, count: signals, day: todayKey(),
+                    w: (!isMax && outer.style.width)  ? parseInt(outer.style.width, 10)  : (parseInt(ds.gongW, 10) || null),
+                    h: (!isMax && outer.style.height) ? parseInt(outer.style.height, 10) : (parseInt(ds.gongH, 10) || null)
+                };
+            };
+            widget._gongSetData = function (d) {
+                if (!d || typeof d !== 'object') return;
+                var n = function (v, lo, hi, def) { v = parseInt(v, 10); return isNaN(v) ? def : Math.max(lo, Math.min(hi, v)); };
+                volume   = n(d.vol, 0, 100, volume);
+                repeats  = n(d.rep, 1, 3, repeats);
+                delaySec = n(d.delay, 0, 10, delaySec);
+                if (typeof d.custom === 'string') msgCustom = d.custom.slice(0, 40);
+                volSlider.value = volume;     volVal.textContent = volume + '%';
+                delaySlider.value = delaySec; delayVal.textContent = delaySec ? delaySec + ' s' : 'non';
+                msgInput.value = msgCustom;
+                [volSlider, delaySlider].forEach(paintSlider);
+                setSound(SOUNDS[d.sound] ? d.sound : soundId, false);
+                setRepeats(repeats);
+                setMuted(d.muted === true || d.muted === '1');
+                setMessageChoice(MESSAGE_LABELS[d.msg] ? d.msg : msgId);
+                controlsVisible = d.ctrl !== false && d.ctrl !== '0';
+                controlsEl.classList.toggle('hidden', !controlsVisible);
+                toggleBtn.classList.toggle('is-off', !controlsVisible);
+                if (THEMES[d.theme]) setTheme(d.theme);
+                setCount(d.day === todayKey() ? n(d.count, 0, 9999, 0) : 0);
+                if (n(d.w, 0, 9999, 0) >= MIN_W) outer.style.width  = d.w + 'px';
+                if (n(d.h, 0, 9999, 0) >= MIN_H) outer.style.height = d.h + 'px';
+                rescale();
+                requestAnimationFrame(rescale);
+                persist(true);
+            };
+
             persist(true);   // mémorise l'état initial sans relancer la sauvegarde du tableau
             rescale();
             requestAnimationFrame(rescale);

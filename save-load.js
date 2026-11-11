@@ -184,6 +184,16 @@ function buildBoardState() {
         if (w.dataset.type === 'balance' && typeof w._balGetData === 'function') {
             balData = w._balGetData();
         }
+        // Données propres au widget « Patrons de solides » (solide, patron du cube, pliage, caméra, couleurs, défi, score, taille, plein écran)
+        let patData = null;
+        if (w.dataset.type === 'solides-patrons' && typeof w._patGetData === 'function') {
+            patData = w._patGetData();
+        }
+        // Données propres à l'outil « Gong » (son, volume, coups, délai, message, couleur, compteur du jour, taille)
+        let gongData = null;
+        if (w.dataset.type === 'gong' && typeof w._gongGetData === 'function') {
+            gongData = w._gongGetData();
+        }
         // Données propres au widget « Le matériel base dix » (mode, niveau, pièces de chaque colonne, exercice, retenues / emprunts, affichage, taille, plein écran)
         let b10Data = null;
         if (w.dataset.type === 'base-dix' && typeof w._b10GetData === 'function') {
@@ -847,6 +857,8 @@ function buildBoardState() {
 			itrData,
 			estData,
 			balData,
+			patData,
+			gongData,
 			b10Data,
 			peqData,
 			zdData,
@@ -1221,6 +1233,15 @@ function restoreBoardFromJSON(json) {
                 widget = createBalanceWidget();
                 if (typeof widget._balSetData === 'function') {
                     widget._balSetData(w.balData || null);
+                }
+            } else {
+                widget = createWidget(w.type, '100px', '100px', false);
+            }
+        } else if (w.type === 'solides-patrons') {
+            if (typeof createSolidesPatronsWidget === 'function') {
+                widget = createSolidesPatronsWidget();
+                if (typeof widget._patSetData === 'function') {
+                    widget._patSetData(w.patData || null);
                 }
             } else {
                 widget = createWidget(w.type, '100px', '100px', false);
@@ -1992,6 +2013,10 @@ function restoreBoardFromJSON(json) {
         // Le saviez-vous ? : réafficher l'anecdote (ou celle du nouveau jour), les thèmes et les anecdotes perso
         if (w.type === 'le-saviez-vous' && w.lsvData && typeof window.lsvSetData === 'function') {
             window.lsvSetData(widget, w.lsvData);
+        }
+        // Gong : réappliquer le son, le volume, les coups, le délai, le message, la couleur, le compteur et la taille
+        if (w.type === 'gong' && w.gongData && widget && typeof widget._gongSetData === 'function') {
+            widget._gongSetData(w.gongData);
         }
         // Ambiance sonore : réafficher les ambiances choisies, les volumes et le minuteur (le son se relance avec ▶)
         if (w.type === 'ambiance-sonore' && w.ambData && typeof window.ambSetData === 'function') {

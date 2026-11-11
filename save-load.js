@@ -359,6 +359,11 @@ function buildBoardState() {
         if (w.dataset.type === 'reproduction-plantes' && typeof w._rpGetData === 'function') {
             reproPlantesData = w._rpGetData();
         }
+        // Données propres au widget « Internet et les serveurs »
+        let internetData = null;
+        if (w.dataset.type === 'internet' && typeof w._inetGetData === 'function') {
+            internetData = w._inetGetData();
+        }
         // Données propres au widget « Les chaînes alimentaires »
         let chainesAlimData = null;
         if (w.dataset.type === 'chaines-alimentaires' && typeof w._caGetData === 'function') {
@@ -867,6 +872,7 @@ function buildBoardState() {
 			terreMvtData,
 			cycleEauData,
 			reproPlantesData,
+			internetData,
 			chainesAlimData,
 			corpsHumainData,
 			cinqSensData,
@@ -1447,6 +1453,11 @@ function restoreBoardFromJSON(json) {
             widget = createReproductionPlantesWidget();
             if (w.reproPlantesData && typeof widget._rpSetData === 'function') {
                 widget._rpSetData(w.reproPlantesData);
+            }
+        } else if (w.type === 'internet') {
+            widget = createInternetWidget();
+            if (w.internetData && typeof widget._inetSetData === 'function') {
+                widget._inetSetData(w.internetData);
             }
         } else if (w.type === 'chaines-alimentaires') {
             widget = createChainesAlimentairesWidget();

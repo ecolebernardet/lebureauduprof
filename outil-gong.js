@@ -835,7 +835,7 @@ if (typeof window._wfIsPhoneLaunch !== 'function') {
               +       '</div>'
               +       '<div class="gong-sounds" role="group" aria-label="Son du signal">'
               +         SOUND_ORDER.map(function (id) {
-                          return '<button class="gong-sound-btn" data-sound="' + id + '" title="Choisir et écouter : ' + SOUNDS[id].name + '">'
+                          return '<button class="gong-sound-btn" data-sound="' + id + '" title="Choisir le son : ' + SOUNDS[id].name + '">'
                                +   SOUND_ICONS[id]
                                +   '<span class="gong-sound-name">' + SOUNDS[id].name + '</span>'
                                + '</button>';
@@ -1365,7 +1365,7 @@ if (typeof window._wfIsPhoneLaunch !== 'function') {
             soundBtns.forEach(function (b) {
                 b.addEventListener('click', function (e) {
                     e.stopPropagation();
-                    setSound(b.dataset.sound, true);   // on entend le son choisi
+                    setSound(b.dataset.sound, false);  // aucun son : on n'entend que « Sonner »
                     persist();
                 });
             });
@@ -1385,8 +1385,7 @@ if (typeof window._wfIsPhoneLaunch !== 'function') {
                 if (audioCtx && master) master.gain.setValueAtTime(Math.pow(volume / 100, 1.6) * 0.9, audioCtx.currentTime);
             });
             volSlider.addEventListener('change', function () {
-                if (!isMuted) playSound(soundId, 1);   // aperçu du volume
-                persist();
+                persist();   // pas d'aperçu : le son ne part que du bouton « Sonner »
             });
 
             delaySlider.addEventListener('input', function () {

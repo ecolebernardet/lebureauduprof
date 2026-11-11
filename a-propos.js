@@ -96,7 +96,69 @@
         'body.menu-light #about-body p, body.menu-light #about-body ul { color: #3a3650; }',
         'body.menu-light #about-body a { color: #2f6fc4; }',
         'body.menu-light #about-body .ab-actions button { background: #fff; border-color: #e4e2ec; color: #2a2440; }',
-        'body.menu-light #about-body .ab-actions button.ab-primary { background: #4a90e2; border-color: #4a90e2; color: #fff; }'
+        'body.menu-light #about-body .ab-actions button.ab-primary { background: #4a90e2; border-color: #4a90e2; color: #fff; }',
+
+        /* ── TÉLÉPHONE ─────────────────────────────────────────────────
+           Même condition que style-phone.css (et PHONE_MEDIA_QUERY de
+           board.js) : à modifier ensemble.
+           Portrait : panneau qui monte du bas, pleine largeur.
+           Paysage  : fenêtre centrée, compacte, boutons sur une ligne. */
+        '@media (max-width: 600px), (max-height: 500px) and (pointer: coarse) {',
+        '    #about-overlay { padding: 0; }',
+        '    #about-box {',
+        '        max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px);',
+        '        overscroll-behavior: contain; -webkit-overflow-scrolling: touch;',
+        '    }',
+        /* En-tête collé en haut quand on fait défiler */
+        '    #about-head { position: sticky; top: 0; z-index: 1; padding: 10px 12px 10px 16px; }',
+        '    #about-head h3 { font-size: 17px; }',
+        '    #about-close { width: 40px; height: 40px; font-size: 17px; }',
+        '    #about-body { padding: 12px 16px 16px; font-size: 14px; }',
+        '    #about-body .ab-hero { padding: 2px 0 10px; }',
+        '    #about-body .ab-name { font-size: 19px; }',
+        '    #about-body .ab-author { font-size: 13px; line-height: 1.4; }',
+        '    #about-body .ab-author a { display: inline-block; padding: 2px 0; }',
+        '    #about-body h4 { margin-top: 14px; }',
+        '    #about-body ul { padding-left: 16px; }',
+        '    #about-body li { margin: 4px 0; }',
+        '    #about-body a.ab-tipeee { display: flex; align-items: center; justify-content: center; min-height: 44px; box-sizing: border-box; }',
+        '    #about-body .ab-actions button { min-height: 44px; padding: 8px 6px; line-height: 1.2; }',
+        '}',
+
+        /* Portrait (écran étroit) : panneau du bas */
+        '@media (max-width: 600px) {',
+        '    #about-overlay {',
+        '        align-items: flex-end;',
+        '        padding-top: env(safe-area-inset-top);',
+        '    }',
+        '    #about-box {',
+        '        max-width: 100%; border-radius: 20px 20px 0 0; border-bottom: none;',
+        '        max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px - env(safe-area-inset-top));',
+        '        padding-bottom: env(safe-area-inset-bottom);',
+        '        animation: ab-slide-up .22s ease-out;',
+        '    }',
+        '    #about-head { border-radius: 20px 20px 0 0; }',
+        /* Soutien : texte au-dessus, bouton Tipeee pleine largeur dessous */
+        '    #about-body .ab-soutien { flex-direction: column; align-items: stretch; gap: 10px; }',
+        '    #about-body a.ab-tipeee { width: 100%; }',
+        /* Boutons : Contacter + Faire connaître côte à côte, Fermer dessous */
+        '    #about-body .ab-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }',
+        '    #about-body .ab-actions button.ab-primary { grid-column: 1 / -1; }',
+        '}',
+        '@keyframes ab-slide-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }',
+
+        /* Paysage (téléphone couché) : fenêtre centrée, marges réduites */
+        '@media (min-width: 601px) and (max-height: 500px) and (pointer: coarse) {',
+        '    #about-overlay {',
+        '        padding: 8px calc(8px + env(safe-area-inset-right)) 8px calc(8px + env(safe-area-inset-left));',
+        '    }',
+        '    #about-box { max-width: 560px; }',
+        '    #about-head { padding-top: 6px; padding-bottom: 6px; }',
+        '    #about-body .ab-hero { padding-bottom: 8px; }',
+        '    #about-body .ab-actions button { min-height: 40px; }',
+        '}',
+
+        '@media (prefers-reduced-motion: reduce) { #about-box { animation: none !important; } }'
     ].join('\n');
 
     // ── Contenu ──────────────────────────────────────────────────────────

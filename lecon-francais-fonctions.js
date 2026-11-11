@@ -19,6 +19,314 @@
 // Sauvegarde : w._fnGetData()  /  createFonctionsWidget(données)
 // =========================================================================
 
+// =========================================================================
+// COULEURS DES NATURES ET DES FONCTIONS — réglage commun (Le Bureau du Prof)
+// Ce bloc est identique dans : leçon « Nature des mots », leçon « Les fonctions »,
+// activités « L'atelier de phrases » et « La phrase du jour ».
+// Le premier fichier chargé le définit, les autres le réutilisent.
+// Réglage gardé dans le navigateur (localStorage, clé « fr-couleurs-v1 »),
+// partagé entre les outils et entre les onglets.
+//   FrCouleurs.nat('det')        → couleur d'une nature
+//   FrCouleurs.natLight('det')   → fond clair assorti
+//   FrCouleurs.natText('det')    → couleur de texte lisible sur fond clair
+//   FrCouleurs.fn('S')           → { c: couleur, s: 'souligne' | 'pointille' | 'encadre' | 'encadre-pointille' }
+//   FrCouleurs.ink(couleur)      → '#fff' ou texte foncé, lisible sur ce fond
+//   FrCouleurs.onChange(fn)      → appelé à chaque modification (renvoie une fonction pour se désabonner)
+//   FrCouleurs.openPanel()       → fenêtre de réglage
+// =========================================================================
+(function () {
+    var VERSION = 1;
+    if (window.FrCouleurs && (window.FrCouleurs.version || 0) >= VERSION) return;
+
+    var KEY = 'fr-couleurs-v1';
+    var NAT_LIST = [
+        { k: 'det',   nom: 'Déterminant',    ex: 'le' },
+        { k: 'nom',   nom: 'Nom',            ex: 'chat' },
+        { k: 'adj',   nom: 'Adjectif',       ex: 'noir' },
+        { k: 'verbe', nom: 'Verbe',          ex: 'dort' },
+        { k: 'pron',  nom: 'Pronom',         ex: 'il' },
+        { k: 'inv',   nom: 'Mot invariable', ex: 'sur' }
+    ];
+    var FN_LIST = [
+        { k: 'S',   nom: 'Sujet',                     ex: 'Le petit chat' },
+        { k: 'V',   nom: 'Verbe (conjugué)',          ex: 'dort' },
+        { k: 'COD', nom: 'COD',                       ex: 'une souris' },
+        { k: 'COI', nom: 'COI',                       ex: 'à sa maîtresse' },
+        { k: 'CC',  nom: 'Complément circonstanciel', ex: 'sur le canapé' },
+        { k: 'ATT', nom: 'Attribut du sujet',         ex: 'très sage' },
+        { k: 'CDN', nom: 'Complément du nom',         ex: 'de Paul', note: 'leçon « Les fonctions »' }
+    ];
+    var STYLES = [
+        { k: 'souligne',          nom: 'Souligné' },
+        { k: 'pointille',         nom: 'Pointillé' },
+        { k: 'encadre',           nom: 'Encadré' },
+        { k: 'encadre-pointille', nom: 'Encadré pointillé' }
+    ];
+    var DEFAULTS = {
+        nat: { det: '#2563eb', nom: '#dc2626', adj: '#16a34a', verbe: '#9333ea', pron: '#ea7a0c', inv: '#6b7280' },
+        fn: {
+            S:   { c: '#dc2626', s: 'souligne' },
+            V:   { c: '#dc2626', s: 'encadre' },
+            COD: { c: '#2563eb', s: 'souligne' },
+            COI: { c: '#16a34a', s: 'souligne' },
+            CC:  { c: '#111827', s: 'souligne' },
+            ATT: { c: '#dc2626', s: 'pointille' },
+            CDN: { c: '#c2185b', s: 'encadre-pointille' }
+        }
+    };
+    // Pastilles proposées dans la fenêtre (plus simple qu'un nuancier au TBI)
+    var SWATCHES = ['#dc2626', '#ea7a0c', '#ca8a04', '#16a34a', '#0d9488', '#0ea5e9', '#2563eb',
+                    '#9333ea', '#db2777', '#92400e', '#6b7280', '#111827'];
+
+    var HEX = /^#[0-9a-f]{6}$/i;
+    var STYLE_OK = {}; STYLES.forEach(function (s) { STYLE_OK[s.k] = true; });
+
+    function clone(o) { return JSON.parse(JSON.stringify(o)); }
+    function clean(raw) {
+        var out = clone(DEFAULTS);
+        if (!raw || typeof raw !== 'object') return out;
+        if (raw.nat) NAT_LIST.forEach(function (n) {
+            var v = raw.nat[n.k];
+            if (typeof v === 'string' && HEX.test(v)) out.nat[n.k] = v.toLowerCase();
+        });
+        if (raw.fn) FN_LIST.forEach(function (f) {
+            var v = raw.fn[f.k];
+            if (!v || typeof v !== 'object') return;
+            if (typeof v.c === 'string' && HEX.test(v.c)) out.fn[f.k].c = v.c.toLowerCase();
+            if (STYLE_OK[v.s]) out.fn[f.k].s = v.s;
+        });
+        return out;
+    }
+    function load() {
+        try { return clean(JSON.parse(localStorage.getItem(KEY) || 'null')); } catch (e) { return clone(DEFAULTS); }
+    }
+    var cur = load();
+    var listeners = [];
+
+    function notify() {
+        listeners.slice().forEach(function (fn) { try { fn(cur); } catch (e) { if (window.console) console.error(e); } });
+        try { window.dispatchEvent(new CustomEvent('fr-couleurs', { detail: cur })); } catch (e) {}
+    }
+    function persist() {
+        try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch (e) {}
+        notify();
+    }
+    // Modification faite dans un autre onglet
+    window.addEventListener('storage', function (e) {
+        if (e.key !== KEY) return;
+        cur = load();
+        notify();
+        if (panel) panel.refresh();
+    });
+
+    // ── Calculs de couleur ──
+    function rgb(h) { h = HEX.test(h) ? h : '#888888'; return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+    function hex(a) { return '#' + a.map(function (x) { x = Math.max(0, Math.min(255, Math.round(x))); return (x < 16 ? '0' : '') + x.toString(16); }).join(''); }
+    function mix(c, d, t) { var a = rgb(c), b = rgb(d); return hex([0, 1, 2].map(function (i) { return a[i] + (b[i] - a[i]) * t; })); }
+    function lum(c) {
+        var a = rgb(c).map(function (x) { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+        return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+    }
+    function contrast(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+    function light(c) { return mix(c, '#ffffff', 0.86); }
+    // Texte lisible sur le fond clair assorti (fonce les couleurs trop pâles)
+    function readable(c) {
+        var bg = light(c), t = c, i = 0;
+        while (contrast(t, bg) < 3.6 && i++ < 12) t = mix(t, '#000000', 0.12);
+        return t;
+    }
+    function ink(c) { return contrast('#ffffff', c) >= 2.4 ? '#ffffff' : '#1f2937'; }
+
+    // Nom approximatif d'une couleur, pour les consignes (« souligné en rouge »)
+    function colorName(c) {
+        var a = rgb(c).map(function (x) { return x / 255; });
+        var mx = Math.max.apply(null, a), mn = Math.min.apply(null, a), l = (mx + mn) / 2, d = mx - mn;
+        var s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+        if (l < 0.16) return 'noir';
+        if (s < 0.18) return l > 0.88 ? 'blanc' : 'gris';
+        var h;
+        if (mx === a[0]) h = 60 * (((a[1] - a[2]) / d) % 6);
+        else if (mx === a[1]) h = 60 * ((a[2] - a[0]) / d + 2);
+        else h = 60 * ((a[0] - a[1]) / d + 4);
+        if (h < 0) h += 360;
+        if (h < 14 || h >= 345) return 'rouge';
+        if (h < 42) return l < 0.33 ? 'marron' : 'orange';
+        if (h < 66) return l < 0.3 ? 'marron' : 'jaune';
+        if (h < 165) return 'vert';
+        if (h < 196) return 'turquoise';
+        if (h < 252) return 'bleu';
+        if (h < 290) return 'violet';
+        return 'rose';
+    }
+    function fnObj(k) { return cur.fn[k] || { c: '#9ca3af', s: 'souligne' }; }
+    // « souligné en rouge », « encadré en pointillé bleu »…
+    function fnPhrase(k) {
+        var f = fnObj(k), n = colorName(f.c);
+        return { souligne: 'souligné en ' + n, pointille: 'souligné en pointillé ' + n,
+                 encadre: 'encadré en ' + n, 'encadre-pointille': 'encadré en pointillé ' + n }[f.s];
+    }
+    // « Souligner le sujet en rouge »…
+    function fnAction(k, quoi) {
+        var f = fnObj(k), n = colorName(f.c);
+        var verbe = f.s.indexOf('encadre') === 0 ? 'Encadrer' : 'Souligner';
+        var pt = f.s.indexOf('pointille') >= 0 ? 'en pointillé ' : 'en ';
+        return verbe + ' ' + quoi + ' ' + pt + n;
+    }
+    // Petit pictogramme du style (trait ou cadre), en ligne dans du texte
+    function styleIcon(s, c, size) {
+        size = size || '1em';
+        var col = c || 'currentColor';
+        var base = 'display:inline-block;vertical-align:middle;box-sizing:border-box;width:calc(' + size + ' * 1.3);';
+        if (s === 'souligne')  return '<span style="' + base + 'height:0;border-bottom:3px solid ' + col + '"></span>';
+        if (s === 'pointille') return '<span style="' + base + 'height:0;border-bottom:4px dotted ' + col + '"></span>';
+        var bs = s === 'encadre-pointille' ? 'dashed' : 'solid';
+        return '<span style="' + base + 'height:calc(' + size + ' * .75);border:2px ' + bs + ' ' + col + ';border-radius:3px"></span>';
+    }
+
+    // =====================================================================
+    // FENÊTRE DE RÉGLAGE
+    // =====================================================================
+    var panel = null;
+    function injectCss() {
+        if (document.getElementById('frc-style')) return;
+        var st = document.createElement('style');
+        st.id = 'frc-style';
+        st.textContent = [
+            '.frc-overlay { position:fixed; inset:0; z-index:100050; background:rgba(20,16,40,.38); display:flex; align-items:center; justify-content:center; padding:12px; box-sizing:border-box; }',
+            '.frc-dialog { background:#fff; color:#1f2937; border-radius:16px; box-shadow:0 18px 50px rgba(0,0,0,.35); width:min(720px, 100%); max-height:100%; display:flex; flex-direction:column; font-family:"Segoe UI",system-ui,sans-serif; overflow:hidden; }',
+            '.frc-dialog * { box-sizing:border-box; }',
+            '.frc-head { padding:14px 18px 10px; border-bottom:1px solid #eee; }',
+            '.frc-head h3 { margin:0; font-size:18px; font-weight:800; }',
+            '.frc-head p { margin:4px 0 0; font-size:12.5px; color:#6b7280; line-height:1.4; }',
+            '.frc-body { overflow:auto; padding:6px 18px 12px; }',
+            '.frc-sec { margin:12px 0 4px; font-size:13px; font-weight:800; color:#374151; text-transform:uppercase; letter-spacing:.4px; }',
+            '.frc-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; padding:8px 0; border-bottom:1px dashed #eee; }',
+            '.frc-row:last-child { border-bottom:none; }',
+            '.frc-name { width:190px; font-weight:700; font-size:14px; display:flex; flex-direction:column; gap:3px; }',
+            '.frc-name small { font-weight:600; font-size:11px; color:#9ca3af; }',
+            '.frc-prev { font-family:"Nunito","Segoe UI",sans-serif; font-weight:800; font-size:17px; padding:0 .3em; border-radius:.2em; align-self:flex-start; line-height:1.5; }',
+            '.frc-fprev { font-family:"Nunito","Segoe UI",sans-serif; font-weight:800; font-size:17px; color:#1f2937; padding:0 .15em; align-self:flex-start; line-height:1.35; }',
+            '.frc-ctrl { flex:1; min-width:260px; display:flex; flex-direction:column; gap:6px; }',
+            '.frc-styles { display:flex; gap:5px; flex-wrap:wrap; }',
+            '.frc-st { border:2px solid #e5e7eb; background:#fff; border-radius:8px; padding:3px 8px; font:inherit; font-size:12px; font-weight:700; color:#374151; cursor:pointer; display:inline-flex; gap:6px; align-items:center; }',
+            '.frc-st.on { border-color:#4a90e2; background:#eef5ff; color:#1d4ed8; }',
+            '.frc-sw { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }',
+            '.frc-dot { width:24px; height:24px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px #d1d5db; cursor:pointer; padding:0; }',
+            '.frc-dot.on { box-shadow:0 0 0 3px #1f2937; }',
+            '.frc-pick { width:34px; height:28px; padding:0; border:1px solid #d1d5db; border-radius:6px; background:#fff; cursor:pointer; }',
+            '.frc-foot { display:flex; gap:8px; justify-content:space-between; align-items:center; padding:10px 18px 14px; border-top:1px solid #eee; flex-wrap:wrap; }',
+            '.frc-btn { border:none; border-radius:9px; padding:8px 16px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }',
+            '.frc-btn.grey { background:#f3f4f6; color:#374151; border:1px solid #e5e7eb; }',
+            '.frc-btn.blue { background:#4a90e2; color:#fff; }',
+            '@media (max-width:560px) { .frc-name { width:100%; flex-direction:row; align-items:center; gap:10px; } .frc-ctrl { min-width:0; } }'
+        ].join('\n');
+        document.head.appendChild(st);
+    }
+    function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function fnPreviewCss(f) {
+        var w = f.s === 'pointille' ? '4px dotted ' : '3px solid ';
+        if (f.s === 'souligne' || f.s === 'pointille') return 'border-bottom:' + w + f.c + ';';
+        return 'border:2px ' + (f.s === 'encadre-pointille' ? 'dashed ' : 'solid ') + f.c + ';border-radius:4px;';
+    }
+    function swatchesHtml(kind, k, val) {
+        return SWATCHES.map(function (c) {
+            return '<button class="frc-dot' + (c === val ? ' on' : '') + '" style="background:' + c + '" data-kind="' + kind + '" data-k="' + k + '" data-c="' + c + '" title="' + colorName(c) + '"></button>';
+        }).join('') + '<input class="frc-pick" type="color" value="' + val + '" data-kind="' + kind + '" data-k="' + k + '" title="Autre couleur">';
+    }
+    function bodyHtml() {
+        var h = '<div class="frc-sec">Natures des mots</div>';
+        NAT_LIST.forEach(function (n) {
+            var c = cur.nat[n.k];
+            h += '<div class="frc-row"><div class="frc-name">' + esc(n.nom) +
+                '<span class="frc-prev" style="background:' + light(c) + ';color:' + readable(c) + '">' + esc(n.ex) + '</span></div>' +
+                '<div class="frc-ctrl"><div class="frc-sw">' + swatchesHtml('nat', n.k, c) + '</div></div></div>';
+        });
+        h += '<div class="frc-sec">Fonctions</div>';
+        FN_LIST.forEach(function (f) {
+            var v = cur.fn[f.k];
+            h += '<div class="frc-row"><div class="frc-name">' + esc(f.nom) + (f.note ? '<small>' + esc(f.note) + '</small>' : '') +
+                '<span class="frc-fprev" style="' + fnPreviewCss(v) + '">' + esc(f.ex) + '</span></div>' +
+                '<div class="frc-ctrl"><div class="frc-styles">' + STYLES.map(function (s) {
+                    return '<button class="frc-st' + (s.k === v.s ? ' on' : '') + '" data-kind="style" data-k="' + f.k + '" data-s="' + s.k + '">' + styleIcon(s.k, v.c, '12px') + s.nom + '</button>';
+                }).join('') + '</div><div class="frc-sw">' + swatchesHtml('fn', f.k, v.c) + '</div></div></div>';
+        });
+        return h;
+    }
+    function openPanel() {
+        injectCss();
+        if (panel) { panel.refresh(); return; }
+        var ov = document.createElement('div');
+        ov.className = 'frc-overlay';
+        ov.innerHTML = '<div class="frc-dialog" role="dialog" aria-label="Couleurs des natures et des fonctions">' +
+            '<div class="frc-head"><h3>🎨 Couleurs des natures et des fonctions</h3>' +
+            '<p>Un seul réglage pour la leçon « Nature des mots », la leçon « Les fonctions », « L\'atelier de phrases » et « La phrase du jour ». ' +
+            'Il est gardé dans ce navigateur et s\'applique tout de suite.</p></div>' +
+            '<div class="frc-body"></div>' +
+            '<div class="frc-foot"><button class="frc-btn grey" data-act="reset">↺ Couleurs d\'origine</button>' +
+            '<button class="frc-btn blue" data-act="close">✓ Fermer</button></div></div>';
+        var body = ov.querySelector('.frc-body');
+        function refresh() { var top = body.scrollTop; body.innerHTML = bodyHtml(); body.scrollTop = top; }
+        function close() {
+            ov.remove();
+            document.removeEventListener('keydown', onKey, true);
+            panel = null;
+        }
+        function onKey(e) {
+            if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(); return; }
+            if (ov.contains(e.target)) e.stopPropagation();
+        }
+        // Le tableau ne doit pas réagir aux clics et touchers dans la fenêtre
+        ['pointerdown', 'mousedown', 'touchstart', 'wheel', 'dblclick'].forEach(function (t) {
+            ov.addEventListener(t, function (e) { e.stopPropagation(); }, t === 'touchstart' || t === 'wheel' ? { passive: true } : false);
+        });
+        ov.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (e.target === ov) { close(); return; }
+            var b = e.target.closest('button');
+            if (!b) return;
+            var kind = b.dataset.kind, k = b.dataset.k;
+            if (b.dataset.act === 'close') { close(); return; }
+            if (b.dataset.act === 'reset') { cur = clone(DEFAULTS); persist(); refresh(); return; }
+            if (kind === 'nat') cur.nat[k] = b.dataset.c;
+            else if (kind === 'fn') cur.fn[k].c = b.dataset.c;
+            else if (kind === 'style') cur.fn[k].s = b.dataset.s;
+            else return;
+            persist(); refresh();
+        });
+        // Nuancier : on applique en direct, on redessine la fenêtre à la fin
+        ov.addEventListener('input', function (e) {
+            var t = e.target;
+            if (!t.classList.contains('frc-pick') || !HEX.test(t.value)) return;
+            if (t.dataset.kind === 'nat') cur.nat[t.dataset.k] = t.value.toLowerCase();
+            else cur.fn[t.dataset.k].c = t.value.toLowerCase();
+            persist();
+        });
+        ov.addEventListener('change', function (e) { if (e.target.classList.contains('frc-pick')) refresh(); });
+        document.addEventListener('keydown', onKey, true);
+        document.body.appendChild(ov);
+        refresh();
+        panel = { refresh: refresh, close: close };
+    }
+
+    window.FrCouleurs = {
+        version: VERSION,
+        NAT_LIST: NAT_LIST, FN_LIST: FN_LIST, STYLES: STYLES,
+        get: function () { return clone(cur); },
+        nat: function (k) { return cur.nat[k] || '#9ca3af'; },
+        natLight: function (k) { return light(cur.nat[k] || '#9ca3af'); },
+        natText: function (k) { return readable(cur.nat[k] || '#9ca3af'); },
+        fn: function (k) { var f = fnObj(k); return { c: f.c, s: f.s }; },
+        light: light, readable: readable, ink: ink, colorName: colorName,
+        fnPhrase: fnPhrase, fnAction: fnAction, styleIcon: styleIcon,
+        reset: function () { cur = clone(DEFAULTS); persist(); if (panel) panel.refresh(); },
+        onChange: function (fn) {
+            listeners.push(fn);
+            return function () { var i = listeners.indexOf(fn); if (i >= 0) listeners.splice(i, 1); };
+        },
+        openPanel: openPanel
+    };
+})();
+
 (function () {
 
     // ── Plein écran automatique (bouton vert) sur téléphone ET tablette ────
@@ -205,7 +513,7 @@
 .f2-gbtn { border:2px solid #e3d8c3; border-left:7px solid var(--c,#e3d8c3); background:#fff; border-radius:12px; padding:8px 10px; font:inherit; font-weight:900; font-size:15px;
     color:var(--encre); text-align:left; touch-action:manipulation; transition:transform .1s; }
 .f2-gbtn:hover { transform:translateX(2px); }
-.f2-gbtn.active { background:var(--c,var(--violet)); border-color:var(--c,var(--violet)); color:#fff; box-shadow:0 3px 0 rgba(0,0,0,.18); }
+.f2-gbtn.active { background:var(--c,var(--violet)); border-color:var(--c,var(--violet)); color:var(--ci,#fff); box-shadow:0 3px 0 rgba(0,0,0,.18); }
 .f2-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
 .f2-ltitle h2 { margin:0; font-size:32px; font-weight:900; }
 .f2-box { border-radius:14px; padding:10px 14px; font-size:15px; line-height:1.5; }
@@ -217,16 +525,25 @@
 .f2-trap { background:#ffecee; border:2px solid #f6a7b0; }
 .f2-tool { background:#e9f8f0; border:2px solid #8fd8b0; }
 .f2-legend { display:flex; flex-wrap:wrap; gap:8px; }
-.f2-ltag { background:var(--c); color:#fff; border-radius:999px; padding:4px 12px; font-weight:900; font-size:14px; border:none; }
-.f2-q-ask { display:inline-block; background:var(--c); color:#fff; border-radius:10px; padding:2px 10px; font-weight:900; margin:2px 0; }
+.f2-ltag { background:var(--c); color:var(--ci,#fff); border-radius:999px; padding:4px 12px; font-weight:900; font-size:14px; border:none; }
+.f2-q-ask { display:inline-block; background:var(--c); color:var(--ci,#fff); border-radius:10px; padding:2px 10px; font-weight:900; margin:2px 0; }
 .f2-sentence { font-family:'MDI',cursive; font-size:22px; line-height:1.9; }
 .f2-sentence .hl { color:var(--c); font-weight:700; border-bottom:4px solid var(--c); }
+/* Trait de chaque fonction (réglage 🎨) : souligné, pointillé, encadré, encadré pointillé */
+.f2-sentence .hl[data-s="pointille"] { border-bottom:5px dotted var(--c); }
+.f2-sentence .hl[data-s^="encadre"] { border:3px solid var(--c); border-radius:6px; padding:0 3px; }
+.f2-sentence .hl[data-s="encadre-pointille"] { border-style:dashed; }
+.f2-gbtn { --ic:var(--c); }
+.f2-gbtn.active { --ic:currentColor; }
 /* Phrase découpée en groupes */
 .f2-gs { display:flex; flex-wrap:wrap; gap:8px 6px; align-items:flex-start; justify-content:center; font-family:'MDI',cursive; font-size:var(--f, 26px); }
 .f2-blk { display:inline-flex; flex-direction:column; align-items:center; border:3px solid var(--c,#d9cdb6); border-radius:12px; background:#fff;
     padding:.1em .35em .05em; touch-action:manipulation; font:inherit; color:var(--encre); }
 .f2-blk .w { display:inline-flex; gap:.25em; align-items:baseline; flex-wrap:wrap; justify-content:center; }
 .f2-blk small { font-family:'Nunito',sans-serif; font-size:12px; font-weight:900; color:var(--c,#b8ad96); text-transform:uppercase; line-height:1.3; }
+.f2-blk[data-s="souligne"] { border-color:transparent; border-bottom:4px solid var(--c); border-radius:4px; }
+.f2-blk[data-s="pointille"] { border-color:transparent; border-bottom:5px dotted var(--c); border-radius:4px; }
+.f2-blk[data-s="encadre-pointille"] { border-style:dashed; }
 .f2-blk.plain { border-color:#e3d8c3; }
 .f2-blk.plain small { visibility:hidden; }
 .f2-blk.off { border-style:dashed; border-color:#d9cdb6; background:#f7f4ee; color:#9a8f7a; }
@@ -235,6 +552,9 @@
 .f2-blk.ko { box-shadow:0 0 0 4px #f8c3c9; }
 .f2-cdn { display:inline-flex; flex-direction:column; align-items:center; border:2px dashed var(--c,#c9a2b8); border-radius:9px; padding:0 .2em; background:#fff7fb; }
 .f2-cdn small { font-size:10.5px; }
+.f2-cdn[data-s="souligne"] { border-color:transparent; border-bottom:3px solid var(--c); border-radius:3px; }
+.f2-cdn[data-s="pointille"] { border-color:transparent; border-bottom:4px dotted var(--c); border-radius:3px; }
+.f2-cdn[data-s="encadre"] { border-style:solid; }
 .f2-cdn.plain { border-color:#e3d8c3; background:transparent; }
 .f2-cdn.ok { box-shadow:0 0 0 3px #bfe9d1; }
 .f2-cdn.ko { box-shadow:0 0 0 3px #f8c3c9; }
@@ -254,7 +574,7 @@
 .f2-srow > .l { font-weight:900; font-size:13px; margin-right:4px; min-width:120px; }
 .f2-chip { border:2px solid var(--c,#d9cdb6); background:#fff; border-radius:999px; padding:4px 11px; font:inherit; font-weight:800; font-size:13.5px;
     color:var(--encre); touch-action:manipulation; }
-.f2-chip.on { background:var(--c,var(--encre)); border-color:var(--c,var(--encre)); color:#fff; }
+.f2-chip.on { background:var(--c,var(--encre)); border-color:var(--c,var(--encre)); color:var(--ci,#fff); }
 .f2-hint { font-size:12.5px; color:#6a6380; }
 .f2-msg { background:#ffe9eb; border:2px solid #f6a7b0; border-radius:12px; padding:8px 12px; font-weight:800; }
 .f2-info { background:#fff6d6; border:2px solid #f3d36b; border-radius:12px; padding:10px 14px; font-weight:700; text-align:center; }
@@ -276,13 +596,13 @@
 .f2-choices { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
 .f2-choice { border:2px solid var(--c); background:#fff; border-radius:999px; padding:3px 10px; font:inherit; font-weight:900; font-size:13.5px;
     color:var(--encre); touch-action:manipulation; }
-.f2-choice.on { background:var(--c); color:#fff; }
+.f2-choice.on { background:var(--c); color:var(--ci,#fff); }
 .f2-choice.good { background:var(--vert); border-color:var(--vert); color:#fff; }
 .f2-choice.bad { background:var(--rouge); border-color:var(--rouge); color:#fff; }
 .f2-hunt { display:flex; flex-wrap:wrap; gap:calc(var(--f) * .2); justify-content:center; align-items:center; font-family:'MDI',cursive; font-size:var(--f); }
 .f2-hw { border:2px solid #e3d8c3; border-radius:10px; padding:0 .25em; font:inherit; color:var(--encre); background:#fff; touch-action:manipulation; }
 .f2-hw:hover { background:#f6f2ff; }
-.f2-hw.on { background:var(--c); border-color:var(--c); color:#fff; }
+.f2-hw.on { background:var(--c); border-color:var(--c); color:var(--ci,#fff); }
 .f2-hw.good { background:var(--vert); border-color:var(--vert); color:#fff; }
 .f2-hw.bad { background:var(--rouge); border-color:var(--rouge); color:#fff; }
 .f2-hw.miss { border-color:#e67e22; border-style:dashed; color:#c25a00; }
@@ -323,6 +643,13 @@
         ATT: { label: 'Attribut du sujet',         short: 'attribut', find: 'l\'attribut du sujet',           color: '#0E9AA7', ico: '🪞' },
         CDN: { label: 'Complément du nom',         short: 'CDN',   find: 'les compléments du nom',            color: '#C2185B', ico: '🧩' }
     };
+    // Couleur et trait réglables (🎨, réglage commun FrCouleurs à toutes les leçons et activités de grammaire)
+    Object.keys(F).forEach(k => {
+        Object.defineProperty(F[k], 'color', { get: () => FrCouleurs.fn(k).c, configurable: true });
+        Object.defineProperty(F[k], 'style', { get: () => FrCouleurs.fn(k).s, configurable: true });
+    });
+    const ds = k => ` data-s="${F[k].style}"`;
+    const ico = (k, col) => FrCouleurs.styleIcon(F[k].style, col || 'currentColor', '12px');
     const chipLabel = k => k === 'CC' ? 'CC' : k === 'ATT' ? 'Attribut' : k === 'CDN' ? 'Compl. du nom' : F[k].label;
 
     // Phrases : [groupe]FONCTION ; {…} = complément du nom à l'intérieur d'un groupe
@@ -521,6 +848,7 @@
                     <button class="f2-tab" data-act="tab" data-tab="train"><span>✏️</span><span class="f2-tab-lbl">Exercices</span></button>
                 </div>
                 <div class="wf-btns" style="margin-left:auto">
+                    <button class="f2-icon-btn" data-act="colors" title="Couleurs des natures et des fonctions">🎨</button>
                     <button class="f2-icon-btn" data-act="sound" title="Son"></button>
                     <button class="f2-icon-btn" data-act="help" title="Aide">?</button>
                     <button class="wf-btn wf-btn-min"   data-act="min"   title="Réduire"></button>
@@ -537,6 +865,7 @@
                 <p>🔍 <b>La chasse aux fonctions</b> : on touche le ou les groupes demandés (ex. : le sujet).</p>
                 <p>🏷️ <b>Étiqueter la phrase</b> : on touche chaque groupe pour lui donner sa fonction (chaque toucher passe à la fonction suivante). Le verbe est déjà indiqué. Les compléments du nom sont dans un petit cadre à l'intérieur de leur groupe.</p>
                 <p><b>👁 Correction</b> colorie les réponses et donne le score.</p>
+                <p><b>🎨 Couleurs</b> : choisis la couleur et le trait (souligné, pointillé, encadré) de chaque fonction, et la couleur de chaque nature. Ce réglage vaut pour toutes les leçons et activités de grammaire, et il est gardé dans ce navigateur.</p>
             </div>
             <div class="f2-resize" title="Redimensionner"></div>`;
         widget.appendChild(container);
@@ -625,9 +954,9 @@
                 if (g.loose) return `<span class="f2-loose">${esc(g.parts[0].t)}</span>`;
                 const c = F[g.f].color;
                 const words = g.parts.map(p => p.cdn
-                    ? `<span class="f2-cdn ${hide ? 'plain' : ''}" style="--c:${F.CDN.color}"><span>${esc(p.t)}</span>${hide ? '' : `<small>${F.CDN.short}</small>`}</span>`
+                    ? `<span class="f2-cdn ${hide ? 'plain' : ''}"${hide ? '' : ds('CDN')} style="--c:${F.CDN.color}"><span>${esc(p.t)}</span>${hide ? '' : `<small>${F.CDN.short}</small>`}</span>`
                     : `<span>${esc(p.t)}</span>`).join('');
-                return `<span class="f2-blk ${hide ? 'plain' : ''}" style="--c:${hide ? '#d9cdb6' : c}"><span class="w">${words}</span><small>${F[g.f].short}</small></span>`;
+                return `<span class="f2-blk ${hide ? 'plain' : ''}"${hide ? '' : ds(g.f)} style="--c:${hide ? '#d9cdb6' : c}"><span class="w">${words}</span><small>${F[g.f].short}</small></span>`;
             }).join('') + `</div>`;
         }
         function renderOverview() {
@@ -635,7 +964,7 @@
             return `<div class="f2-ltitle"><h2 style="color:#6C4FD8">🧩 Les fonctions dans la phrase</h2></div>
                 <div class="f2-box f2-what"><b class="t">🔤 Nature ou fonction ?</b>La <b>nature</b> dit <b>ce qu'est</b> un mot (un nom, un verbe…) : elle ne change pas. La <b>fonction</b> dit le <b>rôle</b> d'un mot ou d'un <b>groupe de mots</b> dans la phrase : elle change selon la phrase.
                     <ul><li><i><b>Le chat</b> dort.</i> → « le chat » est <b>sujet</b>.</li><li><i>Je caresse <b>le chat</b>.</i> → « le chat » est <b>COD</b>.</li></ul></div>
-                <div class="f2-legend">${['S', 'V'].concat(ORDER.slice(1)).map(k => `<button class="f2-ltag" style="--c:${F[k].color}" ${k !== 'V' ? `data-act="lesson" data-g="${k}"` : ''}>${F[k].ico} ${F[k].label}</button>`).join('')}</div>
+                <div class="f2-legend">${['S', 'V'].concat(ORDER.slice(1)).map(k => `<button class="f2-ltag" style="--c:${F[k].color}" ${k !== 'V' ? `data-act="lesson" data-g="${k}"` : ''}>${F[k].ico} ${F[k].label} ${ico(k)}</button>`).join('')}</div>
                 <div class="f2-box f2-tool"><b class="t">🎨 Une phrase découpée en groupes</b>Chaque couleur est une fonction. Cache les couleurs pour faire chercher la classe, puis montre-les.
                     <div style="--f:26px;margin:8px 0">${blocksHtml(s, S.demoHide)}</div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -662,8 +991,8 @@
             const L = LESSONS[k], N = F[k];
             const ex = examplesFor(k).map(s => `<div class="f2-sentence">${joinG(s, g => {
                 if (g.loose) return esc(g.parts[0].t);
-                if (k === 'CDN') return g.parts.map(p => p.cdn ? `<span class="hl" style="--c:${N.color}">${esc(p.t)}</span>` : esc(p.t)).join(' ');
-                return g.f === k ? `<span class="hl" style="--c:${N.color}">${esc(gText(g))}</span>` : esc(gText(g));
+                if (k === 'CDN') return g.parts.map(p => p.cdn ? `<span class="hl"${ds(k)} style="--c:${N.color}">${esc(p.t)}</span>` : esc(p.t)).join(' ');
+                return g.f === k ? `<span class="hl"${ds(k)} style="--c:${N.color}">${esc(gText(g))}</span>` : esc(gText(g));
             })}</div>`).join('');
             return `<div class="f2-ltitle"><h2 style="color:${N.color}">${N.ico} ${L.title}</h2></div>
                 <div class="f2-box f2-what"><b class="t">🔤 C'est quoi ?</b>${L.what}</div>
@@ -676,7 +1005,7 @@
         }
         function renderLesson() {
             const side = `<button class="f2-gbtn ${S.lesson === 'vue' ? 'active' : ''}" style="--c:#6C4FD8" data-act="lesson" data-g="vue">🧩 Les fonctions</button>` +
-                ORDER.map(k => `<button class="f2-gbtn ${S.lesson === k ? 'active' : ''}" style="--c:${F[k].color}" data-act="lesson" data-g="${k}">${F[k].ico} ${k === 'CC' ? 'Compl. circonst.' : k === 'CDN' ? 'Compl. du nom' : k === 'ATT' ? 'Attribut du sujet' : F[k].label}</button>`).join('');
+                ORDER.map(k => `<button class="f2-gbtn ${S.lesson === k ? 'active' : ''}" style="--c:${F[k].color}" data-act="lesson" data-g="${k}">${F[k].ico} ${k === 'CC' ? 'Compl. circonst.' : k === 'CDN' ? 'Compl. du nom' : k === 'ATT' ? 'Attribut du sujet' : F[k].label} ${ico(k, 'var(--ic)')}</button>`).join('');
             const main = LESSONS[S.lesson] ? renderFnLesson(S.lesson) : renderOverview();
             return `<div class="f2-lesson"><div class="f2-side">${side}</div><div class="f2-main">${main}</div></div>`;
         }
@@ -786,14 +1115,14 @@
                         const v = c.lab[pk];
                         let cl = '';
                         if (R.corrected) cl = v === 'CDN' ? 'ok' : 'ko';
-                        return `<span class="f2-cdn ${cl}" style="--c:${v ? F[v].color : '#c9a2b8'}" data-act="lab" data-c="${ci}" data-u="${pk}"><span>${esc(p.t)}</span><small>${v ? F[v].short : '?'}</small>${R.corrected && v !== 'CDN' ? `<span class="f2-exp">→ CDN</span>` : ''}</span>`;
+                        return `<span class="f2-cdn ${cl}"${v ? ds(v) : ''} style="--c:${v ? F[v].color : '#c9a2b8'}" data-act="lab" data-c="${ci}" data-u="${pk}"><span>${esc(p.t)}</span><small>${v ? F[v].short : '?'}</small>${R.corrected && v !== 'CDN' ? `<span class="f2-exp">→ CDN</span>` : ''}</span>`;
                     }).join('');
-                    if (g.f === 'V') return `<span class="f2-blk" style="--c:${F.V.color}"><span class="w">${words}</span><small>verbe</small></span>`;
+                    if (g.f === 'V') return `<span class="f2-blk"${ds('V')} style="--c:${F.V.color}"><span class="w">${words}</span><small>verbe</small></span>`;
                     if (!need.has(key)) return `<span class="f2-blk off" title="Fonction non travaillée"><span class="w">${words}</span><small>—</small></span>`;
                     const v = c.lab[key];
                     let cl = '';
                     if (R.corrected) cl = v === ansOf[key] ? 'ok' : 'ko';
-                    return `<span class="f2-blk ${cl}" style="--c:${v ? F[v].color : '#d9cdb6'}" data-act="lab" data-c="${ci}" data-u="${key}"><span class="w">${words}</span><small>${v ? F[v].short : '?'}</small>${R.corrected && v !== ansOf[key] ? `<span class="f2-exp">→ ${F[ansOf[key]].short}</span>` : ''}</span>`;
+                    return `<span class="f2-blk ${cl}"${v ? ds(v) : ''} style="--c:${v ? F[v].color : '#d9cdb6'}" data-act="lab" data-c="${ci}" data-u="${key}"><span class="w">${words}</span><small>${v ? F[v].short : '?'}</small>${R.corrected && v !== ansOf[key] ? `<span class="f2-exp">→ ${F[ansOf[key]].short}</span>` : ''}</span>`;
                 }).join('');
                 const cardCls = R.corrected ? (okN === units.length ? 'ok' : 'ko') : '';
                 return `<div class="f2-q ${cardCls}"><div class="f2-qtop"><span class="f2-num">${ci + 1})</span>Touche chaque groupe pour lui donner sa fonction${R.corrected ? `<span style="margin-left:auto">${okN} / ${units.length}</span>` : ''}</div>
@@ -828,6 +1157,11 @@
             sb.textContent = S.sound ? '🔊' : '🔇'; sb.title = S.sound ? 'Couper le son' : 'Activer le son';
             const top = body.scrollTop;
             body.innerHTML = S.tab === 'train' ? renderTrain() : renderLesson();
+            // Texte blanc ou foncé selon la couleur de fond choisie
+            body.querySelectorAll('[style*="--c:"]').forEach(el => {
+                const c = el.style.getPropertyValue('--c').trim();
+                if (/^#[0-9a-f]{6}$/i.test(c)) el.style.setProperty('--ci', FrCouleurs.ink(c));
+            });
             body.scrollTop = top;
         }
 
@@ -851,6 +1185,7 @@
             const toggleIn = (arr, v) => { const i = arr.indexOf(v); if (i === -1) arr.push(v); else arr.splice(i, 1); };
             switch (a) {
                 case 'help': help.classList.toggle('show'); return;
+                case 'colors': help.classList.remove('show'); FrCouleurs.openPanel(); return;
                 case 'sound': S.sound = !S.sound; break;
                 case 'min':
                     container.classList.remove('wf-fullboard');
@@ -1005,6 +1340,12 @@
         if (restored && saved.wPct > 0) container.style.width = (saved.wPct / 100) * window.innerWidth + 'px';
         if (restored && saved.hPct > 0) container.style.height = (saved.hPct / 100) * vh() + 'px';
         render();
+
+        // Couleurs modifiées (ici ou dans un autre outil) : on redessine
+        const offColors = FrCouleurs.onChange(() => {
+            if (!widget.isConnected) { offColors(); return; }
+            render();
+        });
 
         requestAnimationFrame(() => requestAnimationFrame(() => {
             memoSize();

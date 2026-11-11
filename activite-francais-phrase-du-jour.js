@@ -19,6 +19,314 @@
 //   (+ window._wfMiniBarCollapse défini par activite-francais-mot-le-plus-long.js)
 // =========================================================================
 
+// =========================================================================
+// COULEURS DES NATURES ET DES FONCTIONS — réglage commun (Le Bureau du Prof)
+// Ce bloc est identique dans : leçon « Nature des mots », leçon « Les fonctions »,
+// activités « L'atelier de phrases » et « La phrase du jour ».
+// Le premier fichier chargé le définit, les autres le réutilisent.
+// Réglage gardé dans le navigateur (localStorage, clé « fr-couleurs-v1 »),
+// partagé entre les outils et entre les onglets.
+//   FrCouleurs.nat('det')        → couleur d'une nature
+//   FrCouleurs.natLight('det')   → fond clair assorti
+//   FrCouleurs.natText('det')    → couleur de texte lisible sur fond clair
+//   FrCouleurs.fn('S')           → { c: couleur, s: 'souligne' | 'pointille' | 'encadre' | 'encadre-pointille' }
+//   FrCouleurs.ink(couleur)      → '#fff' ou texte foncé, lisible sur ce fond
+//   FrCouleurs.onChange(fn)      → appelé à chaque modification (renvoie une fonction pour se désabonner)
+//   FrCouleurs.openPanel()       → fenêtre de réglage
+// =========================================================================
+(function () {
+    var VERSION = 1;
+    if (window.FrCouleurs && (window.FrCouleurs.version || 0) >= VERSION) return;
+
+    var KEY = 'fr-couleurs-v1';
+    var NAT_LIST = [
+        { k: 'det',   nom: 'Déterminant',    ex: 'le' },
+        { k: 'nom',   nom: 'Nom',            ex: 'chat' },
+        { k: 'adj',   nom: 'Adjectif',       ex: 'noir' },
+        { k: 'verbe', nom: 'Verbe',          ex: 'dort' },
+        { k: 'pron',  nom: 'Pronom',         ex: 'il' },
+        { k: 'inv',   nom: 'Mot invariable', ex: 'sur' }
+    ];
+    var FN_LIST = [
+        { k: 'S',   nom: 'Sujet',                     ex: 'Le petit chat' },
+        { k: 'V',   nom: 'Verbe (conjugué)',          ex: 'dort' },
+        { k: 'COD', nom: 'COD',                       ex: 'une souris' },
+        { k: 'COI', nom: 'COI',                       ex: 'à sa maîtresse' },
+        { k: 'CC',  nom: 'Complément circonstanciel', ex: 'sur le canapé' },
+        { k: 'ATT', nom: 'Attribut du sujet',         ex: 'très sage' },
+        { k: 'CDN', nom: 'Complément du nom',         ex: 'de Paul', note: 'leçon « Les fonctions »' }
+    ];
+    var STYLES = [
+        { k: 'souligne',          nom: 'Souligné' },
+        { k: 'pointille',         nom: 'Pointillé' },
+        { k: 'encadre',           nom: 'Encadré' },
+        { k: 'encadre-pointille', nom: 'Encadré pointillé' }
+    ];
+    var DEFAULTS = {
+        nat: { det: '#2563eb', nom: '#dc2626', adj: '#16a34a', verbe: '#9333ea', pron: '#ea7a0c', inv: '#6b7280' },
+        fn: {
+            S:   { c: '#dc2626', s: 'souligne' },
+            V:   { c: '#dc2626', s: 'encadre' },
+            COD: { c: '#2563eb', s: 'souligne' },
+            COI: { c: '#16a34a', s: 'souligne' },
+            CC:  { c: '#111827', s: 'souligne' },
+            ATT: { c: '#dc2626', s: 'pointille' },
+            CDN: { c: '#c2185b', s: 'encadre-pointille' }
+        }
+    };
+    // Pastilles proposées dans la fenêtre (plus simple qu'un nuancier au TBI)
+    var SWATCHES = ['#dc2626', '#ea7a0c', '#ca8a04', '#16a34a', '#0d9488', '#0ea5e9', '#2563eb',
+                    '#9333ea', '#db2777', '#92400e', '#6b7280', '#111827'];
+
+    var HEX = /^#[0-9a-f]{6}$/i;
+    var STYLE_OK = {}; STYLES.forEach(function (s) { STYLE_OK[s.k] = true; });
+
+    function clone(o) { return JSON.parse(JSON.stringify(o)); }
+    function clean(raw) {
+        var out = clone(DEFAULTS);
+        if (!raw || typeof raw !== 'object') return out;
+        if (raw.nat) NAT_LIST.forEach(function (n) {
+            var v = raw.nat[n.k];
+            if (typeof v === 'string' && HEX.test(v)) out.nat[n.k] = v.toLowerCase();
+        });
+        if (raw.fn) FN_LIST.forEach(function (f) {
+            var v = raw.fn[f.k];
+            if (!v || typeof v !== 'object') return;
+            if (typeof v.c === 'string' && HEX.test(v.c)) out.fn[f.k].c = v.c.toLowerCase();
+            if (STYLE_OK[v.s]) out.fn[f.k].s = v.s;
+        });
+        return out;
+    }
+    function load() {
+        try { return clean(JSON.parse(localStorage.getItem(KEY) || 'null')); } catch (e) { return clone(DEFAULTS); }
+    }
+    var cur = load();
+    var listeners = [];
+
+    function notify() {
+        listeners.slice().forEach(function (fn) { try { fn(cur); } catch (e) { if (window.console) console.error(e); } });
+        try { window.dispatchEvent(new CustomEvent('fr-couleurs', { detail: cur })); } catch (e) {}
+    }
+    function persist() {
+        try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch (e) {}
+        notify();
+    }
+    // Modification faite dans un autre onglet
+    window.addEventListener('storage', function (e) {
+        if (e.key !== KEY) return;
+        cur = load();
+        notify();
+        if (panel) panel.refresh();
+    });
+
+    // ── Calculs de couleur ──
+    function rgb(h) { h = HEX.test(h) ? h : '#888888'; return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+    function hex(a) { return '#' + a.map(function (x) { x = Math.max(0, Math.min(255, Math.round(x))); return (x < 16 ? '0' : '') + x.toString(16); }).join(''); }
+    function mix(c, d, t) { var a = rgb(c), b = rgb(d); return hex([0, 1, 2].map(function (i) { return a[i] + (b[i] - a[i]) * t; })); }
+    function lum(c) {
+        var a = rgb(c).map(function (x) { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+        return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+    }
+    function contrast(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+    function light(c) { return mix(c, '#ffffff', 0.86); }
+    // Texte lisible sur le fond clair assorti (fonce les couleurs trop pâles)
+    function readable(c) {
+        var bg = light(c), t = c, i = 0;
+        while (contrast(t, bg) < 3.6 && i++ < 12) t = mix(t, '#000000', 0.12);
+        return t;
+    }
+    function ink(c) { return contrast('#ffffff', c) >= 2.4 ? '#ffffff' : '#1f2937'; }
+
+    // Nom approximatif d'une couleur, pour les consignes (« souligné en rouge »)
+    function colorName(c) {
+        var a = rgb(c).map(function (x) { return x / 255; });
+        var mx = Math.max.apply(null, a), mn = Math.min.apply(null, a), l = (mx + mn) / 2, d = mx - mn;
+        var s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+        if (l < 0.16) return 'noir';
+        if (s < 0.18) return l > 0.88 ? 'blanc' : 'gris';
+        var h;
+        if (mx === a[0]) h = 60 * (((a[1] - a[2]) / d) % 6);
+        else if (mx === a[1]) h = 60 * ((a[2] - a[0]) / d + 2);
+        else h = 60 * ((a[0] - a[1]) / d + 4);
+        if (h < 0) h += 360;
+        if (h < 14 || h >= 345) return 'rouge';
+        if (h < 42) return l < 0.33 ? 'marron' : 'orange';
+        if (h < 66) return l < 0.3 ? 'marron' : 'jaune';
+        if (h < 165) return 'vert';
+        if (h < 196) return 'turquoise';
+        if (h < 252) return 'bleu';
+        if (h < 290) return 'violet';
+        return 'rose';
+    }
+    function fnObj(k) { return cur.fn[k] || { c: '#9ca3af', s: 'souligne' }; }
+    // « souligné en rouge », « encadré en pointillé bleu »…
+    function fnPhrase(k) {
+        var f = fnObj(k), n = colorName(f.c);
+        return { souligne: 'souligné en ' + n, pointille: 'souligné en pointillé ' + n,
+                 encadre: 'encadré en ' + n, 'encadre-pointille': 'encadré en pointillé ' + n }[f.s];
+    }
+    // « Souligner le sujet en rouge »…
+    function fnAction(k, quoi) {
+        var f = fnObj(k), n = colorName(f.c);
+        var verbe = f.s.indexOf('encadre') === 0 ? 'Encadrer' : 'Souligner';
+        var pt = f.s.indexOf('pointille') >= 0 ? 'en pointillé ' : 'en ';
+        return verbe + ' ' + quoi + ' ' + pt + n;
+    }
+    // Petit pictogramme du style (trait ou cadre), en ligne dans du texte
+    function styleIcon(s, c, size) {
+        size = size || '1em';
+        var col = c || 'currentColor';
+        var base = 'display:inline-block;vertical-align:middle;box-sizing:border-box;width:calc(' + size + ' * 1.3);';
+        if (s === 'souligne')  return '<span style="' + base + 'height:0;border-bottom:3px solid ' + col + '"></span>';
+        if (s === 'pointille') return '<span style="' + base + 'height:0;border-bottom:4px dotted ' + col + '"></span>';
+        var bs = s === 'encadre-pointille' ? 'dashed' : 'solid';
+        return '<span style="' + base + 'height:calc(' + size + ' * .75);border:2px ' + bs + ' ' + col + ';border-radius:3px"></span>';
+    }
+
+    // =====================================================================
+    // FENÊTRE DE RÉGLAGE
+    // =====================================================================
+    var panel = null;
+    function injectCss() {
+        if (document.getElementById('frc-style')) return;
+        var st = document.createElement('style');
+        st.id = 'frc-style';
+        st.textContent = [
+            '.frc-overlay { position:fixed; inset:0; z-index:100050; background:rgba(20,16,40,.38); display:flex; align-items:center; justify-content:center; padding:12px; box-sizing:border-box; }',
+            '.frc-dialog { background:#fff; color:#1f2937; border-radius:16px; box-shadow:0 18px 50px rgba(0,0,0,.35); width:min(720px, 100%); max-height:100%; display:flex; flex-direction:column; font-family:"Segoe UI",system-ui,sans-serif; overflow:hidden; }',
+            '.frc-dialog * { box-sizing:border-box; }',
+            '.frc-head { padding:14px 18px 10px; border-bottom:1px solid #eee; }',
+            '.frc-head h3 { margin:0; font-size:18px; font-weight:800; }',
+            '.frc-head p { margin:4px 0 0; font-size:12.5px; color:#6b7280; line-height:1.4; }',
+            '.frc-body { overflow:auto; padding:6px 18px 12px; }',
+            '.frc-sec { margin:12px 0 4px; font-size:13px; font-weight:800; color:#374151; text-transform:uppercase; letter-spacing:.4px; }',
+            '.frc-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; padding:8px 0; border-bottom:1px dashed #eee; }',
+            '.frc-row:last-child { border-bottom:none; }',
+            '.frc-name { width:190px; font-weight:700; font-size:14px; display:flex; flex-direction:column; gap:3px; }',
+            '.frc-name small { font-weight:600; font-size:11px; color:#9ca3af; }',
+            '.frc-prev { font-family:"Nunito","Segoe UI",sans-serif; font-weight:800; font-size:17px; padding:0 .3em; border-radius:.2em; align-self:flex-start; line-height:1.5; }',
+            '.frc-fprev { font-family:"Nunito","Segoe UI",sans-serif; font-weight:800; font-size:17px; color:#1f2937; padding:0 .15em; align-self:flex-start; line-height:1.35; }',
+            '.frc-ctrl { flex:1; min-width:260px; display:flex; flex-direction:column; gap:6px; }',
+            '.frc-styles { display:flex; gap:5px; flex-wrap:wrap; }',
+            '.frc-st { border:2px solid #e5e7eb; background:#fff; border-radius:8px; padding:3px 8px; font:inherit; font-size:12px; font-weight:700; color:#374151; cursor:pointer; display:inline-flex; gap:6px; align-items:center; }',
+            '.frc-st.on { border-color:#4a90e2; background:#eef5ff; color:#1d4ed8; }',
+            '.frc-sw { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }',
+            '.frc-dot { width:24px; height:24px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px #d1d5db; cursor:pointer; padding:0; }',
+            '.frc-dot.on { box-shadow:0 0 0 3px #1f2937; }',
+            '.frc-pick { width:34px; height:28px; padding:0; border:1px solid #d1d5db; border-radius:6px; background:#fff; cursor:pointer; }',
+            '.frc-foot { display:flex; gap:8px; justify-content:space-between; align-items:center; padding:10px 18px 14px; border-top:1px solid #eee; flex-wrap:wrap; }',
+            '.frc-btn { border:none; border-radius:9px; padding:8px 16px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }',
+            '.frc-btn.grey { background:#f3f4f6; color:#374151; border:1px solid #e5e7eb; }',
+            '.frc-btn.blue { background:#4a90e2; color:#fff; }',
+            '@media (max-width:560px) { .frc-name { width:100%; flex-direction:row; align-items:center; gap:10px; } .frc-ctrl { min-width:0; } }'
+        ].join('\n');
+        document.head.appendChild(st);
+    }
+    function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function fnPreviewCss(f) {
+        var w = f.s === 'pointille' ? '4px dotted ' : '3px solid ';
+        if (f.s === 'souligne' || f.s === 'pointille') return 'border-bottom:' + w + f.c + ';';
+        return 'border:2px ' + (f.s === 'encadre-pointille' ? 'dashed ' : 'solid ') + f.c + ';border-radius:4px;';
+    }
+    function swatchesHtml(kind, k, val) {
+        return SWATCHES.map(function (c) {
+            return '<button class="frc-dot' + (c === val ? ' on' : '') + '" style="background:' + c + '" data-kind="' + kind + '" data-k="' + k + '" data-c="' + c + '" title="' + colorName(c) + '"></button>';
+        }).join('') + '<input class="frc-pick" type="color" value="' + val + '" data-kind="' + kind + '" data-k="' + k + '" title="Autre couleur">';
+    }
+    function bodyHtml() {
+        var h = '<div class="frc-sec">Natures des mots</div>';
+        NAT_LIST.forEach(function (n) {
+            var c = cur.nat[n.k];
+            h += '<div class="frc-row"><div class="frc-name">' + esc(n.nom) +
+                '<span class="frc-prev" style="background:' + light(c) + ';color:' + readable(c) + '">' + esc(n.ex) + '</span></div>' +
+                '<div class="frc-ctrl"><div class="frc-sw">' + swatchesHtml('nat', n.k, c) + '</div></div></div>';
+        });
+        h += '<div class="frc-sec">Fonctions</div>';
+        FN_LIST.forEach(function (f) {
+            var v = cur.fn[f.k];
+            h += '<div class="frc-row"><div class="frc-name">' + esc(f.nom) + (f.note ? '<small>' + esc(f.note) + '</small>' : '') +
+                '<span class="frc-fprev" style="' + fnPreviewCss(v) + '">' + esc(f.ex) + '</span></div>' +
+                '<div class="frc-ctrl"><div class="frc-styles">' + STYLES.map(function (s) {
+                    return '<button class="frc-st' + (s.k === v.s ? ' on' : '') + '" data-kind="style" data-k="' + f.k + '" data-s="' + s.k + '">' + styleIcon(s.k, v.c, '12px') + s.nom + '</button>';
+                }).join('') + '</div><div class="frc-sw">' + swatchesHtml('fn', f.k, v.c) + '</div></div></div>';
+        });
+        return h;
+    }
+    function openPanel() {
+        injectCss();
+        if (panel) { panel.refresh(); return; }
+        var ov = document.createElement('div');
+        ov.className = 'frc-overlay';
+        ov.innerHTML = '<div class="frc-dialog" role="dialog" aria-label="Couleurs des natures et des fonctions">' +
+            '<div class="frc-head"><h3>🎨 Couleurs des natures et des fonctions</h3>' +
+            '<p>Un seul réglage pour la leçon « Nature des mots », la leçon « Les fonctions », « L\'atelier de phrases » et « La phrase du jour ». ' +
+            'Il est gardé dans ce navigateur et s\'applique tout de suite.</p></div>' +
+            '<div class="frc-body"></div>' +
+            '<div class="frc-foot"><button class="frc-btn grey" data-act="reset">↺ Couleurs d\'origine</button>' +
+            '<button class="frc-btn blue" data-act="close">✓ Fermer</button></div></div>';
+        var body = ov.querySelector('.frc-body');
+        function refresh() { var top = body.scrollTop; body.innerHTML = bodyHtml(); body.scrollTop = top; }
+        function close() {
+            ov.remove();
+            document.removeEventListener('keydown', onKey, true);
+            panel = null;
+        }
+        function onKey(e) {
+            if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(); return; }
+            if (ov.contains(e.target)) e.stopPropagation();
+        }
+        // Le tableau ne doit pas réagir aux clics et touchers dans la fenêtre
+        ['pointerdown', 'mousedown', 'touchstart', 'wheel', 'dblclick'].forEach(function (t) {
+            ov.addEventListener(t, function (e) { e.stopPropagation(); }, t === 'touchstart' || t === 'wheel' ? { passive: true } : false);
+        });
+        ov.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (e.target === ov) { close(); return; }
+            var b = e.target.closest('button');
+            if (!b) return;
+            var kind = b.dataset.kind, k = b.dataset.k;
+            if (b.dataset.act === 'close') { close(); return; }
+            if (b.dataset.act === 'reset') { cur = clone(DEFAULTS); persist(); refresh(); return; }
+            if (kind === 'nat') cur.nat[k] = b.dataset.c;
+            else if (kind === 'fn') cur.fn[k].c = b.dataset.c;
+            else if (kind === 'style') cur.fn[k].s = b.dataset.s;
+            else return;
+            persist(); refresh();
+        });
+        // Nuancier : on applique en direct, on redessine la fenêtre à la fin
+        ov.addEventListener('input', function (e) {
+            var t = e.target;
+            if (!t.classList.contains('frc-pick') || !HEX.test(t.value)) return;
+            if (t.dataset.kind === 'nat') cur.nat[t.dataset.k] = t.value.toLowerCase();
+            else cur.fn[t.dataset.k].c = t.value.toLowerCase();
+            persist();
+        });
+        ov.addEventListener('change', function (e) { if (e.target.classList.contains('frc-pick')) refresh(); });
+        document.addEventListener('keydown', onKey, true);
+        document.body.appendChild(ov);
+        refresh();
+        panel = { refresh: refresh, close: close };
+    }
+
+    window.FrCouleurs = {
+        version: VERSION,
+        NAT_LIST: NAT_LIST, FN_LIST: FN_LIST, STYLES: STYLES,
+        get: function () { return clone(cur); },
+        nat: function (k) { return cur.nat[k] || '#9ca3af'; },
+        natLight: function (k) { return light(cur.nat[k] || '#9ca3af'); },
+        natText: function (k) { return readable(cur.nat[k] || '#9ca3af'); },
+        fn: function (k) { var f = fnObj(k); return { c: f.c, s: f.s }; },
+        light: light, readable: readable, ink: ink, colorName: colorName,
+        fnPhrase: fnPhrase, fnAction: fnAction, styleIcon: styleIcon,
+        reset: function () { cur = clone(DEFAULTS); persist(); if (panel) panel.refresh(); },
+        onChange: function (fn) {
+            listeners.push(fn);
+            return function () { var i = listeners.indexOf(fn); if (i >= 0) listeners.splice(i, 1); };
+        },
+        openPanel: openPanel
+    };
+})();
+
 // ── CSS ───────────────────────────────────────────────────────────────────
 (function () {
     // CSS partagé boutons fenêtre (injecté une seule fois)
@@ -250,13 +558,14 @@
             height: 0;
             border-bottom: 3px solid var(--tc);
         }
-        .pdj-tool-line[data-tool="fn:ATT"] .pdj-line { border-bottom-style: dotted; border-bottom-width: 4px; }
-        .pdj-tool-line[data-tool="fn:V"] .pdj-line {
+        .pdj-tool-line[data-s="pointille"] .pdj-line { border-bottom-style: dotted; border-bottom-width: 4px; }
+        .pdj-tool-line[data-s^="encadre"] .pdj-line {
             width: 14px;
             height: 9px;
             border: 2px solid var(--tc);
             border-radius: 2px;
         }
+        .pdj-tool-line[data-s="encadre-pointille"] .pdj-line { border-style: dashed; }
         .pdj-sep { width: 1px; height: 22px; background: #ddd; margin: 0 3px; }
 
         /* Zone de la phrase */
@@ -325,18 +634,8 @@
         .pdj-w[data-ok="1"]::after { content: '✓'; background: #16a34a; }
         .pdj-w[data-ok="0"]::after { content: '✗'; background: #dc2626; }
         .pdj-w.punct { padding: 0; }
-        /* Soulignements des fonctions : même bordure sur les mots et les espaces, pour un trait continu */
-        .pdj-u-S   { border-bottom: .09em solid  #dc2626; }   /* sujet : rouge */
-        .pdj-u-ATT { border-bottom: .11em dotted #dc2626; }   /* attribut : pointillé rouge */
-        .pdj-u-COD { border-bottom: .09em solid  #2563eb; }   /* COD : bleu */
-        .pdj-u-COI { border-bottom: .09em solid  #16a34a; }   /* COI : vert */
-        .pdj-u-CC  { border-bottom: .09em solid  #111827; }   /* CC : noir */
-        .pdj-w[class*="pdj-u-"] { border-radius: .15em .15em 0 0; }
-        /* Verbe conjugué : encadré en rouge (un seul cadre autour du groupe, ex. « a distribué ») */
-        .pdj-u-V { border-top: .07em solid #dc2626; border-bottom: .07em solid #dc2626; }
-        .pdj-w.pdj-u-V { border-radius: 0; }
-        .pdj-w.pdj-u-V.pdj-g-start { border-left:  .07em solid #dc2626; border-top-left-radius: .18em;  border-bottom-left-radius: .18em; }
-        .pdj-w.pdj-u-V.pdj-g-end   { border-right: .07em solid #dc2626; border-top-right-radius: .18em; border-bottom-right-radius: .18em; }
+        /* Soulignements / cadres des fonctions : générés d'après le réglage 🎨
+           (feuille #pdj-fn-dyn, fonction _pdjFnCss plus bas) */
         /* Petite étiquette de fonction sous le premier mot du groupe */
         .pdj-fnlbl {
             position: absolute;
@@ -450,6 +749,14 @@ const PDJ_NATURES = [
 ];
 const PDJ_NAT = {};
 PDJ_NATURES.forEach(n => { PDJ_NAT[n.k] = n; });
+// Couleurs réglables (🎨, réglage commun FrCouleurs) : c = couleur, l = fond clair, t = texte lisible
+const PDJ_NAT_KEY = { D: 'det', N: 'nom', A: 'adj', V: 'verbe', PR: 'pron', I: 'inv' };
+PDJ_NATURES.forEach(n => {
+    const k = PDJ_NAT_KEY[n.k];
+    Object.defineProperty(n, 'c', { get: () => FrCouleurs.nat(k), configurable: true });
+    Object.defineProperty(n, 'l', { get: () => FrCouleurs.natLight(k), configurable: true });
+    Object.defineProperty(n, 't', { get: () => FrCouleurs.natText(k), configurable: true });
+});
 // Anciens codes (adverbe, préposition, conjonction, interjection) → mot invariable
 const PDJ_NAT_ALIAS = { ADV: 'I', P: 'I', C: 'I', INT: 'I' };
 function _pdjNormNat(k) { return k ? (PDJ_NAT_ALIAS[k] || k) : null; }
@@ -472,6 +779,40 @@ const PDJ_FONCTIONS = [
 ];
 const PDJ_FN = {};
 PDJ_FONCTIONS.forEach(f => { PDJ_FN[f.k] = f; });
+// Couleur, style et consigne réglables (🎨)
+const PDJ_FN_QUOI = { V: 'le verbe conjugué', S: 'le sujet', COD: 'le complément d\'objet direct',
+                      COI: 'le complément d\'objet indirect', CC: 'le complément circonstanciel', ATT: 'l\'attribut du sujet' };
+PDJ_FONCTIONS.forEach(f => {
+    Object.defineProperty(f, 'c', { get: () => FrCouleurs.fn(f.k).c, configurable: true });
+    Object.defineProperty(f, 's', { get: () => FrCouleurs.fn(f.k).s, configurable: true });
+    Object.defineProperty(f, 'titre', { get: () => FrCouleurs.fnAction(f.k, PDJ_FN_QUOI[f.k]), configurable: true });
+});
+
+// Feuille de style des soulignements et cadres, d'après le réglage.
+// Même bordure sur les mots et sur les espaces d'un groupe : trait (ou cadre) continu.
+function _pdjFnCss() {
+    let css = '';
+    PDJ_FONCTIONS.forEach(f => {
+        const k = f.k, c = f.c, s = f.s;
+        if (s === 'souligne' || s === 'pointille') {
+            css += s === 'souligne'
+                ? `.pdj-u-${k} { border-bottom: .09em solid ${c}; }\n`
+                : `.pdj-u-${k} { border-bottom: .11em dotted ${c}; }\n`;
+            css += `.pdj-w.pdj-u-${k} { border-radius: .15em .15em 0 0; }\n`;
+        } else {
+            const b = `.07em ${s === 'encadre-pointille' ? 'dashed' : 'solid'} ${c}`;
+            css += `.pdj-u-${k} { border-top: ${b}; border-bottom: ${b}; }\n`;
+            css += `.pdj-w.pdj-u-${k} { border-radius: 0; }\n`;
+            css += `.pdj-w.pdj-u-${k}.pdj-g-start { border-left: ${b}; border-top-left-radius: .18em; border-bottom-left-radius: .18em; }\n`;
+            css += `.pdj-w.pdj-u-${k}.pdj-g-end { border-right: ${b}; border-top-right-radius: .18em; border-bottom-right-radius: .18em; }\n`;
+        }
+    });
+    let st = document.getElementById('pdj-fn-dyn');
+    if (!st) { st = document.createElement('style'); st.id = 'pdj-fn-dyn'; document.head.appendChild(st); }
+    st.textContent = css;
+}
+_pdjFnCss();
+FrCouleurs.onChange(_pdjFnCss);
 const PDJ_COMPL = ['COD', 'COI', 'CC', 'ATT'];
 const PDJ_COMPL_LONG = {
     COD: 'complément d\'objet direct',
@@ -749,17 +1090,20 @@ function createPhraseDuJourWidget() {
     // ── Barre d'outils d'analyse ──────────────────────────────────────────
     const tools = document.createElement('div');
     tools.className = 'pdj-tools';
-    tools.innerHTML =
-        PDJ_NATURES.map(n =>
-            `<button class="pdj-tool" data-tool="${n.k}" style="--tc:${n.c};--tl:${n.l}" title="Colorer en ${n.nom.toLowerCase()}${n.aide ? ' (' + n.aide + ')' : ''}">${n.nom}</button>`
-        ).join('') +
-        `<span class="pdj-sep"></span>` +
-        PDJ_FONCTIONS.map(f =>
-            `<button class="pdj-tool pdj-tool-line" data-tool="fn:${f.k}" style="--tc:${f.c}" title="${f.titre}"><span class="pdj-line"></span>${f.nom}</button>`
-        ).join('') +
-        `<button class="pdj-tool pdj-tool-line" data-tool="gomme" style="--tc:#6b7280" title="Effacer les marques d'un mot">🧽 Gomme</button>
-         <span class="pdj-sep"></span>
-         <button class="pdj-btn pdj-btn-grey" data-act="clear" title="Effacer toutes les marques">🧹 Tout effacer</button>`;
+    function buildTools() {
+        tools.innerHTML =
+            PDJ_NATURES.map(n =>
+                `<button class="pdj-tool" data-tool="${n.k}" style="--tc:${n.t};--tl:${n.l}" title="Colorer en ${n.nom.toLowerCase()}${n.aide ? ' (' + n.aide + ')' : ''}">${n.nom}</button>`
+            ).join('') +
+            `<span class="pdj-sep"></span>` +
+            PDJ_FONCTIONS.map(f =>
+                `<button class="pdj-tool pdj-tool-line" data-tool="fn:${f.k}" data-s="${f.s}" style="--tc:${f.c}" title="${f.titre}"><span class="pdj-line"></span>${f.nom}</button>`
+            ).join('') +
+            `<button class="pdj-tool pdj-tool-line" data-tool="gomme" style="--tc:#6b7280" title="Effacer les marques d'un mot">🧽 Gomme</button>
+             <span class="pdj-sep"></span>
+             <button class="pdj-btn pdj-btn-grey" data-act="clear" title="Effacer toutes les marques">🧹 Tout effacer</button>`;
+    }
+    buildTools();
     container.appendChild(tools);
 
     // ── Zone de la phrase ─────────────────────────────────────────────────
@@ -796,23 +1140,37 @@ function createPhraseDuJourWidget() {
     const wfBtnsDiv = header.querySelector('.wf-btns');
     wfBtnsDiv.insertBefore(helpBtn, wfBtnsDiv.firstChild);
 
+    // Réglage des couleurs (commun à toutes les leçons et activités de grammaire)
+    const colorBtn = document.createElement('button');
+    colorBtn.className = 'pdj-help-btn';
+    colorBtn.title = 'Couleurs des natures et des fonctions';
+    colorBtn.textContent = '🎨';
+    wfBtnsDiv.insertBefore(colorBtn, helpBtn);
+    colorBtn.addEventListener('click', (e) => { e.stopPropagation(); FrCouleurs.openPanel(); });
+
     const helpPopup = document.createElement('div');
     helpPopup.className = 'pdj-help-popup';
-    helpPopup.innerHTML = `
+    const fnHelp = () => {
+        const p = k => `<b>${k === 'V' ? 'verbe conjugué' : k === 'S' ? 'sujet' : k === 'ATT' ? 'attribut' : k === 'CC' ? 'CC' : k}</b> ${k === 'CC' ? FrCouleurs.fnPhrase(k).replace(/^(\S+)é /, '$1és ') : FrCouleurs.fnPhrase(k)}`;
+        return `le ${p('V')}, le ${p('S')}, l'${p('ATT')}, le ${p('COD')}, le ${p('COI')} et les ${p('CC')} (compléments circonstanciels)`;
+    };
+    const buildHelp = () => { helpPopup.innerHTML = `
         <h4>💡 La phrase du jour</h4>
         <p><b>Natures</b> : choisissez un outil (<b>Nom</b>, <b>Verbe</b>, <b>Mot invariable</b>…), puis
         cliquez sur les mots pour les colorer. Un nouveau clic avec le même outil retire la couleur.
         <b>Mot invariable</b> regroupe les adverbes, prépositions, conjonctions et interjections.</p>
-        <p><b>Fonctions</b> : le <b>verbe conjugué</b> est encadré en rouge, le <b>sujet</b> souligné en rouge,
-        l'<b>attribut</b> en pointillé rouge, le <b>COD</b> en bleu, le <b>COI</b> en vert et les
-        <b>CC</b> (compléments circonstanciels) en noir. Cliquez sur chaque mot du groupe. La <b>Gomme</b> efface les marques d'un mot.</p>
+        <p><b>Fonctions</b> : ${fnHelp()}. Cliquez sur chaque mot du groupe. La <b>Gomme</b> efface les marques d'un mot.</p>
+        <p><b>🎨 Couleurs</b> : choisissez la couleur de chaque nature, et la couleur et le trait
+        (souligné, pointillé, encadré) de chaque fonction. Ce réglage vaut pour toutes les leçons
+        et activités de grammaire, et il est gardé dans ce navigateur.</p>
         <p><b>▶ Correction</b> dévoile la correction étape par étape : le verbe, son infinitif et son temps,
         le sujet, les compléments, puis les natures par familles. Chaque mot reçoit ✓ ou ✗ selon la réponse de la classe.</p>
         <p><b>📅 Phrase du jour</b> choisit une phrase différente chaque jour. Les niveaux vont du présent
         (niveau 1) au passé simple et aux sujets inversés (niveaux 2 et 3).</p>
         <p><b>✏️ Ma phrase</b> : écrivez votre phrase, analysez-la vous-même puis cliquez sur
         <b>Enregistrer le corrigé</b>. Elle est rangée dans <b>⭐ Mes phrases</b> (dans ce navigateur).</p>
-    `;
+    `; };
+    buildHelp();
     container.appendChild(helpPopup);
 
     const resizeHandle = document.createElement('div');
@@ -987,6 +1345,7 @@ function createPhraseDuJourWidget() {
                     lb.className = 'pdj-fnlbl';
                     lb.textContent = PDJ_FN[f].lbl;
                     lb.style.background = PDJ_FN[f].c;
+                    lb.style.color = FrCouleurs.ink(PDJ_FN[f].c);
                     w.appendChild(lb);
                 }
             }
@@ -1002,9 +1361,9 @@ function createPhraseDuJourWidget() {
             }
             if (shown && PDJ_NAT[shown]) {
                 const n = PDJ_NAT[shown];
-                w.style.setProperty('--nc', n.c);
+                w.style.setProperty('--nc', n.t);
                 w.style.background = n.l;
-                w.style.color = n.c;
+                w.style.color = n.t;
                 w.dataset.lbl = n.lbl;
             }
             if (flashNew && nowRevealed.has(i) && !lastRevealed.has(i)) w.classList.add('pdj-flash');
@@ -1053,7 +1412,7 @@ function createPhraseDuJourWidget() {
         steps.slice(0, step).forEach(s => {
             if (s.id === 'verbe') {
                 const g = groupsOf(sol.fn, ['V']).map(x => '« ' + wordsOf(x.idx) + ' »').join(' et ');
-                html += `<div class="pdj-step">🟥 <b>Le verbe conjugué</b> (encadré en rouge) <b>:</b> ${g}${fnFeedback(['V'])}</div>`;
+                html += `<div class="pdj-step">${FrCouleurs.styleIcon(PDJ_FN.V.s, PDJ_FN.V.c)} <b>Le verbe conjugué</b> (${FrCouleurs.fnPhrase('V')}) <b>:</b> ${g}${fnFeedback(['V'])}</div>`;
             } else if (s.id === 'infos') {
                 const parts = [];
                 if (sol.inf)   parts.push(`<b>Infinitif :</b> ${sol.inf}`);
@@ -1061,7 +1420,7 @@ function createPhraseDuJourWidget() {
                 html += `<div class="pdj-step">📘 ${parts.join(' — ')}</div>`;
             } else if (s.id === 'sujet') {
                 const g = groupsOf(sol.fn, ['S']).map(x => '« ' + wordsOf(x.idx) + ' »').join(' et ');
-                html += `<div class="pdj-step">🔴 <b>Le sujet</b> (souligné en rouge) <b>:</b> ${g} : c'est lui qui commande l'accord du verbe.${fnFeedback(['S'])}</div>`;
+                html += `<div class="pdj-step">${FrCouleurs.styleIcon(PDJ_FN.S.s, PDJ_FN.S.c)} <b>Le sujet</b> (${FrCouleurs.fnPhrase('S')}) <b>:</b> ${g} : c'est lui qui commande l'accord du verbe.${fnFeedback(['S'])}</div>`;
             } else if (s.id === 'comp') {
                 const gs = groupsOf(sol.fn, PDJ_COMPL);
                 if (!gs.length) {
@@ -1074,7 +1433,7 @@ function createPhraseDuJourWidget() {
                 const lines = s.nats.map(k => {
                     const ws = [];
                     sol.nat.forEach((n, i) => { if (n === k) ws.push('« ' + cur.tokens[i].t + ' »'); });
-                    return `<span style="color:${PDJ_NAT[k].c}"><b>${PDJ_NAT[k].pl} :</b></span> ${ws.join(', ')}`;
+                    return `<span style="color:${PDJ_NAT[k].t}"><b>${PDJ_NAT[k].pl} :</b></span> ${ws.join(', ')}`;
                 });
                 let ok = 0, tot = 0;
                 sol.nat.forEach((n, i) => {
@@ -1418,6 +1777,14 @@ function createPhraseDuJourWidget() {
 
     // Au départ : la phrase du jour du niveau 1
     loadPhrase('1', _pdjDayOfYear() % _pdjBanque('1').length);
+
+    // Couleurs modifiées (ici ou dans un autre outil) : on redessine
+    const offColors = FrCouleurs.onChange(() => {
+        if (!document.body.contains(widget)) { offColors(); return; }
+        buildTools();
+        buildHelp();
+        renderAll();
+    });
 
     // ── API pour save-load.js ─────────────────────────────────────────────
     let _restored = false, _autoMax = false;

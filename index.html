@@ -4709,10 +4709,29 @@ body.menu-light #proj-panel-clear-btn:hover { background: #fdecec; }
 <script src="accueil.js"></script>
 
 <!-- Statistiques de fréquentation (GoatCounter : sans cookies, tableau de bord sur lebureauduprof.goatcounter.com)
-     Le script est hébergé sur le site (lib/goatcounter-count.js, copie de https://gc.zgo.at/count.js) :
-     plus aucun script chargé depuis un autre site. -->
-<script data-goatcounter="https://lebureauduprof.goatcounter.com/count"
-        async src="lib/goatcounter-count.js"></script>
+     Le script est hébergé sur le site : lib/goatcounter-count.js (copie de https://gc.zgo.at/count.js).
+     Sécurité : si ce fichier manque ou ne fonctionne pas, le script officiel est chargé à la place,
+     pour que les visites soient toujours comptées. -->
+<script>
+(function() {
+    var COMPTEUR = 'https://lebureauduprof.goatcounter.com/count';
+    function charger(src, siEchec) {
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = src;
+        s.setAttribute('data-goatcounter', COMPTEUR);
+        s.onload = function() {
+            // Fichier chargé mais pas le bon (page d'erreur, fichier vide…)
+            if (!(window.goatcounter && typeof window.goatcounter.count === 'function') && siEchec) siEchec();
+        };
+        s.onerror = function() { if (siEchec) siEchec(); };
+        document.body.appendChild(s);
+    }
+    charger('lib/goatcounter-count.js', function() {
+        charger('https://gc.zgo.at/count.js');
+    });
+})();
+</script>
 <!-- Service worker : rend le site installable et garde une copie pour le hors-ligne
      (uniquement en https). -->
 <script>

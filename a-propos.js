@@ -2,6 +2,8 @@
 // FENÊTRE « À PROPOS » — Le Bureau du Prof
 // -------------------------------------------------------------------------
 // Version de l'application, soutien (Tipeee), vos données, crédits.
+// Lien vers « Mentions légales et données » : openMentionsLegales()
+// (mentions-legales.js).
 // Bouton « Faire connaître » : partagerBureauDuProf() (partage.js).
 // Ouverture : openAboutModal()  (pastille « ? », écran d'accueil, aide)
 // Fermeture : closeAboutModal(), bouton ✕, « Fermer », clic sur le fond
@@ -188,9 +190,10 @@
               '<ul>' +
                 '<li><strong>Aucune donnée personnelle n\'est stockée sur un serveur.</strong> Vos tableaux, listes de classe, prénoms d\'élèves et réglages restent dans votre navigateur, sur cet appareil.</li>' +
                 '<li>Pensez à exporter vos tableaux (panneau « Tableaux ») pour en garder une copie : vider les données du navigateur les efface.</li>' +
-                '<li>La fréquentation du site est mesurée avec Google Analytics et GoatCounter.</li>' +
+                '<li>La fréquentation du site est mesurée avec GoatCounter, <strong>sans cookie</strong> et de façon anonyme.</li>' +
                 '<li>Certains widgets font appel à des services extérieurs quand vous les utilisez (YouTube, Google Maps, Qwant Junior…). Le formulaire « Contact » passe par Web3Forms : seul ce que vous choisissez d\'y écrire est envoyé.</li>' +
               '</ul>' +
+              '<p>Tout le détail, l\'hébergeur et le bouton « Effacer mes données » : <a href="#" data-about="mentions">⚖️ Mentions légales et données</a>.</p>' +
 
               '<h4>Crédits</h4>' +
               '<ul>' +
@@ -244,8 +247,10 @@
     overlay.addEventListener('click', function (e) {
         var b = e.target.closest('[data-about]');
         if (!b) return;
+        e.preventDefault();
         closeAboutModal();
         if (b.dataset.about === 'contact' && typeof openContactForm === 'function') openContactForm();
+        if (b.dataset.about === 'mentions' && typeof openMentionsLegales === 'function') openMentionsLegales();
         if (b.dataset.about === 'share' && typeof partagerBureauDuProf === 'function') partagerBureauDuProf();
     });
     // Les touches ne déclenchent pas les raccourcis du tableau ; Échap ferme la fenêtre

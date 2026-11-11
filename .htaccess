@@ -1,0 +1,23 @@
+# =========================================================================
+# En-têtes de sécurité — Le Bureau du Prof (hébergement Infomaniak / Apache)
+# À COLLER À LA FIN du fichier .htaccess à la racine du site
+# (ne pas remplacer le .htaccess existant : il contient peut-être déjà
+#  la redirection HTTPS et HSTS).
+# =========================================================================
+<IfModule mod_headers.c>
+    # Le navigateur ne devine pas le type des fichiers
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Les autres sites ne reçoivent que « lebureauduprof.fr », jamais l'adresse complète
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Le site ne peut être intégré que par lui-même (la page de garde l'intègre
+    # dans un cadre : "SAMEORIGIN" et non "DENY", sinon elle ne marcherait plus)
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Content-Security-Policy "frame-ancestors 'self'"
+
+    # Caméra, micro et position autorisés pour le site lui-même seulement
+    # (visualiseur, sonomètre, radar de bruit, défis calme, météo) ;
+    # paiement et USB interdits partout.
+    Header always set Permissions-Policy "camera=(self), microphone=(self), geolocation=(self), payment=(), usb=()"
+</IfModule>

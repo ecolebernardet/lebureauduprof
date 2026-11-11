@@ -53,13 +53,20 @@
     <meta name="twitter:title" content="Le Bureau du Prof – Tableau blanc numérique pour enseignants">
     <meta name="twitter:description" content="Un espace numérique interactif pour les enseignants : tableau blanc, stickers, activités et outils pédagogiques.">
 
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2MPZ9F4VKC"></script>
+    <!-- Adresse de la page transmise aux sites liés : seulement le nom du site -->
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <!-- « Effacer mes données » (mentions-legales.js) : second effacement au
+         rechargement, avant que le tableau ne soit restauré. -->
     <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-2MPZ9F4VKC');
+    (function() {
+        try {
+            if (sessionStorage.getItem('ml-effacer') === '1') {
+                localStorage.clear();
+                sessionStorage.clear();
+            }
+        } catch (e) {}
+    })();
     </script>
 
     <link rel="icon" type="image/x-icon" href="icon.ico">
@@ -3151,6 +3158,7 @@ function setVisuelsMode(mode) {
     <button role="menuitem" type="button" data-help="aide"><span class="shm-ico">❓</span>Aide</button>
     <button role="menuitem" type="button" data-help="contact"><span class="shm-ico">💬</span>Contact</button>
     <button role="menuitem" type="button" data-help="apropos"><span class="shm-ico">ℹ️</span>À propos</button>
+    <button role="menuitem" type="button" data-help="mentions"><span class="shm-ico">⚖️</span>Mentions légales</button>
 </div>
 
 
@@ -4031,7 +4039,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.head.appendChild(ps);
     }
 
+    // Seule la page de garde du site lui-même (même origine) peut piloter
+    // ce tableau, et les réponses ne partent que vers elle.
+    var PG_ORIGIN = window.location.origin;
+
     window.addEventListener('message', function(e) {
+        if (e.origin !== PG_ORIGIN) return;
         var cmd = e.data && e.data.pgCmd;
         if (!cmd) return;
 
@@ -4052,7 +4065,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }).then(function(canvas) {
                     var s = document.getElementById('__pg_capture_hide__');
                     if (s) s.remove();
-                    e.source.postMessage({ pgEvent: 'print-ready', dataURL: canvas.toDataURL('image/png') }, '*');
+                    e.source.postMessage({ pgEvent: 'print-ready', dataURL: canvas.toDataURL('image/png') }, PG_ORIGIN);
                 }).catch(function(err) {
                     var s = document.getElementById('__pg_capture_hide__');
                     if (s) s.remove();
@@ -4062,9 +4075,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (!window.html2canvas) {
+                // Bibliothèque hébergée sur le site (plus de script chargé
+                // depuis un autre site) : fichier lib/html2canvas.min.js.
+                // S'il manque, on imprime directement la page.
                 var s = document.createElement('script');
-                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                s.src = 'lib/html2canvas.min.js';
                 s.onload = doCapturePrint;
+                s.onerror = function() { ensurePrintStyle(); setTimeout(function() { window.print(); }, 150); };
                 document.head.appendChild(s);
             } else {
                 doCapturePrint();
@@ -4078,11 +4095,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 Array.from(document.querySelectorAll('.widget,.shape-widget')).forEach(function(w){ w.remove(); });
                 if (typeof saveBoard === 'function') saveBoard();
             }
-            e.source.postMessage({ pgEvent: 'cleared' }, '*');
+            e.source.postMessage({ pgEvent: 'cleared' }, PG_ORIGIN);
         }
 
         if (cmd === 'ping') {
-            e.source.postMessage({ pgEvent: 'pong' }, '*');
+            e.source.postMessage({ pgEvent: 'pong' }, PG_ORIGIN);
         }
 
         // ── Créer un widget texte directement ────────────────────────────
@@ -4124,7 +4141,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             } catch(err) {}
-            e.source.postMessage({ pgEvent: 'state-ready', state: state }, '*');
+            e.source.postMessage({ pgEvent: 'state-ready', state: state }, PG_ORIGIN);
         }
 
         // ── Chargement : restaurer les clés pagegarde_ et recharger le board ──
@@ -4149,9 +4166,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         restoreBoardFromJSON(boardJson);
                     }
                 }
-                e.source.postMessage({ pgEvent: 'state-applied' }, '*');
+                e.source.postMessage({ pgEvent: 'state-applied' }, PG_ORIGIN);
             } catch(err) {
-                e.source.postMessage({ pgEvent: 'state-error', message: err.message }, '*');
+                e.source.postMessage({ pgEvent: 'state-error', message: err.message }, PG_ORIGIN);
             }
         }
     });
@@ -4159,7 +4176,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Signaler au parent que l'iframe est prête
     document.addEventListener('DOMContentLoaded', function() {
         if (window.parent && window.parent !== window) {
-            window.parent.postMessage({ type: 'pg-ready' }, '*');
+            window.parent.postMessage({ type: 'pg-ready' }, PG_ORIGIN);
         }
     });
 })();
@@ -4544,6 +4561,8 @@ body.menu-light #proj-panel-clear-btn:hover { background: #fdecec; }
 
 <!-- Fenêtre « À propos » (version, données, crédits) : voir a-propos.js -->
 <script src="a-propos.js"></script>
+<!-- Fenêtre « Mentions légales et données » (éditeur, hébergeur, confidentialité) : voir mentions-legales.js -->
+<script src="mentions-legales.js"></script>
 
 <script>
 (function() {
@@ -4616,6 +4635,7 @@ body.menu-light #proj-panel-clear-btn:hover { background: #fdecec; }
         else if (what === 'aide' && typeof openHelpModal === 'function') openHelpModal();
         else if (what === 'contact' && typeof openContactForm === 'function') openContactForm();
         else if (what === 'apropos') openAboutModal();
+        else if (what === 'mentions' && typeof openMentionsLegales === 'function') openMentionsLegales();
     });
 
     document.addEventListener('pointerdown', function(e) {

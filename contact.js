@@ -11,6 +11,9 @@
 // - Pour changer de clé : modifier CONTACT_ACCESS_KEY ci-dessous.
 // - Le numéro de version (version.js, window.APP_VERSION) est affiché
 //   sous le bouton « Envoyer » et joint à chaque message.
+// - Au-dessus du bouton « Envoyer », une ligne explique ce qui est transmis
+//   (RGPD), avec un lien vers « Mentions légales et données »
+//   (openMentionsLegales, dans mentions-legales.js).
 // - En bas du formulaire, un lien « Soutenir sur Tipeee » (adresse lue
 //   dans donateurs.js, DONATEURS_LIEN, sinon TIPEEE_DEFAUT ci-dessous),
 //   puis un bouton « Partager » (partagerBureauDuProf, dans partage.js).
@@ -101,6 +104,10 @@
         '#contact-status.ok  { color: #4fd18b; }',
         '#contact-status.err { color: #ff8a8a; }',
         '.ct-honeypot { display: none !important; }',
+        '#contact-form .ct-rgpd { margin: -2px 0 0; font-size: 11.5px; line-height: 1.4; color: #8a8698; }',
+        '#contact-form .ct-rgpd a { color: #7ab8f5; }',
+        'body.menu-light #contact-form .ct-rgpd { color: #6b6880; }',
+        'body.menu-light #contact-form .ct-rgpd a { color: #2f6fc4; }',
         '#contact-version { margin-top: -6px; font-size: 11px; text-align: center; color: #8a8698; }',
         '#contact-version:empty { display: none; }',
         /* Soutenir sur Tipeee */
@@ -182,6 +189,10 @@
               // Piège à robots : invisible pour les humains
               '<input type="checkbox" name="botcheck" class="ct-honeypot" tabindex="-1" autocomplete="off">' +
 
+              '<p class="ct-rgpd">Votre message (et votre nom et e-mail si vous les indiquez) est transmis par Web3Forms à l\'auteur, ' +
+                'avec la version du site et le type de navigateur, uniquement pour vous répondre. ' +
+                '<a href="#" id="contact-mentions">En savoir plus</a></p>' +
+
               '<button type="submit" id="contact-send">Envoyer</button>' +
               '<div id="contact-status" aria-live="polite"></div>' +
               '<div id="contact-version"></div>' +
@@ -249,6 +260,12 @@
     // « Partager » : ouvre la fenêtre de partage (partage.js) par-dessus le formulaire
     document.getElementById('contact-partage-btn').addEventListener('click', function () {
         if (typeof partagerBureauDuProf === 'function') partagerBureauDuProf();
+    });
+    // « En savoir plus » : ouvre « Mentions légales et données » (mentions-legales.js)
+    document.getElementById('contact-mentions').addEventListener('click', function (e) {
+        e.preventDefault();
+        closeContactForm();
+        if (typeof openMentionsLegales === 'function') openMentionsLegales();
     });
     // Clic sur le fond grisé : ferme la fenêtre
     overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) closeContactForm(); });

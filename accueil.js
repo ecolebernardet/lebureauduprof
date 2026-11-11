@@ -13,6 +13,8 @@
 //   - un badge avec le numéro de version à côté du titre (version.js,
 //     window.APP_VERSION ; cliquable : ouvre la fenêtre « À propos »)
 //   - une astuce tirée au hasard
+//   - en bas, un lien « Mentions légales » (openMentionsLegales, dans
+//     mentions-legales.js)
 // Elle peut aussi être rouverte à tout moment par openAccueil() (pastille
 // « ? » → Accueil), même si le tableau n'est pas vide ou si « Ne plus
 // afficher » est coché.
@@ -206,6 +208,11 @@
         '.acc-tip{display:flex;gap:8px;align-items:flex-start;line-height:1.35;}',
         '.acc-tip b{color:#d69e00;flex-shrink:0;}',
         '.acc-never{display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;user-select:none;}',
+        '.acc-foot-r{display:flex;align-items:center;gap:14px;flex-shrink:0;}',
+        '.acc-legal{border:none;background:none;padding:0;cursor:pointer;font:inherit;font-size:12px;color:inherit;',
+        '  text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}',
+        '.acc-legal:hover{color:#2f6fc4;}',
+        'body:not(.menu-light) .acc-legal:hover{color:#9cc6f5;}',
         '.acc-never input{accent-color:#7b4fe0;width:15px;height:15px;margin:0;cursor:pointer;}',
         /* Mode sombre */
         'body:not(.menu-light) .acc-card{background:rgba(24,22,34,.86);border-color:rgba(255,255,255,.08);color:#ecebf3;}',
@@ -411,7 +418,10 @@
               bandeauDonateurs() +
               '<div class="acc-foot">' +
                 '<div class="acc-tip"><b>💡 Astuce</b><span>' + ASTUCES[Math.floor(Math.random() * ASTUCES.length)] + '</span></div>' +
-                '<label class="acc-never"><input type="checkbox"> Ne plus afficher</label>' +
+                '<div class="acc-foot-r">' +
+                  '<button type="button" class="acc-legal" data-act="mentions">Mentions légales</button>' +
+                  '<label class="acc-never"><input type="checkbox"> Ne plus afficher</label>' +
+                '</div>' +
               '</div>' +
             '</div>';
         document.body.appendChild(root);
@@ -461,6 +471,10 @@
         root.querySelector('[data-act="share"]').addEventListener('click', function () {
             hide();
             if (typeof partagerBureauDuProf === 'function') partagerBureauDuProf();
+        });
+        root.querySelector('[data-act="mentions"]').addEventListener('click', function () {
+            hide();
+            if (typeof openMentionsLegales === 'function') openMentionsLegales();
         });
         var verBtn = root.querySelector('[data-act="version"]');
         if (verBtn) verBtn.addEventListener('click', function () {

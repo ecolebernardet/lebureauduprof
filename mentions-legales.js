@@ -9,14 +9,16 @@
 // Fermeture : closeMentionsLegales(), bouton ✕, « Fermer », clic sur le
 //             fond grisé ou touche Échap.
 //
-// Installation : <script src="mentions-legales.js"></script> dans index.html
-// (le CSS et le HTML sont injectés par ce fichier).
-// À mettre à jour si l'hébergeur, l'outil de statistiques ou un service
-// extérieur change (et modifier la date MAJ ci-dessous).
+// Le TEXTE de la fenêtre est écrit directement dans index.html (bloc
+// <div id="ml-overlay" … hidden>), juste avant la balise de ce script :
+// c'est là qu'il faut le modifier (hébergeur, statistiques, services
+// extérieurs, date de mise à jour). Ce fichier n'apporte que le style
+// et le fonctionnement.
+//
+// Installation : <script src="mentions-legales.js"></script> dans index.html,
+// APRÈS le bloc <div id="ml-overlay">.
 // =========================================================================
 (function () {
-
-    var MAJ = '11 novembre 2026';   // date de dernière mise à jour du texte
 
     // ── CSS (même style que « À propos » et « Contact ») ────────────────
     var CSS = [
@@ -95,90 +97,15 @@
         '}'
     ].join('\n');
 
-    // ── Contenu ──────────────────────────────────────────────────────────
-    var HTML =
-        '<div id="ml-overlay" role="dialog" aria-modal="true" aria-labelledby="ml-title">' +
-          '<div id="ml-box">' +
-            '<div id="ml-head">' +
-              '<h3 id="ml-title">⚖️ Mentions légales et données</h3>' +
-              '<button type="button" id="ml-close" title="Fermer" aria-label="Fermer">✕</button>' +
-            '</div>' +
-            '<div id="ml-body">' +
-              '<p class="ml-intro">Le Bureau du Prof est un site gratuit, sans publicité et sans compte. ' +
-              'Voici qui l\'édite, où il est hébergé et ce qu\'il advient de vos données.</p>' +
-
-              '<h4>Éditeur et directeur de la publication</h4>' +
-              '<div class="ml-card"><p><strong>Nicolas BERNARDET</strong>, enseignant, à titre personnel et non commercial.<br>' +
-              'Site : <a href="https://lebureauduprof.fr/" target="_blank" rel="noopener">lebureauduprof.fr</a><br>' +
-              'Contact : <a href="#" data-ml="contact">formulaire « Contact »</a> (pastille « ? »).</p></div>' +
-
-              '<h4>Hébergeur</h4>' +
-              '<div class="ml-card"><p><strong>Infomaniak Network SA</strong><br>' +
-              'Rue Eugène-Marziano 25, 1227 Les Acacias (Genève), Suisse<br>' +
-              'Téléphone : +41 22 820 35 44 · <a href="https://www.infomaniak.com/" target="_blank" rel="noopener">infomaniak.com</a></p></div>' +
-
-              '<h4>Vos données restent sur votre appareil</h4>' +
-              '<ul>' +
-                '<li>Le site ne demande <strong>aucun compte</strong> et ne possède <strong>aucune base de données</strong>. ' +
-                'Vos tableaux, listes de classe, prénoms d\'élèves, plans de classe et réglages sont enregistrés uniquement dans le ' +
-                'stockage de votre navigateur, sur cet appareil. Ils ne sont jamais envoyés à l\'auteur ni à un serveur.</li>' +
-                '<li>Conseil : n\'indiquez que des <strong>prénoms</strong>, et sur un ordinateur partagé, effacez vos données en fin d\'utilisation (bouton ci-dessous).</li>' +
-                '<li>La <strong>caméra</strong> (visualiseur), le <strong>micro</strong> (sonomètre, radar de bruit, défis calme) et la <strong>position</strong> (météo locale) ' +
-                'ne sont utilisés qu\'avec votre autorisation, en direct sur l\'appareil : rien n\'est enregistré ni transmis.</li>' +
-              '</ul>' +
-
-              '<h4>Formulaire « Contact »</h4>' +
-              '<p>Si vous écrivez à l\'auteur, votre message, et votre nom et e-mail si vous les indiquez, sont transmis par le service ' +
-              '<a href="https://web3forms.com/" target="_blank" rel="noopener">Web3Forms</a> à sa boîte mail, avec le numéro de version, ' +
-              'l\'adresse de la page et le type de navigateur (pour aider à corriger les bugs). Ils servent uniquement à vous répondre ' +
-              'et ne sont jamais réutilisés ni cédés. Votre nom et votre e-mail sont aussi mémorisés sur cet appareil pour le prochain message.</p>' +
-
-              '<h4>Mesure d\'audience, sans cookie</h4>' +
-              '<p>La fréquentation est mesurée avec <a href="https://www.goatcounter.com/" target="_blank" rel="noopener">GoatCounter</a>, ' +
-              'qui ne dépose <strong>aucun cookie</strong> et ne suit pas les visiteurs d\'un site à l\'autre : seules des statistiques anonymes ' +
-              'et globales sont produites (pages vues, type de navigateur, pays). Le site ne dépose lui-même aucun cookie publicitaire ou de traçage.</p>' +
-
-              '<h4>Services extérieurs</h4>' +
-              '<p>Certains widgets chargent du contenu depuis un autre site, <strong>seulement quand vous les ouvrez</strong> : ' +
-              'YouTube, Google Maps, Qwant Junior, la « Fenêtre Web » (le site que vous choisissez), la météo, les stickers animés (Google Noto). ' +
-              'Ces services appliquent leurs propres règles de confidentialité et peuvent déposer leurs cookies. ' +
-              'Les liens « Soutenir » mènent à Tipeee.</p>' +
-
-              '<h4>Vos droits</h4>' +
-              '<p>Conformément au RGPD et à la loi Informatique et Libertés, vous pouvez demander l\'accès, la rectification ou la suppression ' +
-              'des données que vous avez envoyées par le formulaire « Contact ». Les données enregistrées sur votre appareil, elles, ' +
-              'sont entièrement sous votre contrôle. En cas de difficulté, vous pouvez saisir la ' +
-              '<a href="https://www.cnil.fr/" target="_blank" rel="noopener">CNIL</a>.</p>' +
-
-              '<h4>Effacer mes données</h4>' +
-              '<div class="ml-erase">' +
-                '<p>Supprime de ce navigateur tous les tableaux, listes de classe et réglages du Bureau du Prof. ' +
-                '<strong>Exportez d\'abord vos tableaux</strong> (onglet « Tableaux ») si vous voulez les garder.</p>' +
-                '<button type="button" id="ml-erase-btn">🗑️ Effacer</button>' +
-              '</div>' +
-
-              '<h4>Propriété intellectuelle</h4>' +
-              '<p>Les contenus du site (textes, leçons, jeux, illustrations, code) sont la propriété de leur auteur, sauf mention contraire. ' +
-              'Leur utilisation en classe est libre ; leur reproduction ou diffusion ailleurs demande son accord. ' +
-              'Les crédits des polices et des émojis figurent dans la fenêtre « À propos ».</p>' +
-
-              '<p class="ml-maj">Dernière mise à jour : ' + MAJ + '</p>' +
-
-              '<div class="ml-actions">' +
-                '<button type="button" data-ml="contact">💬 Contacter l\'auteur</button>' +
-                '<button type="button" class="ml-primary" data-ml="close">Fermer</button>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-        '</div>';
-
     // ── Injection ────────────────────────────────────────────────────────
     var style = document.createElement('style');
     style.id = 'mentions-legales-style';
     style.textContent = CSS;
     document.head.appendChild(style);
 
-    document.body.insertAdjacentHTML('beforeend', HTML);
+    // Le texte (HTML) est écrit directement dans index.html (bloc
+    // <div id="ml-overlay">), pour être lisible sans JavaScript.
+    if (!document.getElementById('ml-overlay')) return;
 
     // ── Ouverture / fermeture ────────────────────────────────────────────
     var overlay  = document.getElementById('ml-overlay');
@@ -194,12 +121,14 @@
     function openMentionsLegales() {
         lastFocus = document.activeElement;
         resetErase();
+        overlay.hidden = false;
         overlay.classList.add('open');
         document.getElementById('ml-box').scrollTop = 0;
         setTimeout(function () { document.getElementById('ml-close').focus(); }, 50);
     }
     function closeMentionsLegales() {
         overlay.classList.remove('open');
+        overlay.hidden = true;
         resetErase();
         if (lastFocus && typeof lastFocus.focus === 'function') { try { lastFocus.focus(); } catch (e) {} }
     }

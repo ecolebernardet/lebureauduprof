@@ -4561,6 +4561,45 @@ body.menu-light #proj-panel-clear-btn:hover { background: #fdecec; }
 
 <!-- Fenêtre « À propos » (version, données, crédits) : voir a-propos.js -->
 <script src="a-propos.js"></script>
+<!-- ══ Mentions légales et données (texte affiché par mentions-legales.js) ══
+     Texte présent directement dans la page : lisible sans JavaScript et par les
+     moteurs de recherche. Mettre à jour ici en cas de changement (hébergeur,
+     statistiques, services extérieurs) et changer la date en bas. -->
+<div id="ml-overlay" role="dialog" aria-modal="true" aria-labelledby="ml-title" hidden>
+<div id="ml-box">
+<div id="ml-head">
+<h3 id="ml-title">⚖️ Mentions légales et données</h3><button type="button" id="ml-close" title="Fermer" aria-label="Fermer">✕</button></div>
+<div id="ml-body">
+<p class="ml-intro">Le Bureau du Prof est un site gratuit, sans publicité et sans compte. Voici qui l'édite, où il est hébergé et ce qu'il advient de vos données.</p>
+<h4>Éditeur et directeur de la publication</h4>
+<div class="ml-card">
+<p><strong>Nicolas BERNARDET</strong>, enseignant, à titre personnel et non commercial.<br>Site : <a href="https://lebureauduprof.fr/" target="_blank" rel="noopener">lebureauduprof.fr</a><br>Contact : <a href="#" data-ml="contact">formulaire « Contact »</a> (pastille « ? »).</p></div>
+<h4>Hébergeur</h4>
+<div class="ml-card">
+<p><strong>Infomaniak Network SA</strong><br>Rue Eugène-Marziano 25, 1227 Les Acacias (Genève), Suisse<br>Téléphone : +41 22 820 35 44 · <a href="https://www.infomaniak.com/" target="_blank" rel="noopener">infomaniak.com</a></p></div>
+<h4>Vos données restent sur votre appareil</h4>
+<ul>
+<li>Le site ne demande <strong>aucun compte</strong> et ne possède <strong>aucune base de données</strong>. Vos tableaux, listes de classe, prénoms d'élèves, plans de classe et réglages sont enregistrés uniquement dans le stockage de votre navigateur, sur cet appareil. Ils ne sont jamais envoyés à l'auteur ni à un serveur.</li>
+<li>Conseil : n'indiquez que des <strong>prénoms</strong>, et sur un ordinateur partagé, effacez vos données en fin d'utilisation (bouton ci-dessous).</li>
+<li>La <strong>caméra</strong> (visualiseur), le <strong>micro</strong> (sonomètre, radar de bruit, défis calme) et la <strong>position</strong> (météo locale) ne sont utilisés qu'avec votre autorisation, en direct sur l'appareil : rien n'est enregistré ni transmis.</li>
+</ul>
+<h4>Formulaire « Contact »</h4>
+<p>Si vous écrivez à l'auteur, votre message, et votre nom et e-mail si vous les indiquez, sont transmis par le service <a href="https://web3forms.com/" target="_blank" rel="noopener">Web3Forms</a> à sa boîte mail, avec le numéro de version, l'adresse de la page et le type de navigateur (pour aider à corriger les bugs). Ils servent uniquement à vous répondre et ne sont jamais réutilisés ni cédés. Votre nom et votre e-mail sont aussi mémorisés sur cet appareil pour le prochain message.</p>
+<h4>Mesure d'audience, sans cookie</h4>
+<p>La fréquentation est mesurée avec <a href="https://www.goatcounter.com/" target="_blank" rel="noopener">GoatCounter</a>, qui ne dépose <strong>aucun cookie</strong> et ne suit pas les visiteurs d'un site à l'autre : seules des statistiques anonymes et globales sont produites (pages vues, type de navigateur, pays). Le site ne dépose lui-même aucun cookie publicitaire ou de traçage.</p>
+<h4>Services extérieurs</h4>
+<p>Certains widgets chargent du contenu depuis un autre site, <strong>seulement quand vous les ouvrez</strong> : YouTube, Google Maps, Qwant Junior, la « Fenêtre Web » (le site que vous choisissez), la météo, les stickers animés (Google Noto). Ces services appliquent leurs propres règles de confidentialité et peuvent déposer leurs cookies. Les liens « Soutenir » mènent à Tipeee.</p>
+<h4>Vos droits</h4>
+<p>Conformément au RGPD et à la loi Informatique et Libertés, vous pouvez demander l'accès, la rectification ou la suppression des données que vous avez envoyées par le formulaire « Contact ». Les données enregistrées sur votre appareil, elles, sont entièrement sous votre contrôle. En cas de difficulté, vous pouvez saisir la <a href="https://www.cnil.fr/" target="_blank" rel="noopener">CNIL</a>.</p>
+<h4>Effacer mes données</h4>
+<div class="ml-erase">
+<p>Supprime de ce navigateur tous les tableaux, listes de classe et réglages du Bureau du Prof. <strong>Exportez d'abord vos tableaux</strong> (onglet « Tableaux ») si vous voulez les garder.</p>
+<button type="button" id="ml-erase-btn">🗑️ Effacer</button></div>
+<h4>Propriété intellectuelle</h4>
+<p>Les contenus du site (textes, leçons, jeux, illustrations, code) sont la propriété de leur auteur, sauf mention contraire. Leur utilisation en classe est libre ; leur reproduction ou diffusion ailleurs demande son accord. Les crédits des polices et des émojis figurent dans la fenêtre « À propos ».</p>
+<p class="ml-maj">Dernière mise à jour : 11 novembre 2026</p>
+<div class="ml-actions"><button type="button" data-ml="contact">💬 Contacter l'auteur</button><button type="button" class="ml-primary" data-ml="close">Fermer</button></div>
+</div></div></div>
 <!-- Fenêtre « Mentions légales et données » (éditeur, hébergeur, confidentialité) : voir mentions-legales.js -->
 <script src="mentions-legales.js"></script>
 
@@ -4657,9 +4696,11 @@ body.menu-light #proj-panel-clear-btn:hover { background: #fdecec; }
 <!-- Écran d'accueil à l'ouverture (tableau vide). Pour le retirer : supprimer cette ligne. -->
 <script src="accueil.js"></script>
 
-<!-- Statistiques de fréquentation (GoatCounter : sans cookies, tableau de bord sur lebureauduprof.goatcounter.com) -->
+<!-- Statistiques de fréquentation (GoatCounter : sans cookies, tableau de bord sur lebureauduprof.goatcounter.com)
+     Le script est hébergé sur le site (lib/goatcounter-count.js, copie de https://gc.zgo.at/count.js) :
+     plus aucun script chargé depuis un autre site. -->
 <script data-goatcounter="https://lebureauduprof.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
+        async src="lib/goatcounter-count.js"></script>
 <!-- Service worker : rend le site installable et garde une copie pour le hors-ligne
      (uniquement en https). -->
 <script>

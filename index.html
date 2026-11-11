@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
+    <!-- Numéro de version du site : à changer uniquement dans version.js -->
+    <script src="version.js"></script>
     <script>
     // ── Téléphone : retour à l'échelle normale après une rotation ──────────
     // Quand on passe en paysage puis qu'on revient en portrait, le navigateur
@@ -369,6 +371,44 @@
         Storage.prototype.removeItem = function(key) {
             if (ISOLATED_KEYS.indexOf(key) !== -1) key = PG_PREFIX + key;
             return _origRemoveItem.call(this, key);
+        };
+    })();
+    </script>
+    <script>
+    // ── Copie de travail du tableau propre à chaque onglet ──────────────────
+    // Le tableau affiché, son fond et la scène courante étaient gardés dans le
+    // localStorage, commun à tous les onglets : deux onglets ouverts se
+    // mélangeaient (le fond changé dans l'un était enregistré dans le tableau
+    // de l'autre). Ces clés sont maintenant redirigées vers sessionStorage,
+    // propre à chaque onglet et conservé par F5.
+    // La bibliothèque « Mes tableaux » (IndexedDB) reste commune, elle.
+    (function() {
+        if (window.location.search.indexOf('mode=pagegarde') !== -1) return; // la page de garde a sa propre isolation
+        var TAB_KEYS = ['profBoardConfig', 'boardBackground', 'boardBgScale', 'profScenes'];
+        var ss;
+        try { ss = window.sessionStorage; ss.getItem('x'); } catch(e) { return; } // sessionStorage indisponible : on garde l'ancien comportement
+        var proto = Storage.prototype;
+        var _get = proto.getItem, _set = proto.setItem, _rem = proto.removeItem;
+        var ls = window.localStorage;
+        // Première fois dans cet onglet : reprendre l'état existant (mise à jour du site sans perdre un brouillon)
+        try {
+            if (!_get.call(ss, '_tabStateInit')) {
+                TAB_KEYS.forEach(function(k) {
+                    var v = _get.call(ls, k);
+                    if (v !== null && _get.call(ss, k) === null) _set.call(ss, k, v);
+                });
+                _set.call(ss, '_tabStateInit', '1');
+            }
+        } catch(e) {}
+        function isTabKey(store, key) { return store === ls && TAB_KEYS.indexOf(key) !== -1; }
+        proto.getItem = function(key) {
+            return isTabKey(this, key) ? _get.call(ss, key) : _get.call(this, key);
+        };
+        proto.setItem = function(key, value) {
+            return isTabKey(this, key) ? _set.call(ss, key, value) : _set.call(this, key, value);
+        };
+        proto.removeItem = function(key) {
+            return isTabKey(this, key) ? _rem.call(ss, key) : _rem.call(this, key);
         };
     })();
     </script>
@@ -1143,7 +1183,7 @@ function setVisuelsMode(mode) {
 <div id="rotation-indicator"><span id="rot-deg">0°</span><span class="rot-reset-hint">double-clic → 0°</span></div>
 <input type="file" id="bg-upload" style="display:none" accept="image/*" onchange="handleBgUpload(this)">
 
-<script src="board.js?v=20261107a"></script>
+<script src="board.js?v=20261111a"></script>
 <script>
 /* ── Patch : synchronise l'onglet Mode Présentation avec l'état réel ── */
 (function() {
@@ -1185,13 +1225,13 @@ function setVisuelsMode(mode) {
 <script src="outil-outilsprofs.js"></script>
 <script src="help-modal.js"></script>
 <script src="modal-ui.js"></script>
-<script src="save-load.js?v=20261108a"></script>
+<script src="save-load.js?v=20261111a"></script>
 <script src="groups.js"></script>
 <script src="widget-datetime.js"></script>
 <script src="widget-meteo.js"></script>
 
-<script src="scenes.js"></script>
-<script src="projects.js?v=20261108b"></script>
+<script src="scenes.js?v=20261111a"></script>
+<script src="projects.js?v=20261111b"></script>
 <script src="shapes.js"></script>
 <script src="draw.js"></script>
 <script src="stickers.js"></script>
@@ -1373,7 +1413,7 @@ function setVisuelsMode(mode) {
 <script src="toolbar-text.js"></script>
 <script src="widget-devoirs.js"></script>
 
-<input type="file" id="import-input" style="display:none" accept=".json" onchange="importConfig(this)">
+<input type="file" id="import-input" style="display:none" accept=".json" onchange="importConfig(event)">
 <input type="file" id="yt-import-input" style="display:none" accept=".json">
 <a id="yt-export-link" style="display:none" download="bibliotheque-youtube.json"></a>
 
@@ -3267,7 +3307,7 @@ function setVisuelsMode(mode) {
 })();
 </script>
 
-<script src="projects-panel.js"></script>
+<script src="projects-panel.js?v=20261111a"></script>
 <script>
 // Rafraîchir le panneau projets après toute sauvegarde ou suppression
 (function() {
@@ -4398,8 +4438,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- ══════════════════════════════════════════════════════════════════
      PASTILLE « ? » (Aide, Contact, À propos)
      + styles des éléments déplacés depuis l'ancienne rubrique « Actions »
-     La fenêtre « À propos » et le numéro de version (APP_VERSION)
-     sont dans a-propos.js.
+     La fenêtre « À propos » est dans a-propos.js ;
+     le numéro de version (APP_VERSION) est dans version.js.
 ═══════════════════════════════════════════════════════════════════ -->
 <style>
 /* ── Pastille « ? » sous les onglets ── */

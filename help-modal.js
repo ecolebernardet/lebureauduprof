@@ -638,7 +638,7 @@
 function openHelpModal() {
   const o = document.getElementById('help-modal-overlay');
   o.style.display = 'flex';
-  // Numéro de version défini dans a-propos.js (APP_VERSION), lu à l'ouverture
+  // Numéro de version défini dans version.js (APP_VERSION), lu à l'ouverture
   const v = document.getElementById('hm-version');
   if (v) v.textContent = window.APP_VERSION || '';
   // Lien Tipeee : celui de donateurs.js (DONATEURS_LIEN) s'il est rempli

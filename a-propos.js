@@ -7,17 +7,16 @@
 // Fermeture : closeAboutModal(), bouton ✕, « Fermer », clic sur le fond
 //             grisé ou touche Échap.
 //
-// Le numéro de version est défini ici (APP_VERSION) et exposé dans
-// window.APP_VERSION : la modale d'aide (help-modal.js) le lit aussi.
+// Le numéro de version est défini dans version.js (window.APP_VERSION),
+// à charger avant ce fichier.
 //
 // Installation : <script src="a-propos.js"></script> dans index.html
 // (le CSS et le HTML sont injectés par ce fichier).
 // =========================================================================
 (function () {
 
-    // ── Numéro de version : à modifier ici ───────────────────────────────
-    var APP_VERSION = '4.4';
-    window.APP_VERSION = APP_VERSION;
+    // ── Numéro de version : défini dans version.js ───────────────────────
+    var APP_VERSION = String(window.APP_VERSION || '');
 
     // ── Lien Tipeee : celui de donateurs.js (DONATEURS_LIEN) s'il existe,
     //    sinon cette adresse par défaut ────────────────────────────────────
@@ -165,6 +164,7 @@
         lastFocus = document.activeElement;
         var t = document.getElementById('about-tipeee');
         if (t) t.href = lienTipeee();
+        if (v) v.textContent = String(window.APP_VERSION || '');
         overlay.classList.add('open');
         setTimeout(function () { document.getElementById('about-close').focus(); }, 50);
     }

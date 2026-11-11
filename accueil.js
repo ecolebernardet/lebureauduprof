@@ -10,6 +10,8 @@
 //     « Contact » (formulaire de contact, openContactForm, dans contact.js),
 //     « À propos » (fenêtre À propos, openAboutModal, dans a-propos.js) et
 //     « Partager » (partagerBureauDuProf, dans partage.js)
+//   - un badge avec le numéro de version à côté du titre (version.js,
+//     window.APP_VERSION ; cliquable : ouvre la fenêtre « À propos »)
 //   - une astuce tirée au hasard
 //   - un bandeau « Merci à nos soutiens » avec les noms de donateurs.js ;
 //     tant que la liste est vide, un appel au soutien avec le lien Tipeee
@@ -102,6 +104,11 @@
         '.acc-hello{font-size:15px;font-weight:700;color:#7b4fe0;letter-spacing:.3px;margin:0 0 2px;}',
         '.acc-title{font-size:30px;font-weight:900;margin:0;line-height:1.1;letter-spacing:-.3px;}',
         '.acc-brand{display:flex;align-items:center;gap:14px;}',
+        '.acc-ver{display:inline-block;vertical-align:middle;margin-left:8px;padding:2px 9px;border-radius:999px;border:none;cursor:pointer;',
+        '  font:inherit;font-size:12px;font-weight:800;letter-spacing:0;line-height:1.5;',
+        '  background:rgba(74,144,226,.14);color:#2f6fc4;transition:filter .15s;}',
+        '.acc-ver:hover{filter:brightness(.95);}',
+        'body:not(.menu-light) .acc-ver{background:rgba(74,144,226,.22);color:#9cc6f5;}',
         '.acc-logo{height:68px;width:auto;max-width:150px;flex-shrink:0;object-fit:contain;border-radius:14px;',
         '  background:#fff;box-shadow:0 4px 14px rgba(40,30,70,.18);}',
         '.acc-time{text-align:right;flex-shrink:0;}',
@@ -217,6 +224,7 @@
         '  .acc-head{flex-direction:column;align-items:stretch;gap:6px;margin-bottom:8px;padding-right:34px;}',
         '  .acc-brand{gap:8px;} .acc-logo{height:36px;border-radius:8px;}',
         '  .acc-hello{font-size:12px;margin:0;} .acc-title{font-size:18px;}',
+        '  .acc-ver{font-size:10.5px;padding:1px 7px;margin-left:6px;}',
         '  .acc-intro{display:none;} .acc-points{display:none;}',
         '  .acc-time{text-align:left;display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;}',
         '  .acc-clock{font-size:24px;} .acc-date{font-size:12px;margin-top:0;}',
@@ -348,6 +356,12 @@
                    '</button>';
         }).join('');
 
+        // Numéro de version (version.js)
+        var version = String(window.APP_VERSION || '').trim();
+        var badgeVersion = version
+            ? '<button type="button" class="acc-ver" data-act="version" title="Version ' + escHtml(version) + ' — À propos">v' + escHtml(version) + '</button>'
+            : '';
+
         root = document.createElement('div');
         root.id = 'accueil';
         root.innerHTML =
@@ -356,7 +370,7 @@
               '<div class="acc-head">' +
                 '<div><div class="acc-brand">' +
                   '<img class="acc-logo" src="pics/logo-le-bureau-du-prof4.jpg" alt="Logo Le Bureau du Prof" onerror="this.remove()">' +
-                  '<div><p class="acc-hello">Bonjour !</p><h1 class="acc-title">Le Bureau du Prof</h1></div>' +
+                  '<div><p class="acc-hello">Bonjour !</p><h1 class="acc-title">Le Bureau du Prof' + badgeVersion + '</h1></div>' +
                 '</div>' +
                   '<p class="acc-intro">Votre <b>tableau blanc numérique</b> pour la classe : écrivez, dessinez, projetez vos documents ' +
                   'et lancez en un clic des <b>jeux</b>, des <b>leçons</b>, des <b>activités</b> et des <b>outils</b> pensés pour l\'école, au TBI, au VPI ou sur ordinateur.</p>' +
@@ -436,6 +450,11 @@
         root.querySelector('[data-act="share"]').addEventListener('click', function () {
             hide();
             if (typeof partagerBureauDuProf === 'function') partagerBureauDuProf();
+        });
+        var verBtn = root.querySelector('[data-act="version"]');
+        if (verBtn) verBtn.addEventListener('click', function () {
+            hide();
+            if (typeof openAboutModal === 'function') openAboutModal();
         });
         root.querySelector('.acc-close').addEventListener('click', hide);
         root.querySelector('.acc-never input').addEventListener('change', function (e) {

@@ -12,4 +12,4 @@
 // Installation : <script src="version.js"></script> dans le <head> de
 // index.html, AVANT tous les autres scripts.
 // =========================================================================
-window.APP_VERSION = '5.1';
+window.APP_VERSION = '6.1';

@@ -3140,13 +3140,14 @@ function setVisuelsMode(mode) {
             <span class="side-tab-lbl">Dessin</span>
         </button>
     </div>
-    <!-- Pastille « ? » : Aide, Contact, À propos (ce n'est pas un onglet) -->
+    <!-- Pastille « ? » : Accueil, Aide, Contact, À propos (ce n'est pas un onglet) -->
     <div class="side-help-wrap">
-        <button id="side-help-btn" type="button" onclick="toggleSideHelpMenu()" title="Aide, contact et informations" aria-haspopup="menu" aria-expanded="false" aria-controls="side-help-menu">?</button>
+        <button id="side-help-btn" type="button" onclick="toggleSideHelpMenu()" title="Accueil, aide, contact et informations" aria-haspopup="menu" aria-expanded="false" aria-controls="side-help-menu">?</button>
     </div>
 </nav>
 
 <div id="side-help-menu" role="menu" aria-label="Aide et informations">
+    <button role="menuitem" type="button" data-help="accueil"><span class="shm-ico">🏠</span>Accueil</button>
     <button role="menuitem" type="button" data-help="aide"><span class="shm-ico">❓</span>Aide</button>
     <button role="menuitem" type="button" data-help="contact"><span class="shm-ico">💬</span>Contact</button>
     <button role="menuitem" type="button" data-help="apropos"><span class="shm-ico">ℹ️</span>À propos</button>
@@ -4442,7 +4443,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     PASTILLE « ? » (Aide, Contact, À propos)
+     PASTILLE « ? » (Accueil, Aide, Contact, À propos)
+     L'écran d'accueil (openAccueil) est dans accueil.js.
      + styles des éléments déplacés depuis l'ancienne rubrique « Actions »
      La fenêtre « À propos » est dans a-propos.js ;
      le numéro de version (APP_VERSION) est dans version.js.
@@ -4610,7 +4612,8 @@ body.menu-light #proj-panel-clear-btn:hover { background: #fdecec; }
         if (!item) return;
         closeSideHelpMenu();
         var what = item.dataset.help;
-        if (what === 'aide' && typeof openHelpModal === 'function') openHelpModal();
+        if (what === 'accueil' && typeof openAccueil === 'function') openAccueil();
+        else if (what === 'aide' && typeof openHelpModal === 'function') openHelpModal();
         else if (what === 'contact' && typeof openContactForm === 'function') openContactForm();
         else if (what === 'apropos') openAboutModal();
     });

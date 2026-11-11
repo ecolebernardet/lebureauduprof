@@ -61,7 +61,7 @@
     ]) +
     p(`Les onglets sont rangés en trois familles, chacune annoncée par un petit titre : <strong>Élèves</strong> (Jeux, Leçons), <strong>Prof</strong> (Activités, Outils, Widgets, Visuels) et <strong>Gestion</strong> (Tableaux, Écran, Présenter).`) +
     h3('❓ La pastille « ? »') +
-    p(`Sous les onglets, la petite pastille <strong>?</strong> ouvre une bulle avec l'<strong>Aide</strong> (cette fenêtre), le formulaire <strong>Contact</strong> pour écrire à l'auteur, et la fenêtre <strong>À propos</strong> (version, vos données, crédits).`) +
+    p(`Sous les onglets, la petite pastille <strong>?</strong> ouvre une bulle avec l'<strong>Accueil</strong> (pour revenir à l'écran d'accueil), l'<strong>Aide</strong> (cette fenêtre), le formulaire <strong>Contact</strong> pour écrire à l'auteur, et la fenêtre <strong>À propos</strong> (version, vos données, crédits).`) +
     h3('✏️ Le bouton Dessiner') +
     p(`En bas à droite, le bouton <strong>Dessiner</strong> (<kbd>Alt+0</kbd>) ouvre la barre de dessin et de figures. Sur téléphone, il est remplacé par l'onglet <strong>Dessin</strong>, en bas de la colonne d'onglets.`) +
     h3('🖱️ Le menu rapide') +
@@ -430,7 +430,7 @@
     table(['Action', 'Nouvelle place'], [
       ['↩️ Annuler / ↪️ Refaire', 'Clic droit ou appui long sur le tableau, en haut du menu ; barre de dessin ; <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd>'],
       ['🗑️ Effacer', 'Onglet <strong>Tableaux</strong>, sous « Nouveau tableau »'],
-      ['❓ Aide, 💬 Contact, ℹ️ À propos', 'Pastille <strong>?</strong> sous les onglets'],
+      ['🏠 Accueil, ❓ Aide, 💬 Contact, ℹ️ À propos', 'Pastille <strong>?</strong> sous les onglets'],
     ])
   ));
 
@@ -449,8 +449,9 @@
 
   // AIDE, CONTACT, À PROPOS
   S.push(section('h-contact', '❓ Aide, contact & à propos',
-    p(`La pastille <strong>?</strong>, en bas de la colonne d'onglets, regroupe trois entrées :`) +
+    p(`La pastille <strong>?</strong>, en bas de la colonne d'onglets, regroupe quatre entrées :`) +
     table(['Entrée', 'Contenu'], [
+      ['🏠 Accueil', 'Rouvrir l\'écran d\'accueil (tuiles, heure, astuce)'],
       ['❓ Aide', 'Cette fenêtre : une vue d\'ensemble de tout le bureau'],
       ['💬 Contact', 'Envoyer une suggestion, signaler un bug ou dire merci à l\'auteur'],
       ['ℹ️ À propos', 'Version, vos données et crédits'],

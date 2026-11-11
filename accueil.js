@@ -13,6 +13,9 @@
 //   - un badge avec le numéro de version à côté du titre (version.js,
 //     window.APP_VERSION ; cliquable : ouvre la fenêtre « À propos »)
 //   - une astuce tirée au hasard
+// Elle peut aussi être rouverte à tout moment par openAccueil() (pastille
+// « ? » → Accueil), même si le tableau n'est pas vide ou si « Ne plus
+// afficher » est coché.
 //   - un bandeau « Merci à nos soutiens » avec les noms de donateurs.js ;
 //     tant que la liste est vide, un appel au soutien avec le lien Tipeee
 //     (DONATEURS_LIEN) le remplace — rien du tout s'il n'y a pas de lien
@@ -30,11 +33,15 @@
     if (window.location.search.indexOf('mode=pagegarde') !== -1) return;
 
     var HIDE_KEY = 'accueilMasque';          // « Ne plus afficher »
-    try { if (localStorage.getItem(HIDE_KEY) === '1') return; } catch (e) {}
+
+    // Affichage automatique au démarrage ? (l'ouverture à la demande,
+    // openAccueil(), reste toujours possible depuis la pastille « ? »)
+    var autoShow = true;
+    try { if (localStorage.getItem(HIDE_KEY) === '1') autoShow = false; } catch (e) {}
 
     // Lancement direct d'un outil par l'adresse (?ouvrir=minuteur…) :
     // pas d'écran d'accueil, l'outil demandé s'affiche tout de suite.
-    if (window._lancementDirect || /[?&]ouvrir=/.test(window.location.search)) return;
+    if (window._lancementDirect || /[?&]ouvrir=/.test(window.location.search)) autoShow = false;
 
     // ── Icônes : identiques à celles des onglets latéraux ────────────────
     var ICO = {
@@ -259,7 +266,9 @@
     ].join('\n');
 
     // ── Construction ─────────────────────────────────────────────────────
-    var root = null, clockTimer = null, observer = null;
+    var root = null, clockTimer = null, observer = null, tbObserver = null;
+    var autoDone = false;      // l'affichage automatique n'a lieu qu'une fois
+    var manuel = false;        // accueil ouvert à la demande (pastille « ? »)
 
     function boardIsEmpty() {
         var b = document.getElementById('board');
@@ -343,10 +352,12 @@
     }
 
     function build() {
-        var style = document.createElement('style');
-        style.id = 'accueil-style';
-        style.textContent = CSS;
-        document.head.appendChild(style);
+        if (!document.getElementById('accueil-style')) {
+            var style = document.createElement('style');
+            style.id = 'accueil-style';
+            style.textContent = CSS;
+            document.head.appendChild(style);
+        }
 
         var tiles = TILES.map(function (t, i) {
             return '<button type="button" class="acc-tile" data-fn="' + t[4] + '" style="--c:' + t[3] +
@@ -457,7 +468,10 @@
             if (typeof openAboutModal === 'function') openAboutModal();
         });
         root.querySelector('.acc-close').addEventListener('click', hide);
-        root.querySelector('.acc-never input').addEventListener('change', function (e) {
+        // La case reflète le réglage actuel (utile quand on rouvre l'accueil à la demande)
+        var never = root.querySelector('.acc-never input');
+        try { never.checked = localStorage.getItem(HIDE_KEY) === '1'; } catch (e) {}
+        never.addEventListener('change', function (e) {
             try {
                 if (e.target.checked) localStorage.setItem(HIDE_KEY, '1');
                 else localStorage.removeItem(HIDE_KEY);
@@ -467,14 +481,24 @@
         // Disparaît dès qu'on commence à travailler
         var b = document.getElementById('board');
         if (b) {
-            observer = new MutationObserver(function () { if (!boardIsEmpty()) hide(); });
+            observer = new MutationObserver(function (muts) {
+                if (manuel) {
+                    // Ouvert à la demande : le tableau peut déjà contenir des
+                    // éléments ; on ne ferme que si un nouvel élément apparaît.
+                    var ajout = muts.some(function (m) { return m.addedNodes && m.addedNodes.length; });
+                    if (ajout) hide();
+                } else if (!boardIsEmpty()) hide();
+            });
             observer.observe(b, { childList: true });
             b.addEventListener('pointerdown', hide, { once: true });
         }
         var tb = document.getElementById('draw-toolbar');
-        if (tb) new MutationObserver(function () {
-            if (tb.style.display && tb.style.display !== 'none') hide();
-        }).observe(tb, { attributes: true, attributeFilter: ['style'] });
+        if (tb && !tbObserver) {
+            tbObserver = new MutationObserver(function () {
+                if (tb.style.display && tb.style.display !== 'none') hide();
+            });
+            tbObserver.observe(tb, { attributes: true, attributeFilter: ['style'] });
+        }
         document.addEventListener('keydown', onKey);
 
         // Un onglet latéral (ou Alt+1…9, qui simulent un clic) ferme aussi l'accueil
@@ -490,22 +514,35 @@
         clearInterval(clockTimer);
         if (observer) observer.disconnect();
         document.removeEventListener('keydown', onKey);
+        var b = document.getElementById('board');
+        if (b) b.removeEventListener('pointerdown', hide);
         var r = root;
+        root = null;                                        // permet de le rouvrir
         setTimeout(function () { if (r.parentNode) r.parentNode.removeChild(r); }, 380);
     }
     window.hideAccueil = hide;
 
-    function tryShow() {
+    // Ouverture à la demande (pastille « ? » → Accueil), même si le
+    // tableau contient déjà des éléments ou si « Ne plus afficher » est coché.
+    function openAccueil() {
         if (root) return;                                   // déjà affiché
+        autoDone = true;
+        manuel = true;
+        build();
+    }
+    window.openAccueil = openAccueil;
+
+    function tryShow() {
+        if (!autoShow || autoDone || root) return;          // déjà affiché ou déjà fermé
         if (document.body.classList.contains('presentation-mode')) return;
-        if (boardIsEmpty()) build();
+        if (boardIsEmpty()) { autoDone = true; manuel = false; build(); }
     }
 
     // 1) Affichage rapide : dès que la page est construite, sans attendre le
     //    chargement de toutes les images des panneaux (événement « load »),
     //    mais seulement si le tableau enregistré ne contient aucun widget.
     document.addEventListener('DOMContentLoaded', function () {
-        if (savedBoardHasWidgets()) return;                 // on laisse l'étape 2 décider
+        if (!autoShow || savedBoardHasWidgets()) return;    // on laisse l'étape 2 décider
         setTimeout(tryShow, 600);
     });
 
@@ -518,7 +555,7 @@
     //      s'affichent pas comme des widgets), on l'affiche maintenant.
     window.addEventListener('load', function () {
         setTimeout(function () {
-            if (root) { if (!boardIsEmpty()) hide(); }
+            if (root) { if (!manuel && !boardIsEmpty()) hide(); }
             else tryShow();
         }, 1200);
     });
